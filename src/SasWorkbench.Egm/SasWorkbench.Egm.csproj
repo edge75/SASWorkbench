@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>SasWorkbench.Egm</RootNamespace>
+    <AssemblyName>SasWorkbench.Egm</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SasWorkbench.Core\SasWorkbench.Core.csproj" />
+  </ItemGroup>
+
+</Project>
