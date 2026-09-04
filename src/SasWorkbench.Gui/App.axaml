@@ -3,29 +3,17 @@
              x:Class="SasWorkbench.Gui.App"
              RequestedThemeVariant="Default">
 
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://SasWorkbench/Themes/Tokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
-    <Style Selector="TextBlock.label">
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="Opacity" Value="0.65" />
-      <Setter Property="Margin" Value="0,0,0,2" />
-    </Style>
-    <Style Selector="TextBlock.heading">
-      <Setter Property="FontSize" Value="11" />
-      <Setter Property="FontWeight" Value="SemiBold" />
-      <Setter Property="Opacity" Value="0.65" />
-      <Setter Property="Margin" Value="0,0,0,6" />
-    </Style>
-    <Style Selector="TextBlock.mono">
-      <Setter Property="FontFamily" Value="Consolas,Menlo,monospace" />
-      <Setter Property="FontSize" Value="12" />
-    </Style>
-    <Style Selector="Border.panel">
-      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="4" />
-      <Setter Property="Padding" Value="10" />
-    </Style>
+    <StyleInclude Source="avares://SasWorkbench/Themes/Components.axaml" />
   </Application.Styles>
 
 </Application>

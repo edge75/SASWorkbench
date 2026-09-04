@@ -1,0 +1,189 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Media.Imaging;
+using Avalonia.Styling;
+using Avalonia.Threading;
+using SasWorkbench.Gui;
+using SasWorkbench.Gui.Controls;
+using SasWorkbench.Gui.ViewModels;
+using SasWorkbench.Gui.Views;
+
+namespace SasWorkbench.UiSpecimen;
+
+/// <summary>
+/// Renders the window off-screen so a design change can be looked at rather than argued about.
+/// </summary>
+/// <remarks>
+/// Both theme variants and both window sizes, filled with the captured frames from the first
+/// milestone rather than with invented content, so what the picture shows is what the tool shows.
+/// Development only: nothing here ships in a release.
+/// </remarks>
+internal static class Program
+{
+    private static int Main(string[] args)
+    {
+        string directory = args.Length > 0
+            ? args[0]
+            : Path.Combine(AppContext.BaseDirectory, "specimens");
+        Directory.CreateDirectory(directory);
+
+        AppBuilder.Configure<App>()
+            .UseSkia()
+            .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+            .SetupWithoutStarting();
+
+        foreach ((string themeName, ThemeVariant variant) in
+                 new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
+        {
+            foreach ((string sizeName, int width, int height) in
+                     new[] { ("1180x760", 1180, 760), ("900x600", 900, 600) })
+            {
+                foreach ((string tabName, int tab) in new[] { ("longpoll", 0), ("run", 3) })
+                {
+                    string path = Path.Combine(
+                        directory, $"window-{themeName}-{sizeName}-{tabName}.png");
+                    Capture(variant, width, height, tab, path);
+                    Console.WriteLine(path);
+                }
+            }
+        }
+
+        foreach ((string themeName, ThemeVariant variant) in
+                 new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
+        {
+            string path = Path.Combine(directory, $"chips-{themeName}.png");
+            CaptureChips(variant, path);
+            Console.WriteLine(path);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Every chip state on one sheet, so the three redundant cues can be checked rather than
+    /// assumed: the word, the failure-only solid fill, and the glyph.
+    /// </summary>
+    private static void CaptureChips(ThemeVariant variant, string path)
+    {
+        var chips = new StackPanel { Spacing = 6, Margin = new Thickness(16) };
+        foreach (ChipStatus status in Enum.GetValues<ChipStatus>())
+            chips.Children.Add(new StatusChip { Status = status, Reason = "a reason" });
+
+        chips.Children.Add(new ProvenanceSeal { IsProven = true });
+        chips.Children.Add(new ProvenanceSeal
+        {
+            IsProven = false,
+            Caveat = "no adapter has been measured",
+        });
+
+        var window = new Window
+        {
+            Content = new Border { Classes = { "panel" }, Child = chips },
+            RequestedThemeVariant = variant,
+            Background = null,
+            Width = 260,
+            Height = 260,
+            SystemDecorations = SystemDecorations.None,
+        };
+
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+
+        using WriteableBitmap frame = window.CaptureRenderedFrame()
+            ?? throw new InvalidOperationException("the sheet rendered no frame");
+        using FileStream file = File.Create(path);
+        frame.Save(file);
+
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Capture(
+        ThemeVariant variant, int width, int height, int instrument, string path)
+    {
+        var window = new MainWindow
+        {
+            DataContext = Specimen(),
+            RequestedThemeVariant = variant,
+            Width = width,
+            Height = height,
+        };
+
+        window.Show();
+        window.FindControl<TabControl>("Instruments")!.SelectedIndex = instrument;
+        Dispatcher.UIThread.RunJobs();
+
+        using WriteableBitmap frame = window.CaptureRenderedFrame()
+            ?? throw new InvalidOperationException("the window rendered no frame");
+        using FileStream file = File.Create(path);
+        frame.Save(file);
+
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    /// <summary>The captured content from `docs/M1-thin-vertical-slice.md`. Nothing is invented.</summary>
+    private static WorkbenchViewModel Specimen()
+    {
+        var model = new WorkbenchViewModel
+        {
+            SelectedTransport = "tcp",
+            Target = "127.0.0.1:9760",
+            LinkState = "up",
+            IsLinkUp = true,
+            IsLinkProven = true,
+            LinkClaim = "over tcp 127.0.0.1:9760 (listen) · stimulus none",
+            Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
+            Status = "connected to tcp 127.0.0.1:9760 (listen)",
+            LastReply = "answered in 30.7 ms, 24 symbols",
+            RunSummary = "PASS — 1 passed, 1 skipped in 7.0s",
+        };
+
+        foreach ((string at, string direction, string symbols, string note) in Frames)
+            model.Wire.Add(new WireLine(at, direction, 1, symbols, note));
+
+        model.Fields.Add(new FieldLine("game_id", "QX", string.Empty));
+        model.Fields.Add(new FieldLine("additional_id", "001", string.Empty));
+        model.Fields.Add(new FieldLine("denomination", "2", "code"));
+        model.Fields.Add(new FieldLine("max_bet", "255", "credits"));
+        model.Fields.Add(new FieldLine("progressive_group", "0", "index"));
+        model.Fields.Add(new FieldLine("game_options", "0000", "little-endian"));
+        model.Fields.Add(new FieldLine("paytable_id", "001", string.Empty));
+        model.Fields.Add(new FieldLine("base_percentage", "9210", "hundredths of a percent"));
+
+        model.Meters.Add(new MeterLine("total_bill_value", "$20", "2000", "credits"));
+        model.Meters.Add(new MeterLine("games_played", "$15", "14", "count"));
+        model.Meters.Add(new MeterLine("current_credits", "$1A", "340", "credits"));
+        model.Meters.Add(new MeterLine("serial_number", "$54", "—",
+            "the reply held no 'serial_number'"));
+
+        model.Exceptions.Add(new ExceptionLine("$4A", "bill_accepted",
+            "a bill was accepted by the machine", "6200 ms"));
+
+        model.Steps.Add(new StepLine(ChipStatus.Pass,
+            "the link comes up and the machine identifies itself",
+            "tests/regression/wire/link-up.sas:1", "5 assert(s), 6.9s"));
+        model.Steps.Add(new StepLine(ChipStatus.Skip,
+            "10.1.1 standard validation configuration",
+            "tests/conformance/10.1/10.1.1-standard-validation.sas:1",
+            "egm.validation: this environment provides no 'egm.validation'"));
+
+        return model;
+    }
+
+    private static readonly (string At, string Direction, string Symbols, string Note)[] Frames =
+    [
+        ("     5927", "TX", "1.80", "sync poll - address zero"),
+        ("     5954", "TX", "1.81", "general poll"),
+        ("     5985", "RX", "0.18", "exception $18"),
+        ("     6126", "TX", "1.80", "sync poll - address zero"),
+        ("     6157", "TX", "1.01 0.1F", "long poll $1F"),
+        ("     6189", "RX",
+            "0.01 0.1F 0.51 0.58 0.30 0.30 0.31 0.02 0.FF 0.00 0.00 0.00 0.30 0.30 0.31 0.00 "
+            + "0.00 0.00 0.39 0.32 0.31 0.30 0.86 0.3F", string.Empty),
+        ("     6730", "TX", "1.80", "sync poll - address zero"),
+        ("     6761", "TX", "1.01 0.54", "long poll $54"),
+        ("     6791", "RX", "0.01 0.54 0.03 0.36 0.30 0.32 0.D0 0.8D", string.Empty),
+    ];
+}

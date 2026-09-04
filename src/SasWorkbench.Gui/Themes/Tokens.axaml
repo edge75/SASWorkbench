@@ -1,0 +1,112 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Both stacks resolve on stock Windows and on a stock Debian, Ubuntu or Fedora desktop. -->
+  <FontFamily x:Key="FontSans">Segoe UI, Inter, Noto Sans, DejaVu Sans, Liberation Sans, sans-serif</FontFamily>
+  <FontFamily x:Key="FontMono">Cascadia Mono, Consolas, DejaVu Sans Mono, Liberation Mono, Noto Sans Mono, monospace</FontFamily>
+
+  <ResourceDictionary.ThemeDictionaries>
+
+    <ResourceDictionary x:Key="Light">
+      <SolidColorBrush x:Key="SurfaceWindow"          Color="#EDF0F2" />
+      <SolidColorBrush x:Key="SurfacePanel"           Color="#FFFFFF" />
+      <SolidColorBrush x:Key="SurfaceRaised"          Color="#F7F9FA" />
+      <SolidColorBrush x:Key="SurfaceSunken"          Color="#E4E9EC" />
+      <SolidColorBrush x:Key="StrokeBorder"           Color="#B4C0C8" />
+      <SolidColorBrush x:Key="StrokeDivider"          Color="#DCE3E7" />
+      <SolidColorBrush x:Key="StrokeControl"          Color="#7D8B97" />
+      <SolidColorBrush x:Key="StrokeFocus"            Color="#10171C" />
+      <SolidColorBrush x:Key="TextPrimary"            Color="#10171C" />
+      <SolidColorBrush x:Key="TextSecondary"          Color="#46545E" />
+      <SolidColorBrush x:Key="TextDisabled"           Color="#6E7C85" />
+      <SolidColorBrush x:Key="TextData"               Color="#14202A" />
+      <SolidColorBrush x:Key="Accent"                 Color="#22303A" />
+      <SolidColorBrush x:Key="AccentGround"           Color="#E0E2E3" />
+      <SolidColorBrush x:Key="TextOnAccent"           Color="#FFFFFF" />
+      <SolidColorBrush x:Key="WireTx"                 Color="#8A5300" />
+      <SolidColorBrush x:Key="WireTxGround"           Color="#EFE7DB" />
+      <SolidColorBrush x:Key="WireRx"                 Color="#0A5F70" />
+      <SolidColorBrush x:Key="WireWakeup"             Color="#6B4A00" />
+      <SolidColorBrush x:Key="WireWakeupGround"       Color="#EAE6DB" />
+      <SolidColorBrush x:Key="StatusPass"             Color="#16704A" />
+      <SolidColorBrush x:Key="StatusPassGround"       Color="#DEEBE6" />
+      <SolidColorBrush x:Key="StatusFail"             Color="#941515" />
+      <SolidColorBrush x:Key="StatusFailGround"       Color="#F0DEDE" />
+      <SolidColorBrush x:Key="TextOnFail"             Color="#FFFFFF" />
+      <SolidColorBrush x:Key="StatusSkip"             Color="#5A4595" />
+      <SolidColorBrush x:Key="StatusSkipGround"       Color="#E8E5F0" />
+      <SolidColorBrush x:Key="StatusUndecoded"        Color="#41525E" />
+      <SolidColorBrush x:Key="StatusUndecodedGround"  Color="#E4E7E8" />
+      <SolidColorBrush x:Key="StatusUnknown"          Color="#696969" />
+      <SolidColorBrush x:Key="StatusUnknownGround"    Color="#EAEAEA" />
+      <SolidColorBrush x:Key="StatusWarning"          Color="#8A5A00" />
+      <SolidColorBrush x:Key="StatusWarningGround"    Color="#EFE8DB" />
+      <SolidColorBrush x:Key="ProvProven"             Color="#0E6A50" />
+      <SolidColorBrush x:Key="ProvProvenGround"       Color="#DDEAE6" />
+      <SolidColorBrush x:Key="ProvUnverified"         Color="#8A4B00" />
+      <SolidColorBrush x:Key="ProvUnverifiedGround"   Color="#EFE6DB" />
+      <!-- Decorative: the unverified stamp is hatched so the claim survives a greyscale print. -->
+      <DrawingBrush x:Key="HatchUnverified" TileMode="Tile"
+                    SourceRect="0,0,6,6" DestinationRect="0,0,6,6">
+        <DrawingBrush.Drawing>
+          <GeometryDrawing Geometry="M0,6 L6,0 M-1,1 L1,-1 M5,7 L7,5">
+            <GeometryDrawing.Pen>
+              <Pen Brush="#E0CFB4" Thickness="1" />
+            </GeometryDrawing.Pen>
+          </GeometryDrawing>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+    </ResourceDictionary>
+
+    <ResourceDictionary x:Key="Dark">
+      <SolidColorBrush x:Key="SurfaceWindow"          Color="#0D1013" />
+      <SolidColorBrush x:Key="SurfacePanel"           Color="#14191E" />
+      <SolidColorBrush x:Key="SurfaceRaised"          Color="#1C232A" />
+      <SolidColorBrush x:Key="SurfaceSunken"          Color="#070909" />
+      <SolidColorBrush x:Key="StrokeBorder"           Color="#2C363F" />
+      <SolidColorBrush x:Key="StrokeDivider"          Color="#1E262C" />
+      <SolidColorBrush x:Key="StrokeControl"          Color="#657079" />
+      <SolidColorBrush x:Key="StrokeFocus"            Color="#FFFFFF" />
+      <SolidColorBrush x:Key="TextPrimary"            Color="#E6ECF1" />
+      <SolidColorBrush x:Key="TextSecondary"          Color="#AAB8C2" />
+      <SolidColorBrush x:Key="TextDisabled"           Color="#79878F" />
+      <SolidColorBrush x:Key="TextData"               Color="#DCE7EF" />
+      <SolidColorBrush x:Key="Accent"                 Color="#C7D2DA" />
+      <SolidColorBrush x:Key="AccentGround"           Color="#2D3338" />
+      <SolidColorBrush x:Key="TextOnAccent"           Color="#0D1013" />
+      <SolidColorBrush x:Key="WireTx"                 Color="#F0A93C" />
+      <SolidColorBrush x:Key="WireTxGround"           Color="#332D22" />
+      <SolidColorBrush x:Key="WireRx"                 Color="#55CADC" />
+      <SolidColorBrush x:Key="WireWakeup"             Color="#FFD466" />
+      <SolidColorBrush x:Key="WireWakeupGround"       Color="#353328" />
+      <SolidColorBrush x:Key="StatusPass"             Color="#5FC98A" />
+      <SolidColorBrush x:Key="StatusPassGround"       Color="#1E322D" />
+      <SolidColorBrush x:Key="StatusFail"             Color="#FF7A7A" />
+      <SolidColorBrush x:Key="StatusFailGround"       Color="#35272B" />
+      <SolidColorBrush x:Key="TextOnFail"             Color="#000000" />
+      <SolidColorBrush x:Key="StatusSkip"             Color="#B9A6E8" />
+      <SolidColorBrush x:Key="StatusSkipGround"       Color="#2B2D3A" />
+      <SolidColorBrush x:Key="StatusUndecoded"        Color="#93A6B4" />
+      <SolidColorBrush x:Key="StatusUndecodedGround"  Color="#262D33" />
+      <SolidColorBrush x:Key="StatusUnknown"          Color="#9A9A9A" />
+      <SolidColorBrush x:Key="StatusUnknownGround"    Color="#272B2F" />
+      <SolidColorBrush x:Key="StatusWarning"          Color="#F2C14E" />
+      <SolidColorBrush x:Key="StatusWarningGround"    Color="#333125" />
+      <SolidColorBrush x:Key="ProvProven"             Color="#6FD0A8" />
+      <SolidColorBrush x:Key="ProvProvenGround"       Color="#213331" />
+      <SolidColorBrush x:Key="ProvUnverified"         Color="#F2A93B" />
+      <SolidColorBrush x:Key="ProvUnverifiedGround"   Color="#332D22" />
+      <DrawingBrush x:Key="HatchUnverified" TileMode="Tile"
+                    SourceRect="0,0,6,6" DestinationRect="0,0,6,6">
+        <DrawingBrush.Drawing>
+          <GeometryDrawing Geometry="M0,6 L6,0 M-1,1 L1,-1 M5,7 L7,5">
+            <GeometryDrawing.Pen>
+              <Pen Brush="#4C4230" Thickness="1" />
+            </GeometryDrawing.Pen>
+          </GeometryDrawing>
+        </DrawingBrush.Drawing>
+      </DrawingBrush>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

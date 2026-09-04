@@ -1,0 +1,329 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:c="using:SasWorkbench.Gui.Controls">
+
+  <!-- Typography. Hierarchy is weight, size, case and colour token — never opacity. -->
+
+  <Style Selector="TextBlock.mark">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="1.0" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="LetterSpacing" Value="0.8" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <Style Selector="TextBlock.field">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="0.6" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="Margin" Value="0,0,0,2" />
+  </Style>
+
+  <Style Selector="TextBlock.prose">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <Style Selector="TextBlock.strong">
+    <Setter Property="FontFamily" Value="{StaticResource FontSans}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
+  <!-- Mono is the substance, not a decoration, so it takes the strongest tokens. -->
+
+  <Style Selector="TextBlock.name, SelectableTextBlock.name">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource TextData}" />
+  </Style>
+
+  <Style Selector="TextBlock.value, SelectableTextBlock.value">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
+  <Style Selector="TextBlock.hex, SelectableTextBlock.hex">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource TextData}" />
+  </Style>
+
+  <Style Selector="TextBlock.at, SelectableTextBlock.at">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <Style Selector="TextBlock.where, SelectableTextBlock.where">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <Style Selector="TextBlock.readout, SelectableTextBlock.readout">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <!-- A data state: angle-bracketed so it can never be read as a verdict. -->
+  <Style Selector="TextBlock.state, SelectableTextBlock.state">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11.5" />
+    <Setter Property="Foreground" Value="{DynamicResource StatusUndecoded}" />
+  </Style>
+
+  <Style Selector="TextBlock.state.unknown, SelectableTextBlock.state.unknown">
+    <Setter Property="Foreground" Value="{DynamicResource StatusUnknown}" />
+  </Style>
+
+  <!-- Surfaces. -->
+
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource SurfacePanel}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+
+  <Style Selector="Border.raised">
+    <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBorder}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+  </Style>
+
+  <Style Selector="Border.well">
+    <Setter Property="Background" Value="{DynamicResource SurfaceSunken}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBorder}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="2" />
+  </Style>
+
+  <!-- A bezel field group in the instrument header: caption above, value inside a boxed ground. -->
+  <Style Selector="Border.bezel">
+    <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeControl}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Padding" Value="6,2" />
+    <Setter Property="MinHeight" Value="24" />
+  </Style>
+
+  <!-- An error strip: it appears where the error was caused, never as a toast. -->
+  <Style Selector="Border.fault">
+    <Setter Property="Background" Value="{DynamicResource StatusFailGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusFail}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Padding" Value="8,5" />
+  </Style>
+
+  <Style Selector="Rectangle.divider">
+    <Setter Property="Fill" Value="{DynamicResource StrokeDivider}" />
+    <Setter Property="Height" Value="1" />
+  </Style>
+
+  <!-- Density. A data row is 18 DIP, so a 600 DIP window shows 26 of them rather than 12. -->
+
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
+  <Style Selector="ListBoxItem">
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="MinHeight" Value="18" />
+  </Style>
+
+  <!-- Selection is achromatic: all chroma on this screen belongs to data and state. -->
+  <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
+  </Style>
+
+  <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
+  </Style>
+
+  <!-- The provenance band. Its whole ground changes with the strength of the claim. -->
+
+  <Style Selector="Border.rail">
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Background" Value="{DynamicResource ProvProvenGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ProvProven}" />
+  </Style>
+
+  <Style Selector="Border.rail.unverified">
+    <Setter Property="Background" Value="{DynamicResource ProvUnverifiedGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource ProvUnverified}" />
+  </Style>
+
+  <!-- Liveness is one lamp, and it does not blink: a poll that arrives on time is not an event. -->
+  <Style Selector="Ellipse.lamp">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="StrokeThickness" Value="1" />
+    <Setter Property="Stroke" Value="{DynamicResource TextSecondary}" />
+    <Setter Property="Fill" Value="Transparent" />
+  </Style>
+
+  <Style Selector="Ellipse.lamp.up">
+    <Setter Property="Fill" Value="{DynamicResource TextPrimary}" />
+    <Setter Property="Stroke" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
+  <!-- The status chip: the word, the fill treatment and the glyph. All three are required. -->
+
+  <Style Selector="c|StatusChip">
+    <Setter Property="Height" Value="18" />
+    <Setter Property="MinWidth" Value="78" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <Border Name="PART_Ground"
+                  Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="2" />
+          <Rectangle Name="PART_Dash" IsVisible="False" RadiusX="2" RadiusY="2"
+                     StrokeThickness="1" StrokeDashArray="2,2"
+                     Stroke="{TemplateBinding Foreground}" />
+          <StackPanel Orientation="Horizontal" Margin="4,0,7,0" Spacing="4"
+                      VerticalAlignment="Center">
+            <Rectangle Name="PART_Bar" Width="3" IsVisible="False" Margin="0,1"
+                       Fill="{TemplateBinding Foreground}" />
+            <Path Name="PART_Glyph" Width="10" Height="10" Stretch="None"
+                  Data="{TemplateBinding Glyph}"
+                  Stroke="{TemplateBinding Foreground}" StrokeThickness="1.4"
+                  StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
+            <TextBlock Name="PART_Label" Text="{TemplateBinding Word}"
+                       Foreground="{TemplateBinding Foreground}"
+                       LetterSpacing="0.6" VerticalAlignment="Center" />
+          </StackPanel>
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="c|StatusChip:pass">
+    <Setter Property="Foreground" Value="{DynamicResource StatusPass}" />
+    <Setter Property="Background" Value="{DynamicResource StatusPassGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusPass}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- The only solid-filled chip in the application. Do not make it outlined for consistency. -->
+  <Style Selector="c|StatusChip:fail">
+    <Setter Property="Foreground" Value="{DynamicResource TextOnFail}" />
+    <Setter Property="Background" Value="{DynamicResource StatusFail}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="c|StatusChip:skip">
+    <Setter Property="Foreground" Value="{DynamicResource StatusSkip}" />
+    <Setter Property="Background" Value="{DynamicResource StatusSkipGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusSkip}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="c|StatusChip:skip /template/ Rectangle#PART_Bar">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+
+  <Style Selector="c|StatusChip:error">
+    <Setter Property="Foreground" Value="{DynamicResource StatusFail}" />
+    <Setter Property="Background" Value="{DynamicResource StatusFailGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusFail}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <Style Selector="c|StatusChip:error /template/ Rectangle#PART_Bar">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+
+  <Style Selector="c|StatusChip:undecoded">
+    <Setter Property="Foreground" Value="{DynamicResource StatusUndecoded}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="c|StatusChip:undecoded /template/ Rectangle#PART_Dash">
+    <Setter Property="IsVisible" Value="True" />
+  </Style>
+
+  <Style Selector="c|StatusChip:unknown">
+    <Setter Property="Foreground" Value="{DynamicResource StatusUnknown}" />
+    <Setter Property="Background" Value="{DynamicResource StatusUnknownGround}" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+
+  <Style Selector="c|StatusChip:warning">
+    <Setter Property="Foreground" Value="{DynamicResource StatusWarning}" />
+    <Setter Property="Background" Value="{DynamicResource StatusWarningGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StatusWarning}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- The provenance stamp. -->
+
+  <Style Selector="c|ProvenanceSeal">
+    <Setter Property="Height" Value="20" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <Panel>
+          <Border Name="PART_Ground" Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding Foreground}" BorderThickness="1"
+                  CornerRadius="2" />
+          <Rectangle Name="PART_Hatch" IsVisible="False" RadiusX="2" RadiusY="2" />
+          <TextBlock Name="PART_Label" Text="{TemplateBinding Word}"
+                     Foreground="{TemplateBinding Foreground}"
+                     FontStyle="{TemplateBinding FontStyle}"
+                     LetterSpacing="0.8" Margin="7,0"
+                     VerticalAlignment="Center" HorizontalAlignment="Center" />
+        </Panel>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
+  <Style Selector="c|ProvenanceSeal:proven">
+    <Setter Property="Foreground" Value="{DynamicResource ProvProven}" />
+    <Setter Property="Background" Value="{DynamicResource ProvProvenGround}" />
+  </Style>
+
+  <Style Selector="c|ProvenanceSeal:unverified">
+    <Setter Property="Foreground" Value="{DynamicResource ProvUnverified}" />
+    <Setter Property="Background" Value="{DynamicResource ProvUnverifiedGround}" />
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+
+  <Style Selector="c|ProvenanceSeal:unverified /template/ Rectangle#PART_Hatch">
+    <Setter Property="IsVisible" Value="True" />
+    <Setter Property="Fill" Value="{DynamicResource HatchUnverified}" />
+  </Style>
+
+</Styles>

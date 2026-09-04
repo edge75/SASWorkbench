@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SasWorkbench.Gui.Controls"
+             xmlns:vm="using:SasWorkbench.Gui.ViewModels"
+             x:Class="SasWorkbench.Gui.Views.ProvenanceRail"
+             x:DataType="vm:WorkbenchViewModel"
+             AutomationProperties.Name="Provenance"
+             AutomationProperties.LiveSetting="Polite">
+
+  <Border Classes="rail" Classes.unverified="{Binding !IsLinkProven}">
+    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+
+      <c:ProvenanceSeal Grid.Column="0" IsProven="{Binding IsLinkProven}"
+                        Caveat="{Binding LinkCaveat}" />
+
+      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+        <TextBlock Classes="strong" Text="{Binding LinkClaim}" TextWrapping="Wrap" />
+        <TextBlock Classes="prose" Text="{Binding LinkCaveat}" TextWrapping="Wrap"
+                   IsVisible="{Binding HasLinkCaveat}" />
+      </StackPanel>
+
+      <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6"
+                  VerticalAlignment="Center">
+        <Ellipse Classes="lamp" Classes.up="{Binding IsLinkUp}" VerticalAlignment="Center" />
+        <TextBlock Classes="caption" Text="{Binding LinkState}" VerticalAlignment="Center" />
+      </StackPanel>
+
+    </Grid>
+  </Border>
+</UserControl>

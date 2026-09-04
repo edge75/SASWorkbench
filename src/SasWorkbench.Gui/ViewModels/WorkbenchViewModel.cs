@@ -11,6 +11,7 @@ using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Egm;
+using SasWorkbench.Gui.Controls;
 
 namespace SasWorkbench.Gui.ViewModels;
 
@@ -67,9 +68,28 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string? Status { get; set; }
 
-    /// <summary>What this link is worth, said plainly next to the results.</summary>
+    /// <summary>Whether the lamp is filled.</summary>
     [ObservableProperty]
-    public partial string? Provenance { get; set; }
+    public partial bool IsLinkUp { get; set; }
+
+    // ---- provenance ----------------------------------------------------------------------
+
+    /// <summary>Whether a pass on this link is evidence, or only a claim.</summary>
+    [ObservableProperty]
+    public partial bool IsLinkProven { get; set; } = true;
+
+    /// <summary>The link and what is driving it, in one line.</summary>
+    [ObservableProperty]
+    public partial string LinkClaim { get; set; } = "no link";
+
+    /// <summary>The sentence a reader needs in order not to over-read a result.</summary>
+    [ObservableProperty]
+    public partial string? LinkCaveat { get; set; }
+
+    /// <summary>Whether there is a caveat to show at all.</summary>
+    public bool HasLinkCaveat => !string.IsNullOrWhiteSpace(LinkCaveat);
+
+    partial void OnLinkCaveatChanged(string? value) => OnPropertyChanged(nameof(HasLinkCaveat));
 
     [ObservableProperty]
     public partial string Counters { get; set; } = string.Empty;
@@ -164,12 +184,13 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
         IsConnected = true;
         LinkState = _session.State.ToString().ToLowerInvariant();
+        IsLinkUp = _session.State == Core.Polling.LinkState.Up;
         Status = $"connected to {_session.Description}";
 
         TransportCapabilities caps = _session.Capabilities;
-        Provenance = caps.Caveat is null
-            ? $"{_session.Description} · {caps.Fidelity.ToString().ToLowerInvariant()}"
-            : $"{_session.Description} · {caps.Fidelity.ToString().ToLowerInvariant()} · {caps.Caveat}";
+        IsLinkProven = caps.Fidelity == TransportFidelity.Proven;
+        LinkClaim = $"{_session.Description} · stimulus none";
+        LinkCaveat = caps.Caveat;
 
         RefreshCounters();
     }
@@ -189,6 +210,10 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
         IsConnected = false;
         LinkState = "down";
+        IsLinkUp = false;
+        LinkClaim = "no link";
+        LinkCaveat = null;
+        IsLinkProven = true;
         Status = "disconnected";
     }
 
@@ -325,7 +350,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
             foreach (TestOutcome test in report.Tests)
             {
                 Steps.Add(new StepLine(
-                    test.Verdict.ToString().ToUpperInvariant(),
+                    Chip(test.Verdict),
                     test.Name,
                     test.Location.ToString(),
                     test.SkipReason ?? $"{test.Assertions} assert(s), {test.Duration.TotalSeconds:F1}s"));
@@ -333,7 +358,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
                 foreach (StepResult step in test.Steps.Where(s => s.Verdict != Verdict.Pass))
                 {
                     Steps.Add(new StepLine(
-                        step.Verdict.ToString().ToUpperInvariant(),
+                        Chip(step.Verdict),
                         "    " + step.Description,
                         step.Location.ToString(),
                         step.Reason ?? $"expected {step.Expected}, got {step.Actual}"));
@@ -446,8 +471,18 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     private void OnLinkState(LinkState state) => Dispatcher.UIThread.Post(() =>
     {
         LinkState = state.ToString().ToLowerInvariant();
+        IsLinkUp = state == Core.Polling.LinkState.Up;
         RefreshCounters();
     });
+
+    /// <summary>A verdict as a chip state.</summary>
+    private static ChipStatus Chip(Verdict verdict) => verdict switch
+    {
+        Verdict.Pass => ChipStatus.Pass,
+        Verdict.Fail => ChipStatus.Fail,
+        Verdict.Skip => ChipStatus.Skip,
+        _ => ChipStatus.Error,
+    };
 
     private void RefreshCounters()
     {
@@ -470,4 +505,4 @@ public sealed record MeterLine(string Name, string From, string Value, string No
 public sealed record FieldLine(string Name, string Value, string Note);
 
 /// <summary>One line of a script run's result.</summary>
-public sealed record StepLine(string Verdict, string What, string Where, string Detail);
+public sealed record StepLine(ChipStatus Verdict, string What, string Where, string Detail);
