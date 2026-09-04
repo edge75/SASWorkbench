@@ -185,6 +185,55 @@
     <Setter Property="Padding" Value="0" />
   </Style>
 
+  <!-- The stream. The machine's answer is the evidence; our own poll is context. -->
+
+  <Style Selector="TextBlock.symbol">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="12.5" />
+    <Setter Property="Foreground" Value="{DynamicResource TextData}" />
+    <Setter Property="Margin" Value="0,0,7,0" />
+  </Style>
+
+  <!--
+    Bit 8 on an address byte. A joined string could not carry this, which is why the symbols travel
+    as a list. Colour and weight only: a tinted ground would be invisible on a transmit row, which
+    already carries a tint of its own.
+  -->
+  <Style Selector="TextBlock.symbol.wakeup">
+    <Setter Property="Foreground" Value="{DynamicResource WireWakeup}" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
+  <Style Selector="ListBoxItem.tx">
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource WireTx}" />
+    <Setter Property="Background" Value="{DynamicResource WireTxGround}" />
+  </Style>
+
+  <Style Selector="ListBoxItem.tx TextBlock.hex">
+    <Setter Property="Foreground" Value="{DynamicResource WireTx}" />
+  </Style>
+
+  <!-- A lane toggle: a compact filter, not a command. -->
+  <Style Selector="ToggleButton.lane">
+    <Setter Property="FontFamily" Value="{StaticResource FontMono}" />
+    <Setter Property="FontSize" Value="10.5" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="MinWidth" Value="34" />
+    <Setter Property="Height" Value="22" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeControl}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Foreground" Value="{DynamicResource TextSecondary}" />
+  </Style>
+
+  <Style Selector="ToggleButton.lane:checked /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AccentGround}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource TextPrimary}" />
+  </Style>
+
   <!-- The provenance band. Its whole ground changes with the strength of the claim. -->
 
   <Style Selector="Border.rail">

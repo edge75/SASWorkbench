@@ -21,12 +21,7 @@ namespace SasWorkbench.Gui.ViewModels;
 /// </summary>
 public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 {
-    /// <summary>
-    /// How many messages the log keeps. A busy link produces five a second, so an unbounded list
-    /// would grow without limit while somebody watched it over lunch.
-    /// </summary>
-    private const int WireLimit = 2000;
-
+    private readonly SessionLog _log = new();
     private HostSession? _session;
 
     public WorkbenchViewModel()
@@ -37,7 +32,16 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         LongPolls = SasCatalogue.LongPolls.Values.OrderBy(l => l.Code).ToList();
         SelectedLongPoll = LongPolls.FirstOrDefault(l => l.Code == 0x1F) ?? LongPolls[0];
         SelectedInstrument = Instruments[0];
+        Channels = ChannelOption.Offer(CapabilityProbe.Baseline());
+        SelectedChannel = Channels[0];
+
+        // One log for the window, not one per link. A run closes the interactive session and opens
+        // its own, and the stream has to survive that: what is durable is the record, not the link.
+        Stream.Watch(_log);
     }
+
+    /// <summary>The spine: everything this session did, in order.</summary>
+    public SessionStreamViewModel Stream { get; } = new();
 
     // ---- connection ----------------------------------------------------------------------
 
@@ -55,7 +59,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     public partial string Address { get; set; } = "01";
 
     [ObservableProperty]
-    public partial int SelectedChannel { get; set; } = 1;
+    public partial ChannelOption SelectedChannel { get; set; } = null!;
 
     [ObservableProperty]
     public partial string PollInterval { get; set; } = "200ms";
@@ -97,9 +101,13 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     /// <summary>How full the log is, so a reader knows when it has started overwriting.</summary>
     [ObservableProperty]
-    public partial string LogBound { get; set; } = $"log 0/{WireLimit}";
+    public partial string LogBound { get; set; } = "log 0/0";
 
-    public IReadOnlyList<int> Channels { get; } = [1, 2, 3, 4];
+    /// <summary>
+    /// The four channels, with the three this build has never opened marked as such rather than
+    /// offered as ordinary choices.
+    /// </summary>
+    public IReadOnlyList<ChannelOption> Channels { get; }
 
     // ---- instruments ---------------------------------------------------------------------
 
@@ -135,8 +143,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     // ---- live views ----------------------------------------------------------------------
 
-    public ObservableCollection<WireLine> Wire { get; } = [];
-
     public ObservableCollection<ExceptionLine> Exceptions { get; } = [];
 
     public ObservableCollection<MeterLine> Meters { get; } = [];
@@ -147,9 +153,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     public partial string? LastReply { get; set; }
-
-    [ObservableProperty]
-    public partial bool FollowWire { get; set; } = true;
 
     // ---- long poll -----------------------------------------------------------------------
 
@@ -202,12 +205,18 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (!SelectedChannel.IsAvailable)
+        {
+            Status = $"channel {SelectedChannel.Number}: {SelectedChannel.Reason}";
+            return;
+        }
+
         var spec = new HostSessionSpec(
-            transport, Target, address, (SasChannel)SelectedChannel, interval);
+            transport, Target, address, (SasChannel)SelectedChannel.Number, interval);
 
         try
         {
-            _session = HostSession.Open(spec, SoftwareMachinePeer.For());
+            _session = HostSession.Open(spec, SoftwareMachinePeer.For(), _log);
         }
         catch (TransportRefusedException refused)
         {
@@ -215,7 +224,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
             return;
         }
 
-        _session.Wire += OnWire;
         _session.ExceptionReported += OnException;
         _session.LinkStateChanged += OnLinkState;
 
@@ -240,7 +248,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         if (session is null)
             return;
 
-        session.Wire -= OnWire;
         session.ExceptionReported -= OnException;
         session.LinkStateChanged -= OnLinkState;
         session.Dispose();
@@ -379,6 +386,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
                 {
                     Stimulus = StimulusBackend.Software,
                     Environment = SoftwareMachineEnvironment.For(),
+                    Log = _log,
                 });
 
                 return runner.RunAll(documents);
@@ -448,7 +456,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ClearLog()
     {
-        Wire.Clear();
+        Stream.Clear();
         Exceptions.Clear();
     }
 
@@ -465,32 +473,13 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         await Task.CompletedTask;
     }
 
-    public void Dispose() => Disconnect();
+    public void Dispose()
+    {
+        Disconnect();
+        Stream.Dispose();
+    }
 
     // ---- plumbing ------------------------------------------------------------------------
-
-    private void OnWire(
-        WireDirection direction,
-        SasChannel channel,
-        ReadOnlySpan<SasSymbol> symbols,
-        TimeSpan elapsed,
-        string? note)
-    {
-        // Rendered here, on the poll thread, because a span cannot be carried across a post.
-        var line = new WireLine(
-            $"{elapsed.TotalMilliseconds,9:F0}",
-            direction == WireDirection.Transmit ? "TX" : "RX",
-            (int)channel,
-            string.Join(' ', symbols.ToArray().Select(s => s.ToString())),
-            note ?? string.Empty);
-
-        Dispatcher.UIThread.Post(() =>
-        {
-            Wire.Add(line);
-            while (Wire.Count > WireLimit)
-                Wire.RemoveAt(0);
-        });
-    }
 
     private void OnException(ExceptionReport report) => Dispatcher.UIThread.Post(() =>
     {
@@ -526,7 +515,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         PollStatistics stats = _session?.Statistics ?? PollStatistics.Empty;
         Counters = $"{stats.SyncPolls} sync · {stats.GeneralPolls} general · {stats.LongPolls} long · "
                    + $"{stats.Exceptions} exceptions · {stats.Silences} silences";
-        LogBound = $"log {Wire.Count}/{WireLimit}";
+        LogBound = $"log {_log.Recorded}/{_log.Capacity}";
     }
 }
 
@@ -544,9 +533,6 @@ public sealed record RailItem(string Name, int Index, string? Milestone = null)
         ? Name
         : $"{Name} — not in this build; {Milestone} brings it";
 }
-
-/// <summary>One message in the log.</summary>
-public sealed record WireLine(string At, string Direction, int Channel, string Symbols, string Note);
 
 /// <summary>One exception the machine reported.</summary>
 public sealed record ExceptionLine(string Code, string Name, string Meaning, string At);

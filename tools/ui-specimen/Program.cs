@@ -4,6 +4,11 @@ using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using SasWorkbench.Core.Diagnostics;
+using SasWorkbench.Core.Polling;
+using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Session;
+using SasWorkbench.Core.Wire;
 using SasWorkbench.Gui;
 using SasWorkbench.Gui.Controls;
 using SasWorkbench.Gui.ViewModels;
@@ -41,10 +46,13 @@ internal static class Program
             {
                 foreach ((string tabName, int tab) in new[] { ("longpoll", 0), ("run", 3) })
                 {
-                    string path = Path.Combine(
-                        directory, $"window-{themeName}-{sizeName}-{tabName}.png");
-                    Capture(variant, width, height, tab, path);
-                    Console.WriteLine(path);
+                    foreach ((string lanes, bool all) in new[] { ("wire", false), ("lanes", true) })
+                    {
+                        string path = Path.Combine(
+                            directory, $"window-{themeName}-{sizeName}-{tabName}-{lanes}.png");
+                        Capture(variant, width, height, tab, all, path);
+                        Console.WriteLine(path);
+                    }
                 }
             }
         }
@@ -100,10 +108,16 @@ internal static class Program
     }
 
     private static void Capture(
-        ThemeVariant variant, int width, int height, int instrument, string path)
+        ThemeVariant variant, int width, int height, int instrument, bool allLanes, string path)
     {
         WorkbenchViewModel model = Specimen();
         model.SelectedInstrument = model.Instruments[instrument];
+
+        if (allLanes)
+        {
+            foreach (LaneFilter lane in model.Stream.Lanes)
+                lane.IsShown = true;
+        }
 
         var window = new MainWindow
         {
@@ -137,14 +151,13 @@ internal static class Program
             IsLinkProven = true,
             LinkClaim = "over tcp 127.0.0.1:9760 (listen) · stimulus none",
             Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
-            LogBound = "log 9/2000",
+            LogBound = "log 9/20000",
             Status = "connected to tcp 127.0.0.1:9760 (listen)",
             LastReply = "answered in 30.7 ms, 24 symbols",
             RunSummary = "PASS — 1 passed, 1 skipped in 7.0s",
         };
 
-        foreach ((string at, string direction, string symbols, string note) in Frames)
-            model.Wire.Add(new WireLine(at, direction, 1, symbols, note));
+        model.Stream.Watch(Captured());
 
         model.Fields.Add(new FieldLine("game_id", "QX", string.Empty));
         model.Fields.Add(new FieldLine("additional_id", "001", string.Empty));
@@ -175,18 +188,57 @@ internal static class Program
         return model;
     }
 
-    private static readonly (string At, string Direction, string Symbols, string Note)[] Frames =
+    /// <summary>The frames the first milestone actually captured, replayed into a session log.</summary>
+    private static SessionLog Captured()
+    {
+        var log = new SessionLog();
+        log.TestStarted("link-up", SourceLocation.None, SasChannel.One, TimeSpan.Zero);
+
+        foreach ((double at, WireDirection direction, string hex, string note) in Frames)
+        {
+            SasSymbol[] symbols = [.. hex.Split(' ').Select(Parse)];
+            log.Wire(direction, SasChannel.One, symbols, TimeSpan.FromMilliseconds(at),
+                ClockBase.Session, note.Length == 0 ? null : note);
+
+            if (at == 5985)
+            {
+                log.Exception(
+                    new ExceptionReport(0x18, SasChannel.One, TimeSpan.FromMilliseconds(5986), 1),
+                    ClockBase.Session, "gaming machine out of service");
+            }
+        }
+
+        log.Step(
+            new StepResult(new SourceLocation("link-up.sas", 5), "expect field game_id == QX",
+                Verdict.Pass, "QX", "QX", At: TimeSpan.FromMilliseconds(6200))
+            {
+                IsAssertion = true,
+            },
+            SasChannel.One,
+            ClockBase.Session,
+            TimeSpan.FromMilliseconds(6230));
+
+        return log;
+    }
+
+    private static SasSymbol Parse(string symbol)
+    {
+        byte data = Convert.ToByte(symbol[2..], 16);
+        return symbol[0] == '1' ? SasSymbol.Address(data) : SasSymbol.Data8(data);
+    }
+
+    private static readonly (double At, WireDirection Direction, string Hex, string Note)[] Frames =
     [
-        ("     5927", "TX", "1.80", "sync poll - address zero"),
-        ("     5954", "TX", "1.81", "general poll"),
-        ("     5985", "RX", "0.18", "exception $18"),
-        ("     6126", "TX", "1.80", "sync poll - address zero"),
-        ("     6157", "TX", "1.01 0.1F", "long poll $1F"),
-        ("     6189", "RX",
+        (5927, WireDirection.Transmit, "1.80", "sync poll - address zero"),
+        (5954, WireDirection.Transmit, "1.81", "general poll"),
+        (5985, WireDirection.Receive, "0.18", "exception $18"),
+        (6126, WireDirection.Transmit, "1.80", "sync poll - address zero"),
+        (6157, WireDirection.Transmit, "1.01 0.1F", "long poll $1F"),
+        (6189, WireDirection.Receive,
             "0.01 0.1F 0.51 0.58 0.30 0.30 0.31 0.02 0.FF 0.00 0.00 0.00 0.30 0.30 0.31 0.00 "
-            + "0.00 0.00 0.39 0.32 0.31 0.30 0.86 0.3F", string.Empty),
-        ("     6730", "TX", "1.80", "sync poll - address zero"),
-        ("     6761", "TX", "1.01 0.54", "long poll $54"),
-        ("     6791", "RX", "0.01 0.54 0.03 0.36 0.30 0.32 0.D0 0.8D", string.Empty),
+            + "0.00 0.00 0.39 0.32 0.31 0.30 0.86 0.3F", ""),
+        (6730, WireDirection.Transmit, "1.80", "sync poll - address zero"),
+        (6761, WireDirection.Transmit, "1.01 0.54", "long poll $54"),
+        (6791, WireDirection.Receive, "0.01 0.54 0.03 0.36 0.30 0.32 0.D0 0.8D", ""),
     ];
 }

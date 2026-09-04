@@ -141,7 +141,12 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     /// claim that held. A view that shows only failures cannot tell an assertion that passed from
     /// an assertion that was never made.
     /// </remarks>
-    public SessionEvent Step(StepResult step, SasChannel channel, ClockBase clockBase)
+    /// <param name="at">
+    /// When the step finished. Omit it for now, which is what a live run wants; supply one when
+    /// replaying a recording, whose times come from the recording rather than from this clock.
+    /// </param>
+    public SessionEvent Step(
+        StepResult step, SasChannel channel, ClockBase clockBase, TimeSpan? at = null)
     {
         ArgumentNullException.ThrowIfNull(step);
 
@@ -151,15 +156,17 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
             _ => SessionLane.Stimulus,
         };
 
-        return AppendNow(new SessionEvent(0, lane, channel, default, step.Description)
-        {
-            Started = clockBase.Reconcile(step.At),
-            Verdict = step.Verdict,
-            Where = step.Location,
-            Detail = step.Reason ?? (step.Expected is null
-                ? null
-                : $"expected {step.Expected}, got {step.Actual}"),
-        });
+        return Append(
+            new SessionEvent(0, lane, channel, at ?? default, step.Description)
+            {
+                Started = clockBase.Reconcile(step.At),
+                Verdict = step.Verdict,
+                Where = step.Location,
+                Detail = step.Reason ?? (step.Expected is null
+                    ? null
+                    : $"expected {step.Expected}, got {step.Actual}"),
+            },
+            now: at is null);
     }
 
     /// <summary>Records that a person was asked to do something.</summary>

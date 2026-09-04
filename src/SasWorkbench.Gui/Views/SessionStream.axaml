@@ -1,0 +1,115 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SasWorkbench.Gui.Controls"
+             xmlns:vm="using:SasWorkbench.Gui.ViewModels"
+             x:Class="SasWorkbench.Gui.Views.SessionStream"
+             x:DataType="vm:SessionStreamViewModel"
+             AutomationProperties.Name="Session stream">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="6">
+
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+      <TextBlock Grid.Column="0" Classes="caption" Text="STREAM" VerticalAlignment="Center" />
+
+      <ItemsControl Grid.Column="1" ItemsSource="{Binding Lanes}"
+                    AutomationProperties.Name="Lanes">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:LaneFilter">
+            <ToggleButton Classes="lane" IsChecked="{Binding IsShown}"
+                          Content="{Binding Name}"
+                          AutomationProperties.Name="{Binding Name}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <CheckBox Grid.Column="2" Content="Follow" IsChecked="{Binding Follow}" />
+
+      <Button Grid.Column="3" Content="View" AutomationProperties.Name="View settings">
+        <Button.Flyout>
+          <Flyout>
+            <StackPanel Width="290" Spacing="10">
+              <StackPanel>
+                <TextBlock Classes="field" Text="TIMESTAMPS MEASURED FROM" />
+                <ComboBox ItemsSource="{Binding TimestampModes}"
+                          SelectedItem="{Binding Timestamps}"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Timestamp mode" />
+                <TextBlock Classes="prose" TextWrapping="Wrap"
+                           Text="Since the previous poll reads the loop period; since the previous message reads how quickly the machine answered." />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Classes="field" Text="WAKEUP BIT" />
+                <ComboBox ItemsSource="{Binding WakeupDisplays}"
+                          SelectedItem="{Binding Wakeup}"
+                          HorizontalAlignment="Stretch"
+                          AutomationProperties.Name="Wakeup display" />
+                <TextBlock Classes="prose" TextWrapping="Wrap"
+                           Text="Colour draws an address byte in the wakeup colour; flag digit prefixes it, as 1.80." />
+              </StackPanel>
+            </StackPanel>
+          </Flyout>
+        </Button.Flyout>
+      </Button>
+    </Grid>
+
+    <Border Grid.Row="1" Classes="fault" IsVisible="{Binding Gap, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <TextBlock Classes="prose" Text="{Binding Gap}" TextWrapping="Wrap" />
+    </Border>
+
+    <Border Grid.Row="2" Classes="well">
+      <ListBox ItemsSource="{Binding Rows}" AutomationProperties.Name="Events">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem" x:DataType="vm:SessionRow">
+            <Setter Property="Classes.tx" Value="{Binding IsTransmit}" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:SessionRow">
+            <Grid ColumnDefinitions="66,34,Auto,*,Auto" ColumnSpacing="8">
+              <TextBlock Grid.Column="0" Classes="at" Text="{Binding At}"
+                         HorizontalAlignment="Right" />
+              <TextBlock Grid.Column="1" Classes="hex" Text="{Binding Lane}" FontWeight="Bold" />
+              <TextBlock Grid.Column="2" Classes="at" Text="{Binding Channel}"
+                         IsVisible="{Binding HasChannel}" />
+
+              <Grid Grid.Column="3" ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                <c:StatusChip Grid.Column="0" Status="{Binding Verdict}" Reason="{Binding Note}"
+                              IsVisible="{Binding HasVerdict}" VerticalAlignment="Center" />
+
+                <!-- A row carries hex or words, never both, so the two share the elastic column. -->
+                <Panel Grid.Column="1">
+                  <ItemsControl ItemsSource="{Binding Symbols}" VerticalAlignment="Center"
+                                IsVisible="{Binding HasSymbols}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="vm:WireSymbol">
+                        <TextBlock Classes="symbol" Classes.wakeup="{Binding IsWakeup}"
+                                   Text="{Binding Text}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Classes="name" Text="{Binding Text}" IsVisible="{Binding HasText}"
+                             TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                </Panel>
+              </Grid>
+
+              <TextBlock Grid.Column="4" Classes="prose" Text="{Binding Note}"
+                         HorizontalAlignment="Right" VerticalAlignment="Center"
+                         TextTrimming="CharacterEllipsis" MaxWidth="220" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </Border>
+
+  </Grid>
+</UserControl>

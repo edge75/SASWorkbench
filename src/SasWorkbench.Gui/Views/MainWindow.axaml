@@ -39,7 +39,14 @@
         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
           <TextBlock Classes="field" Text="CH" VerticalAlignment="Center" Margin="0" />
           <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"
-                    Width="64" AutomationProperties.Name="Channel" />
+                    MinWidth="76" AutomationProperties.Name="Channel">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ChannelOption">
+                <TextBlock Classes="name" Text="{Binding Label}"
+                           AutomationProperties.Name="{Binding Automation}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
         </StackPanel>
 
         <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4">
@@ -102,35 +109,8 @@
       </ListBox>
 
       <!-- The spine. It can be scoped, but no view replaces it. -->
-      <Border Grid.Column="1" Classes="panel" Padding="10" MinWidth="380"
-              AutomationProperties.Name="Session stream">
-        <Grid RowDefinitions="Auto,*">
-          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,6">
-            <TextBlock Grid.Column="0" Classes="caption" Text="TRACE" VerticalAlignment="Center" />
-            <CheckBox Grid.Column="1" Content="Follow" IsChecked="{Binding FollowWire}"
-                      Margin="0,0,8,0" />
-            <Button Grid.Column="2" Content="Clear" Command="{Binding ClearLogCommand}" />
-          </Grid>
-
-          <Border Grid.Row="1" Classes="well">
-            <ListBox ItemsSource="{Binding Wire}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:WireLine">
-                  <Grid ColumnDefinitions="66,26,*,Auto" ColumnSpacing="8">
-                    <TextBlock Grid.Column="0" Classes="at" Text="{Binding At}"
-                               HorizontalAlignment="Right" />
-                    <TextBlock Grid.Column="1" Classes="hex" Text="{Binding Direction}"
-                               FontWeight="Bold" />
-                    <SelectableTextBlock Grid.Column="2" Classes="hex" Text="{Binding Symbols}"
-                                         TextWrapping="Wrap" />
-                    <TextBlock Grid.Column="3" Classes="prose" Text="{Binding Note}"
-                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Border>
-        </Grid>
+      <Border Grid.Column="1" Classes="panel" Padding="10" MinWidth="380">
+        <v:SessionStream DataContext="{Binding Stream}" />
       </Border>
 
       <GridSplitter Grid.Column="2" Background="Transparent" ResizeDirection="Columns" />
