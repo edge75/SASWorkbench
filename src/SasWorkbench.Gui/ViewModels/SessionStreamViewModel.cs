@@ -50,6 +50,7 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
     private readonly DispatcherTimer _flush;
     private SessionLog? _log;
     private SessionStamper _stamper = new(TimestampMode.SinceTestStart);
+    private long _highest = -1;
 
     public SessionStreamViewModel()
     {
@@ -125,10 +126,17 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
         lock (_gate)
         {
+            // The handler is already attached, so an event recorded between attaching and taking
+            // this snapshot arrives twice. Sequence numbers are what settle it: the flush keeps
+            // only what it has not already seen.
             _pending.Clear();
             _pending.AddRange(log.Snapshot());
+            _highest = -1;
         }
 
+        // A new log is a new clock. Carrying the old one's "previous message" into it would
+        // measure the first event of this session from the last event of the one before.
+        _stamper = new SessionStamper(Timestamps);
         _shown.Clear();
         Rows.Clear();
         Flush();
@@ -169,6 +177,7 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
         _shown.Clear();
         Rows.Clear();
         Gap = null;
+        _stamper.Reset();
     }
 
     public void Dispose()
@@ -200,8 +209,23 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
                 return;
             }
 
-            arrived = [.. _pending.OrderBy(e => e.At).ThenBy(e => e.Sequence)];
+            arrived =
+            [
+                .. _pending
+                    .Where(e => e.Sequence > _highest)
+                    .DistinctBy(e => e.Sequence)
+                    .OrderBy(e => e.At)
+                    .ThenBy(e => e.Sequence),
+            ];
             _pending.Clear();
+
+            if (arrived.Length == 0)
+            {
+                RefreshGap();
+                return;
+            }
+
+            _highest = arrived.Max(e => e.Sequence);
         }
 
         // An event that happened before the last one already shown changes what every later row is

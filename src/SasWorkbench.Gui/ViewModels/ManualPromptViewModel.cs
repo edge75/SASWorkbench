@@ -23,7 +23,7 @@ namespace SasWorkbench.Gui.ViewModels;
 public sealed partial class ManualPromptViewModel : ObservableObject, IDisposable
 {
     private readonly DispatcherTimer _countdown;
-    private Action<PromptAnswer>? _reply;
+    private TaskCompletionSource<PromptAnswer>? _reply;
     private DateTimeOffset _until;
 
     public ManualPromptViewModel()
@@ -54,8 +54,11 @@ public sealed partial class ManualPromptViewModel : ObservableObject, IDisposabl
     /// </summary>
     public PromptAnswer Ask(string request, TimeSpan deadline)
     {
-        using var answered = new SemaphoreSlim(0, 1);
-        PromptAnswer answer = PromptAnswer.NoAnswer;
+        // Whichever of the person and the deadline gets here first settles it, once. The two do
+        // race — a click can land in the same millisecond the deadline passes — and the answer has
+        // to be single-valued, or the run and the screen would disagree about what happened.
+        var settled = new TaskCompletionSource<PromptAnswer>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
         DateTimeOffset until = DateTimeOffset.UtcNow + deadline;
 
         Dispatcher.UIThread.Post(() =>
@@ -63,21 +66,19 @@ public sealed partial class ManualPromptViewModel : ObservableObject, IDisposabl
             Request = request;
             IsAsking = true;
             _until = until;
-            _reply = given =>
-            {
-                answer = given;
-                answered.Release();
-            };
+            _reply = settled;
         });
 
-        if (!answered.Wait(deadline))
-            answer = PromptAnswer.NoAnswer;
+        if (!settled.Task.Wait(deadline))
+            settled.TrySetResult(PromptAnswer.NoAnswer);
+
+        PromptAnswer answer = settled.Task.Result;
 
         Dispatcher.UIThread.Post(() =>
         {
             IsAsking = false;
             _reply = null;
-            Remaining = null;
+            Remaining = answer == PromptAnswer.NoAnswer ? "nobody answered; the step was skipped" : null;
         });
 
         return answer;
@@ -95,10 +96,18 @@ public sealed partial class ManualPromptViewModel : ObservableObject, IDisposabl
 
     private void Answer(PromptAnswer answer)
     {
-        Action<PromptAnswer>? reply = _reply;
+        TaskCompletionSource<PromptAnswer>? reply = _reply;
         _reply = null;
+
+        // A click that lost the race to the deadline changes nothing, and says so rather than
+        // looking as though it counted: the step has already been skipped.
+        if (reply?.TrySetResult(answer) == false)
+        {
+            Remaining = "too late; the step was already skipped";
+            return;
+        }
+
         IsAsking = false;
-        reply?.Invoke(answer);
     }
 
     private void Tick()

@@ -117,6 +117,37 @@ public class SessionLogTests
         Assert.Equal("the link comes up", exception.Test);
     }
 
+    /// <summary>
+    /// A test's name is attached and detached inside the same lock as the event that opens or
+    /// closes it, so a frame recorded from the poll thread can never be attributed to a test whose
+    /// start marker has not been written yet, or to one that has already reached a verdict.
+    /// </summary>
+    [Fact]
+    public void EventsOutsideATestCarryNoTestName()
+    {
+        var log = new SessionLog();
+        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)], TimeSpan.Zero,
+            ClockBase.Session);
+        log.TestStarted("a test", SourceLocation.None, SasChannel.One,
+            TimeSpan.FromMilliseconds(1));
+        log.TestFinished(
+            new TestOutcome
+            {
+                Name = "a test",
+                Location = SourceLocation.None,
+                Verdict = Verdict.Pass,
+            },
+            SasChannel.One);
+        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)],
+            TimeSpan.FromSeconds(30), ClockBase.Session);
+
+        IReadOnlyList<SessionEvent> events = log.Snapshot();
+
+        Assert.Null(events[0].Test);
+        Assert.Equal("a test", events[1].Test);
+        Assert.Null(events[^1].Test);
+    }
+
     [Fact]
     public void TheOldestEventsAreForgottenAndCounted()
     {

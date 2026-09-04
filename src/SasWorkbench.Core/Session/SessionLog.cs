@@ -25,6 +25,7 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     private readonly Lock _gate = new();
     private readonly Queue<SessionEvent> _events = new(Math.Min(capacity, 4096));
     private long _sequence;
+    private long _dropped;
     private string? _test;
 
     /// <summary>The clock every event in this log is measured on.</summary>
@@ -46,7 +47,14 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     }
 
     /// <summary>How many events were forgotten before anyone read them.</summary>
-    public long Dropped { get; private set; }
+    public long Dropped
+    {
+        get
+        {
+            lock (_gate)
+                return _dropped;
+        }
+    }
 
     /// <summary>Raised for each event, outside the lock. Handlers run on the recording thread.</summary>
     public event Action<SessionEvent>? Appended;
@@ -100,37 +108,30 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     /// recorded session, where the times come from the recording rather than from this clock.
     /// </param>
     public SessionEvent TestStarted(
-        string name, SourceLocation where, SasChannel channel, TimeSpan? at = null)
-    {
-        lock (_gate)
-            _test = name;
-
-        return Append(
+        string name, SourceLocation where, SasChannel channel, TimeSpan? at = null) =>
+        Append(
             new SessionEvent(0, SessionLane.TestStarted, channel, at ?? default, name)
             {
                 Where = where,
             },
-            now: at is null);
-    }
+            now: at is null,
+            opens: name);
 
     /// <summary>Records a test's verdict, and closes the test.</summary>
     public SessionEvent TestFinished(TestOutcome outcome, SasChannel channel)
     {
         ArgumentNullException.ThrowIfNull(outcome);
 
-        SessionEvent record = AppendNow(new SessionEvent(
-            0, SessionLane.Verdict, channel, default, outcome.Name)
-        {
-            Verdict = outcome.Verdict,
-            Where = outcome.Location,
-            Detail = outcome.SkipReason
-                     ?? $"{outcome.Assertions} assert(s) in {outcome.Duration.TotalSeconds:F1}s",
-        });
-
-        lock (_gate)
-            _test = null;
-
-        return record;
+        return Append(
+            new SessionEvent(0, SessionLane.Verdict, channel, default, outcome.Name)
+            {
+                Verdict = outcome.Verdict,
+                Where = outcome.Location,
+                Detail = outcome.SkipReason
+                         ?? $"{outcome.Assertions} assert(s) in {outcome.Duration.TotalSeconds:F1}s",
+            },
+            now: true,
+            closes: true);
     }
 
     /// <summary>
@@ -273,11 +274,22 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     /// </summary>
     private SessionEvent AppendNow(SessionEvent record) => Append(record, now: true);
 
-    private SessionEvent Append(SessionEvent record, bool now = false)
+    /// <param name="opens">The test this event begins, when it begins one.</param>
+    /// <param name="closes">Whether this event ends the test that was running.</param>
+    /// <remarks>
+    /// Opening and closing a test happen inside the same lock as the append. Setting the current
+    /// test outside it would let a frame recorded on the poll thread be labelled with a test whose
+    /// own start marker had not been written yet.
+    /// </remarks>
+    private SessionEvent Append(
+        SessionEvent record, bool now = false, string? opens = null, bool closes = false)
     {
         SessionEvent stored;
         lock (_gate)
         {
+            if (opens is not null)
+                _test = opens;
+
             stored = record with
             {
                 Sequence = _sequence++,
@@ -289,8 +301,11 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
             while (_events.Count > Capacity)
             {
                 _events.Dequeue();
-                Dropped++;
+                _dropped++;
             }
+
+            if (closes)
+                _test = null;
         }
 
         Appended?.Invoke(stored);
