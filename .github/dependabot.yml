@@ -1,0 +1,33 @@
+# The workflows pin every action to a commit SHA rather than a tag, so a moved tag cannot change
+# what runs. The cost of that is pins that rot silently, and this is what stops them: Dependabot
+# raises the SHA and the version comment beside it together, so the comment cannot drift from the
+# pin it describes.
+#
+# Only the actions are watched here. NuGet packages are deliberately left out for now — adding
+# them is one more block, but it is a different decision from keeping the pins honest.
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+
+    schedule:
+      interval: weekly
+      day: monday
+
+    # One pull request for all of them rather than one each. A grouped update is a single review
+    # of a single diff, which is the right shape for a repository with one reader.
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+    open-pull-requests-limit: 3
+
+    # Matches the repository's convention: `<type>: <description>`, one or two short sentences.
+    commit-message:
+      prefix: ci
+
+    labels:
+      - dependencies

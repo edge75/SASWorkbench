@@ -39,6 +39,26 @@ no third-party action is involved — the only actions used are `actions/checkou
 `actions/setup-dotnet` and `actions/upload-artifact`. Nothing is granted at the workflow level;
 the one job that publishes asks for `contents: write` and nothing else.
 
+### Why the actions look like that
+
+Every action is pinned to a **commit SHA**, with the version it corresponds to in a comment
+beside it:
+
+```yaml
+- uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+```
+
+A tag is a moving reference: whoever can push to the action's repository can change what `@v4`
+means, and a workflow with write access would then run something nobody reviewed. A SHA cannot
+move.
+
+The cost is pins that rot quietly, which is what `.github/dependabot.yml` is for — it raises the
+SHA and the comment together, weekly, as one grouped pull request. So the comment cannot drift
+away from the pin it describes, and a stale pin becomes a pull request rather than a slow
+accumulation of unnoticed age. NuGet packages are deliberately not watched yet.
+
+`act` clones by whatever ref it is given, so SHA pins work locally too.
+
 ## What is in a release
 
 One archive per platform, each carrying **both** applications — the `sasctl` command line and the
