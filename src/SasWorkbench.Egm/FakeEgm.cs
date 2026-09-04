@@ -421,6 +421,7 @@ public sealed class FakeEgm : IDisposable
             ["base_percentage"] = _options.BasePercentage,
         },
         0x20 => Single("total_bill_value", SasMeterCode.TotalCreditsFromBillsAccepted),
+        0x2C => new Dictionary<string, object> { ["hopper_level"] = (long)_options.HopperLevel },
         0x54 => new Dictionary<string, object>
         {
             ["length"] = _options.SasVersion.Length + _options.SerialNumber.Length,

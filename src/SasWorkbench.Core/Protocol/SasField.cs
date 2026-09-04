@@ -171,6 +171,17 @@ public sealed record SasField
     /// <summary>When set, the field is present only if this holds.</summary>
     public SasCondition? PresentWhen { get; init; }
 
+    /// <summary>
+    /// True when this field is an accumulating meter a test may read by name.
+    /// </summary>
+    /// <remarks>
+    /// Stated rather than inferred. A unit of credits does not make a field a meter: the amount
+    /// owed on a pending handpay is measured in cents and is a status, not an accumulator, and
+    /// treating it as a meter offers a test a reading that only exists while a handpay is
+    /// outstanding.
+    /// </remarks>
+    public bool IsMeter { get; init; }
+
     /// <summary>True when this field is a repeating group rather than a scalar.</summary>
     public bool IsGroup => Fields.Count > 0;
 

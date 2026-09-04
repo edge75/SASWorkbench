@@ -32,6 +32,10 @@ public static class SasLayouts
         Description = description,
     };
 
+    /// <summary>An accumulating meter a test may read by name.</summary>
+    private static SasField Meter(string name, int bytes, SasUnit unit, string description) =>
+        Bcd(name, bytes, unit, description) with { IsMeter = true };
+
     private static SasField Byte(string name, SasUnit unit, string description,
         SasConstraint? constraint = null) => new()
     {
@@ -61,7 +65,7 @@ public static class SasLayouts
             Command = command,
             Name = name,
             Description = description,
-            Response = [Bcd(field, 4, unit, description)],
+            Response = [Meter(field, 4, unit, description)],
             DerivedFrom = handler,
         };
 
@@ -124,12 +128,12 @@ public static class SasLayouts
                 Description = "Six accumulating meters in one reply.",
                 Response =
                 [
-                    Bcd("total_cancelled_credits", 4, SasUnit.Credits, "Credits cancelled by a handpay."),
-                    Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
-                    Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
-                    Bcd("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine."),
-                    Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
-                    Bcd("games_played", 4, SasUnit.Count, "Games played."),
+                    Meter("total_cancelled_credits", 4, SasUnit.Credits, "Credits cancelled by a handpay."),
+                    Meter("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
+                    Meter("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
+                    Meter("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine."),
+                    Meter("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
+                    Meter("games_played", 4, SasUnit.Count, "Games played."),
                 ],
                 DerivedFrom = "lp0F_SendMeters",
             },
@@ -175,12 +179,12 @@ public static class SasLayouts
                 Description = "How many bills of each of six denominations the machine has taken.",
                 Response =
                 [
-                    Bcd("bills_1", 4, SasUnit.Count, "Number of one-unit bills accepted."),
-                    Bcd("bills_5", 4, SasUnit.Count, "Number of five-unit bills accepted."),
-                    Bcd("bills_10", 4, SasUnit.Count, "Number of ten-unit bills accepted."),
-                    Bcd("bills_20", 4, SasUnit.Count, "Number of twenty-unit bills accepted."),
-                    Bcd("bills_50", 4, SasUnit.Count, "Number of fifty-unit bills accepted."),
-                    Bcd("bills_100", 4, SasUnit.Count, "Number of hundred-unit bills accepted."),
+                    Meter("bills_1", 4, SasUnit.Count, "Number of one-unit bills accepted."),
+                    Meter("bills_5", 4, SasUnit.Count, "Number of five-unit bills accepted."),
+                    Meter("bills_10", 4, SasUnit.Count, "Number of ten-unit bills accepted."),
+                    Meter("bills_20", 4, SasUnit.Count, "Number of twenty-unit bills accepted."),
+                    Meter("bills_50", 4, SasUnit.Count, "Number of fifty-unit bills accepted."),
+                    Meter("bills_100", 4, SasUnit.Count, "Number of hundred-unit bills accepted."),
                 ],
                 DerivedFrom = "lp1E_SendBillMeters",
             },
@@ -226,8 +230,21 @@ public static class SasLayouts
             },
             MeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Credits,
                 "Total value of bills accepted.", "lp20_SendTotalDollarValueOfBills"),
-            MeterLayout(0x2C, "hopper_level", "hopper_level", SasUnit.Count,
-                "Coins currently in the hopper.", "lp2C_SendCurrentHopperLevel"),
+            new()
+            {
+                Command = 0x2C,
+                Name = "hopper_level",
+                Description = "How many coins are in the hopper right now.",
+
+                // Not marked as a meter, and the reason is not a judgement call: the gaming
+                // machine library keeps no meter code for the hopper level. It reads the figure
+                // from the device, so it is machine state and a test asserts on it as a field.
+                Response =
+                [
+                    Bcd("hopper_level", 4, SasUnit.Count, "Coins currently in the hopper."),
+                ],
+                DerivedFrom = "lp2C_SendCurrentHopperLevel",
+            },
             new()
             {
                 Command = 0x54,

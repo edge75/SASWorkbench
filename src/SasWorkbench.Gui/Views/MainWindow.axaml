@@ -1,0 +1,222 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:SasWorkbench.Gui.ViewModels"
+        x:Class="SasWorkbench.Gui.Views.MainWindow"
+        x:DataType="vm:WorkbenchViewModel"
+        Title="SasWorkbench"
+        Width="1180" Height="760"
+        MinWidth="900" MinHeight="600">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
+
+    <Border Grid.Row="0" Classes="panel">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
+        <StackPanel Grid.Column="0">
+          <TextBlock Classes="label" Text="Link" />
+          <ComboBox ItemsSource="{Binding Transports}"
+                    SelectedItem="{Binding SelectedTransport}"
+                    MinWidth="110" />
+        </StackPanel>
+        <StackPanel Grid.Column="1">
+          <TextBlock Classes="label" Text="Endpoint or port" />
+          <TextBox Text="{Binding Target}" MinWidth="180" />
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Classes="label" Text="Address" />
+          <TextBox Text="{Binding Address}" Width="66" />
+        </StackPanel>
+        <StackPanel Grid.Column="3">
+          <TextBlock Classes="label" Text="Channel" />
+          <ComboBox ItemsSource="{Binding Channels}"
+                    SelectedItem="{Binding SelectedChannel}" Width="72" />
+        </StackPanel>
+        <StackPanel Grid.Column="4">
+          <TextBlock Classes="label" Text="Poll every" />
+          <TextBox Text="{Binding PollInterval}" Width="86" />
+        </StackPanel>
+        <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom" Spacing="6">
+          <Button Content="Connect" Command="{Binding ConnectCommand}"
+                  IsEnabled="{Binding !IsConnected}" />
+          <Button Content="Disconnect" Command="{Binding DisconnectCommand}"
+                  IsEnabled="{Binding IsConnected}" />
+        </StackPanel>
+        <StackPanel Grid.Column="7" VerticalAlignment="Bottom">
+          <TextBlock Classes="label" Text="Link state" HorizontalAlignment="Right" />
+          <TextBlock Text="{Binding LinkState}" FontWeight="SemiBold"
+                     HorizontalAlignment="Right" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <TextBlock Grid.Row="1" Classes="label" Margin="2,6,2,8"
+               Text="{Binding Provenance}" TextWrapping="Wrap" />
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,8,1.15*">
+
+      <Border Grid.Column="0" Classes="panel">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Classes="heading" Text="WIRE" VerticalAlignment="Center" />
+            <CheckBox Grid.Column="1" Content="Follow" IsChecked="{Binding FollowWire}"
+                      Margin="0,0,8,0" />
+            <Button Grid.Column="2" Content="Clear" Command="{Binding ClearLogCommand}" />
+          </Grid>
+
+          <ListBox Grid.Row="1" ItemsSource="{Binding Wire}" FontSize="12">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:WireLine">
+                <Grid ColumnDefinitions="72,30,26,*,Auto" ColumnSpacing="8">
+                  <TextBlock Grid.Column="0" Classes="mono" Text="{Binding At}"
+                             Opacity="0.5" HorizontalAlignment="Right" />
+                  <TextBlock Grid.Column="1" Classes="mono" Text="{Binding Direction}"
+                             FontWeight="SemiBold" />
+                  <TextBlock Grid.Column="2" Classes="mono" Text="{Binding Channel}"
+                             Opacity="0.45" />
+                  <TextBlock Grid.Column="3" Classes="mono" Text="{Binding Symbols}"
+                             TextWrapping="Wrap" />
+                  <TextBlock Grid.Column="4" Text="{Binding Note}" Opacity="0.55" FontSize="11"
+                             HorizontalAlignment="Right" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <TabControl Grid.Column="2">
+
+        <TabItem Header="Long poll">
+          <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="4,10,4,4" RowSpacing="8">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="label" Text="Command" />
+                <ComboBox ItemsSource="{Binding LongPolls}"
+                          SelectedItem="{Binding SelectedLongPoll}"
+                          HorizontalAlignment="Stretch" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                <Button Content="Send" Command="{Binding SendLongPollCommand}"
+                        IsEnabled="{Binding IsConnected}" />
+              </StackPanel>
+            </Grid>
+
+            <StackPanel Grid.Row="1">
+              <TextBlock Classes="label" Text="Data, as hex (leave empty for none)" />
+              <TextBox Text="{Binding LongPollData}" Classes="mono" />
+            </StackPanel>
+
+            <TextBlock Grid.Row="2" Classes="mono" Text="{Binding LastReply}"
+                       TextWrapping="Wrap" Opacity="0.75" />
+
+            <ListBox Grid.Row="3" ItemsSource="{Binding Fields}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:FieldLine">
+                  <Grid ColumnDefinitions="1.2*,*,Auto" ColumnSpacing="10">
+                    <TextBlock Grid.Column="0" Classes="mono" Text="{Binding Name}"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Value}" FontWeight="SemiBold"
+                               TextWrapping="Wrap" HorizontalAlignment="Left"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Note}" Opacity="0.55" FontSize="11"
+                               HorizontalAlignment="Right" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Meters">
+          <Grid RowDefinitions="Auto,*" Margin="4,10,4,4" RowSpacing="8">
+            <Button Grid.Row="0" Content="Read every meter this build can read"
+                    Command="{Binding RefreshMetersCommand}" IsEnabled="{Binding IsConnected}"
+                    HorizontalAlignment="Left" />
+            <ListBox Grid.Row="1" ItemsSource="{Binding Meters}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:MeterLine">
+                  <Grid ColumnDefinitions="1.4*,Auto,90,*" ColumnSpacing="10">
+                    <TextBlock Grid.Column="0" Classes="mono" Text="{Binding Name}"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Classes="mono" Text="{Binding From}" Opacity="0.45"
+                               HorizontalAlignment="Left" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Value}" FontWeight="SemiBold"
+                               TextAlignment="Right" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="{Binding Note}" Opacity="0.55" FontSize="11"
+                               TextWrapping="Wrap" HorizontalAlignment="Left"
+                               VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>
+
+        <TabItem Header="Exceptions">
+          <ListBox ItemsSource="{Binding Exceptions}" Margin="4,10,4,4">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:ExceptionLine">
+                <Grid ColumnDefinitions="Auto,1.1*,2*,Auto" ColumnSpacing="10">
+                  <TextBlock Grid.Column="0" Classes="mono" Text="{Binding Code}"
+                             FontWeight="SemiBold" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="1" Classes="mono" Text="{Binding Name}"
+                             HorizontalAlignment="Left" VerticalAlignment="Top" />
+                  <TextBlock Grid.Column="2" Text="{Binding Meaning}" TextWrapping="Wrap"
+                             Opacity="0.75" HorizontalAlignment="Left" />
+                  <TextBlock Grid.Column="3" Text="{Binding At}" Opacity="0.45" FontSize="11"
+                             HorizontalAlignment="Right" VerticalAlignment="Top" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </TabItem>
+
+        <TabItem Header="Run">
+          <Grid RowDefinitions="Auto,Auto,*" Margin="4,10,4,4" RowSpacing="8">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+              <StackPanel Grid.Column="0">
+                <TextBlock Classes="label" Text="Script or directory" />
+                <TextBox Text="{Binding ScriptPath}" Classes="mono" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                <Button Content="Run" Command="{Binding RunScriptCommand}"
+                        IsEnabled="{Binding !IsBusy}" />
+              </StackPanel>
+            </Grid>
+
+            <TextBlock Grid.Row="1" Text="{Binding RunSummary}" FontWeight="SemiBold"
+                       TextWrapping="Wrap" />
+
+            <ListBox Grid.Row="2" ItemsSource="{Binding Steps}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:StepLine">
+                  <Grid ColumnDefinitions="Auto,1.4*,*" ColumnSpacing="10">
+                    <TextBlock Grid.Column="0" Text="{Binding Verdict}" FontWeight="Bold"
+                               FontSize="11" MinWidth="46" HorizontalAlignment="Left"
+                               VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Classes="mono" Text="{Binding What}"
+                               TextWrapping="Wrap" HorizontalAlignment="Left" />
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="{Binding Detail}" Opacity="0.75" TextWrapping="Wrap"
+                                 FontSize="11" />
+                      <TextBlock Classes="mono" Text="{Binding Where}" Opacity="0.4"
+                                 FontSize="10" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </TabItem>
+
+      </TabControl>
+    </Grid>
+
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="2,8,2,0">
+      <TextBlock Grid.Column="0" Text="{Binding Status}" Opacity="0.7" FontSize="11"
+                 TextWrapping="Wrap" />
+      <TextBlock Grid.Column="1" Classes="mono" Text="{Binding Counters}" Opacity="0.55"
+                 FontSize="11" />
+    </Grid>
+
+  </Grid>
+</Window>

@@ -3,6 +3,7 @@
     <Project Path="src/SasWorkbench.Cli/SasWorkbench.Cli.csproj" />
     <Project Path="src/SasWorkbench.Core/SasWorkbench.Core.csproj" />
     <Project Path="src/SasWorkbench.Egm/SasWorkbench.Egm.csproj" />
+    <Project Path="src/SasWorkbench.Gui/SasWorkbench.Gui.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/unit/">

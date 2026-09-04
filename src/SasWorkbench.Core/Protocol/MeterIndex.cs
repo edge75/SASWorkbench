@@ -17,7 +17,7 @@ public sealed record MeterSource(string Name, byte Command, string Field, SasUni
 /// </summary>
 /// <remarks>
 /// Nothing here is a hand-maintained table of "meter X comes from long poll Y". The index is
-/// built by looking at what every known layout returns, so adding a layout makes its meters
+/// built from the fields each layout marks as meters, so adding a layout makes its meters
 /// readable and removing one makes them honestly unreadable. A dedicated single-meter command is
 /// preferred over a bulk one, because a reply carrying one number is cheaper to explain when it
 /// is wrong.
@@ -79,7 +79,7 @@ public static class MeterIndex
 
                 foreach (SasField part in layout.Response)
                 {
-                    if (part.IsGroup || part.Unit is SasUnit.None or SasUnit.Code)
+                    if (!part.IsMeter || part.IsGroup)
                         continue;
 
                     byName.TryAdd(part.Name, new MeterSource(

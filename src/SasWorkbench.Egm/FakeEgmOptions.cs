@@ -50,6 +50,12 @@ public sealed record FakeEgmOptions
     public int CentsPerCredit { get; init; } = 1;
 
     /// <summary>
+    /// How many coins are in the hopper. Machine state rather than a meter, because the library
+    /// keeps no meter code for it.
+    /// </summary>
+    public int HopperLevel { get; init; }
+
+    /// <summary>
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>
     public TimeSpan ResponseDelay { get; init; } = TimeSpan.Zero;
