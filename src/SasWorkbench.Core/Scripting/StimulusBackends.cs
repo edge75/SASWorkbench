@@ -40,24 +40,73 @@ public sealed class NoStimulusBackend : IStimulusBackend
         + $"(needs {step.RequiredCapability})");
 }
 
+/// <summary>What came back when a person was asked to do something.</summary>
+public enum PromptAnswer
+{
+    /// <summary>They did it.</summary>
+    Done,
+
+    /// <summary>They said they could not, or would not.</summary>
+    Declined,
+
+    /// <summary>Nobody answered before the deadline.</summary>
+    NoAnswer,
+}
+
+/// <summary>
+/// Asks a person to do something and waits no longer than <paramref name="deadline"/>.
+/// </summary>
+/// <remarks>
+/// The deadline is not optional. A prompt without one hangs an unattended run for ever and
+/// produces no verdict at all, which is the silent failure this project exists to refuse: better
+/// a skip that says nobody answered than a suite that never finishes.
+/// </remarks>
+public delegate PromptAnswer StimulusPrompt(string request, TimeSpan deadline);
+
 /// <summary>A backend that asks a person to do it.</summary>
 /// <remarks>
 /// Useful when the hardware exists but nothing can drive it yet. The prompt is a delegate rather
 /// than a console write so that the same backend works from a graphical interface, and so a test
 /// of the runner can answer it without a person.
 /// </remarks>
-public sealed class ManualStimulusBackend(Func<string, bool> ask) : IStimulusBackend
+public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
+    : IStimulusBackend
 {
+    /// <summary>How long to wait for a person when a caller has no preference.</summary>
+    public static TimeSpan DefaultDeadline { get; } = TimeSpan.FromMinutes(2);
+
     public StimulusBackend Kind => StimulusBackend.Manual;
 
     public IReadOnlyDictionary<string, string?> Capabilities =>
         CapabilityProbe.ForStimulus(StimulusBackend.Manual);
 
+    /// <summary>How long a person is given to answer.</summary>
+    public TimeSpan Deadline { get; } = deadline > TimeSpan.Zero
+        ? deadline
+        : throw new ArgumentOutOfRangeException(nameof(deadline), deadline,
+            "A manual prompt needs a deadline: without one an unattended run never finishes.");
+
     public void Apply(StimulusStep step)
     {
-        if (!ask($"Please do this on the machine, then confirm: {step.Describe()}"))
-            throw new StimulusUnavailableException(
-                $"a person declined or could not carry out '{step.Describe()}'");
+        ArgumentNullException.ThrowIfNull(step);
+
+        PromptAnswer answer = ask(
+            $"Please do this on the machine, then confirm: {step.Describe()}", Deadline);
+
+        switch (answer)
+        {
+            case PromptAnswer.Done:
+                return;
+
+            case PromptAnswer.NoAnswer:
+                throw new StimulusUnavailableException(
+                    $"nobody answered within {Deadline.TotalSeconds:F0}s, so "
+                    + $"'{step.Describe()}' did not happen");
+
+            default:
+                throw new StimulusUnavailableException(
+                    $"a person declined or could not carry out '{step.Describe()}'");
+        }
     }
 }
 

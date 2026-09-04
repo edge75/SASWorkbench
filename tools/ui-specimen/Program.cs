@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Logging;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -34,7 +35,10 @@ internal static class Program
             : Path.Combine(AppContext.BaseDirectory, "specimens");
         Directory.CreateDirectory(directory);
 
+        // Binding failures are silent at runtime, so the specimen run is also the place they get
+        // caught: a mistyped binding renders an empty cell and nothing else says so.
         AppBuilder.Configure<App>()
+            .LogToTrace(LogEventLevel.Warning)
             .UseSkia()
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .SetupWithoutStarting();

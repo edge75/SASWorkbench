@@ -69,6 +69,26 @@
     <!-- Band 1 — provenance. -->
     <v:ProvenanceRail DockPanel.Dock="Top" />
 
+    <!--
+      A manual step pushes this band down from under the header rather than opening a modal: the
+      poll loop must stay visible and the stream must keep scrolling while a person acts.
+    -->
+    <Border DockPanel.Dock="Top" Classes="raised" Padding="10,6"
+            IsVisible="{Binding Prompt.IsAsking}"
+            AutomationProperties.Name="Manual step"
+            AutomationProperties.LiveSetting="Assertive">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="10">
+        <c:StatusChip Grid.Column="0" Status="Warning" Label="DO THIS"
+                      Reason="{Binding Prompt.Request}" />
+        <TextBlock Grid.Column="1" Classes="strong" Text="{Binding Prompt.Request}"
+                   TextWrapping="Wrap" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="readout" Text="{Binding Prompt.Remaining}"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="3" Content="Done" Command="{Binding Prompt.DoneCommand}" />
+        <Button Grid.Column="4" Content="Cannot" Command="{Binding Prompt.CannotCommand}" />
+      </Grid>
+    </Border>
+
     <!-- Band 3 — the footer readout, carrying provenance again so a crop still has it. -->
     <Border DockPanel.Dock="Bottom" Classes="raised" Padding="10,4"
             BorderThickness="0,1,0,0" AutomationProperties.Name="Readout">

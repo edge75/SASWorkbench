@@ -31,6 +31,8 @@ internal static class Help
               --channel <1-4>         which channel to drive
               --poll <duration>       poll interval, such as 200ms
               --stimulus <backend>    none, manual, software or qpm  (default: none)
+              --ask-for <duration>    how long a manual step waits for a person before it
+                                      is skipped  (default: 2m)
               --report <formats>      {Reports.Names}  (comma-separated)
               --out <directory>       where to write reports  (default: runs/<timestamp>)
               --tag <name>            run only tests carrying this label

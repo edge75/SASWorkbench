@@ -15,7 +15,10 @@ public sealed record ScriptRunnerOptions
     public StimulusBackend Stimulus { get; init; } = StimulusBackend.None;
 
     /// <summary>Asks a person to do something, for the manual backend.</summary>
-    public Func<string, bool>? AskPerson { get; init; }
+    public StimulusPrompt? AskPerson { get; init; }
+
+    /// <summary>How long a person is given to answer a manual prompt before the step is skipped.</summary>
+    public TimeSpan PromptDeadline { get; init; } = ManualStimulusBackend.DefaultDeadline;
 
     /// <summary>Whether the host waits for the machine to connect or dials it.</summary>
     public TcpRole TcpRole { get; init; } = TcpRole.Listen;

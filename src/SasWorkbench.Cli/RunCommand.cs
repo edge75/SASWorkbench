@@ -148,11 +148,34 @@ internal static class RunCommand
             }
         }
 
+        TimeSpan askFor = ManualStimulusBackend.DefaultDeadline;
+        string? deadline = line.Value("ask-for");
+        if (deadline is not null)
+        {
+            try
+            {
+                askFor = ScriptParser.ParseDuration(deadline, SourceLocation.None);
+            }
+            catch (ScriptParseException parse)
+            {
+                error = parse.Reason;
+                return false;
+            }
+
+            if (askFor <= TimeSpan.Zero)
+            {
+                error = "--ask-for needs a duration above zero: a manual step with no time to "
+                        + "answer can only ever be skipped.";
+                return false;
+            }
+        }
+
         options = new ScriptRunnerOptions
         {
             Stimulus = backend,
             PollInterval = interval,
             AskPerson = backend == StimulusBackend.Manual ? AskAtTheConsole : null,
+            PromptDeadline = askFor,
 
             // The software machine is only wired in when it was asked for. A run that quietly
             // substituted a fixture for the machine under test would be worthless.
@@ -164,13 +187,31 @@ internal static class RunCommand
         return true;
     }
 
-    private static bool AskAtTheConsole(string prompt)
+    /// <summary>
+    /// Asks at the console, and gives up when nobody is there.
+    /// </summary>
+    /// <remarks>
+    /// The read happens on a background thread so the deadline can actually expire: a console read
+    /// cannot be cancelled, and an unattended run that blocked here would never reach a verdict.
+    /// The abandoned read is harmless — the process is about to skip the step and move on.
+    /// </remarks>
+    private static PromptAnswer AskAtTheConsole(string prompt, TimeSpan deadline)
     {
         Console.WriteLine();
         Console.WriteLine($"  {prompt}");
-        Console.Write("  done? [y/N] ");
-        string? answer = Console.ReadLine();
-        return answer?.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase) == true;
+        Console.Write($"  done? [y/N] (giving up in {deadline.TotalSeconds:F0}s) ");
+
+        Task<string?> read = Task.Run(Console.ReadLine);
+        if (!read.Wait(deadline))
+        {
+            Console.WriteLine();
+            Console.WriteLine("  nobody answered.");
+            return PromptAnswer.NoAnswer;
+        }
+
+        return read.Result?.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase) == true
+            ? PromptAnswer.Done
+            : PromptAnswer.Declined;
     }
 
     /// <summary>
@@ -203,29 +244,13 @@ internal static class RunCommand
         if (chosen == 0 && address is null && channel is null)
             return true;
 
-        ScriptTransport? transport = null;
-        string target = string.Empty;
-
-        if (tcp is not null)
+        (ScriptTransport? transport, string? target) = true switch
         {
-            if (!TcpTransportOptions.TryParseEndpoint(tcp, out _))
-            {
-                error = $"'{tcp}' is not an endpoint. Expected something like 127.0.0.1:7200.";
-                return false;
-            }
-
-            transport = ScriptTransport.Tcp;
-            target = tcp;
-        }
-        else if (serial is not null)
-        {
-            transport = ScriptTransport.Serial;
-            target = serial;
-        }
-        else if (loopback)
-        {
-            transport = ScriptTransport.Loopback;
-        }
+            _ when tcp is not null => ((ScriptTransport?)ScriptTransport.Tcp, tcp),
+            _ when serial is not null => (ScriptTransport.Serial, serial),
+            _ when loopback => (ScriptTransport.Loopback, null),
+            _ => (null, null),
+        };
 
         SasAddress? overrideAddress = null;
         if (address is not null)
@@ -251,22 +276,11 @@ internal static class RunCommand
             overrideChannel = parsed;
         }
 
-        rewritten = documents.Select(document => document with
-        {
-            Tests = document.Tests.Select(test => test with
-            {
-                Steps = test.Steps.Select(step => step is ConnectStep connect
-                    ? connect with
-                    {
-                        Transport = transport ?? connect.Transport,
-                        Target = transport is null ? connect.Target : target,
-                        Address = overrideAddress ?? connect.Address,
-                        Channel = overrideChannel ?? connect.Channel,
-                    }
-                    : step).ToList(),
-            }).ToList(),
-        }).ToList();
+        var change = new ConnectionOverride(transport, target, overrideAddress, overrideChannel);
+        if (!change.TryValidate(out error))
+            return false;
 
+        rewritten = change.ApplyTo(documents);
         return true;
     }
 

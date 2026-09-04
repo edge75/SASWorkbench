@@ -47,7 +47,7 @@ public static class DefaultEnvironment
         IStimulusBackend stimulus = options.Stimulus switch
         {
             StimulusBackend.Manual when options.AskPerson is not null =>
-                new ManualStimulusBackend(options.AskPerson),
+                new ManualStimulusBackend(options.AskPerson, options.PromptDeadline),
 
             // Asking for the software machine on a link this environment did not build is a
             // contradiction, and saying so beats handing back a backend that does nothing: the

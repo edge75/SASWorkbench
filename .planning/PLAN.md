@@ -67,7 +67,7 @@ prints `PASS`, and the GUI shows the same run live.
 
 ---
 
-## M1.5 · Design contract  ← inserted before M2, deliberately
+## M1.5 · Design contract  ✅ done 2026-09-04
 
 The window built in M1 is a protocol debugger with a Run tab stapled to it: four style rules, no
 colour tokens, everything at 55% opacity, and one line of 11px grey text carrying the provenance
@@ -89,6 +89,9 @@ would be designing against a milestone that has not run yet.
 **Done when** the user has picked a UX direction and a UI direction, the tokens are a real
 `ThemeDictionaries` resource that light and dark both resolve against, the M1 surfaces are rebuilt
 on it, and PASS / FAIL / SKIP / known-but-undecoded / UNKNOWN are distinguishable without colour.
+
+See `docs/M1.5-design-contract.md` for what was built, the five defects it found, and the five
+deviations from the contract.
 
 ### Chosen, 2026-09-04 — see D21–D28
 

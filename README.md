@@ -74,19 +74,23 @@ sasctl probe                                                 # what can this mac
 sasctl catalogue layouts                                     # every reply we can decode
 ```
 
-`SasWorkbench` is the same engine with a window: the live wire with the wakeup flag on each
-symbol, a reply decoded field by field, the meters, the exceptions, and a script run.
+`SasWorkbench` is the same engine with a window. The centre is one time-ordered stream of
+everything the session did — the wire, the exceptions, the stimulus, the assertions and the
+verdicts, on one clock — filtered to the wire by default and widened with a switch. Around it: a
+banner saying what the link is worth, an instrument for long polls, meters, exceptions and the test
+suite, and timestamps that read from the test, the previous poll or the previous message.
 
 ## Start here
 
 | File | |
 |---|---|
 | `CLAUDE.md` | Hard constraints and conventions |
-| `.planning/DECISIONS.md` | Twenty settled decisions and why |
+| `.planning/DECISIONS.md` | Twenty-nine settled decisions and why |
 | `.planning/BLOCKERS.md` | Verified blockers, traps, and the unblocking strategy |
 | `.planning/PLAN.md` | Milestones, riskiest-first |
 | `docs/M0-prove-the-wire.md` | The wire proof, with the hex dump |
 | `docs/M1-thin-vertical-slice.md` | What M1 built, and what it found |
+| `docs/M1.5-design-contract.md` | The window's design contract, and the defects it fixed |
 | `research/reports/` | 14 reverse-engineering reports |
 
 ## Why it exists

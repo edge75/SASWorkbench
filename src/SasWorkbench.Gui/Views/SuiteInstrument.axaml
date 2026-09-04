@@ -23,12 +23,34 @@
       </StackPanel>
     </Grid>
 
-    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-      <TextBlock Grid.Column="0" Classes="strong" Text="{Binding RunSummary}"
-                 TextWrapping="Wrap" VerticalAlignment="Center" />
-      <Button Grid.Column="1" Content="Write report"
-              Command="{Binding SaveReportCommand}" />
-    </Grid>
+    <StackPanel Grid.Row="1" Spacing="6">
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" ColumnSpacing="6">
+        <TextBlock Grid.Column="0" Classes="field" Text="OVER"
+                   VerticalAlignment="Center" Margin="0" />
+        <ComboBox Grid.Column="1" ItemsSource="{Binding RunLinks}"
+                  SelectedItem="{Binding RunLink}" MinWidth="96"
+                  AutomationProperties.Name="Link for the run" />
+        <TextBlock Grid.Column="2" Classes="field" Text="DRIVEN BY"
+                   VerticalAlignment="Center" Margin="8,0,0,0" />
+        <ComboBox Grid.Column="3" ItemsSource="{Binding StimulusBackends}"
+                  SelectedItem="{Binding RunStimulus}" MinWidth="94"
+                  AutomationProperties.Name="Stimulus backend" />
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4"
+                    HorizontalAlignment="Right" IsVisible="{Binding IsManualStimulus}">
+          <TextBlock Classes="field" Text="ASK FOR" VerticalAlignment="Center" Margin="0" />
+          <TextBox Text="{Binding Prompt.Deadline}" Width="58"
+                   FontFamily="{StaticResource FontMono}"
+                   AutomationProperties.Name="Manual prompt deadline" />
+        </StackPanel>
+      </Grid>
+
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock Grid.Column="0" Classes="strong" Text="{Binding RunSummary}"
+                   TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Content="Write report"
+                Command="{Binding SaveReportCommand}" />
+      </Grid>
+    </StackPanel>
 
     <Border Grid.Row="2" Classes="well">
       <TreeView ItemsSource="{Binding Suite.Nodes}"

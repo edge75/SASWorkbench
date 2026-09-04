@@ -3,7 +3,7 @@
 Append one line per completed wave:
 `PHASE:<id> WAVE:<id> STATUS:<complete|failed> TS:<ISO-8601-UTC>`
 
-M0 (Prove the wire) and M1 (Thin vertical slice) are complete — see `docs/`. Next: M2.
+M0, M1, M1.5 and M6 are complete — see `docs/`. Next: M2.
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -20,3 +20,4 @@ PHASE:M1.5 WAVE:W2-shell STATUS:complete TS:2026-09-04T14:54:13Z
 PHASE:M1.5 WAVE:W3-session-model STATUS:complete TS:2026-09-04T15:16:16Z
 PHASE:M1.5 WAVE:W4-session-stream STATUS:complete TS:2026-09-04T15:29:58Z
 PHASE:M1.5 WAVE:W5-suite-instrument STATUS:complete TS:2026-09-04T15:45:12Z
+PHASE:M1.5 WAVE:W6-report-and-controls STATUS:complete TS:2026-09-04T16:13:09Z

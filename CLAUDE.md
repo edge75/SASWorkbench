@@ -4,8 +4,8 @@ A scriptable SAS 6.02 **host** application — Avalonia GUI + `sasctl` CLI, C#/.
 turns the GSA SAS Toolkit conformance corpus into unattended regression tests against
 Quixant's QSP platform and libsas library, running all-local on a laptop.
 
-**Read `.planning/DECISIONS.md` before proposing anything.** Twenty decisions were taken
-with the user before any code was written. Do not silently revisit them; if new evidence
+**Read `.planning/DECISIONS.md` before proposing anything.** Twenty-nine decisions were taken
+with the user — twenty before any code was written, nine more at the end of the design phase. Do not silently revisit them; if new evidence
 contradicts one, say so and ask.
 
 Then `.planning/BLOCKERS.md` (verified facts, traps, and the unblocking strategy) and

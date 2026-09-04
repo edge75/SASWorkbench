@@ -55,6 +55,9 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     /// <summary>The suite: what tests exist and what each of them came to.</summary>
     public SuiteViewModel Suite { get; } = new();
 
+    /// <summary>The band that asks a person to act on the machine during a manual run.</summary>
+    public ManualPromptViewModel Prompt { get; } = new();
+
     // ---- connection ----------------------------------------------------------------------
 
     public IReadOnlyList<string> Transports { get; }
@@ -229,6 +232,38 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     /// <summary>Which reports to write. The self-contained page is the one worth sending.</summary>
     [ObservableProperty]
     public partial string ReportFormats { get; set; } = "html";
+
+    /// <summary>What should drive the machine during a run.</summary>
+    public IReadOnlyList<StimulusBackend> StimulusBackends { get; } =
+        Enum.GetValues<StimulusBackend>();
+
+    [ObservableProperty]
+    public partial StimulusBackend RunStimulus { get; set; } = StimulusBackend.Software;
+
+    /// <summary>
+    /// Asks the person at the window, and records what they said in the stream, so a run that was
+    /// helped along by a person says so in its own log.
+    /// </summary>
+    private PromptAnswer AskAtTheWindow(string request, TimeSpan deadline)
+    {
+        PromptAnswer answer = Prompt.Ask(request, deadline);
+        _log.Prompt(request, SasChannel.One, answer.ToString().ToLowerInvariant());
+        return answer;
+    }
+
+    /// <summary>Whether the deadline field is worth showing at all.</summary>
+    public bool IsManualStimulus => RunStimulus == StimulusBackend.Manual;
+
+    /// <summary>
+    /// Which link a run should use, or "as written" to leave each test's own connect step alone.
+    /// </summary>
+    public IReadOnlyList<string> RunLinks { get; } = ["as written", "loopback", "tcp", "serial"];
+
+    [ObservableProperty]
+    public partial string RunLink { get; set; } = "as written";
+
+    partial void OnRunStimulusChanged(StimulusBackend value) =>
+        OnPropertyChanged(nameof(IsManualStimulus));
 
     // ---- commands ------------------------------------------------------------------------
 
@@ -435,14 +470,30 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
             string resolved = Resolve(ScriptPath);
             _run = new CancellationTokenSource();
             CancellationToken cancel = _run.Token;
+            StimulusBackend stimulus = RunStimulus;
+            TimeSpan promptDeadline = ScriptParser.ParseDuration(
+                Prompt.Deadline, SourceLocation.None);
+
+            if (!TryOverride(out ConnectionOverride change, out string? wrong))
+            {
+                Status = wrong;
+                return;
+            }
 
             RunReport report = await Task.Run(() =>
             {
-                IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(resolved);
+                IReadOnlyList<ScriptDocument> documents = change.ApplyTo(ScriptLoader.Load(resolved));
                 var runner = new ScriptRunner(new ScriptRunnerOptions
                 {
-                    Stimulus = StimulusBackend.Software,
-                    Environment = SoftwareMachineEnvironment.For(),
+                    Stimulus = stimulus,
+                    AskPerson = stimulus == StimulusBackend.Manual ? AskAtTheWindow : null,
+                    PromptDeadline = promptDeadline,
+
+                    // The software machine is wired in only when it was asked for: a run that
+                    // quietly substituted a fixture for the machine under test would be worthless.
+                    Environment = stimulus == StimulusBackend.Software
+                        ? SoftwareMachineEnvironment.For()
+                        : DefaultEnvironment.Create,
                     Log = _log,
                 });
 
@@ -503,6 +554,28 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         return path;
     }
 
+    /// <summary>
+    /// Turns the link selector into an override, so one suite can be pointed at a different
+    /// machine without editing it. The same override the command line applies.
+    /// </summary>
+    private bool TryOverride(out ConnectionOverride change, out string? error)
+    {
+        change = ConnectionOverride.None;
+        error = null;
+
+        if (RunLink == "as written")
+            return true;
+
+        if (!Enum.TryParse(RunLink, ignoreCase: true, out ScriptTransport transport))
+        {
+            error = $"'{RunLink}' is not a link.";
+            return false;
+        }
+
+        change = new ConnectionOverride(transport, Target);
+        return change.TryValidate(out error);
+    }
+
     /// <summary>Stops a run in progress. What already ran keeps its verdicts.</summary>
     [RelayCommand]
     private void CancelRun()
@@ -556,6 +629,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        Prompt.Dispose();
         Disconnect();
         Stream.Dispose();
     }
