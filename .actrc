@@ -1,0 +1,9 @@
+# Defaults for running the workflows locally with act, so `act push` works without flags.
+#
+# The bundled "micro" image has no .NET, no zip and no git, and every workflow here needs all
+# three. This image is the one act itself recommends for workflows that install toolchains.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+
+# Pinned because the .NET SDK act installs is x64. Redundant on an x64 host and load-bearing on
+# an ARM one, where act would otherwise pick an image the SDK cannot run in.
+--container-architecture linux/amd64

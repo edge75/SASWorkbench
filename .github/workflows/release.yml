@@ -1,0 +1,190 @@
+# Packages the application for Windows and Linux on every push to main, and publishes a release
+# tagged with the version the projects declare.
+#
+# Two things about the shape of this workflow are deliberate.
+#
+# It runs entirely on ubuntu-latest and cross-publishes the Windows build with `-r win-x64`,
+# rather than using a windows-latest runner. That is what makes the whole workflow runnable
+# locally with `act`, which cannot start Windows containers. Windows-native *testing* is not
+# given up: `build.yml` still runs the suite on both platforms, and that is the workflow that
+# decides whether the code works. This one only decides what gets shipped.
+#
+# The version is not written here. It is read from the projects with MSBuild, so the file that
+# declares it stays the single source of truth and a release cannot be tagged with a number that
+# disagrees with the assemblies inside it.
+
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  release:
+    name: package and release
+    runs-on: ubuntu-latest
+
+    steps:
+      # Tags are needed to answer "has this version already been released" without a network
+      # round trip, so the checkout is not shallow.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Asking MSBuild rather than reading the XML resolves the value the compiler will actually
+      # stamp into the assemblies, whether it is declared on the project or inherited. Grepping
+      # the csproj would miss an inherited value and silently produce a wrong tag.
+      - name: Read the version the projects declare
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(dotnet msbuild src/SasWorkbench.Core/SasWorkbench.Core.csproj \
+            -getProperty:Version -nologo | tr -d '[:space:]')"
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::the version must be three dot-separated numbers, and it is '$version'"
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version"    >> "$GITHUB_OUTPUT"
+          echo "Version $version, tag v$version"
+
+      # A push that does not change the version must not try to release over the top of one that
+      # already exists. It is not an error — most pushes are like that — so the run continues and
+      # still packages, and only the release step is skipped.
+      - name: Has this version already been released
+        id: existing
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ steps.version.outputs.tag }} already exists — packaging, but not releasing."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore
+        run: dotnet restore SasWorkbench.slnx
+
+      - name: Build
+        run: dotnet build SasWorkbench.slnx --configuration Release --no-restore
+
+      # A release should not ship bits nobody ran. This is the same suite build.yml runs; the
+      # point of repeating it here is that packaging must not be reachable past a red test.
+      - name: Test
+        run: dotnet test SasWorkbench.slnx --configuration Release --no-build
+
+      # Both applications publish into one directory per platform, so the shared assemblies are
+      # carried once and the archive holds a command line and a window that agree by construction.
+      #
+      # Framework-dependent on purpose: a self-contained build of the window is 104 MB per
+      # platform, which is a heavy thing to produce on every push for an audience that has the
+      # runtime installed. The release notes say the runtime is needed.
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          for rid in linux-x64 win-x64; do
+            for project in src/SasWorkbench.Cli src/SasWorkbench.Gui; do
+              dotnet publish "$project" \
+                --configuration Release \
+                --runtime "$rid" \
+                --self-contained false \
+                --output "staging/$rid"
+            done
+          done
+
+          echo "linux-x64:"; ls staging/linux-x64 | head -5
+          echo "win-x64:";   ls staging/win-x64   | head -5
+
+      # tar for Linux because it keeps the executable bit on the apphost — which is the other
+      # reason to build these on Linux rather than on Windows. zip for Windows because that is
+      # what a Windows user can open without installing anything.
+      - name: Package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          mkdir -p dist
+
+          tar -czf "dist/SasWorkbench-$version-linux-x64.tar.gz" -C staging/linux-x64 .
+          ( cd staging/win-x64 && zip -qr "../../dist/SasWorkbench-$version-win-x64.zip" . )
+
+          ( cd dist && sha256sum ./*.tar.gz ./*.zip > SHA256SUMS )
+
+          echo "Packaged:"
+          ls -lh dist
+          cat dist/SHA256SUMS
+
+      # act cannot reach the artifact service, so this is skipped locally. The packages are in
+      # ./dist either way, which is where a local run should look for them.
+      - name: Keep the packages
+        if: ${{ !env.ACT }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SasWorkbench-${{ steps.version.outputs.version }}
+          path: dist
+          if-no-files-found: error
+
+      # The company's own action. It creates the tag and the release if they do not exist and
+      # uploads every package in one step. Skipped when the tag is already there, and skipped
+      # under act, which has no token to release with.
+      - name: Release
+        if: ${{ !env.ACT && steps.existing.outputs.exists == 'false' }}
+        uses: quixantplc/upload-release-action@v3
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ steps.version.outputs.tag }}
+          release_name: SasWorkbench ${{ steps.version.outputs.version }}
+          file: dist/*
+          file_glob: true
+          overwrite: false
+          target_commit: ${{ github.sha }}
+          body: |
+            A scriptable SAS 6.02 host: the `sasctl` command line and the SasWorkbench window.
+
+            | Platform | Download |
+            |---|---|
+            | Windows x64 | `SasWorkbench-${{ steps.version.outputs.version }}-win-x64.zip` |
+            | Linux x64 | `SasWorkbench-${{ steps.version.outputs.version }}-linux-x64.tar.gz` |
+
+            Both archives carry the command line and the window together. The .NET 10 runtime is
+            required; `SHA256SUMS` lists the checksum of each archive.
+
+            Run `sasctl probe` first — it reports what the environment can actually do, and every
+            capability a test needs but this machine cannot provide is skipped with the reason
+            rather than passed.
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "### SasWorkbench ${{ steps.version.outputs.version }}"
+            echo
+            if [ "${{ steps.existing.outputs.exists }}" = "true" ]; then
+              echo "Tag \`${{ steps.version.outputs.tag }}\` already exists, so nothing was released."
+              echo "Bump \`Version\` in \`Directory.Build.props\` to publish a new one."
+            else
+              echo "Released as \`${{ steps.version.outputs.tag }}\`."
+            fi
+            echo
+            echo '```'
+            cat dist/SHA256SUMS
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

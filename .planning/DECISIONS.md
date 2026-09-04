@@ -149,3 +149,121 @@ parity on Linux with no error), and the full rig on Linux (needs `qpm_simulator`
 3. **Assert on data, never on pixels.** Tickets are JSON for tests, images for humans.
 4. **Honest labelling.** A green suite on unverified hardware must not look identical to a
    green suite on good hardware.
+
+---
+
+# Decisions 21–29
+
+Taken with the user on 2026-09-04, at the end of the M1.5 design phase. Same standing as the
+first twenty: **do not silently revisit.**
+
+## D21 — UX direction: **The Session Bench**
+
+Proposal A's shell over Proposal C's substrate, with Proposal B's suite explorer as one
+instrument. Chosen from `.planning/design/UX-PROPOSALS.md`.
+
+The load-bearing part is the substrate: the centre panel is **one time-ordered session stream**
+(TX, RX, exception, stimulus, prompt, assertion, verdict) on one clock, filtered by default to
+TX/RX so it looks like today's wire panel on day one. The shell is A's — a header band carrying
+provenance that no view can scroll away, an instrument rail, a persistent spine, a footer.
+
+## D22 — UI direction: **Bench**, with two grafts
+
+From `.planning/design/UI-PROPOSALS.md`. Four fixed bands, a recessed trace well, readouts in
+drawers rather than tabs, achromatic chrome so all chroma belongs to data and state.
+
+Grafts: **selection drives the decode** (select a received row, the decode drawer fills — from
+Console) and a **report mode** rendered from the same run report the HTML output uses (from
+Dossier). See D24: the report mode is demoted, not dropped.
+
+Binding, and not to be quietly dropped later: **the word, the failure-only solid fill, and the
+vector glyph.** Pass and fail cannot be separated by colour under deuteranopia in any palette —
+measured at 1.00:1 to 1.19:1 across all eight variants — so those three cues are the whole
+mitigation. Making chips icon-only, or outlining failure for visual consistency, silently breaks
+the accessibility contract and makes the contrast tables untrue.
+
+## D23 — One log, many channels; categories cannot overlap because the EGM will not let them
+
+**One recording per session, whatever the channel count.** The stream carries a channel lane, so
+two channels interleave in one log rather than producing two logs that have to be aligned later.
+
+The reason two hosts do not contend is **structural in the machine, not a rule the host has to
+police**. QSP assigns each of seven categories to exactly one channel, as seven 2-bit fields
+(`QSP/src/LibMarketSas/SasConfigurationFlags.h:35-41`): General Control · Advanced Funds
+Transfer · Progressive · Legacy Bonus · Validation · Component Authentication · Information.
+A category cannot be on two channels — the field holds one value — and libsas keeps a separate
+exception buffer per channel (`libsas.h:2263`, `SAS_CHANNEL_1..4`). So disjointness is
+guaranteed by the machine's own configuration.
+
+Two consequences:
+
+1. **The category→channel map becomes part of provenance.** "Which host should have sent this
+   poll" and "which host owns this exception" are only answerable if the map is known, and the
+   map lives in the machine, not in us. It is recorded with the run, next to the link and the
+   stimulus backend.
+2. **A category pointed at a channel with no poll address is unreachable.** The audit menu
+   refuses to assign one, but nothing stops a config arriving that way. Our software machine
+   must refuse it with a reason rather than accept a poll nothing will answer.
+
+## D24 — Audience narrowed: personal use, developers first
+
+The four-audience premise (D3) is superseded. This is being built for the user's own use, with
+other QSP/libsas developers as the plausible second reader. Customers, integrators and
+regulators are no longer a design constraint.
+
+Consequences, stated so they are not re-argued: density and hex win every tie; the **report mode
+of D22 is demoted below everything the engineer uses daily**, because the audience it was grafted
+in for is no longer primary; the self-contained HTML report (D13) survives on a different
+justification — shipping a result to somebody else and keeping a record (see D26). The
+recommendation against a simple/expert mode split stands and is now moot.
+
+## D25 — Tickets: JSON only in SasWorkbench
+
+The rendered ticket and its real barcode belong to `qpm_simulator`, which is where a human looks
+at one. SasWorkbench holds **only the JSON** — machine-readable, parsable, searchable. This
+narrows D12: the rendering half of it is the simulator's job, not the host's.
+
+## D26 — Log export: a block-compressed container with a readable header
+
+A session log is long and large — a 200 ms poll loop is ~10 records/second per channel, and the
+casino simulation of D29 is two orders of magnitude worse. So a session exports as a single
+container file:
+
+* an **uncompressed header** — provenance, the category→channel map, catalogue version, clock
+  base — so a tool can read what a run was worth without decompressing the body;
+* the body as **independently-decompressible blocks** of the same JSON-lines records, so the file
+  is seekable by time rather than only readable from the start;
+* a footer index of block offsets with each block's first and last timestamp.
+
+JSON lines stays the canonical record — the container is a framing and compression layer over it,
+and `sasctl` can turn one back into plain text. Compression uses what ships in the framework, so
+there is no native dependency on either platform.
+
+## D27 — The wakeup bit is a display setting
+
+Today every symbol renders as flag-dot-byte (`1.80`, `0.1F`). Add a setting: **flag digit**, or
+**colour only** — the byte alone, with a wakeup symbol drawn in the wakeup colour. Colour-only is
+the user's preference and the default.
+
+This does not weaken the refusals in D2 or the principle behind them: a transport that cannot
+carry the bit is still refused, and a received symbol carrying it still fails the poll. What
+changes is only how a symbol is drawn.
+
+## D28 — Three timestamp modes
+
+As in GSA's tool, selectable per view and recorded per record so the raw log is unaffected:
+
+| Mode | Zero is | What it shows |
+|---|---|---|
+| **since test start** | the start of the test (today's behaviour) | where in the test something happened |
+| **since previous poll** | the previous host poll on that channel | the poll period — 200 ms, and every stall in it |
+| **since previous message** | the previous record of any kind | turnaround latency — the 30.7 ms a reply took |
+
+The distinction is the point: in a general-poll loop, *since previous poll* reads ~200 ms while
+*since previous message* reads ~30 ms, and the two answer different questions.
+
+## D29 — Casino simulation, as the last milestone
+
+100 software EGMs against one or two hosts, with the hosts partitioned by category per D23 — for
+example Advanced Funds Transfer and Legacy Bonus on one, Validation and Information on the other.
+Scheduled as M5, after breadth. See `PLAN.md`.
