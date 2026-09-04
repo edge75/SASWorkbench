@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SasWorkbench.Core/SasWorkbench.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/unit/">
+    <Project Path="tests/unit/SasWorkbench.Core.Tests/SasWorkbench.Core.Tests.csproj" />
+  </Folder>
+</Solution>
