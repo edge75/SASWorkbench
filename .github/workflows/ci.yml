@@ -1,0 +1,79 @@
+# Builds and tests on both platforms from the first milestone, so portability never rots.
+# Nothing here needs the gaming platform or the machine library: the protocol catalogue is
+# generated once and committed, and the tests run against the software machine peer.
+#
+# The company's shared .NET action packages a release; it is not used here because this
+# workflow's job is to build and test, not to publish.
+
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore SasWorkbench.slnx
+
+      - name: Build
+        run: dotnet build SasWorkbench.slnx --configuration Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test SasWorkbench.slnx --configuration Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          --results-directory artifacts/test-results
+
+      # The suite must pass over a link that carries all nine bits, on both platforms. On Linux
+      # the serial backend refuses to open rather than dropping the wakeup bit, and a test asserts
+      # that refusal, so this run also proves the refusal happens.
+      - name: Run the regression scripts through the command line
+        run: >
+          dotnet run --project src/SasWorkbench.Cli --configuration Release --no-build --
+          run tests/regression --loopback --stimulus software
+          --report html,junit,md,jsonl --out artifacts/run
+
+      # A suite that could test nothing exits 3, so this step proves the honest-skip path works
+      # rather than silently reporting success.
+      - name: Check that an untestable suite is not reported as a success
+        shell: bash
+        run: |
+          set +e
+          dotnet run --project src/SasWorkbench.Cli --configuration Release --no-build -- \
+            run tests/conformance --loopback --stimulus software
+          code=$?
+          set -e
+          if [ "$code" -ne 3 ]; then
+            echo "expected exit code 3 for a suite in which nothing could be tested, got $code"
+            exit 1
+          fi
+
+      - name: What this environment could do
+        run: dotnet run --project src/SasWorkbench.Cli --configuration Release --no-build -- probe
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: results-${{ matrix.os }}
+          path: artifacts
+          if-no-files-found: warn
