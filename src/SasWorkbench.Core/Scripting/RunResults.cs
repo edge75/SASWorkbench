@@ -61,6 +61,15 @@ public sealed record TestOutcome
     /// <summary>Every message that crossed the wire, so a failure can be read back byte by byte.</summary>
     public IReadOnlyList<WireRecord> Wire { get; init; } = [];
 
+    /// <summary>
+    /// What this test in particular was carried over, and how much it is worth.
+    /// </summary>
+    /// <remarks>
+    /// Per test rather than only per run, so a row that is copied, filtered or sorted out of the
+    /// report cannot shed the claim it was made under.
+    /// </remarks>
+    public RunProvenance? Provenance { get; init; }
+
     /// <summary>How many steps made a claim and held.</summary>
     public int Passed => Steps.Count(s => s.IsAssertion && s.Verdict == Verdict.Pass);
 

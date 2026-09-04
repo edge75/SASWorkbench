@@ -23,6 +23,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 {
     private readonly SessionLog _log = new();
     private HostSession? _session;
+    private CancellationTokenSource? _run;
 
     public WorkbenchViewModel()
     {
@@ -38,10 +39,21 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         // One log for the window, not one per link. A run closes the interactive session and opens
         // its own, and the stream has to survive that: what is durable is the record, not the link.
         Stream.Watch(_log);
+
+        Suite.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SuiteViewModel.Selected))
+                ScopeToSelectedTest();
+        };
+
+        Rediscover();
     }
 
     /// <summary>The spine: everything this session did, in order.</summary>
     public SessionStreamViewModel Stream { get; } = new();
+
+    /// <summary>The suite: what tests exist and what each of them came to.</summary>
+    public SuiteViewModel Suite { get; } = new();
 
     // ---- connection ----------------------------------------------------------------------
 
@@ -149,8 +161,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     public ObservableCollection<FieldLine> Fields { get; } = [];
 
-    public ObservableCollection<StepLine> Steps { get; } = [];
-
     [ObservableProperty]
     public partial string? LastReply { get; set; }
 
@@ -167,13 +177,58 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     // ---- script --------------------------------------------------------------------------
 
     [ObservableProperty]
-    public partial string ScriptPath { get; set; } = Path.Combine("tests", "regression");
+    public partial string ScriptPath { get; set; } = "tests";
+
+    partial void OnScriptPathChanged(string value) => Rediscover();
+
+    /// <summary>
+    /// Rebuilds the tree from disk. Parsing only: the corpus is worth seeing before anything is
+    /// connected, and a script that cannot be parsed should say so here rather than at run time.
+    /// </summary>
+    private void Rediscover()
+    {
+        try
+        {
+            Suite.Discover(Resolve(ScriptPath));
+        }
+        catch (Exception ex) when (ex is ScriptParseException or FileNotFoundException
+                                       or DirectoryNotFoundException)
+        {
+            Suite.Nodes.Clear();
+            Status = ex.Message;
+        }
+    }
+
+    /// <summary>
+    /// Narrows the spine to the selected test's own window, so the frames a verdict was reached on
+    /// are the ones on screen.
+    /// </summary>
+    private void ScopeToSelectedTest()
+    {
+        if (Suite.Selected is not { Kind: SuiteNodeKind.Test, Outcome: not null } test)
+        {
+            Stream.ClearScope();
+            return;
+        }
+
+        if (_log.WindowOf(test.Name) is { } window)
+            Stream.ScopeTo(window.From, window.To, test.Name);
+        else
+            Stream.ClearScope();
+    }
 
     [ObservableProperty]
     public partial string? RunSummary { get; set; }
 
     [ObservableProperty]
     public partial bool IsBusy { get; set; }
+
+    /// <summary>The last run, kept so a report can be written from it.</summary>
+    public RunReport? LastReport { get; private set; }
+
+    /// <summary>Which reports to write. The self-contained page is the one worth sending.</summary>
+    [ObservableProperty]
+    public partial string ReportFormats { get; set; } = "html";
 
     // ---- commands ------------------------------------------------------------------------
 
@@ -373,12 +428,14 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         Disconnect();
 
         IsBusy = true;
-        Steps.Clear();
         RunSummary = null;
 
         try
         {
             string resolved = Resolve(ScriptPath);
+            _run = new CancellationTokenSource();
+            CancellationToken cancel = _run.Token;
+
             RunReport report = await Task.Run(() =>
             {
                 IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(resolved);
@@ -389,29 +446,20 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
                     Log = _log,
                 });
 
-                return runner.RunAll(documents);
-            });
+                return runner.RunAll(documents, cancel);
+            }, cancel);
 
-            foreach (TestOutcome test in report.Tests)
-            {
-                Steps.Add(new StepLine(
-                    Chip(test.Verdict),
-                    test.Name,
-                    test.Location.ToString(),
-                    test.SkipReason ?? $"{test.Assertions} assert(s), {test.Duration.TotalSeconds:F1}s"));
-
-                foreach (StepResult step in test.Steps.Where(s => s.Verdict != Verdict.Pass))
-                {
-                    Steps.Add(new StepLine(
-                        Chip(step.Verdict),
-                        "    " + step.Description,
-                        step.Location.ToString(),
-                        step.Reason ?? $"expected {step.Expected}, got {step.Actual}"));
-                }
-            }
-
+            Suite.Apply(report);
             RunSummary = $"{report.Verdict.ToString().ToUpperInvariant()} — {report.Summary()}";
+            LastReport = report;
             Status = string.Join("; ", report.Provenance.Select(p => p.ToString()));
+        }
+        catch (OperationCanceledException)
+        {
+            // A cancelled run has no verdict, and saying so beats leaving the last one on screen
+            // as though it still described the code.
+            RunSummary = null;
+            Status = "run cancelled; the tests that had already finished are in the stream";
         }
         catch (Exception ex) when (ex is ScriptParseException or FileNotFoundException
                                       or DirectoryNotFoundException)
@@ -421,6 +469,8 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         }
         finally
         {
+            _run?.Dispose();
+            _run = null;
             IsBusy = false;
             if (wasConnected)
                 Connect();
@@ -453,24 +503,55 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         return path;
     }
 
+    /// <summary>Stops a run in progress. What already ran keeps its verdicts.</summary>
+    [RelayCommand]
+    private void CancelRun()
+    {
+        _run?.Cancel();
+        Status = "cancelling…";
+    }
+
+    /// <summary>
+    /// Writes the last run to disk, so a result can be sent to somebody or kept as a record.
+    /// </summary>
+    [RelayCommand]
+    private void SaveReport()
+    {
+        if (LastReport is not { } report)
+        {
+            Status = "run something first";
+            return;
+        }
+
+        if (!Reports.TryParse(ReportFormats, out ReportFormat[] formats, out string? unknown))
+        {
+            Status = $"'{unknown}' is not a report format. Known: {Reports.Names}.";
+            return;
+        }
+
+        string directory = Path.Combine(
+            Resolve("runs"), report.StartedAt.ToLocalTime().ToString("yyyy-MM-dd-HHmmss"));
+
+        try
+        {
+            IReadOnlyList<string> written = Reports.Write(report, directory, formats);
+            Status = $"wrote {string.Join(", ", written)}";
+        }
+        catch (IOException io)
+        {
+            Status = $"could not write the report: {io.Message}";
+        }
+        catch (UnauthorizedAccessException denied)
+        {
+            Status = $"could not write the report: {denied.Message}";
+        }
+    }
+
     [RelayCommand]
     private void ClearLog()
     {
         Stream.Clear();
         Exceptions.Clear();
-    }
-
-    [RelayCommand]
-    private async Task SaveReportAsync()
-    {
-        if (Steps.Count == 0)
-        {
-            Status = "run a script first";
-            return;
-        }
-
-        Status = "reports are written by the command line: sasctl run <path> --report html";
-        await Task.CompletedTask;
     }
 
     public void Dispose()
@@ -500,15 +581,6 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         IsLinkUp = state == Core.Polling.LinkState.Up;
         RefreshCounters();
     });
-
-    /// <summary>A verdict as a chip state.</summary>
-    private static ChipStatus Chip(Verdict verdict) => verdict switch
-    {
-        Verdict.Pass => ChipStatus.Pass,
-        Verdict.Fail => ChipStatus.Fail,
-        Verdict.Skip => ChipStatus.Skip,
-        _ => ChipStatus.Error,
-    };
 
     private void RefreshCounters()
     {

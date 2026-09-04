@@ -167,9 +167,12 @@ public sealed class ScriptRunner
 
             (Requirement Requirement, string Reason)? unmet = capabilities.FirstUnmet(test.Requirements);
             if (unmet is { } gap)
-                return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}", connect.Channel, testBase);
+            {
+                return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}",
+                    connect.Channel, testBase, provenance);
+            }
 
-            return Execute(test, connect, environment, stopwatch, testBase);
+            return Execute(test, connect, environment, stopwatch, testBase, provenance);
         }
     }
 
@@ -178,7 +181,8 @@ public sealed class ScriptRunner
         ConnectStep connect,
         ScriptEnvironment environment,
         Stopwatch stopwatch,
-        ClockBase testBase)
+        ClockBase testBase,
+        RunProvenance provenance)
     {
         TimeSpan interval = test.Steps.OfType<PollEveryStep>().FirstOrDefault()?.Interval
                             ?? _options.PollInterval;
@@ -199,7 +203,7 @@ public sealed class ScriptRunner
         }
         catch (TransportRefusedException refused)
         {
-            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
+            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase, provenance);
         }
 
         // The engine keeps its own clock, so its zero is marked on the session clock before it
@@ -230,7 +234,7 @@ public sealed class ScriptRunner
             }
             catch (TransportRefusedException refused)
             {
-                return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
+                return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase, provenance);
             }
 
             if (environment.HostTransport is TcpTransport tcp && !tcp.WaitForPeer(_options.PeerTimeout))
@@ -238,7 +242,7 @@ public sealed class ScriptRunner
                 return Skipped(test, stopwatch,
                     $"no gaming machine connected to {tcp.Description} within "
                     + $"{_options.PeerTimeout.TotalSeconds:F0}s",
-                    connect.Channel, testBase);
+                    connect.Channel, testBase, provenance);
             }
 
             RefreshBaselines(engine, test.WatchedMeters, baselines);
@@ -266,6 +270,7 @@ public sealed class ScriptRunner
                 Duration = stopwatch.Elapsed,
                 Tags = test.Tags,
                 Wire = wire,
+                Provenance = provenance,
                 SkipReason = Aggregate(steps) == Verdict.Skip
                     ? steps.FirstOrDefault(s => s.Verdict == Verdict.Skip)?.Reason
                     : null,
@@ -644,7 +649,12 @@ public sealed class ScriptRunner
     /// and never finished would leave the log looking as though it were still going.
     /// </summary>
     private TestOutcome Skipped(
-        ScriptTest test, Stopwatch stopwatch, string reason, SasChannel channel, ClockBase testBase)
+        ScriptTest test,
+        Stopwatch stopwatch,
+        string reason,
+        SasChannel channel,
+        ClockBase testBase,
+        RunProvenance? provenance = null)
     {
         var outcome = new TestOutcome
         {
@@ -654,6 +664,7 @@ public sealed class ScriptRunner
             Tags = test.Tags,
             Duration = stopwatch.Elapsed,
             SkipReason = reason,
+            Provenance = provenance,
             Steps = [new StepResult(test.Location, test.Name, Verdict.Skip, Reason: reason)],
         };
 

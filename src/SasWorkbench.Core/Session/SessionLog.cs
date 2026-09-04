@@ -218,8 +218,47 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
         return index;
     }
 
+    private static int LastIndexOf(IReadOnlyList<SessionEvent> events, SessionLane lane, string text)
+    {
+        for (int i = events.Count - 1; i >= 0; i--)
+        {
+            if (events[i].Lane == lane && events[i].Text == text)
+                return i;
+        }
+
+        return -1;
+    }
+
     private static SessionEvent[] Ordered(IEnumerable<SessionEvent> events) =>
         events.OrderBy(e => e.At).ThenBy(e => e.Sequence).ToArray();
+
+    /// <summary>
+    /// When a test ran, so a view can scope the stream to it rather than making the reader scroll.
+    /// </summary>
+    /// <remarks>
+    /// The most recent run of that name, because a suite re-run should scope to what just happened
+    /// rather than to the first time the test was seen.
+    /// </remarks>
+    public (TimeSpan From, TimeSpan To)? WindowOf(string test)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(test);
+
+        IReadOnlyList<SessionEvent> events = Snapshot();
+
+        int started = LastIndexOf(events, SessionLane.TestStarted, test);
+        if (started < 0)
+            return null;
+
+        int finished = events
+            .Select((e, i) => (Event: e, Index: i))
+            .Where(x => x.Index > started
+                        && x.Event.Lane == SessionLane.Verdict
+                        && x.Event.Text == test)
+            .Select(x => (int?)x.Index)
+            .FirstOrDefault() ?? events.Count - 1;
+
+        return (events[started].At, events[finished].At);
+    }
 
     /// <summary>Forgets everything held, without resetting the sequence numbering.</summary>
     public void Clear()

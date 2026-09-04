@@ -9,6 +9,7 @@ using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Wire;
+using SasWorkbench.Egm;
 using SasWorkbench.Gui;
 using SasWorkbench.Gui.Controls;
 using SasWorkbench.Gui.ViewModels;
@@ -97,6 +98,8 @@ internal static class Program
 
         window.Show();
         Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
 
         using WriteableBitmap frame = window.CaptureRenderedFrame()
             ?? throw new InvalidOperationException("the sheet rendered no frame");
@@ -129,6 +132,8 @@ internal static class Program
 
         window.Show();
         Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
 
         using WriteableBitmap frame = window.CaptureRenderedFrame()
             ?? throw new InvalidOperationException("the window rendered no frame");
@@ -158,6 +163,7 @@ internal static class Program
         };
 
         model.Stream.Watch(Captured());
+        Ran(model);
 
         model.Fields.Add(new FieldLine("game_id", "QX", string.Empty));
         model.Fields.Add(new FieldLine("additional_id", "001", string.Empty));
@@ -177,15 +183,51 @@ internal static class Program
         model.Exceptions.Add(new ExceptionLine("$4A", "bill_accepted",
             "a bill was accepted by the machine", "6200 ms"));
 
-        model.Steps.Add(new StepLine(ChipStatus.Pass,
-            "the link comes up and the machine identifies itself",
-            "tests/regression/wire/link-up.sas:1", "5 assert(s), 6.9s"));
-        model.Steps.Add(new StepLine(ChipStatus.Skip,
-            "10.1.1 standard validation configuration",
-            "tests/conformance/10.1/10.1.1-standard-validation.sas:1",
-            "egm.validation: this environment provides no 'egm.validation'"));
-
         return model;
+    }
+
+    /// <summary>
+    /// Runs the committed regression suite against the software machine, so the picture shows real
+    /// verdicts rather than invented ones.
+    /// </summary>
+    private static void Ran(WorkbenchViewModel model)
+    {
+        try
+        {
+            IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(Suite());
+            var runner = new ScriptRunner(new ScriptRunnerOptions
+            {
+                Stimulus = StimulusBackend.Software,
+                Environment = SoftwareMachineEnvironment.For(),
+                PollInterval = TimeSpan.FromMilliseconds(20),
+            });
+
+            RunReport report = runner.RunAll(documents);
+            model.Suite.Apply(report);
+            model.RunSummary = $"{report.Verdict.ToString().ToUpperInvariant()} — {report.Summary()}";
+            model.Suite.Selected = model.Suite.Nodes
+                .SelectMany(n => n.Children)
+                .SelectMany(n => n.Children)
+                .FirstOrDefault(n => n.Outcome is not null);
+        }
+        catch (Exception ex) when (ex is ScriptParseException or IOException)
+        {
+            model.RunSummary = $"the suite could not be run for this specimen: {ex.Message}";
+        }
+    }
+
+    private static string Suite()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            string candidate = Path.Combine(directory.FullName, "tests", "regression");
+            if (Directory.Exists(candidate))
+                return candidate;
+            directory = directory.Parent;
+        }
+
+        return "tests";
     }
 
     /// <summary>The frames the first milestone actually captured, replayed into a session log.</summary>

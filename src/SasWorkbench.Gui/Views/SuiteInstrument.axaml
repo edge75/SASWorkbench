@@ -1,0 +1,110 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SasWorkbench.Gui.Controls"
+             xmlns:vm="using:SasWorkbench.Gui.ViewModels"
+             x:Class="SasWorkbench.Gui.Views.SuiteInstrument"
+             x:DataType="vm:WorkbenchViewModel"
+             AutomationProperties.Name="Suite">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto,*" RowSpacing="8" Margin="0,8,0,0">
+
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+      <StackPanel Grid.Column="0">
+        <TextBlock Classes="field" Text="SCRIPT OR DIRECTORY" />
+        <TextBox Text="{Binding ScriptPath}" FontFamily="{StaticResource FontMono}" />
+      </StackPanel>
+      <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+        <Button Content="Run" Command="{Binding RunScriptCommand}"
+                IsEnabled="{Binding !IsBusy}" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" VerticalAlignment="Bottom">
+        <Button Content="Cancel" Command="{Binding CancelRunCommand}"
+                IsEnabled="{Binding IsBusy}" />
+      </StackPanel>
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <TextBlock Grid.Column="0" Classes="strong" Text="{Binding RunSummary}"
+                 TextWrapping="Wrap" VerticalAlignment="Center" />
+      <Button Grid.Column="1" Content="Write report"
+              Command="{Binding SaveReportCommand}" />
+    </Grid>
+
+    <Border Grid.Row="2" Classes="well">
+      <TreeView ItemsSource="{Binding Suite.Nodes}"
+                SelectedItem="{Binding Suite.Selected}"
+                AutomationProperties.Name="Tests">
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate x:DataType="vm:SuiteNode" ItemsSource="{Binding Children}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+              <c:StatusChip Grid.Column="0" Status="{Binding Status}"
+                            Label="{Binding StatusLabel}" Reason="{Binding StatusReason}"
+                            MinWidth="70" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                <TextBlock Classes="name" Text="{Binding Name}"
+                           TextTrimming="CharacterEllipsis" />
+                <TextBlock Classes="where" Text="{Binding Labels}"
+                           IsVisible="{Binding HasLabels}" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Grid>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </Border>
+
+    <Border Grid.Row="3" Classes="rail" Classes.unverified="{Binding !Suite.IsProven}"
+            IsVisible="{Binding Suite.Provenance, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+        <c:ProvenanceSeal Grid.Column="0" IsProven="{Binding Suite.IsProven}" />
+        <TextBlock Grid.Column="1" Classes="prose" Text="{Binding Suite.Provenance}"
+                   TextWrapping="Wrap" VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <TabControl Grid.Row="4" IsVisible="{Binding Suite.HasSelection}">
+
+      <TabItem Header="Steps">
+        <ListBox ItemsSource="{Binding Suite.Steps}" Margin="0,6,0,0"
+                 AutomationProperties.Name="Steps">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:StepLine">
+              <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                <c:StatusChip Grid.Row="0" Grid.Column="0" Status="{Binding Verdict}"
+                              Reason="{Binding Detail}" VerticalAlignment="Top" />
+                <TextBlock Grid.Row="0" Grid.Column="1" Classes="name" Text="{Binding What}"
+                           TextWrapping="Wrap" />
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,1,0,3">
+                  <TextBlock Classes="prose" Text="{Binding Detail}" TextWrapping="Wrap" />
+                  <TextBlock Classes="where" Text="{Binding Where}"
+                             TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+
+      <TabItem Header="Frames">
+        <ListBox ItemsSource="{Binding Suite.Frames}" Margin="0,6,0,0"
+                 AutomationProperties.Name="Captured frames">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:FrameLine">
+              <Grid ColumnDefinitions="60,26,*,Auto" ColumnSpacing="8">
+                <TextBlock Grid.Column="0" Classes="at" Text="{Binding At}"
+                           HorizontalAlignment="Right" />
+                <TextBlock Grid.Column="1" Classes="hex" Text="{Binding Direction}"
+                           FontWeight="Bold" />
+                <SelectableTextBlock Grid.Column="2" Classes="hex" Text="{Binding Hex}"
+                                     TextWrapping="Wrap" />
+                <TextBlock Grid.Column="3" Classes="prose" Text="{Binding Note}"
+                           HorizontalAlignment="Right" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </TabItem>
+
+    </TabControl>
+
+  </Grid>
+</UserControl>

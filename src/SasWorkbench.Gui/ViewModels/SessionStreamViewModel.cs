@@ -95,6 +95,16 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
     [ObservableProperty]
     public partial string? Gap { get; set; }
 
+    /// <summary>
+    /// What the stream is narrowed to, when it is narrowed. Named rather than merely applied,
+    /// because a filtered view that does not say it is filtered reads as an empty session.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? Scope { get; set; }
+
+    private TimeSpan? _from;
+    private TimeSpan? _to;
+
     public IReadOnlyList<TimestampMode> TimestampModes { get; } = Enum.GetValues<TimestampMode>();
 
     public IReadOnlyList<WakeupDisplay> WakeupDisplays { get; } = Enum.GetValues<WakeupDisplay>();
@@ -122,6 +132,31 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
         _shown.Clear();
         Rows.Clear();
         Flush();
+    }
+
+    /// <summary>
+    /// Narrows the stream to a window of the session, such as the one test that failed.
+    /// </summary>
+    public void ScopeTo(TimeSpan from, TimeSpan to, string label)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
+
+        // A margin either side, because the frame that explains a failure is usually the one just
+        // before the window rather than inside it.
+        _from = from - TimeSpan.FromMilliseconds(250);
+        _to = to + TimeSpan.FromMilliseconds(250);
+        Scope = label;
+        Rebuild();
+    }
+
+    /// <summary>Widens the stream back to the whole session.</summary>
+    [RelayCommand]
+    public void ClearScope()
+    {
+        _from = null;
+        _to = null;
+        Scope = null;
+        Rebuild();
     }
 
     /// <summary>Empties the view. The log keeps what it holds.</summary>
@@ -193,10 +228,9 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
     private void Show(SessionEvent record)
     {
-        if (!IsShowing(record.Lane))
-            return;
-
-        Rows.Add(Row(record, _stamper.Stamp(record)));
+        TimeSpan offset = _stamper.Stamp(record);
+        if (IsShowing(record))
+            Rows.Add(Row(record, offset));
     }
 
     private void Rebuild()
@@ -209,13 +243,15 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
             // Every event advances the stamper, including one the filter hides: a poll period
             // measured across a hidden poll would be two periods reported as one.
             TimeSpan offset = _stamper.Stamp(record);
-            if (IsShowing(record.Lane))
+            if (IsShowing(record))
                 Rows.Add(Row(record, offset));
         }
     }
 
-    private bool IsShowing(SessionLane lane) =>
-        Lanes.First(l => l.Lane == lane).IsShown;
+    private bool IsShowing(SessionEvent record) =>
+        Lanes.First(l => l.Lane == record.Lane).IsShown
+        && (_from is null || record.At >= _from)
+        && (_to is null || record.At <= _to);
 
     private void Trim()
     {
