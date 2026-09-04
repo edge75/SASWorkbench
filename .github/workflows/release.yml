@@ -20,8 +20,8 @@ on:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: write
+# Nothing is granted at the workflow level; the one job that publishes asks for what it needs.
+permissions: {}
 
 env:
   DOTNET_NOLOGO: "true"
@@ -31,6 +31,10 @@ jobs:
   release:
     name: package and release
     runs-on: ubuntu-latest
+
+    # Needed to create the tag and the release, and for nothing else.
+    permissions:
+      contents: write
 
     steps:
       # Tags are needed to answer "has this version already been released" without a network
@@ -142,34 +146,48 @@ jobs:
           path: dist
           if-no-files-found: error
 
-      # The company's own action. It creates the tag and the release if they do not exist and
-      # uploads every package in one step. Skipped when the tag is already there, and skipped
-      # under act, which has no token to release with.
+      # The GitHub CLI is preinstalled on the runners, so the release needs no action at all —
+      # one fewer dependency to pin and audit. `gh release create` creates the tag at the target
+      # commit and uploads the assets in the same call.
+      #
+      # Skipped when the tag already exists, and skipped under act, which has no token to release
+      # with and must not be able to tag the repository.
       - name: Release
         if: ${{ !env.ACT && steps.existing.outputs.exists == 'false' }}
-        uses: quixantplc/upload-release-action@v3
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.version.outputs.tag }}
-          release_name: SasWorkbench ${{ steps.version.outputs.version }}
-          file: dist/*
-          file_glob: true
-          overwrite: false
-          target_commit: ${{ github.sha }}
-          body: |
-            A scriptable SAS 6.02 host: the `sasctl` command line and the SasWorkbench window.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
 
-            | Platform | Download |
-            |---|---|
-            | Windows x64 | `SasWorkbench-${{ steps.version.outputs.version }}-win-x64.zip` |
-            | Linux x64 | `SasWorkbench-${{ steps.version.outputs.version }}-linux-x64.tar.gz` |
+          # A quoted heredoc, so the backticks around the file names stay text instead of being
+          # run as commands. The version is substituted afterwards through a token that cannot
+          # occur in prose.
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          A scriptable SAS 6.02 host: the `sasctl` command line and the SasWorkbench window.
 
-            Both archives carry the command line and the window together. The .NET 10 runtime is
-            required; `SHA256SUMS` lists the checksum of each archive.
+          | Platform | Download |
+          |---|---|
+          | Windows x64 | `SasWorkbench-@VERSION@-win-x64.zip` |
+          | Linux x64 | `SasWorkbench-@VERSION@-linux-x64.tar.gz` |
 
-            Run `sasctl probe` first — it reports what the environment can actually do, and every
-            capability a test needs but this machine cannot provide is skipped with the reason
-            rather than passed.
+          Both archives carry the command line and the window together. The .NET 10 runtime is
+          required; `SHA256SUMS` lists the checksum of each archive.
+
+          Run `sasctl probe` first — it reports what the environment can actually do, and every
+          capability a test needs but this machine cannot provide is skipped with the reason
+          rather than passed.
+          NOTES
+
+          sed -i "s/@VERSION@/$VERSION/g" "$RUNNER_TEMP/release-notes.md"
+
+          gh release create "$TAG" \
+            --title "SasWorkbench $VERSION" \
+            --target "$GITHUB_SHA" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            dist/SHA256SUMS dist/*.zip dist/*.tar.gz
 
       - name: Summary
         shell: bash

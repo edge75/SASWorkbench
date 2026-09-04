@@ -34,6 +34,11 @@ archive it names.
 The version must be three dot-separated numbers. Anything else fails the run with that sentence
 rather than producing a strange tag.
 
+The tag and the release are created with the GitHub CLI, which is preinstalled on the runners, so
+no third-party action is involved — the only actions used are `actions/checkout`,
+`actions/setup-dotnet` and `actions/upload-artifact`. Nothing is granted at the workflow level;
+the one job that publishes asks for `contents: write` and nothing else.
+
 ## What is in a release
 
 One archive per platform, each carrying **both** applications — the `sasctl` command line and the

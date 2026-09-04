@@ -2,8 +2,8 @@
 # Nothing here needs the gaming platform or the machine library: the protocol catalogue is
 # generated once and committed, and the tests run against the software machine peer.
 #
-# The company's shared .NET action packages a release; it is not used here because this
-# workflow's job is to build and test, not to publish.
+# Packaging and publishing are not done here — that is `release.yml`. This workflow's job is to
+# decide whether the code works, on both platforms natively.
 
 name: build
 
