@@ -1,0 +1,127 @@
+=== IMPORTS ===
+Total DLLs: 9   Total imports: 406
+
+--- ADVAPI32.DLL  (3 imports) ---
+   RegCloseKey                   RegOpenKeyExA                 RegQueryValueExA              
+
+--- KERNEL32.DLL  (121 imports) ---
+   BuildCommDCBA                 ClearCommError                CloseHandle                   CompareStringA                
+   CopyFileA                     CreateEventA                  CreateFileA                   CreateThread                  
+   DeleteCriticalSection         DeleteFileA                   EnterCriticalSection          EnumCalendarInfoA             
+   ExitProcess                   ExitThread                    FileTimeToDosDateTime         FileTimeToLocalFileTime       
+   FindClose                     FindFirstFileA                FindResourceA                 FormatMessageA                
+   FreeLibrary                   FreeResource                  GetACP                        GetCPInfo                     
+   GetCommandLineA               GetCurrentDirectoryA          GetCurrentProcess             GetCurrentProcessId           
+   GetCurrentThread              GetCurrentThreadId            GetDateFormatA                GetDiskFreeSpaceA             
+   GetEnvironmentStrings         GetExitCodeThread             GetFileAttributesA            GetFileSize                   
+   GetFileType                   GetLastError                  GetLocalTime                  GetLocaleInfoA                
+   GetModuleFileNameA            GetModuleHandleA              GetOEMCP                      GetOverlappedResult           
+   GetPrivateProfileStringA      GetProcAddress                GetProcessHeap                GetStartupInfoA               
+   GetStdHandle                  GetStringTypeExA              GetStringTypeW                GetSystemInfo                 
+   GetThreadLocale               GetTickCount                  GetTimeZoneInformation        GetVersion                    
+   GetVersionExA                 GlobalAddAtomA                GlobalAlloc                   GlobalDeleteAtom              
+   GlobalFindAtomA               GlobalFree                    GlobalHandle                  GlobalLock                    
+   GlobalReAlloc                 GlobalUnlock                  HeapAlloc                     HeapFree                      
+   InitializeCriticalSection     InterlockedDecrement          InterlockedIncrement          LCMapStringA                  
+   LeaveCriticalSection          LoadLibraryA                  LoadLibraryExA                LoadResource                  
+   LocalAlloc                    LocalFree                     LockResource                  MulDiv                        
+   MultiByteToWideChar           PurgeComm                     RaiseException                ReadFile                      
+   ResetEvent                    ResumeThread                  RtlUnwind                     SetCommMask                   
+   SetCommState                  SetCommTimeouts               SetConsoleCtrlHandler         SetCurrentDirectoryA          
+   SetEndOfFile                  SetErrorMode                  SetEvent                      SetFilePointer                
+   SetHandleCount                SetLastError                  SetPriorityClass              SetThreadLocale               
+   SetThreadPriority             SetupComm                     SizeofResource                Sleep                         
+   TlsAlloc                      TlsFree                       TlsGetValue                   TlsSetValue                   
+   UnhandledExceptionFilter      VirtualAlloc                  VirtualFree                   VirtualQuery                  
+   WaitCommEvent                 WaitForSingleObject           WideCharToMultiByte           WriteFile                     
+   WritePrivateProfileStringA    lstrcmpA                      lstrcpyA                      lstrcpynA                     
+   lstrlenA                      
+
+--- VERSION.DLL  (3 imports) ---
+   GetFileVersionInfoA           GetFileVersionInfoSizeA       VerQueryValueA                
+
+--- COMCTL32.DLL  (23 imports) ---
+   ImageList_Add                 ImageList_BeginDrag           ImageList_Create              ImageList_Destroy             
+   ImageList_DragEnter           ImageList_DragLeave           ImageList_DragMove            ImageList_DragShowNolock      
+   ImageList_Draw                ImageList_DrawEx              ImageList_EndDrag             ImageList_GetBkColor          
+   ImageList_GetDragImage        ImageList_GetIconSize         ImageList_GetImageCount       ImageList_Read                
+   ImageList_Remove              ImageList_ReplaceIcon         ImageList_SetBkColor          ImageList_SetDragCursorImage  
+   ImageList_SetIconSize         ImageList_Write               #ordinal 17                   
+
+--- COMDLG32.DLL  (2 imports) ---
+   GetOpenFileNameA              GetSaveFileNameA              
+
+--- GDI32.DLL  (71 imports) ---
+   BitBlt                        CombineRgn                    CopyEnhMetaFileA              CreateBitmap                  
+   CreateBrushIndirect           CreateCompatibleBitmap        CreateCompatibleDC            CreateDIBSection              
+   CreateDIBitmap                CreateFontIndirectA           CreateHalftonePalette         CreatePalette                 
+   CreatePenIndirect             CreateRectRgn                 CreateSolidBrush              DeleteDC                      
+   DeleteEnhMetaFile             DeleteObject                  ExcludeClipRect               ExtTextOutA                   
+   GetBitmapBits                 GetBrushOrgEx                 GetClipBox                    GetClipRgn                    
+   GetCurrentPositionEx          GetDCOrgEx                    GetDIBColorTable              GetDIBits                     
+   GetDeviceCaps                 GetEnhMetaFileBits            GetEnhMetaFileHeader          GetEnhMetaFilePaletteEntries  
+   GetObjectA                    GetPaletteEntries             GetPixel                      GetRgnBox                     
+   GetStockObject                GetSystemPaletteEntries       GetTextExtentPoint32A         GetTextMetricsA               
+   GetWinMetaFileBits            GetWindowOrgEx                IntersectClipRect             LineTo                        
+   MaskBlt                       MoveToEx                      PatBlt                        PlayEnhMetaFile               
+   Polyline                      RealizePalette                RectVisible                   Rectangle                     
+   RestoreDC                     SaveDC                        SelectClipRgn                 SelectObject                  
+   SelectPalette                 SetBkColor                    SetBkMode                     SetBrushOrgEx                 
+   SetDIBColorTable              SetEnhMetaFileBits            SetPixel                      SetROP2                       
+   SetStretchBltMode             SetTextColor                  SetViewportOrgEx              SetWinMetaFileBits            
+   SetWindowOrgEx                StretchBlt                    UnrealizeObject               
+
+--- USER32.DLL  (164 imports) ---
+   ActivateKeyboardLayout        AdjustWindowRectEx            BeginDeferWindowPos           BeginPaint                    
+   CallNextHookEx                CallWindowProcA               CharLowerA                    CharLowerBuffA                
+   CharNextA                     CheckMenuItem                 ChildWindowFromPoint          ClientToScreen                
+   CreateIcon                    CreateMenu                    CreatePopupMenu               CreateWindowExA               
+   DefFrameProcA                 DefMDIChildProcA              DefWindowProcA                DeferWindowPos                
+   DeleteMenu                    DestroyCursor                 DestroyIcon                   DestroyMenu                   
+   DestroyWindow                 DispatchMessageA              DrawEdge                      DrawFocusRect                 
+   DrawFrameControl              DrawIcon                      DrawIconEx                    DrawMenuBar                   
+   DrawTextA                     EnableMenuItem                EnableScrollBar               EnableWindow                  
+   EndDeferWindowPos             EndPaint                      EnumThreadWindows             EnumWindows                   
+   EqualRect                     FillRect                      FindWindowA                   FrameRect                     
+   GetActiveWindow               GetCapture                    GetClassInfoA                 GetClassNameA                 
+   GetClientRect                 GetClipboardData              GetCursor                     GetCursorPos                  
+   GetDC                         GetDCEx                       GetDesktopWindow              GetDlgItem                    
+   GetFocus                      GetForegroundWindow           GetIconInfo                   GetKeyNameTextA               
+   GetKeyState                   GetKeyboardLayout             GetKeyboardLayoutList         GetKeyboardState              
+   GetKeyboardType               GetLastActivePopup            GetMenu                       GetMenuItemCount              
+   GetMenuItemID                 GetMenuItemInfoA              GetMenuState                  GetMenuStringA                
+   GetMessagePos                 GetParent                     GetPropA                      GetScrollInfo                 
+   GetScrollPos                  GetScrollRange                GetSubMenu                    GetSystemMenu                 
+   GetSystemMetrics              GetTopWindow                  GetWindow                     GetWindowDC                   
+   GetWindowLongA                GetWindowPlacement            GetWindowRect                 GetWindowTextA                
+   GetWindowThreadProcessId      InflateRect                   InsertMenuA                   InsertMenuItemA               
+   IntersectRect                 InvalidateRect                IsChild                       IsDialogMessageA              
+   IsIconic                      IsRectEmpty                   IsWindow                      IsWindowEnabled               
+   IsWindowVisible               IsZoomed                      KillTimer                     LoadBitmapA                   
+   LoadCursorA                   LoadIconA                     LoadKeyboardLayoutA           LoadStringA                   
+   MapVirtualKeyA                MapWindowPoints               MessageBoxA                   MsgWaitForMultipleObjects     
+   OemToCharA                    OffsetRect                    PeekMessageA                  PostMessageA                  
+   PostQuitMessage               PtInRect                      RedrawWindow                  RegisterClassA                
+   RegisterClipboardFormatA      RegisterWindowMessageA        ReleaseCapture                ReleaseDC                     
+   RemoveMenu                    RemovePropA                   ScreenToClient                ScrollWindow                  
+   SendMessageA                  SetActiveWindow               SetCapture                    SetClassLongA                 
+   SetCursor                     SetFocus                      SetForegroundWindow           SetMenu                       
+   SetMenuItemInfoA              SetPropA                      SetRect                       SetScrollInfo                 
+   SetScrollPos                  SetScrollRange                SetTimer                      SetWindowLongA                
+   SetWindowPlacement            SetWindowPos                  SetWindowTextA                SetWindowsHookExA             
+   ShowCursor                    ShowOwnedPopups               ShowScrollBar                 ShowWindow                    
+   SystemParametersInfoA         TrackPopupMenu                TranslateMDISysAccel          TranslateMessage              
+   UnhookWindowsHookEx           UnregisterClassA              UpdateWindow                  WaitMessage                   
+   WinHelpA                      WindowFromPoint               wsprintfA                     GetSysColor                   
+
+--- WINMM.DLL  (4 imports) ---
+   timeBeginPeriod               timeEndPeriod                 timeKillEvent                 timeSetEvent                  
+
+--- OLEAUT32.DLL  (15 imports) ---
+   #ordinal 15                   #ordinal 25                   #ordinal 20                   #ordinal 19                   
+   #ordinal 148                  #ordinal 26                   #ordinal 40                   #ordinal 4                    
+   #ordinal 6                    #ordinal 5                    #ordinal 12                   #ordinal 9                    
+   #ordinal 10                   #ordinal 11                   #ordinal 8                    
+
+
+=== EXPORTS ===

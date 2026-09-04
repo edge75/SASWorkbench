@@ -1,0 +1,6 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\ComPortSettings.dat ===
+  version   : 1
+  port      : COM3
+  baud      : 115200
+  framing   : 8N1  (bytesize=8 parity=0 stopbits=0)
+  trailing  : (none)

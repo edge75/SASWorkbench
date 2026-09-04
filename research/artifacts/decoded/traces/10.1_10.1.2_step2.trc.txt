@@ -1,0 +1,16 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.1\10.1.2\step2.trc ===
+started : 2026-07-20 09:47:18
+stamps  : relative to end of previous poll
+events  : 12 (10 messages, 4 HOST, 6 EGM)
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       34.1      67                                     Ticket has been inserted
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       26.6      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       36.7      2B                                     Bill rejected
+  HOST      42.4 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       26.9      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --

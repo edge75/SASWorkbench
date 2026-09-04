@@ -1,0 +1,4691 @@
+stub.h generated from stub.asm by djasm, on Mon Dec 24 21:21:52 2001
+The STUB.EXE stub loader is Copyright (C) 1993-1995 DJ Delorie. 
+Permission granted to use for any purpose provided this copyright 
+remains present and unmodified. 
+This only applies to the stub, and not necessarily the whole program.
+$Id: stub.asm built 12/24/01 21:21:52 by djasm $
+@(#) stub.asm built 12/24/01 21:21:52 by djasm
+go32stub, v 2.02T
+CWSDPMI.EXE
+=PAu
+=THu
+.EXE
+$PQW1
+Load error: $: can't open$: not EXE$: not COFF (Check for viruses)$no DPMI - Get csdpmi*b.zip$no DOS memory$need DOS 3$can't switch mode$no DPMI selectors$no DPMI memory$
+.text
+.data
+.bss
+.comment
+1X_^
+fSfQY;
+ UpdateAFT72: START 
+ - trans status %02X
+ - trans type %02X
+ - inhouse host->egm 
+ - partial 
+ - calc cash/rst/nonrst amts 
+ - ACTUAL TRANSFER 
+ - rst 
+ - req rst == 0 
+ - nonrst 
+ - req nonrst == 0 
+ - cash 
+ - req cash == 0 
+ - rewrite cur credits 
+ - FULL transfer 
+ Update, 20, inh host->tick 
+ Update, 80, inh egm->host - cashout pending? %02X
+ Total requested transfer: 
+%02X 
+ - Cashout Pending, trans==0 
+ - hopper Cashout 
+ - Player_Cash_Out 
+ - handpay 
+ - there are cash or nonrst, go4it 
+ - there are NO cash or nonrst, bail 
+ partial trans
+ ACTUAL TRANS
+ - rst 
+ - req rst > rst avail 
+ - avail rst > req 
+ - nonrst 
+ - req nonrst > nonrst avail 
+ - avail nonrst > req 
+ - req cash > cash avail
+ - avail cash > req 
+ Full trans
+ reset restricted pool to zero, inactive 
+ - END of case 0x80 cash egm->host 
+ - case 0x90 win amt egm->host 
+ - cashout win pending 
+ - hopper 
+ - playercashout 
+ - Partial 
+ 0x90 Actual Transfer: 
+ - req rst > rst avail 
+ - avail rst > req 
+ - req nonrst > nonrst avail 
+ - avail nonrst > req 
+ cash 
+ - req cash > cash avail
+ - avail cash > req 
+ cashacttrans Current_Cents: 
+ cashbef Current_Cents: 
+ cashAFT Current_Cents: 
+ - full 
+ recalc current cents and current credits
+ BEFORE:
+ CASH CENTS: 
+ RST  CENTS: 
+ NRST CENTS: 
+ TOTL CENTS: 
+ TOTL CRDTS: 
+ 1/2L CENTS: 
+ 3/4L CENTS: 
+ recalc current cents and current credits
+ AFTER:
+[^_]
+ Capture 0x72 data - START 
+%06lu
+%08lu
+%04lu
+ Capture 0x72 data - END
+RPhp
+PhYZ
+Ph_Z
+RPh0
+PheZ
+RPh A
+[^_]
+[^_]
+ ExpIsPast? %s
+    today : %s
+Sh'e
+[^_]
+ REJECT:   if egm->host, pool_id and expiration must be 0 
+ REJECT: existing amounts are from the same pool 
+ REJECT:  expiration must be nonzero if there are restricted amounts
+ REJECT:  restricted trans amt == 0 - pool_id must be 0 
+ expiration is != 0 
+ REJECT: if expiration is != 0, then trans must be to host->ticket, type == 20 or 60 
+[^_]
+<@t$<@w
+ - it's time for 69 
+ - send 69 
+ procAFT receipt pending 
+ - queue trans pending 
+ Cashout failure 
+ - hard 
+ - player cashout 
+ Cashout Failure, end of player cashout 
+ - soft 
+[^_]
+ Proc_AFT_Cashout_To_Host_Enabled  sas link down, goto failure recovery
+ Proc_AFT_Cashout_To_Host_Enabled  - cashout failure HARD - recovery 
+ after Proc_AFT_Cashout_To_Host_Enabled  - cashout failure HARD - recovery 
+ Proc_AFT_Cashout_To_Host_Enabled  - cashout failure SOFT - cashout
+AFT: game lock expired
+ Set Trans & Receipt Status: START 
+ Set Trans & Receipt Status  %02X: END 
+<@u 
+[^_]
+Ph@4
+RPh@4
+Ph@4
+Shp4
+Vht4
+Ph@4
+Ph@4
+Ph@4
+ AFTbef72; START 
+ AFTbef72; case 0xFF no current cycle 
+ - case %02X - 
+ - 0 last added, build reject 
+ - cancel command, but no current, build reject 
+ - query current, build response 
+ - query noncurrent 
+ - relative 
+ - absolute 
+ trans status 0x40 
+ trans status %02X 
+ - case 0x80, cancel, no trans in progress 
+ - default, bad code %02X 
+ AFTbef72; default in a transfer cycle 
+ - case %02X 
+ - not current look at %02X 
+ - look at CURRENT 
+ - still pending 
+ - NOT pending, update meters, etc
+ - save ID of successful transfer 
+ add to buffer? 
+ - successful status
+ - either>0 and/or bonus ok, add to buffer 
+ - NOT a query 
+ - if %02X BAD transfer, build newhileold reject
+ - if 0x80 
+ - host can't cancel
+ - host CANCEL transfer
+ - else %02X build unsupported reject
+ AFTbef72 END 
+<@uo
+ aft reg: not reg'ed case
+ - init reg 
+ - SUCCESS 
+ - FAILED : have %lu - host %lu
+Ph@4
+Ph@4
+Ph@4
+ ATT: reset handpay START
+ - waiting for reset 
+ - award from escrow 
+ - no handpay in FIFO, bail 
+ - handpay in FIFO 
+ - one
+ remove handpay pending - attendnt 1
+ - >1
+ - 1B recvd
+ ATT reset: - more to process
+ ALL done, remove handpay pending 
+ - NO 1b yet
+ - resrt the handpay
+ - NOT waiting for reset 
+ENABLE [%d] GAME [%d] DENOM [%d] 
+ENABLE [%d] GAME [%d] FOR ALL DENOMS
+[^_]
+[^_]
+:<otz<ow
+</tL<V
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+gfff
+gfff
+@[^_]
+[^_]
+taVS
+[^_]
+RPSQV
+SQRPV
+%020lu
+[^_]
+GN9}
+[^_]
+Ph@4
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+------ Display -----------
+ 3       -  SAS Progressive Hit Queue
+ 7       -  0x7B Values
+ 8       -  SAS Level Amounts
+ 9       -  Non-SAS Level Amounts
+ b B     -  Ticket Buffer
+ d D     -  Handpay FIFO
+ e E     -  Exception Queue
+ p P     -  Active Polling Cycle
+ t T     -  TED queue - t=terse T=verbose
+ v V     -  Engine Version Number
+ a       -  AFT Info
+ f       -  AFT Meters
+ i       -  AFT Buffer
+ x X     -  Display Debug Info
+ h H ?   -  Print this menu
+ <space> -  Pause SAS display (SAS comm continues)
+ g G     -  Pause GEP display (GEP comm continues)
+ c       -  cls
+ <CR>    -  Scroll display one blank line
+ <esc>   -  Terminate engine execution
+--------------------------------
+-----------------
+Display Exception Queue:
+ Empty
+ %02X Exceptions Queued    Q->%08lX
+ %08lX Inst %08lX  priority %u   nxt-> %08lX - 
+ Exception is NULL ???
+ e == %02X %02X %02X
+ Current Registration Status == 
+               AFT_REGISTRATION_READY - 0x00
+          AFT_REGISTRATION_REGISTERED - 0x01
+             AFT_REGISTRATION_PENDING - 0x40
+      AFT_REGISTRATION_NOT_REGISTERED - 0x80
+ AFT_... um, what?   %02X
+ Last 0x73 Registration Code == 
+ AFT_REGISTRATION_0x73_NEVER_RECEIVED - 0xA5
+          AFT_REGISTRATION_INITIALIZE - 0x00
+            AFT_REGISTRATION_REGISTER - 0x01
+      AFT_REGISTRATION_REQUEST_OP_ACK - 0x40
+          AFT_REGISTRATION_UNREGISTER - 0x80
+        AFT_REGISTRATION_READ_CURRENT - 0xFF
+-------
+ AFT Enabled      %02X
+ AFT Asset Number %08lX
+ AFT POS ID       %08lX
+ AFT Pool ID      %08lX
+ Reg72FrmHost 
+%02X 
+ Registration 
+ Credit Limit: 
+ Max transfer: 
+ TransStatus: %02X
+ Rcpt Status: %02X
+LOCK: LastSent : %lu   %lu
+LOCK: Time now : %lu
+LOCK: Time2exp : %lu
+LOCK: LockStat : %02X
+POOL: ID : %lu
+ACTIVE
+inactive
+POOL: ?? : %s
+POOL: Amt: 
+handpay values : 
+PartialPay: 
+------------------------------------------ 
+ %02X %38.38s == 
+g%02d %38.38s == 
+d%02d %38.38s == 
+[^_]
+$()*+,-
+TITO Meters
+Pj(h
+AFT Meters
+Pj/h
+ AFT Buffer size %d -  Last Added %d
+ %d (%d): 
+FC97w
+[^_]
+-+-+------
+Active Polling Cycle   %s ---
+ Enable %d  Active_Poll %08lX:    Active_Polling_Cycle %08lX   sent? %02X
+ Empty Active Poling Cycle
+ %08lX<-%08lX->%08lX : %d (%02X)  %02X %02X  [%d %d] -> %02X %02X 
+%d %d %d
+----------------- end print active cycle ---------------------
+ 0x7B Bits: %02X %02X
+ X7B_USE_PRINTER_AS_CASHOUT_DEVICE            == %s
+ X7B_USE_PRINTER_AS_HANDPAY_RECEIPT_DEVICE    == %s
+ X7B_VALIDATE_HANDPAYS_AND_HANDPAY_RECEIPTS   == %s
+ X7B_PRINT_RESTRICTED_TICKETS                 == %s
+ X7B_TICKETS_FOR_FOREIGN_RESTRICTED_AMOUNTS   == %s
+ X7B_TICKET_REDEMPTION                        == %s
+ X7B_SECURE_ENHANCED_VALIDATION_CONFIGURATION == %s
+%d HoST   %llu: 
+[%02X] 
+<%02X> 
+{%02X} 
+ %02X  
+|%d|%d| 
+QRPh
+[^_]
+%d        %llu: 
+|%d|%llu| 
+QRPhh
+[^_]
+n%d        %llu: 
+|%d-%llu| 
+[^_]
+Script
+Unknown Status
+Normal
+%d HOsT   %llu: 
+[^_]
+        %llu: 
+[^_]
+--------------- Meter # %02X     %s
+ Status == %02X
+ SigDig == %02X
+ Value  == 
+ SpecVal== 
+ Rolover== 
+ ROLLStat== %02X
+C,Ph
+C@Ph
+CJPh
+GTPh
+[^_]
+M_CURRENT_CREDITS                   
+M_LEGACY_BONUS                      
+M_LEGACY_BONUS_DEDUCTIBLE           
+M_LEGACY_BONUS_NONDEDUCTIBLE        
+M_LEGACY_BONUS_WAGER_MATCH          
+M_ESCROW_LEGACY_BONUS_DEDUCTIBLE    
+M_ESCROW_LEGACY_BONUS_NONDEDUCTIBLE 
+M_ESCROW_LEGACY_BONUS_WAGER_MATCH   
+ Validation Type 
+ UNKNOWN...? 
+  NONE 
+  STANDARD 
+  SYSTEM 
+  SECURE_ENHANCED 
+ Validation Buffer - count %d - next unread %d - most recently written %d
+ # %d - datetime: 
+%02X
+ VTC-VSID-Val#: 
+ Amt: 
+     Tic#: 
+---end
+[^_]
+-----------
+Handpay FIFO - size is %d - %d currently queued
+-----------
+ %lX<-%lX->%lX : (%llu) : 
+   amount      ==  
+   partial pay ==  
+   I've been reset == %d 
+-----------
+[^_]
+M_ESCROW_LEGACY_BONUS_WAGER_MATCH 
+HUH?
+M_NOT_A_METER
+M_TOTAL_COIN_IN_CREDITS
+M_TOTAL_COIN_OUT_CREDITS
+M_TOTAL_JACKPOT_CREDITS
+M_TOTAL_HAND_PAID_CANCELLED_CREDITS
+M_TOTAL_JURISDICTIONAL_CANCELLED_CREDITS
+M_GAMES_PLAYED
+M_GAMES_WON
+M_GAMES_LOST
+M_TOTAL_CREDITS_FROM_COIN_ACCEPTOR
+M_TOTAL_CREDITS_PAID_FROM_HOPPER
+M_TOTAL_CREDITS_FROM_COINS_TO_DROP
+M_TOTAL_CREDITS_FROM_BILLS
+M_CURRENT_CREDITS
+M_TOTAL_CASH_TICKET_IN_WITH_NONRST_TICKETS_CENTS
+M_TOTAL_CASH_TICKET_OUT_WITH_DEBIT_TICKETS_CENTS
+M_TOTAL_RST_TICKET_IN_CENTS
+M_TOTAL_RST_TICKET_OUT_CENTS
+M_TOTAL_CASH_TICKET_IN_WITH_NONRST_TICKETS_QUANT
+M_TOTAL_CASH_TICKET_OUT_WITH_DEBIT_TICKETS_QUANT
+M_TOTAL_RST_TICKET_IN_QUANT
+M_TOTAL_RST_TICKET_OUT_QUANT
+M_TOTAL_TICKET_IN_WITH_CASH_NONRST_AND_RST_TICKETS_CREDITS
+M_TOTAL_TICKET_OUT_WITH_CASH_NONRST_RST_AND_DEBIT_TICKETS_CREDITS
+M_TOTAL_E_TRANS_TO_EGM_OR_TICKET_WITH_CASH_NONRST_RST_AND_DEBIT_TICKETS_CREDITS
+M_TOTAL_E_TRANS_TO_HOST_WITH_CASH_NONRST_RST_AND_WIN_AMTS_CREDITS
+M_TOTAL_RST_AMT_PLAYED_CREDITS
+M_TOTAL_NONRST_AMT_PLAYED_CREDITS
+M_CURRENT_RST_CREDITS
+M_TOTAL_EGM_PAID_PAYTABLE_WIN_CREDITS
+M_TOTAL_EGM_PAID_PROG_WIN_CREDITS
+M_TOTAL_EGM_PAID_EXT_BONUS_WIN_CREDITS
+M_TOTAL_ATT_PAID_PAYTABLE_WIN_CREDITS
+M_TOTAL_ATT_PAID_PROG_WIN_CREDITS
+M_TOTAL_ATT_PAID_EXT_BONUS_WIN_CREDITS
+M_TOTAL_WON_CREDITS
+M_TOTAL_HANDPAY_CREDITS
+M_TOTAL_DROP
+M_GAMES_SINCE_LAST_POWER_RESET
+M_GAMES_SINCE_MAIN_DOOR_CLOSURE
+M_TOTAL_CREDITS_FROM_EXT_COIN_ACCEPTOR
+M_TOTAL_CASH_TICKET_IN_WITH_NONRST_PROMO_TICKETS_CREDITS
+M_TOTAL_CASH_TICKET_IN_NOT_WITH_NONRST_PROMO_TICKETS_CREDITS
+M_TOTAL_RST_PROMO_TICKET_IN_CREDITS
+M_TOTAL_NONRST_PROMO_TICKET_IN_CREDITS
+M_TOTAL_CASH_TICKET_OUT_WITH_DEBIT_TICKETS_CREDITS
+M_TOTAL_RST_PROMO_TICKET_OUT_CREDITS
+M_E_CASH_TRANS_TO_EGM_SANS_NONRST_OR_DEBIT_CREDITS
+M_E_RST_PROMO_TRANS_TO_EGM_CREDITS
+M_E_NONRST_PROMO_TRANS_TO_EGM_CREDITS
+M_E_DEBIT_TRANS_TO_EGM_CREDITS
+M_E_CASH_TRANS_TO_HOST_CREDITS
+M_E_RST_PROMO_TRANS_TO_HOST_CREDITS
+M_E_NONRST_PROMO_TRANS_TO_HOST_CREDITS
+M_TOTAL_NUMBER_OF_BILLS_IN_STACKER
+M_TOTAL_VALUE_OF_BILLS_IN_STACKER
+M_TOTAL_ONE_DOLLAR_BILLS
+M_TOTAL_TWO_DOLLAR_BILLS
+M_TOTAL_FIVE_DOLLAR_BILLS
+M_TOTAL_TEN_DOLLAR_BILLS
+M_TOTAL_TWENTY_DOLLAR_BILLS
+M_TOTAL_TWENTY_FIVE_DOLLAR_BILLS
+M_TOTAL_FIFTY_DOLLAR_BILLS
+M_TOTAL_ONE_HUNDRED_DOLLAR_BILLS
+M_TOTAL_TWO_HUNDRED_DOLLAR_BILLS
+M_TOTAL_TWO_HUNDRED_FIFTY_DOLLAR_BILLS
+M_TOTAL_FIVE_HUNDRED_DOLLAR_BILLS
+M_TOTAL_ONE_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWO_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWO_THOUSAND_FIVE_HUNDRED_DOLLAR_BILLS
+M_TOTAL_FIVE_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TEN_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWENTY_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWENTY_FIVE_THOUSAND_DOLLAR_BILLS
+M_TOTAL_FIFTY_THOUSAND_DOLLAR_BILLS
+M_TOTAL_ONE_HUNDRED_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWO_HUNDRED_THOUSAND_DOLLAR_BILLS
+M_TOTAL_TWO_HUNDRED_FIFTY_THOUSAND_DOLLAR_BILLS
+M_TOTAL_FIVE_HUNDRED_THOUSAND_DOLLAR_BILLS
+M_TOTAL_ONE_MILLION_DOLLAR_BILLS
+M_CASH_TICKET_IN_CENTS
+M_CASH_TICKET_IN_QUANT
+M_RST_TICKET_IN_CENTS
+M_RST_TICKET_IN_QUANT
+M_NONRST_TICKET_IN_CENTS
+M_NONRST_TICKET_IN_QUANT
+M_CASH_TICKET_OUT_CENTS
+M_CASH_TICKET_OUT_QUANT
+M_RST_TICKET_OUT_CENTS
+M_RST_TICKET_OUT_QUANT
+M_DEBIT_TICKET_OUT_CENTS
+M_DEBIT_TICKET_OUT_QUANT
+M_HANDPAY_FROM_CASHOUT_RCPT_PRINTED_CENTS
+M_HANDPAY_FROM_CASHOUT_RCPT_PRINTED_QUANT
+M_HANDPAY_FROM_SINGLE_WIN_RCPT_PRINTED_CENTS
+M_HANDPAY_FROM_SINGLE_WIN_RCPT_PRINTED_QUANT
+M_HANDPAY_FROM_CASHOUT_NO_RCPT_CENTS
+M_HANDPAY_FROM_CASHOUT_NO_RCPT_QUANT
+M_HANDPAY_FROM_SINGLE_WIN_NO_RCPT_CENTS
+M_HANDPAY_FROM_SINGLE_WIN_NO_RCPT_QUANT
+M_INHOUSE_CASH_TRANS_TO_EGM_CENTS
+M_INHOUSE_CASH_TRANS_TO_EGM_QUANT
+M_INHOUSE_RST_TRANS_TO_EGM_CENTS
+M_INHOUSE_RST_TRANS_TO_EGM_QUANT
+M_INHOUSE_NONRST_TRANS_TO_EGM_CENTS
+M_INHOUSE_NONRST_TRANS_TO_EGM_QUANT
+M_DEBIT_TRANS_TO_EGM_CENTS
+M_DEBIT_TRANS_TO_EGM_QUANT
+M_INHOUSE_CASH_TRANS_TO_TICKET_CENTS
+M_INHOUSE_CASH_TRANS_TO_TICKET_QUANT
+M_INHOUSE_RST_TRANS_TO_TICKET_CENTS
+M_INHOUSE_RST_TRANS_TO_TICKET_QUANT
+M_DEBIT_TRANS_TO_TICKET_CENTS
+M_DEBIT_TRANS_TO_TICKET_QUANT
+M_BONUS_CASH_TRANS_TO_EGM_CENTS
+M_BONUS_CASH_TRANS_TO_EGM_QUANT
+M_BONUS_NONRST_TRANS_TO_EGM_CENTS
+M_BONUS_NONRST_TRANS_TO_EGM_QUANT
+M_INHOUSE_CASH_TRANS_TO_HOST_CENTS
+M_INHOUSE_CASH_TRANS_TO_HOST_QUANT
+M_INHOUSE_RST_TRANS_TO_HOST_CENTS
+M_INHOUSE_RST_TRANS_TO_HOST_QUANT
+M_INHOUSE_NONRST_TRANS_TO_HOST_CENTS
+M_INHOUSE_NONRST_TRANS_TO_HOST_QUANT
+M_REAL_COIN_IN
+M_REAL_COIN_OUT
+M_AFT_CURRENT_CASHABLE_CENTS
+M_AFT_CURRENT_RESTRICTED_CENTS
+M_AFT_CURRENT_NONRESTRICTED_CENTS
+M_LEGACY_BONUS_DEDUCTIBLE
+M_LEGACY_BONUS_NONDEDUCTIBLE
+M_LEGACY_BONUS_WAGER_MATCH
+M_CURRENT_WAGER
+M_SCRATCH_PAD
+M_CURRENT_WIN_FOR_RTE_EVENT_GAME_END
+M_LAST_CURRENT_WAGER
+M_MULTIPLIED_WIN_0x7C
+M_LEGACY_BONUS
+M_GAME_RECALL_GAME_NUMBER
+M_GAME_RECALL_INDEX
+M_CALC_CENTS
+M_CALC_CREDITS
+M_CALC_REMAINDER
+M_CURRENT_HOPPER_LEVEL
+M_AFT_0X72_CASHABLE_ACTUAL_TRANSFER_AMOUNT
+M_AFT_0X72_RESTRICTED_ACTUAL_TRANSFER_AMOUNT
+M_AFT_0X72_NONRESTRICTED_ACTUAL_TRANSFER_AMOUNT
+M_AFT_0X72_FROM_HOST_CASHABLE_AMOUNT
+M_AFT_0X72_FROM_HOST_RESTRICTED_AMOUNT
+M_AFT_0X72_FROM_HOST_NONRESTRICTED_AMOUNT
+M_AFT_0X72_CASHABLE_AMOUNT
+M_AFT_0X72_RESTRICTED_AMOUNT
+M_AFT_0X72_NONRESTRICTED_AMOUNT
+M_AFT_0X72_TOTAL_TRANSFER_AMOUNT
+M_AFT_0X74_CURRENT_CASHABLE_CENTS
+M_AFT_0X74_CURRENT_RESTRICTED_CENTS
+M_AFT_0X74_CURRENT_NONRESTRICTED_CENTS
+M_AFT_0X74_MAX_TRANSFER
+M_CURRENT_CENTS
+M_TOURNAMENT_GAMES_PLAYED
+M_TOURNAMENT_GAMES_WON
+M_TOURNAMENT_CREDITS_WAGERED
+M_TOURNAMENT_CREDITS_WON
+M_ESCROW_LEGACY_BONUS_DEDUCTIBLE
+M_ESCROW_LEGACY_BONUS_NONDEDUCTIBLE
+ ****** SAVE METERS ******
+[^_]
+-%02X %.44s
+ **** NO REG METER CHANGE ****
+[^_]
+mGmd  %d:
+g%02X %s
+        OLD: 
+        NEW: 
+ **** NO MG METER CHANGE ****
+[^_]
+mgmD  %02X:
+d%02X %s
+ **** NO MD METER CHANGE ****
+[^_]
+Curr Cash Wager: 
+Curr NRst Wager: 
+Curr Rst  Wager: 
+Curr Totl Wager: 
+ QException: %02X   at priority %d
+ NULL malloc building exceptions
+[^_]
+RPjZ
+[^_]
+Ph@4
+Ph@4
+[^_]
+<otT<ow
+ gacknack 4C 
+ - no data to set
+ - there is data to set
+ - ID != old one, set new data 
+ - same stuff as before, no action 
+ gacknack 57 
+ - not supposed to issue 57. break
+ - supposed to issue 57. 
+ - not expecting it. break
+ - expecting it 
+ - ticket pending == TRUE 
+ - not too late, queue 58 expectation 
+ - too late - but should never see this message.
+ gacknack 58 
+ - not supposed to issue 58. 
+ - supposed to issue 58. 
+ - in time? %llu >= %llu ?
+ - got 58 in time 
+ - ticket denied, hopper cashout 
+ - ticket OK, print ticket, move meters
+ - cashable 
+ - restricted 
+ - didn't get 58 in time 
+ - ticket not pending
+ gacknack 70 sets Ticket_Inserted = FALSE
+ gacknack 71 
+ - not expecting it.
+ - expecting it
+ - ticket was Inserted
+ - got 71 in time %02X 
+ - move meters 
+ - rst 
+ - nonrst 
+RPh\
+VPh 
+VPhp
+[^_]
+VhpB
+ commit_values_from_0x7B 
+ Let_Host_Control %02X, %02X
+ host can control use printer 
+ - mask says change it
+ - turn use printer ON
+ - turn use printer OFF
+ host can control ticket redemption
+ - turn allow redemption ON
+ - turn allow redemption OFF
+Ph|8
+~/hP
+1v*hP
+PSWW
+[^_]
+[^_]
+SPRh@4
+[^_]
+[^_]
+ BuildLongPoll: Canned Respopnse
+ gamesas 1B: START
+ - %d currently queued 
+ - I have been reset 
+- FIFO_Size > 1 
+- remove handpay pending - gamesas 1
+ delay: %02X %02X
+ legbonenabled
+ Game_Delay_Time %lu
+ there's one in progress
+ legbonenabled NOT
+PRh@4
+Ph@4
+Ph@4
+PhfF
+Ph@4
+[^_]
+ value: 
+%02X 
+jjjjj
+[^_]
+ databuf== 
+SET len==%d %08lX 
+ Attempting SAS Comm Open, port %d : 
+ Success opening SAS port
+ Failure opening SAS port %d
+MG and MD Disabled
+MG Enabled
+MD Enabled
+MG and MD Enabled
+PROGRESSIVE GROUP = %02X
+ -- Didn't find:  %lX
+   --     length %d: 
+Game selected on ineligible game.
+ mgd == %02X %02X %02X  %s
+  c7regular
+  mGmd
+  mgmD
+  tourn
+ Ran out of malloc space building polls! bye
+ poll/inst/status: %02X %02X %02X
+POLL DEFS: change_status_countdown %02X %02X = %02x
+ RESPONSE to %02X : %02X %02X %02X %02X 
+jjjjjj
+jjjjjj
+Ph2a
+jjjj
+jjjjjj
+AB;M
+<~w1
+jjjj
+jjjj
+jjjjjj
+jjjj
+jjjjjj
+H<}wY
+Phlb
+jjjjj
+jjjjjj
+<ptg<q
+RPju
+[^_]
+<"t3<"w
+<3t%<Du5
+ GEPI gets (%d): 
+[%02X 
+%02X] 
+ -- 
+ GEPI gets ZERO length packet
+ Can't do that! AC Power is OFF
+[^_]
+[^_]
+[^_]
+[^_]
+ Sent RESYNC Trace
+ Sent Chirp Trace
+ GEP HOST RESET: Active Polls removed
+ GEP GAME RESET
+ GEP Host Failed
+ GEP Game Failed
+----------
+ getaddr: get_limit_address: partial_pay 
+[^_]
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+ JACKPOT, copy win
+ PROGRESSIVE, copy hitdata->amount
+ - CASH OUT
+ - NONE??
+[^_]
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+[^_]
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+%05.02f
+Ph@4
+Ph@4
+Ph@4
+PhP2
+Ph@4
+Ph@4
+Ph@4
+Vh@4
+[^_]
+%02d%02d%04d
+%02d%02d%02d
+@Ph0
+Ph@4
+[^_]
+Ph@4
+Ph@4
+Ph@4
+ remove handpay pending - build 94 
+Ph@4
+Ph@4
+Ph@4
+[^_]
+Ph@4
+RPhM4
+Ph@4
+[^_]
+[^_]
+@#ProjId=GSA SAS Tools Engine#@
+@#ProjVer=1.1#@
+parameter %s,PARAMETER NOT A VALID OPTION
+host
+GSA Tools Engine running as %s
+GSA SAS Tools Engine
+ %s v%s
+SAS Port Address [0x%03X] is invalid. Valid range is 200 to 3FF
+SAS Port Address must be entered as a hex number.
+GUI Port Address [0x%03X] is invalid. Valid range is 200 to 3FF
+GUI Port Address must be entered as a hex number.
+SAS Port IRQ [%d] is invalid. Valid IRQs are [2,3,4,5,7,9,10,11,12,13,14,15]
+GUI Port IRQ [%d] is invalid. Valid IRQs are [2,3,4,5,7,9,10,11,12,13,14,15]
+Port IRQ's cannot be assigned to same value.
+Port addresses cannot be assigned to same value.
+*****EXITING - Command line arguments incorrect.******
+AFTER INTERNAL ENGINE INIT
+==========================
+GUI Port IRQ = %d ADDRESS = 0x%03X
+SAS Port IRQ = %d ADDRESS = 0x%03X
+ Attempting SAS Comm Open, port %d : 
+ Failure %d - exitting
+ Success %d
+ Attempting GEP Comm Open, port %d: 
+ After GEPInitialize
+ Registered GEPStatusCallback
+ Unable to allocate a control buffer - exit
+jTh0
+9-u0
+... GEP display off ...
+... GEP display  on ...
+gsat key request
+------------------------------------------------------------
+game
+not defined
+ %s v%s - %s
+... Debug display  on ...
+... Debug display off ...
+... SAS display off ...
+... SAS display  on ...
+ Terminating Engine Execution
+#f;}
+[^_]
+AC;M
+[^_]
+ RTE Ex  AOK, respond
+ RTE Except BADarolaola, NACK
+  ISTFANP: checking on 0x80
+  - fails requirements
+[^_]
+[^_]
+PhpB
+ Ran out of malloc space building Polling_Cycle_Poll! bye
+[^_]
+[^_]
+[^_]
+ Ran out of malloc space building polls! bye
+[^_]
+[^_]
+CHOOSE POLL: %02X %02X %02X 
+[^_]
+[^_]
+PVWj
+[^_]
+QSVW
+[^_]
+[^_]
+[^_]
+[^_]
+GEPI HostSim Define Poll Cycle: the data: 
+%02X 
+GEPI -------------------HostSim Use Staged Poll Cycle: %02X
+PVSRR
+[^_]
+[^_]
+GameName%02X
+[^_]
+[^_]
+ NULL Malloc for MGMD aMeter!  M=%d G=%d
+ NULL Malloc for MGMD aMeter!  M=%d D=%d
+ NULL Malloc for MG_Tournament aMeter!  M=%d G=%d
+ NULL Malloc for aMeter!  M=%d
+[^_]
+ Ran out of malloc space building exceptions! bye
+ Ran out of malloc space building script! bye
+[^_]
+ Ran out of malloc space building ROM stuff! bye
+ Ran out of malloc space building performs! bye
+[^_]
+ aValidation_Buffer_Entry NULL Malloc!  #%d 
+Gaming Standards Association
+39355 California Street Suite 307
+host
+ INIT VAL: VALIDATION_TYPE_SECURE_ENHANCED
+Frem
+ont,
+ CA 
+9453f
+PLAY
+ABLE
+ ONLf
+DEBI
+T TI
+CKET
+Frem
+ont,
+ CA 
+9453f
+PLAY
+ABLE
+ ONLf
+DEBI
+T TI
+CKET
+[^_]
+ end of init 
+[^_]
+Handpay QSize = %d
+ remove_read_handpay_from_FIFO 
+ - there is one to remove 
+ handle_handpay: START 
+ Yikes! NULL malloc building handpay
+ Build 1B: Source == 
+ - JACKPOT
+ - CASH OUT
+ - PROGRESSIVE
+ - AFT JACKPOT
+ - NONE
+ qtedproc: handpay pending - delay %llu
+0000
+0000f
+[^_]
+ Proc_Player_Handpay_Pending START
+ Proc_Playeretc: Waiting_For_Handpay_Reset %d   Handpay_0x1B_Received  %d
+ Proc_Player_Handpay_Pending - something, Q 51, reQ self
+ remove handpay pending - proc handpay pending 1
+ update handpay meters: START %02X
+- case SOURCE cashout 
+- case SOURCE jackpot 
+- case SOURCE AFT jackpot 
+- case SOURCE progressive 
+- case SOURCE none? 
+updatehandpaymeters - END 
+[^_]
+[^_]
+ inc coin in 
+ is MGMD %d
+[^_]
+[^_]
+[^_]
+%02X %02X %02X - %13s: 
+B=%02X G=%02X D=%02X 
+%02X 
+[^_]
+ reset soft meters 
+[^_]
+ reset bill meters 
+[^_]
+~wnS
+ Perform Player Action - 
+ script
+ normal
+ SelectAGame %02X
+ player select wager denom %02X
+ CASE Player_Start_Game %02X   reel==%02X    card==%02X
+ - reel game 
+ - card game 
+ - not->deal 
+ - during deal - BAIL
+ - deal->draw 
+ - during draw - BAIL
+ - um
+cash out
+ can't cashout because there are credits wagered
+ send exception 66
+ there are credits to cashout
+ before aft enabled
+ aft enabled
+ amt > max trans - normal cashout
+ egm->host ok, host cashout ok 
+ sas comm DOWN - recovery process
+ casout mode SOFT
+ - hopper cashout 
+ - player cashout 
+ - handpay 
+ - there are cash or nonrst, go4it 
+ - there are NO cash or nonrst, bail 
+ - default or ->host 
+ queue enabled 6A generator %llu
+ host co enable FALSE
+ comm link up, q not enabled 6A 
+ end of aft enabled, player cashout
+ player queues an exception
+Ph @
+PhD@
+[^_]
+ can we %s?
+ Maintenance Mode - can't accept player action.
+    not in maintenance mode
+ NO!!   Play is disabled
+ NO!!   Play is delayed
+ NO!!   Tilt
+    not in a tilt  
+ NO!!   In a Menu
+    not in a menu 
+ NO!!   Secure Enhanced Validation and IDs are not set
+    either not Secure Enhanced Validation or ID has been set
+                        or not validating handpays
+ NO!!   Waiting for handpay reset
+    not waiting for handpay reset
+ NO!!   Cashout Pending
+    no cashpout pending 
+ NO!!   EGM Disabled
+    EGM is enabled 
+ NO!!   In a game cycle already
+    not in a game cycle
+ okay for all generic reasons 
+start game
+ NO!!   no money wagered
+ NO!!   Waiting for Progressive Level Updates
+ wager is nonzero! YES! start a game
+Ran out of memory malloc a TED_Action for start game! exitting...
+ Ran out of malloc space building start game script! bye
+C-star
+t gaf
+Ran out of memory malloc a TED_Action for reel stop! exitting...
+C-reel
+ stof
+[^_]
+Ran out of memory malloc a TED_Action for card plop! exitting...
+C-card
+ plof
+[^_]
+  Start Game - gm==%02X     tokendenom==%02X
+reels
+cards
+START GAME: #%s: %d
+reel game: 
+ stop1: %d 
+ before q ted end game - delay == %lu 
+ after q ted end game 
+ set phase==DURING DEAL
+ after reels/cards 
+RPj~
+RPj}
+ Player_Draw_Cards 
+ queue card plops
+ plop2 
+RPj~
+GameNumber selected: %d
+Phn`
+[^_]
+  Attempt to Wager - 
+%02X 
+ no credits to wager 
+wager 
+ ...already at max bet 
+ Current_Wager: 
+ MaxBet       : 
+ all ok, let's wager 
+PhPa
+PhPa
+PhPa
+[^_]
+  Insert Token - 
+insert token
+ ok, we're probably inserting a token!
+ Token denom less than meter denom.
+ Token denom not evenly divisible by meter denom.
+ ok, we ARE inserting a token!
+insert token external
+insert bill
+[^_]
+ move generic cashout meters 
+ cash   cents: 
+ nonrst cents: 
+ - there are cashable and nonrestricted credits, cash them out 
+ - no cashable or nonrestricted, can't hopperize restricted - bail
+PhPa
+PhPa
+[^_]
+ hopper cashout 
+ hopper cashout -> hopper
+ hopper cashout - over hopper limit -> handpay
+ CASHOUT normal behavior
+ CASHOUT valtype sec enh
+ - print ticket
+ - cashable 
+ - restricted 
+ - over hopper limit, handpay
+ - under hopper limit, hopper cashout
+CASHOUT valtype system
+ 7B flags: %02X %02X
+ - 7B bit says ok, print ticket 
+ - 7B bit says no printing ticket 
+ VAL: standard 
+ cashout: print ticket for full amount
+ cashout: HANDPAY
+ cashout: normal, no handpay or ticket attempt
+ VAL: none, hopper cashout 
+PhRr
+validation type=SYSTEM
+validation type=SEC ENH
+validation type=STANDARD
+validation type=UNKNOWN
+allowed
+NOT allowed
+ redemption %s
+been set
+NOT been set
+ validation ID has %s
+NOT up
+ comm link is %s
+ insert_ticket:  set Ticket_Inserted = TRUE
+ insert_ticket:  ok, no ticket in process, start new 70,71,71
+ insert_ticket:  ticket in process, continue current process 
+Ph%y
+PhFy
+[^_]
+ --Script_Set: %08lX    datatype==%02X
+ Script_Set: address %lX   value==%02X
+  last_reel_stop_number = %d
+v(ht
+jjjjjj
+jjjjjj
+F$PSh
+jjjjjj
+ script Queue Exception %02X    at priority %d
+s Rh\
+Ran out of memory malloc a Scriptoid in parse_and_build_script_line! exitting...
+[^_]
+wN9E
+display_TED: START 
+---------TED Queue - time now: %llu
+start ted: %s
+ %08lX<-p    %08lX     n->%08lX   
+  DELAY_NULL 
+  DELAY_WALLTIME 
+  DELAY_INTERVAL 
+  DELAY_POLL 
+  DELAY_EXCEPTION 
+        = time placed in Q: %llu
+        = time of last act: %llu
+        = time      TO ACT: %llu
+            my scriptiods:
+        s->next             = %08lX
+        s->immediate_byte   = %02X
+        s->immediate_length = %u
+        s->type             = %02X
+     SET
+     ISSUE_POLL
+     ISSUE_EXCEPTION
+     ISSUE_CHIRP
+     ISSUE_PROC
+  TYPE... Unknown??
+        s->immediate_asn    = %08lX
+        s->var1_datatype    = %02X
+  DATATYPE_NULL
+  DATATYPE_BCD
+  DATATYPE_BINARY
+  DATATYPE_ASCII
+  DATATYPE_BYTE
+  DATATYPE... Unknown??
+end of a ted -------------------------
+-------------------end of display ted ------------------------
+F-Ph
+C$Ph
+ Q TED PROC start %02X  delay %llu
+Ran out of memory malloc a TED_Action for reel stop! exitting...
+ Ran out of malloc space building start game script! bye
+Rom check response
+end game after delay
+tick printed - wait 4 poll 3D
+ - reject co ticket, no 57
+reject co ticket - no 57
+ - reject co ticket, no 58
+reject co ticket - no 58
+reject ticket - no 70
+reject ticket - no 71
+check prog timeout
+AFT gen trans pending
+AFT trans receipt pending
+ - AFT cashout 2 host enabled
+AFT cashout 2 host enabled
+ - AFT cashout 2 host not enabled
+AFT cashout 2 host not enabled
+AFT cashout win 2 host
+C-chirf
+C-deal
+ to 
+draw
+C-end 
+game
+C-hand
+pay 
+pend
+C-send
+ 3D 
+afte
+r 3D
+C-send
+ 4D 
+afte
+r 3D
+C-send
+ 57 
+afte
+r 57
+C-send
+ 58 
+afte
+r 57
+C-tick
+et s
+tackf
+C-send
+ 70 
+afte
+r 67
+C-send
+ 71 
+afte
+r 67
+C-send
+ 71/
+FF a
+fter
+C-val 
+id n
+ot c
+C-prog
+ bro
+adcaf
+C-stop
+ t s
+essif
+@Hri
+BHgj
+BH>n
+@Htq
+C-AFT 
+peri
+odic
+ che
+[^_]
+9rHt
+ win NOT:zero DC
+ win fixed amt 
+ MJT active 
+Applied Multiplier to Win...
+ save win amount -> DC 
+ win < jackpot limit and win+credits < credit limit
+ attempt cashout to host 
+ normal immediate pay to meters 
+ normal handpay needed 
+ AFTEnabled %d
+ (AFT_0x72_Transfer_Flags&0x02)  hostcoenable  %d
+ (AFT_0x74_Available_Transfers&0x02) egm->host %d
+ ScratchP: 
+%02X 
+ MaxTrans: 
+ compare == %d
+ AFT!! attempt cashout to host 
+ no AFT etc, normal handpay 
+ win progressive 
+ - ok, things are active
+ PROG: inc DC 1
+ PROG: inc DC 2
+jdjT
+[^_]
+ PROC_Transistion_Deal_To_Draw 
+ PROC_Player_End_Game_AFTER_DELAY: %lu 
+ PROC_PLAYER_END_GAME: delay %lu 
+: delay the end 
+: end now
+Ran out of memory malloc a TED_Action for queue chirp ! exitting...
+ Ran out of malloc space building start game script! bye
+F-game
+ chif
+RPju
+[^_]
+ I'm a %s - remove chirp
+  %lu      : {81}
+Ph@4
+--- 4C --
+ Build response 
+ new mid  NOT zero 
+ mid == old mid - cpy mid and check seq number for increment 
+ seq been incremented, return incremented value 
+ seq has not been incremented, return cmd seq 
+ mid != old mid - return old stuff
+ new mid is zero - return what we have already
+ 4C responds: 
+%02X 
+Ph@4
+[^_]
+Ph@4
+Ph@4
+Ph@4
+ should we respond to 70 poll
+validation type=SYSTEM
+validation type=SEC ENH
+validation type=STANDARD
+validation type=UNKNOWN
+allowed
+NOT allowed
+ redemption %s
+been set
+NOT been set
+ validation ID has %s
+NOT up
+ comm link is %s
+ Okay! really respond to 70 poll
+ - ticket inserted 
+ - no ticket in escrow 
+Ph@4
+ build correct 0x71 START: 
+ build correct 0x71: should I remove ted proc?  %d  %02X
+ build correct : waiting for 71w/FF TRUE
+ build correct 0x71: ok, passed tests - code: %02X
+ build correct 0x71: valid cases %02X 
+ - but no ticket inserted 
+ build correct 0x71 START: amount != evenly divisible by meter denom 
+ just set ticket_redemption.num == 
+ build correct 0x71 START: credit limit would be exceeded
+ build correct 0x71 START: ok, queue exception 0x68 and repeater 
+ build correct 0x71 START: found stacked proc, q 68
+ build correct 0x71 START: ??? no stacked proc
+ build_0x71 sets Ticket_Inserted = FALSE
+Ph@4
+Ph@4
+Ph@4
+Ph@4
+<0t-<0w
+<(wD
+[^_]
+[^_]
+ Send 0x3D after 0x3D 
+ PROC Send 0x4D after 0x3D 
+ Cashout Ticket Rejected due to timeout waiting for 0x57
+ cashout ticket rejected due to 0x57 too late - dump to hopper (or handpay)
+ RejectCOTick: no 57 poll: issue
+ Cashout Ticket Rejected due to timeout waiting for 0x58
+ cashout ticket rejected due to 0x58 too late - dump to hopper 
+ Send 0x57 after 0x57  %lX
+ Send 0x58 after 0x57  %lX
+ proc_reject_ticket_no_70 sets Ticket_Inserted = FALSE
+ Ticket Rejected due to timeout waiting for 0x71
+ proc_reject_ticket_no_71 sets Ticket_Inserted = FALSE
+ Send 0x70 after 0x67 
+ Send 0x71 after 0x67 
+[^_]
+[^_]
+%02d%02d%04d
+ BuildVentry Date: %02X%02X%02X%02X
+%02d%02d%02d
+WVBE: pre  %d - NextUnread %d - MostRecent %d
+WVBE: Current == 0 
+WVBE: Current == MAX 
+WVBE: 0 < Current < MAX
+WVBE: post %d - NextUnread %d - MostRecent %d
+ WriteValBuffer: system 
+ WriteValBuffer: standard 
+ EGM_Calced_Or_GUI_Value_Standard_Validation_Number %02X
+ use GUI stan val number
+ calculate stan val number
+ - incorrectly 
+ WriteValBuffer: secure enhanced 
+ PRINT TICKET 
+ - system 
+ - standard 
+ - secure enhanced 
+ MOVE TICKET OUT METERS 
+ - aft 
+ - cashable 
+ - restricted ticket 
+ - debit ticket aft 
+ - handpay cashout receipt 
+ - handpay single win receipt 
+ - handpay cashout NO receipt 
+ - handpay single win NO receipt 
+ Perform_Validation_Action 
+ - case 0x01: copy ticket val number: 
+ - default: 
+ - case 0x00: set val type, and A0 bits - validation type = %d
+ - case 0x01: set 0x71 ticket data 
+ - default: ?
+[^_]
+[^_]
+0000
+[^_]
+ ok, add to wager : 
+%02X 
+ ok, we've wagered: 
+[^_]
+[^_]
+ Head index = [%02d]
+ Tail index = [%02d]
+ Used Nodes = [%02d]
+ SAS PROGRESSIVE HIT QUEUE
+ =========================
+ NODE [%02d] -> ProgGroup = %02d
+ NODE [%02d] -> ProgLevel = %02d
+ NODE [%02d] -> Amount = %02X%02X%02X%02X%02X
+PROG HIT DATA QUEUE IS EMPTY
+[^_]
+***WARNING*** ProgHit could not be added to Queue.
+[^_]
+NonSAS Prog Win Levels = %02X
+SAS Prog Win Levels = %08lX
+[^_]
+ACTIVATING SAS PROGRESSIVES
+ACTIVATING Non-SAS PROGRESSIVES
+PROGRESSIVE:: 0x56 Delay = 0x%08lx
+PROGRESSIVE LEVEL AMOUNTS
+=========================
+PROG LVL[%02d] = %02X%02X%02X%02X%02X
+==========================
+NonSAS Progressive Win Amount = %02X%02X%02X%02X%02X
+DE-ACTIVATING SAS PROGRESSIVES
+DE-ACTIVATING Non-SAS PROGRESSIVES
+[^_]
+[^_]
+PROG UPDATES REACQUIRED
+[^_]
+[^_]
+[^_]
+CREDITS CONSUMED - TOURNAMENT SESSION OVER
+SESSION TIME EXPIRED - TOURNAMENT SESSION OVER
+Tournament Session has ended...
+TOURNAMENT MODE ENTERED
+SETTING CURRENT CREDITS
+Started Tournament Session Timer...
+[^_]
+Session being stopped before time expires...
+TURNING OFF TOURNAMENT MODE
+Tournament Duration = %d Minutes %d Seconds
+Tournament Duration = %Ld ticks.
+TOURNAMENT:: Packet not the correct length - NAK'ing
+[^_]
+Game not enabled
+Packet wrong length
+[^_]
+@#ProjId=GEP Interface Library#@
+@#ProjVer=0.01G#@
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+j4hH
+j6jC
+j6jC
+j j 
+Ph>;
+j j 
+1.17
+@#ProjId=Comm Library#@
+@#ProjVer=1.17#@
+j j 
+0<0t
+j@h 
+j@h`
+Ph&P
+PhbQ
+Ph:m
+PhJq
+Ph&r
+Ph|r
+PhLv
+Ph8w
+Ph<y
+Phxy
+Ph>z
+j@h@
+RRt5
+7Y[^_]
+^_[^_]
+<PtP%
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+[^_]
+80387 detected.
+Warning: Coprocessor not present and DPMI setup failed!
+         If application attempts floating operations system may hang!
+EMU387
+emu387.dxe
+t"j9h~
+f9E t
+f9} u
+PQR.
+1ZYX
+F Xf
+uKf.
+G f&
+u1SQR
+Cannot allocate selector for conventional memory; exiting
+4VSj
+O9;|
+2A9K
+2A9K
+TZDIR
+DJDIR
+/zoneinfo
+/etc/localtime
+posixrules
+upj/V
+?2wh
+97~C
+9:u?Aj;j
+Aj;j
+f<MuH
+B<.uPj
+B<.u2j
+gfff
+lWVS
+r4u*
+SunMonTueWedThuFriSatJanFebMarAprMayJunJulAugSepOctNovDec%.3s %.3s%3d %02d:%02d:%02d %d
+lWVS
+J F9s
+,WVS
+<AB9
+@PSJR
+t$h 
+t$h`
+,WVS
+8WVS
+v,ja
+v-jT
+t~VS
+vdj[
+tSj[
+vdj[
+tSj[
+Call frame traceback EIPs:
+  0x
+  0x
+WVSj
+Alignment Check
+Coprocessor Error
+Page fault
+General Protection Fault
+Stack Fault
+Segment Not Present
+Invalid TSS
+Coprocessor overrun
+Double Fault
+Coprocessor not available
+Invalid Opcode
+Bounds Check
+Overflow
+Breakpoint
+Debug
+Division by Zero
+: sel=
+  invalid
+  base=
+  limit=
+Floating Point exception
+Control-Break Pressed
+INTR key Pressed
+QUIT key Pressed
+Raised
+Exception 
+ at eip=
+, error=
+, x87 status=
+eax=
+ ebx=
+ ecx=
+ edx=
+ esi=
+ edi=
+ebp=
+ esp=
+ program=
+<**UNKNOWN**>
+App stack: [
+]  Exceptn stack: [
+f9B(u 
+@(Ph0
+@*Ph3
+@,Ph6
+@.Ph9
+@0Ph<
+@2Ph?
+f9B(u
+ABRTFPE ILL SEGVTERMALRMHUP INT KILLPIPEQUITUSR1USR2NOFPTRAP
+Exiting due to signal 
+Bad longjmp to __djgpp_exception_state--aborting
+Bad signal handler, 
+Cannot continue from exception, 
+tOf9
+<WVS
+WVSj
+DXE1t
+MS-DOS
+NovelDOS
+DR-DOS
+GenSoft
+PTS-DOS
+RxDOS
+MSWinDev
+NWin3Dev
+Toshiba
+TI DOS
+OlivtDOS
+DEC DOS
+PBellDOS
+GrBulDOS
+HP DOS
+ZenitDOS
+AT&T DOS
+MsoftDOS
+CompqDOS
+IBMPcDos
+??Unknown??
+<WVS
+DJGPP
+:;/\<>
+WVSh
+No memory to gather arguments
+;\u-
+CF97
+@PhD
+95lE
+F95lE
+0123456789abcdef
+0123456789ABCDEF
+WVS1
+|.Vj
+TWVS
+0NB9U
+F9u(v
+CF9u(w
+F9u(v
+u3F9u(v-
+9]$s
+F9u(v
+COF9u(w
+9]$s
+;9~<
+gfff
+-GhO
+xWVS
+*Sj!
+DWVS
+4WVS
+4WVS
+lWVS
+<]t;8A
+G<_1
+uIh^Q
+<WVS
+@WVS
+/dev/
+null
+?~u~G
+8WVS
+tPj5
+8WVS
+~(Qj
+9.u5
+Eu?A
+-64OS
+9.u6A
+<Eu'A
+LFN32
+u*j?S
+qVj!
+LWVS
+; t"
+qSj!
+OSj!
+;-uK
+]t<8U
+*?[\
+FNCASE
+WVSf
+K+5d
+,[^_]
+,[^_]
+,[^_]
+,[^_]
+$[^_]
+$[^_]
+$[^_]
+$[^_]
+$[^_]
+GSA_SAS GAMESIM
+gui-port-addr=
+gui-port-irq=
+sas-port-addr=
+sas-port-irq=
+host
+game
+$Id: DJGPP libc built Dec 24 2001 21:24:39 by gcc 2.8.1 $
+@(#) DJGPP libc built Dec 24 2001 21:24:39 by gcc 2.8.1 $
+ !proxy
+6`/~Kp0
+`1gg
+`3GI
+`5'+
+pCda`D/vpEDC`F
+XpG$%`G
+pV,o
+``ic
+{`qZ
+rf]`s:
+tF?`u
+ssssssssssssssssssss
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`ABCDEFGHIJKLMNOPQRSTUVWXYZ{|}~
+RQVW
+_^X[
+G*f&
+Abort!
+ !"#$%&'()*+,-./0123456789:;<=>?@abcdefghijklmnopqrstuvwxyz[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+(null)
+Unnormal
+zc%C1
+-64OS
+##%%%
+%%%%
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 4.0.0
+GCC: (GNU) 3.2
+GCC: (GNU) 3.2
+GCC: (GNU) 3.2
+GCC: (GNU) 3.2
+.file
+crt0.s
+sel_buf
+zero
+exit
+.text
+.data
+.bss
+.file
+aft.c
+.text
+.data
+.bss
+.comment
+.file
+attendnt.c
+.text
+.data
+.bss
+.comment
+.file
+B0exten.c
+.text
+.data
+.bss
+.comment(F
+.file
+BCD.c
+.text
+.data
+.bss
+.comment<F
+.file
+cap.c
+_seed
+_offset
+_status
+.text
+.data
+.bss
+.commentPF
+.file
+crc.c
+.text
+.data
+.bss
+.commentdF
+.file
+debug.c
+.text
+.data
+.bss
+.commentxF
+.file
+except.c
+.text
+.data
+.bss
+.comment
+.file
+gacknack.c
+.text
+.data
+.bss
+.comment
+.file
+gameloop.c
+.text
+.data
+.bss
+.comment
+.file
+gamesas.c
+.text
+.data
+.bss
+.comment
+.file
+gamesim.c
+.text
+.data
+.bss
+.comment
+.file
+gepix.c
+.text
+.data
+.bss
+.comment
+.file
+geputil.c
+.text
+.data
+.bss
+.comment
+.file
+getaddr.c
+.text
+.data
+.bss
+.comment
+.file
+gsasutil.c
+.text
+.data
+.bss
+.comment,G
+.file
+gsat.c
+_HOST_id>
+_GAME_idC
+_VER_id
+.text
+.data
+.bss
+.comment@G
+.file
+hacknack.c
+.text
+.data
+.bss
+.commentTG
+.file
+hostloop.c
+.text
+.data
+.bss
+.commenthG
+.file
+hostsim.c
+.text
+.data
+.bss
+.comment|G
+.file
+hsasutil.c
+.text
+.data
+.bss
+.comment
+.file
+init.c
+.text
+.data
+.bss
+.comment
+.file
+initutil.c
+.text
+.data
+.bss
+.comment
+.file
+limits.c
+.text
+.data
+.bss
+.comment
+.file
+meters.c
+.text
+.data
+.bss
+.comment
+.file
+player.c
+.text
+.data
+.bss
+.comment
+.file
+scriptix.c
+.text
+.data
+.bss
+.comment
+.file
+ted.c
+.text
+.data
+.bss
+.comment
+.file
+tedplay.c
+.text
+.data
+.bss
+.comment0H
+.file
+tickutil.c
+.text
+.data
+.bss
+.commentDH
+.file
+util.c
+.text
+.data
+.bss
+.commentXH
+.file
+progress.c
+.text
+.data
+.bss
+.commentlH
+.file
+torment.c
+.text
+.data
+.bss
+.comment
+.file
+GEPif.c
+_index.2
+.text
+.data
+.bss
+.comment
+.file
+gccint8.c
+_freq8h
+_flag8h
+__my_cs
+.text
+.data
+.bss
+.comment
+.file
+com.c
+_COMs
+_ts.0
+_COMExit
+.text
+.data
+.bss
+.comment
+.file
+irq.c
+__my_ds
+__my_cs
+_InitIRQ
+.text
+.data
+.bss
+.comment
+.file
+fake
+GetOut0
+GetOut1
+GetOut2
+GetOut3
+GetOut4
+GetOut5
+GetOut6
+GetOut7
+GetOut8
+GetOut9
+GetOut10f
+GetOut11
+GetOut12R
+GetOut13
+GetOut14>
+GetOut15
+.text
+.data
+.bss
+.text
+.data
+.bss
+.file
+npxsetup.c
+_nofpsig0
+.text
+.data
+.bss
+.file
+ident.c
+.text
+.data
+.bss
+.file
+fake
+forced
+limitFix
+stack_ok
+ds_limit
+.text
+.data
+.bss
+.file
+crt1.c
+.text
+.data
+.bss
+.file
+infostrc.c
+.text
+.data
+.bss
+.file
+printf.c
+.text
+.data
+.bss
+.file
+memcpy.s
+.text
+.data
+.bss
+.file
+sprintf.c
+.text
+.data
+.bss
+.file
+strcat.c
+.text
+.data
+.bss
+.file
+time.c
+.text
+.data
+.bss
+.file
+strcmp.c
+.text
+.data
+.bss
+.file
+puts.c
+.text
+.data
+.bss
+.file
+strncpy.c
+.text
+.data
+.bss
+.file
+memset.s
+.text
+.data
+.bss
+.file
+strncmp.c
+.text
+.data
+.bss
+.file
+putchar.c
+.text
+.data
+.bss
+.file
+malloc.c
+_slop
+.text
+.data
+.bss
+.file
+rand.c
+_next
+.text
+.data
+.bss
+.file
+fwrite.c
+.text
+.data
+.bss
+.file
+ctime.c
+_GMT
+_lclmem
+_dir.6
+_cp.7
+_tzdir
+_tzload
+_getnum
+_getsecs
+_getrule
+_tzparseH
+_gmtload
+_timesub
+_tm.36
+_gmtsub
+_gmtmem
+_tm.41
+_tmcomp
+_time2
+_time1
+.text
+.data
+.bss
+.file
+strlwr.c
+.text
+.data
+.bss
+.file
+strchr.c
+.text
+.data
+.bss
+.file
+strcpy.c
+.text
+.data
+.bss
+.file
+exit.c
+.text
+.data
+.bss
+.file
+atoi.c
+.text
+.data
+.bss
+.file
+conio.c
+_txinfo
+_isEGA
+_fillrow
+_bell
+.text
+.data
+.bss
+.ctor
+.file
+stderr.c
+.text
+.data
+.bss
+.file
+ct_flags.c
+.text
+.data
+.bss
+.file
+ct_upper.c
+.text
+.data
+.bss
+.file
+disable.c
+.text
+.data
+.bss
+.file
+gopint.c
+.text
+.data
+.bss
+.file
+gopvec.c
+.text
+.data
+.bss
+.file
+gorvec.c
+.text
+.data
+.bss
+.file
+gormcb.c
+.text
+.data
+.bss
+.file
+ob.S
+.text
+.data
+.bss
+.file
+enable.c
+.text
+.data
+.bss
+.file
+biostime.c
+.text
+.data
+.bss
+.file
+d0302.S
+.text
+.data
+.bss
+.file
+ib.S
+.text
+.data
+.bss
+.file
+d0300.S
+.text
+.data
+.bss
+.file
+atexit.c
+.text
+.data
+.bss
+.file
+d0006.S
+.text
+.data
+.bss
+.file
+d0600.S
+.text
+.data
+.bss
+.file
+d0601.S
+.text
+.data
+.bss
+.file
+d0204.S
+.text
+.data
+.bss
+.file
+d0205.S
+.text
+.data
+.bss
+.file
+dosmemget.stub
+.text
+.data
+.bss
+.file
+abort.c
+_msg
+.text
+.data
+.bss
+.file
+strlen.c
+.text
+.data
+.bss
+.file
+dpmiexcp.c
+_buf.48
+_itox
+_npx_ori
+_kbd_ori|
+.text
+.data
+.bss
+.file
+fake
+.text
+.data
+.bss
+.file
+getenv.c
+.text
+.data
+.bss
+.file
+ct_lower.c
+.text
+.data
+.bss
+.file
+d0e01.S
+.text
+.data
+.bss
+.file
+fake
+.text
+.data
+.bss
+.file
+_write.c
+.text
+.data
+.bss
+.file
+dxeload.c
+.text
+.data
+.bss
+.file
+cntrl87.S
+.text
+.data
+.bss
+.file
+d0000.S
+.text
+.data
+.bss
+.file
+d0300_z.S
+.text
+.data
+.bss
+.file
+d0008.S
+.text
+.data
+.bss
+.file
+d0400.S
+.text
+.data
+.bss
+.file
+md.S
+.text
+.data
+.bss
+.file
+calloc.c
+.text
+.data
+.bss
+.file
+getdos_v.c
+.text
+.data
+.bss
+.file
+osmajor.c
+.text
+.data
+.bss
+.file
+osminor.c
+.text
+.data
+.bss
+.file
+putenv.c
+_ecount
+_emax
+.text
+.data
+.bss
+.file
+frlist.c
+.text
+.data
+.bss
+.file
+_use_lfn.c
+__lfnenv
+.text
+.data
+.bss
+.file
+c1loadef.c
+.text
+.data
+.bss
+.file
+c1args.c
+_atohex
+_new_arg
+.text
+.data
+.bss
+.file
+_main.c
+.text
+.data
+.bss
+.file
+errno.c
+.text
+.data
+.bss
+.file
+stdout.c
+.text
+.data
+.bss
+.file
+doprnt.c
+_decimal@
+_nan_p
+_cvtl
+_pten
+_ptenneg
+_INVPREC
+_PREC
+_roundl
+.text
+.data
+.bss
+.file
+fflush.c
+.text
+.data
+.bss
+.file
+djmd.s
+big_move
+.text
+.data
+.bss
+.file
+gettimeo.c
+.text
+.data
+.bss
+.file
+write.c
+.text
+.data
+.bss
+.file
+isatty.c
+.text
+.data
+.bss
+.file
+dosio.c
+_count
+.text
+.data
+.bss
+.file
+flsbuf.c
+.text
+.data
+.bss
+.file
+sbrk.stub
+.text
+.data
+.bss
+.file
+isatty.stub
+.text
+.data
+.bss
+.file
+open.c
+.text
+.data
+.bss
+.file
+strrchr.c
+.text
+.data
+.bss
+.file
+read.c
+.text
+.data
+.bss
+.file
+close.c
+.text
+.data
+.bss
+.file
+stricmp.c
+.text
+.data
+.bss
+.file
+stdiohk.c
+.text
+.data
+.bss
+.file
+setmode.c
+.text
+.data
+.bss
+.file
+strtol.c
+.text
+.data
+.bss
+.file
+dmp.c
+.text
+.data
+.bss
+.file
+dmg.c
+.text
+.data
+.bss
+.file
+scsetc.c
+.text
+.data
+.bss
+.file
+scgetc.c
+.text
+.data
+.bss
+.file
+scattrib.c
+.text
+.data
+.bss
+.file
+scputc.c
+.text
+.data
+.bss
+.file
+fileno.c
+.text
+.data
+.bss
+.file
+kbhit.c
+.text
+.data
+.bss
+.file
+vsprintf.c
+.text
+.data
+.bss
+.file
+doscan.c
+__sctab
+_nchars
+__getccl
+__innum
+__instr
+.text
+.data
+.bss
+.file
+sccols.c
+.text
+.data
+.bss
+.file
+scrows.c
+.text
+.data
+.bss
+.file
+scmode.c
+.text
+.data
+.bss
+.file
+d0100.S
+.text
+.data
+.bss
+.file
+d0200.S
+.text
+.data
+.bss
+.file
+d0201.S
+.text
+.data
+.bss
+.file
+d0303.S
+.text
+.data
+.bss
+.file
+d0304.S
+.text
+.data
+.bss
+.file
+d0202.S
+.text
+.data
+.bss
+.file
+d0203.S
+.text
+.data
+.bss
+.file
+dpmi_lsl.S
+.file
+dpmi_lsl.s
+.text
+.data
+.bss
+.file
+stat87.S
+.text
+.data
+.bss
+.file
+fake
+.text
+.data
+.bss
+.file
+clear87.S
+.text
+.data
+.bss
+.file
+fsext.c
+_init
+_num_fds0
+.text
+.data
+.bss
+.file
+doserr2e.c
+_map
+.text
+.data
+.bss
+.file
+_open.c
+.text
+.data
+.bss
+.file
+_read.c
+.text
+.data
+.bss
+.file
+_close.c
+.text
+.data
+.bss
+.file
+osflavor.c
+.text
+.data
+.bss
+.file
+stdin.c
+.text
+.data
+.bss
+.file
+stdprn.c
+.text
+.data
+.bss
+.file
+stdaux.c
+.text
+.data
+.bss
+.file
+putpath.c
+.text
+.data
+.bss
+.file
+d_getdrv.c
+.text
+.data
+.bss
+.file
+lseek.c
+.text
+.data
+.bss
+.file
+c1pglob.c
+.text
+.data
+.bss
+.file
+strncat.c
+.text
+.data
+.bss
+.file
+lconv.c
+_ESTR
+_DSTR
+.text
+.data
+.bss
+.file
+putc.c
+.text
+.data
+.bss
+.file
+memchr.c
+.text
+.data
+.bss
+.file
+fake
+.text
+.data
+.bss
+.file
+fwalk.c
+.text
+.data
+.bss
+.file
+fexistp.c
+.text
+.data
+.bss
+.file
+fmode.c
+.text
+.data
+.bss
+.file
+_creat_n.c
+.text
+.data
+.bss
+.file
+_creat.c
+.text
+.data
+.bss
+.file
+crlf2nl.c
+.text
+.data
+.bss
+.file
+fclose.c
+.text
+.data
+.bss
+.file
+ungetc.c
+.text
+.data
+.bss
+.file
+fgetc.c
+.text
+.data
+.bss
+.file
+atof.c
+.text
+.data
+.bss
+.file
+atold.c
+.text
+.data
+.bss
+.file
+close.stub
+.text
+.data
+.bss
+.file
+doserrno.c
+.text
+.data
+.bss
+.file
+fse_open.c
+.text
+.data
+.bss
+.file
+glob.c
+_add
+_glob2
+_pathbufH
+_slash
+_flags
+_use_lfnT
+_errfuncD
+.text
+.data
+.bss
+.file
+_chmod.c
+.text
+.data
+.bss
+.file
+dup2.c
+.text
+.data
+.bss
+.file
+remove.c
+.text
+.data
+.bss
+.file
+filbuf.c
+.text
+.data
+.bss
+.file
+strtod.c
+.text
+.data
+.bss
+.file
+strtold.c
+_powten
+.text
+.data
+.bss
+.file
+findfirs.c
+.text
+.data
+.bss
+.file
+lfnshort.c
+.text
+.data
+.bss
+.file
+findnext.c
+.text
+.data
+.bss
+.file
+fnmatch.c
+.text
+.data
+.bss
+.file
+fncase.c
+.text
+.data
+.bss
+.file
+qsort.c
+_Cmpr
+_MyBase
+_Swap
+.text
+.data
+.bss
+.file
+huge_val.c
+.text
+.data
+.bss
+.file
+float_dx.c
+.text
+.data
+.bss
+.text
+.data
+.bss
+.text
+.data
+.bss
+___exit
+_putchar
+_GEP_Set
+_sprintf
+_getche
+__exit
+_free
+_strcat
+_gettext`
+_strcmp
+_CRC_16
+_cgets
+_GEPSend
+_longjmp
+__flsbuf
+__write
+_rand
+_putc
+_isPRINT
+_insline
+_ungetc
+_putch
+_scfid
+__read
+__peekb
+_puts
+_Meter
+_BCD_divj
+_strncat
+__open
+_strlwr
+_clreol
+_Games
+edata
+__peekw
+_EEPROM
+__filbuftp
+___lseek
+_mktime
+_cputs
+_BCD_mul
+_environhE
+_atof
+_Pow16
+_isatty
+_srand
+__doprntH 
+_sbrk
+_isASCIIn
+__atold
+_raise
+_BCD_sub
+_fwrite
+_strncpy
+_window
+_atoi
+__stklenp
+__chmod
+_memcpy
+___sbrk
+_tzname
+_memset
+_fileno
+___tzset
+_COMInit
+_TED
+_puttext
+_IRQWrap`
+_remove
+___modfl
+_fflush
+etext
+___main
+_delline\
+_strtol
+___glob
+__creat
+_gmtime
+_calloc
+_time
+__fmode
+_Stacker
+_EndIRQ
+_Max_Bet B
+_Hopper
+_ctime
+_kbhit
+_reallocL
+_getch
+_memchr
+_getenv
+___dup2
+_strtod
+_strchr
+_fgetc
+_signal
+_malloc
+_fclose
+___open
+_strcpy
+_cprintf`
+_isBCD
+_EPROM
+_atexit
+__fwalk
+_BCD2Int
+_abort
+__doscanPE
+_asctimeH
+_Battery
+_wherey
+_cscanf
+___PROXYD
+_wherex
+___brk
+_strncmp
+__8087
+__close
+___close
+_NextSeq
+_strrchr
+_strlen
+start
+_errno
+_disable
+_Number
+___write0:
+_setjmp
+_exit
+_BCD_addo
+_gotoxy
+_scfver
+_printf
+_inportb
+__peekd
+_comPort
+___read
+_qsort
+_clrscr
+_ungetch4
+_CRC16
+_main
+_close
+_enable
+_Int2BCD-
+___djgpp_memory_handle_pointer
+sbrk16_first_byte
+sbrk16_last_byte
+sbrk16_api_ofs
+sbrk16_api_seg
+_frame_struct
+_CRT0_EH_FRAME_BEGIN_
+exit16_first_byte
+exit16_last_byte
+hook_387_emulator
+ds_alias_ok
+dos_alloc_ok
+__what_size_dpmi_thinks_we_are
+lock_memory
+no_memory
+use_stubinfo_stack_size
+__what_size_app_thinks_it_is
+__what_we_return_to_app_as_old_size
+brk_common
+brk_nochange
+brk_error
+no_fill_sbrk_memory
+no_deadbeef
+brk_return
+.eh_frame
+_component
+_component_len
+_seed_len
+_offset_len
+_C.117.3367
+_C.118.3372
+_GEP_Interface_Status
+_project_id
+_project_ver
+_GUI_port_addr
+_GUI_port_irq
+_SAS_port_addr
+_SAS_port_irq
+_C.0.3489
+_Last0x56Time.3694
+_ProjectID
+_ProjectVersion
+_Buffer.0
+_bEscaped.1
+_tick_per_ms
+_ms_per_tick
+_pm_old_handler
+_pm_new_handler
+_rm_old_handler
+_rm_new_handler
+_buffer.0
+_bCOMInit
+_pAttachedPorts
+_EnableIRQ_End
+_DisableIRQ_End
+_EndIRQ_End
+_COMWrap0
+_COMHandler
+_COMWrap1
+_COMWrap2
+_COMWrap3
+_COMWrap4
+_COMWrap5
+_COMWrap6
+_COMWrap7
+_COMWrap8
+_COMWrap9
+_COMWrap10
+_COMWrap11
+_COMWrap12
+_COMWrap13
+_COMWrap14
+_COMWrap15
+_QUEUEPut
+_QUEUEPut_End
+_QUEUEGet
+_QUEUEGet_End
+_QUEUECalcFree
+_QUEUECalcFree_End
+_QUEUECalcOccupied
+_QUEUECalcOccupied_End
+_QUEUEAdvance
+_QUEUEInit
+_QUEUEDetachBuf
+_COMHandler_End
+__DetachCOMPort
+_AttachCOMPort
+_DetachCOMPort
+_COMSetEventHandler_End
+_COMGetEventHandler_End
+_COMGetTXQueueSize_End
+_COMGetRXQueueSize_End
+_COMActivateTx_End
+_COMWriteChar_End
+_COMWriteBuffer_End
+_COMClearTXBuffer_End
+_COMTXBufferFree_End
+_COMTXBufferUsed_End
+_COMIsTXBufferSent_End
+_COMReadChar_End
+_COMReadBuffer_End
+_COMPeekChar_End
+_COMClearRXBuffer_End
+_COMRXBufferFree_End
+_COMRXBufferUsed_End
+_COMSetDtr_End
+_COMSetRts_End
+_COMGetModemStatus_End
+_COMGetCts_End
+_COMGetDsr_End
+_COMGetRI_End
+_COMGetCD_End
+_bInitIRQ
+_ShutDownIRQ
+_IRQWrap0
+_IRQWrap1
+_IRQWrap2
+_IRQWrap3
+_IRQWrap4
+_IRQWrap5
+_IRQWrap6
+_IRQWrap7
+_IRQWrap8
+_IRQWrap9
+_IRQWrap10
+_IRQWrap11
+_IRQWrap12
+_IRQWrap13
+_IRQWrap14
+_IRQWrap15
+StackSearchLoop0
+FoundStack0
+StackSearchLoop1
+FoundStack1
+StackSearchLoop2
+FoundStack2
+StackSearchLoop3
+FoundStack3
+StackSearchLoop4
+FoundStack4
+StackSearchLoop5
+FoundStack5
+StackSearchLoop6
+FoundStack6
+StackSearchLoop7
+FoundStack7
+StackSearchLoop8
+FoundStack8
+StackSearchLoop9
+FoundStack9
+StackSearchLoop10
+FoundStack10
+StackSearchLoop11
+FoundStack11
+StackSearchLoop12
+FoundStack12
+StackSearchLoop13
+FoundStack13
+StackSearchLoop14
+FoundStack14
+StackSearchLoop15
+FoundStack15
+_object_mutex
+_size_of_encoded_value
+_read_uleb128
+_read_sleb128
+_read_encoded_value_with_base
+_base_from_object
+_get_cie_encoding
+_fde_unencoded_compare
+_fde_single_encoding_compare
+_frame_downheap
+_frame_heapsort
+_classify_object_over_fdes
+_unseen_objects
+_seen_objects
+_linear_search_fdes
+_add_fdes
+_marker.3261
+_search_object
+_fde_mixed_encoding_compare
+gcc2_compiled.
+___gnu_compiled_c
+__emu_entry
+exception_handler
+not_forced
+exception_state
+dpmi_exception_proc1
+hw_to_excp
+already_forced
+_no_dos_ds_msg.48
+_setup_core_selector
+_setup_screens
+_setup_go32_info_block
+_setup_environment
+_setup_pname
+_prog_name
+_setup_os_version
+_expected_sbrk.8
+_freelist
+_WILDABBR
+_detzcode
+_settzname
+_tzdir_bss_count.8
+_mon_lengths
+_year_lengths
+_n_year_lengths
+_getzname
+_getoffset
+_transtime
+_last_env_changed.29
+_lcl_is_set
+_lcl_tzstr
+_localsub
+_gmt_is_set
+_days_to_years
+_wday_name.48
+_mon_name.49
+_result.50
+_normalize
+_tmnormalize
+_ScreenAddress
+_ScreenVirtualSegment
+_ScreenVirtualOffset
+_char_avail
+_adapter_type
+_font_seg
+_last_mode
+_oldattrib
+_conio_count
+_refreshvirtualscreen
+_mayrefreshline
+_intense_bg_mode
+_setcursor
+_getwincursor
+_ungot_char
+__scan_getche
+__scan_ungetch
+__gettextinfo
+_get_screenattrib
+_getvideomode
+_set_scan_lines_and_font
+_maybe_create_8x10_font
+_load_8x10_font
+_set_scan_lines_and_8x10_font
+_wrapper_intcommon
+_wrapper_intiret
+_wrapper_intchain
+__go32_dpmi_chain_protected_mode_interrupt_vector_with_stack
+__go32_dpmi_allocate_iret_wrapper_with_stack
+_wrapper_common
+_wrapper_retf
+_wrapper_iret
+_setup_rmcb
+__go32_dpmi_allocate_real_mode_callback_retf_with_stack
+__go32_dpmi_allocate_real_mode_callback_iret_with_stack
+_old_video_mode
+_cbrk_vect
+_except_to_sig
+_show_call_frame
+_exception_names
+_has_error
+_dump_selector
+_do_faulting_finish_message
+_signal_list
+_signames
+_print_signal_name
+_cbrk_hooked
+_except_ori
+_cbrk_ori
+_cbrk_rmcb
+_cbrk_regs
+_timer_ori
+_set_signal_key
+dpmi_busy
+_dos_flavors
+_getdosv_count
+_prev_environ
+_putenv_bss_count
+___initial_file_rec
+_use_lfn_bss_count
+_filesystem_flags
+_last_env_changed
+_last_drive
+_c1xmalloc
+_far_strlen
+_delete_arg
+_delete_arglist
+_new_arglist
+_parse_arg
+_parse_bytes
+_parse_print0
+_count_args
+_fill_args
+_expand_response_files
+_expand_wildcards
+_been_there_done_that.2
+_NULL_REP
+_UNNORMAL_REP
+_isspeciall
+_exponentl
+small_move
+mod_4_check
+align_mod_4
+_init_file_handle_modes
+_dosio_bss_count
+_fcloseall_helper
+_init_count.8
+_fsext_list
+___FSEXT_close_all
+_null_dev_fd.11
+_grow_table
+_env_delim
+___lconv_
+_func_list
+_msdos_tolower_fname
+_save_list
+_save_count
+_glob_dirs
+_preserve_case
+_wildcard_nesting
+_pathbuf_end
+_str_compare
+_msdos_toupper_fname
+_find_slash
+_rangematch
+_DataWidth
+_QuickSort
+_InsertionSort
+_Partition3
+_gameloop
+_Last_Poll_Receive_Time
+_AFT_0x72_Receipt_DateTime
+_Time_Of_0x57_Exception_Issue
+__put_path2
+_Build_0x84_Response
+_build_correct_response_to_0x02
+_UninstallIRQ
+_Test_Result_Flag
+_AFT_0x73_From_Host_POS_ID
+_Cashout_Win_Pending
+_Build_0x87_Response
+_Jackpot_Limit
+___dpmi_unlock_linear_region
+_x7D_Location
+_Time_Between_0x3F_Validation_ID_Not_Configured
+_receive_b9s
+_AFT_0x73_From_Host_Asset_Number
+_Reel_Value
+_BCD2ULong
+_Remove_Polling_Cycle_Poll_From_List
+_AFT_0x73_Reply_With_POS_ID
+_EnableIRQ
+_System_Validation_Number
+_AFT_0x76_Custom_Data_Configured
+_Wager_From_Rst_Nonrst_Cash
+_Hopper_Low_Level
+_Last_Chirp_Time
+_intensevideo
+_AFT_0x72_Receipt_SrcDst_Include
+_build_correct_response_to_0x43
+_Host_Comm_Delay_Poll
+_Move_Ticket_Out_Meters
+_comm_irq_GUI
+_COMSetTXQueueSize
+_OK_To_Redeem_Ticket
+_textmode
+_Perform_Script_Test
+___dpmi_lock_linear_region
+_build_correct_response_to_0x1F_0x53
+_GetMeterValueSize
+_display_ticket_buffer
+_External_Coin_Acceptor
+_Synch_Behavior
+_pctimer_sound
+_x7C_Location
+_MJT_PendingOn
+_OK_To_Print_Ticket
+_Hopper_Limit
+_AFT_0x72_Receipt_ATMCardNo
+_Init_TED
+_Host_Comm_Delay_Byte_Receive
+_Host_Comm_Event_Handler
+_x7C_Address_2_Length
+_textattr
+___dpmi_set_real_mode_interrupt_vector
+_Validation_Poll_Fails_To_Meet_Specific_Requirements
+_Are_0x6F_0xAF_response_meters_bcd_generic
+_blinkvideo
+_Current_Time
+___crt0_setup_arguments
+_gs_Save_Values_Awaiting_Implied_ACK
+_trace_queue_LWP
+_Status_Oversize_Polls
+_Time_To_Wait_For_Cashout_To_Host_AFT_Transfer
+_Exception_Queue
+_StreamInsertBlock
+_AFT_0x72_Trans_Type_Is_Supported
+_last_reel_stop_number
+___djgpp_our_DS
+_Status_Bad_Mgame
+_Build_0xA4_Response
+_decode_AFT_reg_status
+_display_exception_queue
+_Respond_To_Exception
+_Exception_056_Delay
+_RTE_Exception_Fails_Command_Specific_Requirements
+_CalcMaxBet
+_build_correct_response_to_0x35
+_Calc_Standard_Validation_Number_Correctly
+_player_action_can_occur
+_BCD_remainder
+_build_correct_response_to_0x45
+_AFT_Soft_Host_Cashout_Mode_Player_Selection
+_Build_B0_Response
+_COMGetEventHandler
+_Host_Comm_RTE_Behavior
+_Bad_Response_To_Nack_Delay
+_Exception_0x7C_Tax_Status
+_AFT_0x72_Receipt_SrcDst
+_Current_Nonrestricted_Wager_handle
+_AFT_0x72_Nonrestricted_Actual_Transfer_Amount
+_COMDisplayCompileSettings
+___PROXY_LEN
+_Let_Host_Configure_Bill_Acceptor_Denom_Enable
+_remove_ted_proc
+___djgpp_exception_state_ptr
+_display_legacy_bonus_info
+_x7B_Restricted_Ticket_Default_Expiration
+_Cash_Box
+_Build0x72AFTRejectionEGMResponse
+___djgpp_iret
+_build_correct_0x71_response
+_Capture_0x72_Data_From_Host
+_Perform_Script_Set
+_Allow_Time_Update
+_Let_Host_Configure_Bill_Acceptor_Enabled
+_transport_keepAliveCount
+___dpmi_allocate_real_mode_callback
+_Token_Denom_BCD
+_COMRXBufferUsed
+_Queue_Exception
+_InstallIRQ
+___djgpp_exception_toggle
+_Ignoring_SAS_Comm
+_print_acknack_NO_new_poll_needed
+_MJT_Active
+_Overflow_Exception_Queue
+djgpp_first_dtor
+__go32_dpmi_get_protected_mode_interrupt_vector
+_GEP_Reset_After_Disconnect
+_Poll_0x51_Behavior
+_x7C_Default_Location
+_Queue_TED
+_AFT_Hard_Host_Cashout_Mode_Attendant_Selection
+_flag_pm_termination
+_build_correct_response_to_0x3E
+_SessionType
+_build_correct_response_to_0x01
+_Last_Response_Send_Time
+_vsprintf
+_BCD_From_Ulong
+_build_correct_response_to_0x42
+_build_0x15_response
+_Standard_Validation_Amount
+_AFT_0x72_Transfer_Code
+___dj_huge_val
+__go32_info_block
+___djgpp_old_timer
+___dj_double_max
+_TI_Ticket_Status
+_Perform_RemoveScript_Action
+_Display_Debug
+_AFT_0x72_Transfer_Index
+_MG_Tournament_Meter
+___file_handle_modes
+_Coin_Acceptor
+_Slot_Door
+_Got_Not_My_Address
+_System_Validation_Amount
+_AFT_0x72_From_Host_Registration_Key
+___djgpp_exception_setup
+_build_0x2C_response
+_x7D_Location_Length
+_Proc_Cashout_Ticket_Printed_Wait_For_0x3D
+_In_Maintenance_Mode
+_TI_Validation_Data
+_Credit_Limit
+_Init_Meters
+_Build_GEP_Response
+_AFT_Registration_Before_Response
+_Let_Host_Control_x7D_Ticket_Data_Status_Flag
+_NonSASProgressives_Active
+_decode_meter_name
+_Init_General_Protocol
+_Secure_Enhanced_Validation_Algorithm
+_x7C_Address_2
+_build_B0_0xB5_response
+_Are_0x6F_0xAF_response_meters_bcd
+___djgpp_stack_limit
+_Process_User_Input
+_save_meters
+_AFT_Reg_Move_To_Status_80_Issue_Exception_0x6E
+_Time_Between_Cashout_Pressed_0x57_Exception_Issued_To_Poll_0x58_Receipt
+_build_0x16_response
+_display_0x7B_status
+_Activate_NonSASProgressives
+_hs_print_host_poll
+_award_legacy_bonus_from_escrow
+_ScreenGetCursor
+_Time_Between_0x68_Ticket_Redeemed_And_Poll_0x71_With_FF_Code
+_LockData
+_Perform_GameSim_Action
+_ACKNACK_Behavior
+_SASProgLevelsUpdated
+_StreamInsertWord
+_Proc_Send_0x71_With_FF_Code_After_0x68
+_AFT_0x72_From_Host_Asset_Number
+_HexToInt
+_Standard_Validation_Number
+_display_AFT_buffer
+_build_0x2B_response
+djgpp_last_ctor
+_get_comm_address
+_save_MGMD_Game_Meter
+_Auto_Rebet_Enabled
+__detect_80387
+_Is_Gaming_Machine_0x71_Status_Code_Valid
+_GEP_get_status
+_Let_Host_Configure_Disable_Bill_Acceptor_After_Accepting_Bill
+_current_loop
+_x7C_Default_Debit_Ticket_Title_Length
+_Queue_TED_Start_Game
+_Ticket_Inserted
+_Printer_Power
+_prepare_GEP_trace_packet_host_poll
+_Poll_AddressedToMe
+_Time_To_Delay_Between_0x6A_Exception_Issues
+_Number_BCD
+_In_A_Game_Cycle
+_hs_print_active_poll_egm_response
+_build_correct_response_to_0xB5
+_Proc_Send_0x71_After_0x67
+_TI_Parsing_Code
+_ProgSetNonSASWinLevel
+__go32_dpmi_allocate_real_mode_callback_retf
+___libc_write_termios_hook
+_credit_limit_would_be_exceeded
+_handpay_ProgHitData
+_Perform_AddTedScript_Action
+_move_generic_cashout_meters
+_Response_Body
+_Waiting_For_0x71_With_0xFF_Code
+___dpmi_int_sp
+_get_gameid_address
+_AFT_0x74_lock_conditions_met
+___dosmemput
+_AFT_Enabled
+_Last_Poll_Addressed_To_Me_Receive_Time
+_host_cashout_failure_recovery_process
+_Perform_Script_Issue_Poll
+_AFT_0x72_From_Host_Transfer_Code
+_x7C_Default_Restricted_Ticket_Title
+_Prog_Handle_0x86_Update
+_build_0x2A_response
+_Wager_Denom_Value
+_Queue_TED_Reel_Stop
+_x7C_Debit_Ticket_Title
+_Reel_Mechanism
+_TransportRetransmitPending
+___djgpp_share_flags
+___dj_stdin
+_AFT_0x72_From_Host_Restricted_Expiration
+_Prepare_Send_Meter_Trace
+_display_AFT_meters
+_build_correct_response_to_0x06
+_Current_Cashable_Wager
+_In_A_Tilt_Condition
+_Host_Var_Progressive_Sent_In_Progress
+_Hopper_Level
+_Proc_Send_0x58_After_0x57
+_Host_Var_Progressive_Enabled
+_Cashout_Pending
+_Remove_And_Free_Polling_Cycle
+__status87
+_COMSetPortParameters
+_last_AFT_0x72_From_Host_Transaction_ID_Length
+_AFT_lock_exception_resend_timer
+_AFT_Registration_Status
+_is_MG_Tournament_meter
+___djgpp_save_interrupt_regs
+_Time_Of_0x3D_Exception_Issue
+_Trans_Pending
+_meter_validation2
+_In_A_Menu
+_rm_new8h
+_build_B0_0x6F_0xAF_response
+_build_correct_response_to_0x39
+_CRC_Calc_Write
+_Host_Var_Progressive_Broadcast_ID
+_Proc_Send_0x57_After_0x57
+_Perform_Player_Action
+_Number_Of_Enabled_Games
+_EGM_Address
+_LatestHitData
+_AFT_0x72_Send_Exception_0x69_On_Transfer_Complete
+_build_0x17_response
+___dpmi_int_ss
+_Printer_Status
+_Do_Synch_At_Startup
+_transport_PendingTail
+_It_Is_Time_For_A_New_Poll
+_build_correct_0x70_response
+_AFT_0x72_Receipt_TotalDebit_Length
+_AFT_Attendnt_Registration_Cancelled
+djgpp_last_dtor
+_Tournament_Active
+_B0_GetEnabledGamesList
+_Token_Denom
+_Time_To_Wait_Before_Cashout_Win_To_Host_Failure
+_Proc_Send_0x3D_After_0x3D
+_hs_print_no_active_poll_egm_response
+_Card_Cage_Power
+_TI_Restricted_Expiration
+___register_frame_info
+___dpmi_set_segment_limit
+_AFT_Transaction_History_Last_Added
+_build_0x13_response
+_build_correct_response_to_0x0E
+___FSEXT_get_data
+_reading_clock
+_add_handpay_to_FIFO
+_Number_of_ROM_Instances
+_libcom_version
+_Issue_Poll
+_build_correct_response_to_0x4F
+_Build_0x8C_Response
+___djgpp_sigint_mask
+_Proc_Host_Progressive_Broadcast
+_AFT_0x72_Receipt_ATMCardNo_Include
+___libc_sccs_ident
+_pctimer_init
+_MJTSessionInfo
+_build_0x47_response
+_attempt_cashout_win_to_host
+_get_next_token
+_ProgSetException_0x56_Delay
+_Wait_For_Game_Data
+_Proc_Send_0x4D_After_0x3D
+_Build0x72AFTTransferPendingEGMResponse
+___djgpp_hwint_flags
+_ProgSetNonSASLevelAmounts
+_AFT_Attendnt_Request_to_Register
+_BCD_Is_Zero
+___djgpp_kbd_hdlr
+_IsValidCommPortIRQ
+_COMTXBufferFree
+_User_Specified_Machine_Status_For_Redemption
+_COMSetHardwareParameters
+_Is_System_Validation_Number_Status_Valid
+_build_correct_response_to_0x51
+_build_correct_response_to_0x94
+___libc_ident_string
+_IRQStacks
+___dj_stdaux
+___dpmi_simulate_real_mode_interrupt
+_AFT_lock_expiration_time
+_Time_Between_0x67_Ticket_Inserted_And_Poll_0x71
+_Game_In_Play
+___register_frame_table
+_Secure_Enhanced_Ticket_Machine_ID_Number
+_Bill_Value
+_build_correct_0x4C_response
+_transport_RecvRetransFlag
+_Time_Between_Subsequent_Cashout_Pressed_0x57
+_Proc_AFT_Cashout_To_Host_Not_Enabled
+___djgpp_memory_handle_size
+_ProgLevelData
+__set_screen_lines
+_Tournament_GameStart_Inc_Meters
+_System_Validation_Number_Status
+_AFT_0x72_Receipt_SrcDst_Length
+_IsSeqLess
+___umoddi3
+_ticks_8h
+_Build_Polling_Cycle_From_Staged_List
+_build_0x11_response
+_Is_Validation_Type_Code_Valid
+_Tilt_Coin_In
+___FSEXT_set_data
+_build_B0_0x09_response
+_IRQHandlers
+_hs_Discard_Values_Awaiting_Implied_ACK
+__doserrno
+_Time_Of_Last_0x6A_Exception_Issue
+_x7D_Address_2_Length
+___isatty
+_Time_Of_Last_0x3F_Validation_ID_Not_Configured
+_Status_Loss_Of_Comm
+___djgpp_sigquit_key
+_TI_Ticket_Amount
+_External_Coin_Acceptor_Denom_Enable
+_meter_is_c7_MGMD
+___djgpp_sigint_key
+_PollToMeterMap
+_AFT_0x72_Last_Transfer_Body_Length
+_Belly_Door
+_Player_Start_Game
+_Init_AFT
+_get_rom_address
+___emu387_load_hook
+_receive_times
+_valid_multi_game_poll
+_Play_Delayed
+_is_MGMD_meter
+_get_exception_address
+_determine_multi_game_poll
+_Use_This_Exception
+_AFT_0x72_Receipt_AcctNo_Include
+__go32_dpmi_free_real_mode_callback
+__osmajor
+_Remote_Handpay_Reset_Enable
+_Perform_Script_Delay
+_EmptySASProgressiveHitQ
+_Poll_Receipt_To_Reply_Delay
+_zero_meter
+_decrement_meter
+___djgpp_app_DS
+_AFT_0x72_Receipt_DateTime_Include
+__environ
+_build_correct_response_to_general_poll
+_ProgUpdateLevelData
+_Current_Date
+_build_correct_0x73_response
+_x7C_Default_Address_1
+_AFT_0x72_Last_0x69_Exception_Issue_Time
+__doscan_low
+_Calculate_Secure_Enhanced_Validation_Number_Correctly
+_display_current_wager
+djgpp_first_ctor
+_movetext
+_TED_Queue_Tail
+_StreamExtractBlock
+_NonSASProgModeActive
+_Proc_AFT_Cashout_To_Host_Enabled
+_x7C_Default_Address_2_Length
+___dpmi_allocate_dos_memory
+_get_cmostime
+_Reply_Needs_CRC
+_Use_User_Specified_Machine_Status_For_Redemption
+_generate_trace_data
+_COMGetTXQueueSize
+_Time_Between_Chirps
+___fnmatch
+_TransportProcessDataPacket
+_EGM_Calced_Or_GUI_Value_Standard_Validation_Number
+_calc_cents_from_credits
+_Expiration_Is_Past
+_Set_Validation_Type
+_COMGetChipset
+_AFT_0x72_Receipt_TotalDebit_Include
+_transmit_response
+_Empty_Exception_Queue
+_Most_Recently_Written_Validation_Entry
+_Proc_AFT_General_Transfer_Pending
+_build_correct_response_to_0x8F
+_LastException
+_Do_Implied_Ack_Nack
+_SAS_Comm_Link_Down_Last_Poll_Addressed_To_Me_Receive_Time
+_display_MD_changed_meters
+_x7C_Restricted_Ticket_Title_Length
+_Active_Polling_Cycle
+_NonSASProgWinLevel
+_Last_Response_Receive_Time
+_COMPeekChar
+_TransportSend
+_wait_on_game_data
+_AFT_0x72_Receipt_Name_Length
+_Jackpot_Which_Must_Be_Cashed_Out_To_Host_Limit_Significant_Digits
+_Jackpot_Which_Must_Be_Cashed_Out_To_Host_Limit
+_handle_poll_update_response
+_build_correct_0x7D_response
+_hostloop
+_Player_Draw_Cards
+_Sent_A_Poll
+_Wager_Denom
+__go32_dpmi_allocate_real_mode_callback_iret
+_commit_values_from_0x7B
+_Set_Transfer_And_Receipt_Status
+_x7C_Location_Length
+_AFT_0x72_Transfer_Flags
+_EGM_Able_To_Perform_Trans
+___gettimeofday
+_display_MG_changed_meters
+_Response_B9s
+_Build_0x85_Response
+_Poll_Addresses
+___crt0_argc
+___udivdi3
+_Last_Accepted_Bill_Denom
+_Send_0x3D_After_Receiving_0x3D
+_MGMD_Status
+_Progressive_Group
+_AFT_0x72_General_Transfer_Pending_Start_Time
+__npxsetup
+_COMGetTXThreshold
+_AFT_Asset_Number
+_Allow_Date_Update
+_Proc_Reject_Cashout_Ticket_No_0x57
+_process_poll_response
+_GameNumber
+_Time_Between_0x3D_Exception_Received_To_Poll_0x4D_Issue
+_COMDisableIRQs
+_GEPStatusCallback
+_ProgGetHighestWinLevelAndAmount
+_Time_To_Wait_Before_Cashout_To_Host_Failure
+_last_card_held_unheld
+_Last_Exception_Body
+_Display_SAS_Trace
+_Handpay_FIFO_Last_Written
+_build_correct_0x74_response
+_OldIRQVectors
+_sas_packet_in_length
+_Number_Of_Games
+_Credit_Limit_Significant_Digits
+_Get_Next_Queued_Exception
+_DeleteLastHitDataFromQ
+_StringNoDecimalToDouble
+_AFT_0x72_Transaction_ID
+_CRC_Calc_Incorrectly_Write
+___crt1_startup
+___dpmi_get_real_mode_interrupt_vector
+_COMPortCloseAll
+_TransportSendUnsent
+_counter_reset
+_COMRXBufferFree
+_Response_Time
+_calculate_win_amount
+_Ack_Nack_Status
+_Printer_Comm
+_Main_Polling_Cycle_Enable
+__creatnew
+___deregister_frame_info_bases
+_x7D_Ticket_Data_Status_Flag
+_ProgInitHitDataQ
+_Set_Poll_0x71_Redeem_Ticket_Data
+_Handpay_0x1B_Received
+_UnlockData
+_COMClearRXBuffer
+_gs_Commit_Saved_Values_After_Implied_ACK
+_build_correct_response_to_0x40
+_Printer_Ribbon
+_COMIsFIFOEnabled
+_Test_BCD_Value_Length
+__go32_dpmi_set_real_mode_interrupt_vector
+_kludge_0x1B_status
+_AFT_Transfer_In_Progress
+_DatalinkSend
+__go32_interrupt_stack_size
+_build_correct_0x3D_response
+_pctimer_sleep
+_build_correct_response_to_0x54
+_Drop_Door_Power
+___djgpp_hw_lock_end
+_Hopper_Percent_Full
+_Build0x72AFTTransferEGMResponse
+_AFT_0x72_Receipt_AcctBal_Length
+_AFT_0x72_Asset_Number
+_get_address
+_CMOS_RAM
+_display_reg_changed_meters
+__go32_dpmi_lock_code
+_ReQueue_TED_Procedure
+_dosmemget
+_Player_Insert_Ticket
+_Init_Comm
+___stricmp
+_COMDisableHardwareFIFO
+_calc_credits_from_cents
+_ScreenSetCursor
+_Have_Required_Receipt_Fields
+__posixrules_data
+_COMGetPortParameters
+___dpmi_int
+_AFT_0x73_Registration_Code
+___djgpp_traceback_exit
+_print_meter_value
+_build_correct_response_to_0x9A
+_AC_Power
+___dj_ctype_toupper
+_Current_Number_Of_Validation_Entries
+_Printer_Carriage
+_Build0x72AFTQueryEGMResponse
+_Bill_Value_BCD
+_Partial_Pay
+_ProgGetHitData
+_Secure_Enhanced_Ticket_Machine_ID_Number_Has_Been_Set
+_Drop_Door
+_COMWrap0_End
+_Proc_Player_Handpay_Pending
+_Time_From_Last_Poll_To_First_Chirp
+___register_frame_info_table_bases
+_Host_Comm_Delay_RTE_Response
+_Last_Response_Body
+_TI_Pool_ID
+_Jackpot_Limit_Significant_Digits
+_build_correct_response_to_0x52
+_Validation_Buffer
+_Serial_Number
+_transport_currentState
+_Use_This_ROM_Instance
+_Poll_Definitions
+_AFT_0x72_Receipt_TotalDebit
+_Q_PrintSASProgHitQueue
+_display_all_changed_meters
+_build_correct_response_to_0x1B
+_prepare_Chirp_GEP_trace_packet
+_Proc_Reject_Cashout_Ticket_No_0x58
+_Max_Bet_Calc_For_0xB5
+__control87
+_There_Are_Problems_With_Restricted_Pool_ID_Or_Expiration
+_Number_Of_Polls_In_Staged_Polling_List
+_hs_Save_Values_Awaiting_Implied_ACK
+_build_correct_response_to_0x44
+_ProgPrintSASAmounts
+_convert_to_lower_case
+_Cashbox_Door_Power
+_Tournament_GameEnd_Inc_Meters
+_build_correct_response_to_0x36
+_Total_Number_Of_Validation_Entries
+_Current_Nonrestricted_Wager
+_Init_EGM
+_Char2BCD
+_transmit_next_poll
+___environ_changed
+_AFT_0x72_Transfer_Status
+_TransportInitialize
+_TransportReceive
+_display_ti_meters
+_Time_Between_0x3D_Exception_Received_To_Poll_0x3D_Issue
+_x7B_Extended_Validation_Status_Bits
+_Behavior_Time_Sensitive_Actions
+_Token_Denom_Value
+_Serial_Number_Status
+_AFT_POS_ID
+_COMSetRts
+_Credits_Amount
+_check_for_rollover
+_Update_Behavior
+_Initialize_Polling_Element
+___dpmi_set_protected_mode_interrupt_vector
+_Ticket_Number
+_read_meter_value
+_COMPortClose
+_AFT_0x72_Restricted_Actual_Transfer_Amount
+_Current_Win_Amount
+_AFT_0x74_Host_Cashout_Status
+_COMTXBufferUsed
+__strtold
+_Test_BCD_Value
+_AFT_0x72_Restricted_Expiration
+_AFT_0x74_lock_pending_conditions_met
+___findnext
+_build_correct_response_to_0xB3
+_sas_packet_out
+_write_denom_value
+_x7B_Cashable_Ticket_And_Receipt_Expiration
+_build_B0_0x2F_response
+_AFT_0x72_Registration_Key
+_Host_Comm_RTE_State
+___djgpp_base_address
+_Init_Tournaments
+_AFT_0x72_Original_Transfer_Type
+_gettextinfo
+_Credits_Handle
+___dpmi_set_processor_exception_handler_vector
+_Change_Lamp
+_COMGetRXThreshold
+_Status_Unsupported_Polls
+_AFT_Attendnt_Registration_Acknowledged
+_AFT_0x72_Pool_ID
+___register_frame_info_table
+___maybe_fix_w2k_ntvdm_bug
+___deregister_frame
+_Proc_Transistion_Deal_To_Draw
+_Time_Between_Cashout_Pressed_0x57_Exception_Issued_To_Poll_0x57_Receipt
+_COMWrappers
+_Handpay_FIFO_Size
+_AFT_Transaction_History_Length
+__get_volume_info
+_AFT_0x73_Reply_With_Asset_Number
+_TransportKeepAlive
+_isTournamentSession_Pending
+_Build0x72AFTNewTransferDuringOldEGMResponse
+__clear87
+_Send_Poll_To_Game
+_AFT_0x72_Transfer_Type
+_Meter_Denom
+_Init_Game_Play
+_build_correct_response_to_0x56
+___djgpp_dos_sel
+_Standard_Validation_Algorithm
+_AFT_0x74_Available_Transfers
+_Duration
+_display_TED
+_normvideo
+_ticket_redemption
+_build_correct_response_to_0x8A
+_StreamExtractByte
+_SASProgWinLevels
+_build_correct_response_to_0x21
+_get_chassis_address
+_AFT_0x72_Allow_Host_To_Cancel_Transfers
+___FSEXT_alloc_fd
+_Q_RemoveNode
+_build_correct_response_to_0x19
+_ProgLevelAmounts
+__go32_dpmi_free_iret_wrapper
+___setmode_stdio_hook
+_pack_BCD
+_build_0x46_response
+_build_0x18_response
+_build_correct_response_to_0x90
+_transmit_response_using_poll_defs
+_Time_To_Delay_Between_0x6B_Exception_Issues
+_gs_print_host_poll
+_Active_Exception
+_Queue_Authentication_Complete_Exception
+_hs_Commit_Saved_Values_After_Implied_ACK
+___movedata
+_Exceptions_Queued
+_Time_Of_First_0x6A_Exception_Issue
+___putenv
+_save_MGMD_Denom_Meter
+_Last_Poll_Body_Length
+___findfirst
+_Bill_Acceptor_Enabled
+___file_rec_list
+_COMSetRXThreshold
+_UnlockCode
+_pm_new8h
+_decode_AFT_reg_code
+_Sending_Coins_To_Drop
+_AFT_0x72_Receipt_TransFee
+_GetProgressiveLevels
+_Behavior_Global_Poll_Response
+_Host_Var_Progressive_Update_Rate
+_gppconio_init
+_RTE_Enabled
+_Validation_Response_Fails_To_Meet_Specific_Requirements
+_B0_EnableDisableGames
+_increment_meter
+_Deactivate_NonSASProgressives
+__go32_dpmi_chain_protected_mode_interrupt_vector
+___dpmi_free_real_mode_callback
+_AFT_0x72_Transfer_Receipt_Pending_Delay
+_Host_Var_Progressive_Sent_Current_Level
+_Queue_Component_List_Changed_Exeption
+_SASProgModeActive
+_Status_Global_Poll_Response
+_lock_pm_new8h
+_Init_Performances
+_Build_0x8B_Response
+_x7D_Expiration
+_display_handpay_FIFO
+_Player_Wager
+_build_correct_response_to_0x8E
+_Printer_Paper
+_Active_List_Number
+_Count_Reply_Time_In_Polling_Rate
+_GEP_Interpreter
+_transport_SendWindow
+_Proc_Send_0x70_After_0x67
+_prepare_GEP_trace_packet_host_reply
+_IRQWrap_End
+___djgpp_timer_hdlr
+_x7C_Address_1_Length
+_Update_Meter_Data
+___djgpp_i24
+_Max_Bet_BCD
+_GEP_Perform
+_Proc_AFT_Cashout_Win_To_Host
+_ScreenAttrib
+_Activate_Tournament_Session
+_Queue_TED_Card_Plop
+__go32_rmcb_stack_size
+___crt0_argv
+_comm_port_SAS
+_Perform_Script_Issue_Exception
+_COMGetRXQueueSize
+_ProgressivesTimedOut
+_Short2BCD
+_NonSASProgLevelAmount
+_COMReadBuffer
+_Last_Poll_Send_Time
+_Prog_Handle_0x80_Update
+_hopper_cashout
+_textbackground
+_Current_Cashable_Wager_handle
+_Meter_Denom_BCD
+_handle_handpay
+_COMGetCts
+_IRQWrappers
+_Reply_Fails_Command_Specific_Requirements
+_maybe_enable_egm
+_Perform_Data_Testing
+_Prog_Game_Init
+_CalcAvgBasePercent
+_get_poll_address
+_Perform_Script_Proc
+_ScreenPutChar
+_Init_Exception_Queue
+_Unpacked_BCD_Greater
+_sas_packet_in
+_Host_Progressive_Level_Data
+_find_ted_by_proc_number
+_Time_Between_0x67_Ticket_Inserted_And_Poll_0x70
+_TED_Queue
+_Number_Of_Polls_Including_Final_Nack
+_GEPInitialize
+_MJT_PendingOff
+_build_correct_response_to_0x32
+_build_correct_response_to_0x37
+___djgpp_sigquit_mask
+_Player_Insert_Bill
+_build_0x1E_response
+_ted_proc_is_enqueued
+___dosmemget
+_AFT_0x74_Max_Buffer_Index
+_Wager_Denom_BCD
+__go32_dpmi_get_real_mode_interrupt_vector
+_Current_Restricted_Wager
+_Max_Denom_C4
+_default_exception_priority
+_build_0x4A_response
+_Display_Time
+_Progressive_Win_Amount_Handle
+_build_correct_0x4D_response
+_Install_List_As_Poll_Cycle
+_CRC_Calc_Return
+_x7B_Asset_Number
+_Allow_Host_To_Reset_Sequence_Number
+_transport_PendingCount
+_x7D_Address_1_Length
+_Max_Bet_Value
+___dj_stdout
+_AFT_0x72_Last_Transfer_Body
+_StreamSeek
+_transport_RSeq
+_Proc_ProgCheckUpdateTimeout
+_Handpay_Reset_Button_Pressed
+_AFT_0x72_Cashable_Actual_Transfer_Amount
+_Q_GetNode
+_Perform_Validation_Action
+_COMGetModemStatus
+_outportb
+___djgpp_set_sigquit_key
+___stdio_cleanup_hook
+___EH_FRAME_BEGIN__
+_Perform_Script_Get
+_AFT_before_response_0x72
+_AFT_0x72_Receipt_TransFee_Include
+___bss_count
+_Proc_Chirp
+_GEP_Trace_Sequence_Number
+_Reset_Soft_Meters
+_Card_Cage
+_comm_addr_SAS
+_Hopper_Full_Level
+_Player_Insert_Token_Ext
+_Build_Tournament_Meter_Request
+___dpmi_get_segment_base_address
+_Proc_TournamentTimerBasedStop
+_Let_Host_Control_x7B_Extended_Validation_Status_Bits
+_Base_Percent_Calc_For_0x1F_With_Multigames
+_Proc_Validation_ID_Not_Configured
+_pctimer_exit
+___djgpp_cbrk_hdlr
+_Status_Time_Sensitive_Actions
+_SASProgHitQ
+_build_B0_single_meter_response
+_AFT_0x72_Receipt_AcctNo
+_meter_is_c7_defined
+_build_0x12_response
+_AFT_0x72_From_Host_Transfer_Flags
+_Tilt_Count
+_Time_To_Wait_For_Cashout_Win_To_Host_AFT_Transfer
+_Host_Var_Progressive_Address
+_decode_exception_status
+_Polls_0x7B_and_0x7C_Override_0x7D
+_COMEnableHardwareFIFO
+__use_lfn
+_Player_Insert_Token
+_SAS_Comm_Port_Control
+_Cashout_Validation_Method
+_textcolor
+_Progressive_Win_Amount
+_receive_bytes
+_build_correct_0x7B_response
+_Last_Accepted_Bill_Time
+_get_acknack_address
+_Time_Of_Last_0x6B_Exception_Issue
+_build_B0_0x56_response
+___dpmi_simulate_real_mode_procedure_iret
+_Hopper_Limit_Significant_Digits
+_process_in_queue_trace_buffers
+_Activate_SASProgressives
+_AFT_0x72_Receipt_ATMCardNo_Length
+__setcursortype
+___doserr_to_errno
+_Init_A_Game_Info
+_Build_SAS_Long_Poll_Response
+_CRC_Calc_Compare
+_transport_SendRetransFlag
+___djgpp_set_ctrl_c
+___FSEXT_call_open_handlers
+_build_correct_response_to_0x08
+_Diverter
+_TED_Queue_Chirp
+_Build_RTE_Exception
+_Max_Bill_Denom_C6
+_build_correct_response_to_0x07
+_Partial_Pay_handle
+_StreamInsertDWord
+_mainloop_parameter
+___djgpp_exception_processor
+_GEPReceive
+_StreamOpen
+_SAS_Comm_Link_Down_Last_Poll_Receive_Time
+___FSEXT_get_function
+_COMSetDtr
+_build_correct_response_to_0xA0
+_Tournament_Pending
+_Cashout_Ticket_Pending
+_ProgSetUpdateTimeOutStatus
+_Let_Host_Control_x7C_Ticket_Data_Status_Flag
+_TransportEnterState
+_Init_Denoms
+_Update_AFT_0x72_State
+__preserve_fncase
+_parse_and_build_script_line
+___dpmi_get_version
+_Max_Bet_Calc_For_0x1F_With_Multigames
+_MGMD_Denom_Meter
+__os_flavor
+_Behavior_Oversize_Polls
+_Time_Between_Subsequent_Cashout_Validated_0x3D_Exceptions
+_Prepare_Send_Exception_Trace
+_Next_Unread_Validation_Entry
+_Prog_Poll_0x86_IsBCD
+_Extended_Validation_Status_Bits
+_pctimer_get_ticks
+_Time_Between_0x68_Ticket_Redeemed_Exceptions_Waiting_On_Poll_0x71
+_transport_StatusCallback
+_MGMD_Game_Meter
+_ROM_Instance
+_ProgGetNonSASWinLevel
+_build_correct_response_to_0x34
+_Selected_Game_Number
+_Current_Win_Amount_handle
+_update_handpay_meters
+_Time_To_Wait_For_Attendant_During_Cashout_To_Host_Tilt_Cashout_Mode_HARD
+___atexit_ptr
+_Behavior_Loss_Of_Comm
+_AFT_0x72_Delay_Between_Consecutive_0x69_Exceptions
+_Init_Progressives
+_x7C_Default_Debit_Ticket_Title
+_AFT_0x72_Receipt_AcctNo_Length
+_Issue_RESYNC
+_Proc_Reject_Ticket_No_0x71_In_Time
+__dos_getdrive
+_Host_Is_Validating_Host
+___libc_read_termios_hook
+___djgpp_npx_hdlr
+_build_correct_response_to_0x38
+_display_adhoc_debug
+_COMWriteChar
+_Ack_RealTime_Exceptions
+_unpack_BCD
+_x7C_Debit_Ticket_Title_Length
+_print_help_menu
+_Trans_ID_Is_Invalid
+___dpmi_allocate_ldt_descriptors
+_SAS_Progressives_Ready
+_Build_0x83_Response
+_Build_0x09_Response
+_COMClearTXBuffer
+_Staged_Polling_List_Behavior
+_Meter_Denom_Value
+_Secure_Enhanced_Ticket_Sequence_Number
+_gs_print_egm_response
+_Ticket_Device_Available
+_build_0x10_response
+__crt0_init_mcount
+_ProgIncProgressiveMeters
+_Is_Ticket_Data_Code_Valid
+_Partitioned_EPROM
+_Time_Of_Last_0x68_Ticket_Has_Been_Stacked
+_AFT_0x72_Transaction_ID_Length
+_AFT_0x72_From_Host_Transaction_ID
+_Perform_Script
+_Send_0x70_After_Receiving_0x67
+_build_correct_0x58_response
+_Send_0x71_With_FF_Code_After_Receiving_0x68
+_localtime
+___stdio_cleanup_proc
+_COMIsTXBufferSent
+_gs_Determine_Ack_Nack_Status
+_Hopper_Capacity
+__go32_dpmi_set_protected_mode_interrupt_vector
+___FSEXT_exit_hook
+_Current_Restricted_Wager_handle
+_TI_Validation_Data_Length
+___dj_stdprn
+_ProgSetSASWinLevels
+_COMWriteBuffer
+_game_can_be_started
+_process_host_data
+_AFT_0x72_Receipt_Name
+___djgpp_memory_handle_list
+_StreamInsertByte
+_Init_Validations
+_Display_GEP_Trace
+_COMDisplayDiagCounters
+_COMDetect
+_Use_This_Response
+_Legacy_Bonusing_Enabled
+_Partial_Pay_Significant_Digits
+_Remove_TED
+_Dectivate_SASProgressives
+_AFT_0x72_From_Host_Transaction_ID_Length
+_directvideo
+_Handpay_FIFO
+_ScreenCols
+___djgpp_kbd_hdlr_pc98
+_DatalinkHousekeeping
+_Proc_AFT_Transfer_Receipt_Pending
+_Write_Validation_Info_To_Buffer
+_build_error_response
+_x7D_Address_2
+__wscroll
+__osminor
+___setup_file_rec_list
+_Game_Delay_Time
+_last_AFT_0x72_From_Host_Transaction_ID
+___dj_ctype_flags
+_build_0x1C_response
+_Status_Other_Address_Response
+_Init_All
+_COMShutDown
+_Last_Accepted_Bill_Country_Code
+_AFT_0x72_Receipt_Name_Include
+_System_Validation_System_ID
+_SAS_Comm_Link_Up
+_build_0x0F_response
+_transport_PendingHead
+_AFT_0x72_Transfer_Receipt_Pending_Start_Time
+_Build0x72AFTCancelCurrentTransferEGMResponse
+_COMSetRXQueueSize
+_Proc_Player_End_Game
+_AFT_0x72_Receipt_AcctBal_Include
+_charToBCD
+_x7C_Ticket_Data_Status_Flag
+_DatalinkInitialize
+_build_correct_response_to_0x48
+_TI_Validation_System_ID
+_mainloop
+_Time_Of_First_0x6B_Exception_Issue
+___dpmi_get_protected_mode_interrupt_vector
+_COMGetCD
+_Active_Poll
+___djgpp_set_sigint_key
+_localeconv
+_StreamExtractDWord
+_Send_0x4D_After_Receiving_0x3D
+_AFT_0x72_Receipt_Length
+___dj_movedata
+_ScreenMode
+___FSEXT_add_open_handler
+_SAS_Version
+_x7C_Address_1
+_build_correct_response_to_0x3F
+_Last_Received_Date
+_build_correct_response_to_0x33
+_Handpay_FIFO_Currently_Queued
+_build_0x2D_response
+_Exception_Queue_Size
+_Reel_Tilt_Count
+_Who_Am_I
+_Cash_Box_Door
+_Tilt_Coin_Out
+___dos_argv0
+___djgpp_hw_lock_start
+_Perform_HostSim_Action
+_build_correct_response_to_0x20
+_TransportSendSync
+_Poll_Meets_Command_Specific_Requirements
+exception_stack
+_LockCode
+_Init_A_Meter
+_display_selected_meters
+_AFT_0x72_FSM_Transfer_Status
+_AFT_0x73_Reply_With_Registration_Key
+_Add_Polling_Cycle_Poll_To_List
+___deregister_frame_info
+_gs_Discard_Values_Awaiting_Implied_ACK
+_transport_timerTime
+_build_correct_response_to_0x2F
+_Init_Poll_Instances
+_Host_Ignores_Response_To_Final_Nack
+___djgpp_selector_limit
+_System_Validation_Cashout_Type
+_get_gameplay_address
+_Poll_Needs_CRC
+_x7C_Restricted_Ticket_Title
+___dj_ctype_tolower
+_transport_PendingACKList
+___djgpp_hw_exception
+_StreamExtractWord
+___djgpp_old_kbd
+_TransportProcessControlPacket
+_convert_to_number
+_x7C_Default_Address_1_Length
+_COMGetRI
+_ScreenRows
+_highvideo
+_AFT_0x72_From_Host_Transfer_Index
+_Last_Poll_Body
+_set_date_time_strings
+_Handpay_FIFO_Waiting_For_0x1B
+_Host_Comm_Delay_NonRTE_Response
+_COMSetTXThreshold
+_Time_Of_First_0x57_Exception_Issue
+_COMGetHardwareParameters
+_Behavior_Other_Address_Response
+_Last_Accepted_Bill_Meter_Code
+___dpmi_set_coprocessor_emulation
+_build_correct_response_to_0x3C
+_build_0x14_response
+_Build_0x0A_0x0B_Response
+_AFT_0x72_Receipt_Status
+_Proc_Ticket_Has_Been_Stacked
+___setmode
+_x7D_Host_ID
+_Print_Ticket
+___register_frame_info_bases
+_Proc_Player_End_Game_After_Delay
+_Extended_Validation_Cashable_Ticket_And_Receipt_Expiration
+_Player_Cash_Out
+_TI_Restricted_Pool_ID
+_Init_Exception_Instances
+_Build_Polling_Element
+_parse_datetime_from_0x7F
+_prepare_RESYNC_GEP_trace_packet
+_Play_Enabled
+_pctimer_time
+_Q_AddNode
+_ProgPrintNonSASAmounts
+_ROM_Check_Reply_Status
+_tzsetwall
+_meter_validation1
+_lowvideo
+_Performance
+_Reset_Bill_Meters
+_x7D_Address_1
+___djgpp_ds_alias
+_Host_Var_Progressive_Send_Type
+_AFT_0x72_From_Host_Pool_ID
+_Identical_Response_Count
+_TournamentModeActive
+_Perform_AddScript_Action
+_x7C_Default_Restricted_Ticket_Title_Length
+_AFT_0x72_Receipt_AcctBal
+_build_correct_response_to_0x6F_0xAF
+_Init_AckNack
+_Perform_Script_Empty_Buffer
+_x7C_Default_Location_Length
+___djgpp_exception_table
+_TransportReceiveACKs
+_get_denom_address
+_Last_Received_Time
+_Get_MultiDenomMeter
+_Got_A_Response
+_build_0x50_response
+_Serial_Number_Length
+_Init_ROM
+_BCD_Greater
+_Exception_Definitions
+_Send_0x57_After_Receiving_0x57
+_Check_Polling_Loop_Data
+__crt0_startup_flags
+_lock_rm_new8h
+_TransportHousekeeping
+___file_exists
+__stubinfo
+_Is_System_Validation_Cashout_Code_Valid
+_EGM_Enable
+_Bill_Acceptor_Denom_Enable
+_Define_Polls_As_Poll_Cycle
+___djgpp_timer_countdown
+_build_correct_response_to_0x41
+_Behavior_Bad_Mgame
+_get_limit_address
+_BCD2Char
+_Init_Limits
+_AFT_Registration_Key
+_Staged_Polling_Cycles
+_MG_Tournament_meter_index
+_Number_Of_Enabled_Bill_Denoms
+_bill_exception_for
+_COMReadChar
+_GetNumberOfGamesImplemented
+_Exception_Queue_Last
+_Tilt_General
+_AFT_0x72_From_Host_Transfer_Type
+_COMPortOpen
+_prepare_GEP_trace_packet_game
+_AFT_0x72_General_Transfer_Pending_Delay
+_poll_0x72_response_length
+_AFT_0x73_From_Host_Registration_Key
+_Coin_Acceptor_Denom_Enable
+_Handpay_FIFO_Waiting_For_Reset
+___FSEXT_set_function
+_COMGetDiagnosticCounters
+_Proc_Reject_Ticket_No_0x70_In_Time
+_COMActivateTx
+_Send_0x58_After_Receiving_0x57
+__Unwind_Find_FDE
+_Init_CAP
+_COMEnableIRQs
+_AFT_0x74_Game_Lock_Status
+_print_active_cycle
+_biostime
+__put_path
+_trace_queue_NRP
+_TournamentCheckSessionEnd
+_Validation_Type
+_bInPacket
+_Poll_Expects_Ack_Nack_Response
+_Synch_Status
+___dj_stderr
+___EH_FRAME_END__
+_comm_irq_SAS
+_common_meter_response
+_build_correct_response_to_0x7E
+_comm_addr_GUI
+_dummyloop
+_build_0x49_response
+_COMIsFIFOAvailable
+_Max_Country_Code_C5
+_Last_Response_Body_Length
+_build_correct_response_to_0x3B
+_TI_Machine_Status
+_Reel_Status
+_verify_meter
+_process_host_trace_buffer
+_SASProgressives_Active
+__go32_dpmi_allocate_iret_wrapper
+_save_MG_Tournament_Meter
+_build_correct_0x7C_response
+__get_dos_version
+_Time_Of_Last_0x67_Ticket_Inserted
+_Is_Ticket_Transfer_Code_Valid
+_build_correct_0x57_response
+___dpmi_get_processor_exception_handler_vector
+_build_correct_response_to_0x31
+_Tournament_End_Pending
+___register_frame
+_Perform_Attendnt_Action
+_Slot_Door_Power
+_Behavior_Unsupported_Polls
+_AFT_0x72_Allow_Host_To_Change_Transfer_Flags
+_MGMD_meter_index
+_BCD_mul2
+_Proc_AFT_Periodic_Checks
+_TED_Queue_Status
+___dpmi_error
+_AFT_0x72_Receipt_DateTime_Length
+__dxe_load
+_TI_Validation_Number
+_transport_SSeq
+_AFT_Transaction_History
+_remove_read_handpay_from_FIFO
+_Ticket_Acceptor
+_Send_0x71_After_Receiving_0x67
+_Waiting_For_Handpay_Reset
+_is_poll_in_transmit_queue
+_Init_Polling_Cycles
+_Gaming_Machine_0x71_Status_Code
+_GUI_Enable
+_Number_Of_Enabled_Token_Denoms
+_build_correct_response_to_0x1A
+___file_handle_set
+_build_correct_response_to_0x55
+_comm_port_GUI
+_AFT_0x72_Receipt_TransFee_Length
+___crt0_load_environment_file
+_Init_A_Game_State
+___djgpp_cbrk_count
+_counter_8h
+_display_AFT_info
+_TED_Queue_Count
+_AFT_0x74_AFT_Status
+___dpmi_int_flags
+__go32_dpmi_lock_data
+__lfn_gen_short_fname
+_Disable_Bill_Acceptor_After_Accepting_Bill
+_generate_host_trace_buffer
+__conio_kbhit
+_build_correct_0x6E_response
+_build_correct_0x76_response
+_TransportSendACK
+_Extended_Validation_Restricted_Ticket_Default_Expiration
+_Init_Chassis
+_save_Meter
+_Empty_Validation_Buffer
+_Response_Length
+_build_correct_response_to_0x3A
+_ticket_redemption_amount
+_Host_Comm_Delay_Byte_Send
+_TI_Transfer_Status
+_AFT_0x72_Pool_ID_Active
+___crlf2nl
+_DisableIRQ
+_Host_Comm_Delay_RTE_Jitter
+_Sending_RESYNCs
+_x7C_Default_Address_2
+_COMGetDsr
+_COMSetEventHandler
+_AFT_Ticket_Device_Available
+___crt0_glob_function
+_Select_A_Game
+___dpmi_get_segment_limit
+_Host_Comm_Delay_NonRTE_Jitter
+_print_meter
+_Queue_TED_Procedure

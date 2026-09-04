@@ -1,0 +1,46 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\step3.trc ===
+started : 2026-07-19 13:17:25
+stamps  : absolute time
+events  : 42 (35 messages, 18 HOST, 17 EGM)
+  EGM  3017390.2      01 7E 07 19 20 26 13 17 25 CD 35       Send current date and time: Date = 07192026; Time = 131725;
+  HOST 3017418.4 WAKE 81                                     General Poll
+  EGM  3017449.3      3F                                     Validation ID not configured
+  HOST 3017458.4 WAKE 80                                     RESYNC
+  HOST 3017498.4 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  3032448.4      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST 3032458.6 WAKE 81                                     General Poll
+  EGM  3032490.5      3F                                     Validation ID not configured
+  HOST 3032498.6 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM  3032522.6      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM  3047435.4      01 7E 07 19 20 26 13 17 55 4A 46       Send current date and time: Date = 07192026; Time = 131755;
+  HOST 3047446.7 WAKE 81                                     General Poll
+  EGM  3047480.5      3F                                     Validation ID not configured
+  HOST 3047486.7 WAKE 80                                     RESYNC
+  HOST 3047526.7 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  3062311.1      01 7E 07 19 20 26 13 18 09 6B 5D       Send current date and time: Date = 07192026; Time = 131809;
+  HOST 3062326.5 WAKE 81                                     General Poll
+  EGM  3062358.2      3F                                     Validation ID not configured
+  HOST 3062366.5 WAKE 80                                     RESYNC
+  HOST 3062406.5 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  3077461.5      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST 3077469.4 WAKE 81                                     General Poll
+  EGM  3077504.6      3F                                     Validation ID not configured
+  HOST 3077509.7 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM  3077536.7      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM  3092404.3      01 7E 07 19 20 26 13 18 39 E8 6C       Send current date and time: Date = 07192026; Time = 131839;
+  HOST 3092422.1 WAKE 81                                     General Poll
+  EGM  3092449.4      3F                                     Validation ID not configured
+  HOST 3092462.1 WAKE 80                                     RESYNC
+  HOST 3092502.1 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  3107335.1      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST 3107343.4 WAKE 81                                     General Poll
+  EGM  3107378.3      3F                                     Validation ID not configured
+  HOST 3107383.4 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM  3107411.3      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --

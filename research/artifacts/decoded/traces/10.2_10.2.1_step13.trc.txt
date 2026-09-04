@@ -1,0 +1,53 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.1\step13.trc ===
+started : 2026-07-20 15:42:08
+stamps  : absolute time
+events  : 49 (40 messages, 22 HOST, 18 EGM)
+  EGM  18030963.6      01 7E 07 20 20 26 15 42 08 1F 56       Send current date and time: Date = 07202026; Time = 154208;
+  HOST 18030980.4 WAKE 81                                     General Poll
+  EGM  18031007.7      18                                     AC power was lost from EGM
+  HOST 18031020.4 WAKE 80                                     RESYNC
+  HOST 18031060.4 WAKE 80                                     RESYNC
+  -- separator --
+  EGM  18031432.5      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST 18031447.1 WAKE 81                                     General Poll
+  EGM  18031475.6      17                                     AC power was applied to EGM
+  HOST 18031487.1 WAKE 80                                     RESYNC
+  HOST 18031527.2 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  -- separator --
+  EGM  18031772.2      01 7E 07 20 20 26 15 42 08 1F 56       Send current date and time: Date = 07202026; Time = 154208;
+  HOST 18031783.5 WAKE 81                                     General Poll
+  EGM  18031817.3      8C                                     Game Selected
+  HOST 18031823.7 WAKE 80                                     RESYNC
+  HOST 18031863.8 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  HOST 18052429.0 WAKE 01 7E                                  Send current date and time:
+  HOST 18052469.0 WAKE 81                                     General Poll
+  EGM  18052469.8      01                                     
+  EGM  18052470.3 WAKE 7E                                     
+  EGM  18052470.8 WAKE 07 20                                  Send dollar value of bills meter:
+  -- separator --
+  EGM  18103250.7      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST 18103259.1 WAKE 81                                     General Poll
+  EGM  18103293.8      11                                     Slot door was opened
+  HOST 18103299.5 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM  18103325.9      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM  18107520.0      01 7E 07 20 20 26 15 43 26 BB 87       Send current date and time: Date = 07202026; Time = 154326;
+  HOST 18107535.5 WAKE 81                                     General Poll
+  EGM  18107564.0      12                                     Slot door was closed
+  HOST 18107575.5 WAKE 80                                     RESYNC
+  HOST 18107615.5 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  18129229.0      01 7E 07 20 20 26 15 43 48 C3 0D       Send current date and time: Date = 07202026; Time = 154348;
+  HOST 18129242.1 WAKE 81                                     General Poll
+  EGM  18129271.1      11                                     Slot door was opened
+  HOST 18129282.1 WAKE 80                                     RESYNC
+  HOST 18129322.2 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM  18130545.0      01 7E 07 20 20 26 15 43 49 4A 1C       Send current date and time: Date = 07202026; Time = 154349;
+  HOST 18130556.2 WAKE 81                                     General Poll
+  EGM  18130584.1      12                                     Slot door was closed
+  HOST 18130596.3 WAKE 80                                     RESYNC
+  HOST 18130636.4 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  -- pause --

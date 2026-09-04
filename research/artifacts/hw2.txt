@@ -1,0 +1,79 @@
+--- Bill Validators ---
+[
+ {
+  "name": "Mei SC-Advance",
+  "protocol": 2,
+  "available": true
+ },
+ {
+  "name": "JCM UBA",
+  "protocol": 3,
+  "available": true
+ },
+ {
+  "name": "ITL NV200 (ID003)",
+  "protocol": 7,
+  "available": true
+ },
+ {
+  "name": "JCM iVizion",
+  "protocol": 4,
+  "available": true
+ },
+ {
+  "name": "Mei GDS",
+  "protocol": 102,
+  "available": true,
+  "vid": "0x0BED",
+  "pid": "0x0103"
+ }
+]
+--- Printers ---
+[
+ {
+  "name": "Epic 950",
+  "protocol": 1,
+  "available": true
+ },
+ {
+  "name": "Epic Edge / Edge+",
+  "protocol": 11,
+  "available": true
+ },
+ {
+  "name": "Nanoptix HSVLA",
+  "protocol": 5,
+  "available": true
+ },
+ {
+  "name": "JCM Gen5",
+  "protocol": 9,
+  "available": true
+ },
+ {
+  "name": "JCM Gen2",
+  "protocol": 10,
+  "available": true
+ },
+ {
+  "name": "JCM Gen5 GDS",
+  "protocol": 101,
+  "available": true,
+  "vid": "0x16F5",
+  "pid": "0x0803"
+ },
+ {
+  "name": "Nanoptix Paycheck GDS",
+  "protocol": 101,
+  "available": true,
+  "vid": "0x0F0F",
+  "pid": "0x1503"
+ }
+]
+--- Candles ---
+[
+ 14,
+ 15
+]
+--- Number Displays / Touch ---
+0 0

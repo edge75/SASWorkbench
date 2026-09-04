@@ -1,0 +1,475 @@
+=== PE HEADER ===
+File: C:\IGT3\sastest.exe  size=985088
+Machine=0x014c  NumberOfSections=8  TimeDateStamp=0x43a35394
+  Link date (UTC): 2005-12-16T23:53:56
+OptionalHeader magic=0x010b (PE32) size=224
+Characteristics=0x010e
+LinkerVersion=5.0
+SizeOfCode=0xb0000  AddressOfEntryPoint=0x13e4  ImageBase=0x400000
+Subsystem=2 (2=GUI,3=CUI)  OSVer=4.0  SubsysVer=4.0
+  Dir[0] Export: RVA=0x000ca000 Size=0x208
+  Dir[1] Import: RVA=0x000c7000 Size=0x285a
+  Dir[2] Resource: RVA=0x000cb000 Size=0x22000
+  Dir[5] BaseReloc: RVA=0x000ed000 Size=0xcad4
+  Dir[9] TLS: RVA=0x000c6000 Size=0x18
+
+=== SECTIONS ===
+  .text      VA=0x00001000 VSize=0x000b0000 RawPtr=0x00000600 RawSize=0x000afe00 Char=0x60000020
+  .data      VA=0x000b1000 VSize=0x00014000 RawPtr=0x000b0400 RawSize=0x0000e600 Char=0xc0000040
+  .tls       VA=0x000c5000 VSize=0x00001000 RawPtr=0x000bea00 RawSize=0x00000200 Char=0xc0000040
+  .rdata     VA=0x000c6000 VSize=0x00001000 RawPtr=0x000bec00 RawSize=0x00000200 Char=0x50000040
+  .idata     VA=0x000c7000 VSize=0x00003000 RawPtr=0x000bee00 RawSize=0x00002a00 Char=0x40000040
+  .edata     VA=0x000ca000 VSize=0x00001000 RawPtr=0x000c1800 RawSize=0x00000400 Char=0x40000040
+  .rsrc      VA=0x000cb000 VSize=0x00022000 RawPtr=0x000c1c00 RawSize=0x00022000 Char=0x40000040
+  .reloc     VA=0x000ed000 VSize=0x0000d000 RawPtr=0x000e3c00 RawSize=0x0000cc00 Char=0x50000040
+
+=== RESOURCE INVENTORY (49 leaves) ===
+  Type RT_CURSOR: 7 entries
+      names/ids = [1, 2, 3, 4, 5, 6, 7]
+  Type RT_BITMAP: 11 entries
+      names/ids = ['BBABORT', 'BBALL', 'BBCANCEL', 'BBCLOSE', 'BBHELP', 'BBIGNORE', 'BBNO', 'BBOK', 'BBRETRY', 'BBYES', 'PREVIEWGLYPH']
+  Type RT_ICON: 1 entries
+      names/ids = [1]
+  Type RT_DIALOG: 1 entries
+      names/ids = ['DLGTEMPLATE']
+  Type RT_STRING: 15 entries
+      names/ids = [4082, 4083, 4084, 4085, 4086, 4087, 4088, 4089, 4090, 4091, 4092, 4093, 4094, 4095, 4096]
+  Type RT_RCDATA: 5 entries
+      names/ids = ['DVCLAL', 'TFORM1', 'TINPUTDIALOG', 'TPOPUP', 'TSASABOUTBOX']
+  Type RT_GROUP_CURSOR: 7 entries
+      names/ids = [32761, 32762, 32763, 32764, 32765, 32766, 32767]
+  Type RT_GROUP_ICON: 1 entries
+      names/ids = ['MAINICON']
+  Type RT_VERSION: 1 entries
+      names/ids = [1]
+
+
+=== RT_MENU (decoded menu trees) ===
+
+
+=== RT_DIALOG (decoded) ===
+
+--- DIALOG DLGTEMPLATE (lang 0) DLGTEMPLATE ---
+  Caption : ""
+  Rect    : x=0 y=0 cx=316 cy=76  (dialog units)
+  Style   : 0x54000444 [DS_SETFONT,DS_3DLOOK,DS_CONTROL,WS_CHILD,WS_VISIBLE,WS_CLIPSIBLINGS]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 1
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1119 STATIC                                                              0     0   204    76  0x40020000 WS_CHILD,WS_GROUP,SS_LEFT
+
+
+=== RT_STRING (string table) ===
+   65296: 'Mon'
+   65297: 'Tue'
+   65298: 'Wed'
+   65299: 'Thu'
+   65300: 'Fri'
+   65301: 'Sat'
+   65302: 'Sunday'
+   65303: 'Monday'
+   65304: 'Tuesday'
+   65305: 'Wednesday'
+   65306: 'Thursday'
+   65307: 'Friday'
+   65308: 'Saturday'
+   65312: 'Oct'
+   65313: 'Nov'
+   65314: 'Dec'
+   65315: 'January'
+   65316: 'February'
+   65317: 'March'
+   65318: 'April'
+   65319: 'May'
+   65320: 'June'
+   65321: 'July'
+   65322: 'August'
+   65323: 'September'
+   65324: 'October'
+   65325: 'November'
+   65326: 'December'
+   65327: 'Sun'
+   65328: 'Interface not supported'
+   65329: 'Exception in safecall method'
+   65330: '%s (%s, line %d)'
+   65331: 'Abstract Error'
+   65332: "Access violation at address %p in module '%s'. %s of address %p"
+   65333: 'System Error.  Code: %d.\r\n%s'
+   65334: 'A call to an OS function failed'
+   65335: 'Jan'
+   65336: 'Feb'
+   65337: 'Mar'
+   65338: 'Apr'
+   65339: 'May'
+   65340: 'Jun'
+   65341: 'Jul'
+   65342: 'Aug'
+   65343: 'Sep'
+   65344: 'Variant array index out of bounds'
+   65345: 'Variant array is locked'
+   65346: 'Invalid variant type conversion'
+   65347: 'Invalid variant operation'
+   65348: 'Invalid variant operation ($%.8x)'
+   65349: 'Variant is not an array'
+   65350: 'Invalid NULL variant operation'
+   65351: 'Could not convert variant of type (%s) into type (%s)'
+   65352: 'Overflow while converting variant of type (%s) into type (%s)'
+   65353: 'Variant overflow'
+   65354: 'Invalid argument'
+   65355: 'Invalid variant type'
+   65356: 'Operation not supported'
+   65357: 'Unexpected variant error'
+   65358: 'External exception %x'
+   65359: 'Assertion failed'
+   65360: 'Floating point overflow'
+   65361: 'Floating point underflow'
+   65362: 'Invalid pointer operation'
+   65363: 'Invalid class typecast'
+   65364: 'Access violation at address %p. %s of address %p'
+   65365: 'Stack overflow'
+   65366: 'Control-C hit'
+   65367: 'Privileged instruction'
+   65368: 'Exception %s in module %s at %p.\r\n%s%s\r\n'
+   65369: 'Application Error'
+   65370: "Format '%s' invalid or incompatible with argument"
+   65371: "No argument for format '%s'"
+   65372: 'Variant method calls not supported'
+   65373: 'Read'
+   65374: 'Write'
+   65375: 'Error creating variant array'
+   65376: "'%s' is not a valid time"
+   65377: "'%s' is not a valid date and time"
+   65378: 'Out of memory'
+   65379: 'I/O error %d'
+   65380: 'File not found'
+   65381: 'Invalid filename'
+   65382: 'Too many open files'
+   65383: 'File access denied'
+   65384: 'Read beyond end of file'
+   65385: 'Disk full'
+   65386: 'Invalid numeric input'
+   65387: 'Division by zero'
+   65388: 'Range check error'
+   65389: 'Integer overflow'
+   65390: 'Invalid floating point operation'
+   65391: 'Floating point division by zero'
+   65392: 'List index out of bounds (%d)'
+   65393: 'Out of memory while expanding memory stream'
+   65394: 'Error reading %s%s%s: %s'
+   65395: 'Stream read error'
+   65396: 'Property is read-only'
+   65397: 'Resource %s not found'
+   65398: '%s.Seek not implemented'
+   65399: 'Operation not allowed on sorted list'
+   65400: '%s not in a class registration group'
+   65401: 'Property %s does not exist'
+   65402: 'Stream write error'
+   65403: 'Thread creation error: %s'
+   65404: 'Thread Error: %s (%d)'
+   65405: "'%s' is not a valid integer value"
+   65406: "'%s' is not a valid floating point value"
+   65407: "'%s' is not a valid date"
+   65408: 'CheckSynchronize called from thread $%x, which is NOT the main thread'
+   65409: 'Class %s not found'
+   65410: 'A class named %s already exists'
+   65411: 'List does not allow duplicates ($0%x)'
+   65412: 'A component named %s already exists'
+   65413: 'String list does not allow duplicates'
+   65414: 'Cannot create file %s'
+   65415: 'Cannot open file %s'
+   65416: 'Unable to write to %s'
+   65417: 'Invalid stream format'
+   65418: "''%s'' is not a valid component name"
+   65419: 'Invalid property value'
+   65420: 'Invalid property path'
+   65421: 'Invalid property value'
+   65422: 'List capacity out of bounds (%d)'
+   65423: 'List count out of bounds (%d)'
+   65424: 'Docked control must have a name'
+   65425: 'Error removing control from dock tree'
+   65426: ' - Dock zone not found'
+   65427: ' - Dock zone has no control'
+   65428: 'Multiselect mode must be on for this feature'
+   65429: 'Separator'
+   65430: 'Error setting %s.Count'
+   65431: 'Listbox (%s) style must be virtual in order to set Count'
+   65432: 'Unable to find a Table of Contents'
+   65433: 'No help found for %s'
+   65434: 'No context-sensitive help installed'
+   65435: 'No topic-based help system installed'
+   65436: "Ancestor for '%s' not found"
+   65437: 'Cannot assign a %s to a %s'
+   65438: 'Bits index out of range'
+   65439: "Can't write to a read-only resource stream"
+   65440: 'PgDn'
+   65441: 'End'
+   65442: 'Home'
+   65443: 'Left'
+   65444: 'Up'
+   65445: 'Right'
+   65446: 'Down'
+   65447: 'Ins'
+   65448: 'Del'
+   65449: 'Shift+'
+   65450: 'Ctrl+'
+   65451: 'Alt+'
+   65452: 'Unable to insert a line'
+   65453: 'Clipboard does not support Icons'
+   65454: 'Text exceeds memo capacity'
+   65455: "Menu '%s' is already being used by another form"
+   65456: '&No'
+   65457: 'OK'
+   65458: 'Cancel'
+   65459: '&Help'
+   65460: '&Abort'
+   65461: '&Retry'
+   65462: '&Ignore'
+   65463: '&All'
+   65464: 'N&o to All'
+   65465: 'Yes to &All'
+   65466: 'BkSp'
+   65467: 'Tab'
+   65468: 'Esc'
+   65469: 'Enter'
+   65470: 'Space'
+   65471: 'PgUp'
+   65472: '&Help'
+   65473: '&Close'
+   65474: '&Ignore'
+   65475: '&Retry'
+   65476: 'Abort'
+   65477: '&All'
+   65478: 'Cannot drag a form'
+   65479: 'Metafiles'
+   65480: 'Enhanced Metafiles'
+   65481: 'Icons'
+   65482: 'Bitmaps'
+   65483: 'Warning'
+   65484: 'Error'
+   65485: 'Information'
+   65486: 'Confirm'
+   65487: '&Yes'
+   65488: 'Cannot change Visible in OnShow or OnHide'
+   65489: 'Cannot make a visible window modal'
+   65490: 'Scrollbar property out of range'
+   65491: '%s property out of range'
+   65492: 'Menu index out of range'
+   65493: 'Menu inserted twice'
+   65494: 'Sub-menu is not in menu'
+   65495: 'Not enough timers available'
+   65496: "GroupIndex cannot be less than a previous menu item's GroupIndex"
+   65497: 'Cannot create form. No MDI forms are currently active'
+   65498: 'Can only modify an image if it contains a bitmap'
+   65499: 'A control cannot have itself as its parent'
+   65500: 'OK'
+   65501: 'Cancel'
+   65502: '&Yes'
+   65503: '&No'
+   65504: 'Icon image is not valid'
+   65505: 'Metafile is not valid'
+   65506: 'Cannot change the size of an icon'
+   65507: 'Unsupported clipboard format'
+   65508: 'Out of system resources'
+   65509: 'Canvas does not allow drawing'
+   65510: 'Invalid image size'
+   65511: 'Invalid ImageList'
+   65512: 'Invalid ImageList Index'
+   65513: 'Failed to read ImageList data from stream'
+   65514: 'Failed to write ImageList data to stream'
+   65515: 'Error creating window device context'
+   65516: 'Error creating window class'
+   65517: 'Cannot focus a disabled or invisible window'
+   65518: "Control '%s' has no parent window"
+   65519: 'Cannot hide an MDI Child Form'
+   65520: 'Failed to clear tab control'
+   65521: 'Failed to delete tab at index %d'
+   65522: 'Failed to retrieve tab at index %d'
+   65523: 'Failed to get object at index %d'
+   65524: 'Failed to set tab "%s" at index %d'
+   65525: 'Failed to set object at index %d'
+   65526: 'MultiLine must be True when TabPosition is tpLeft or tpRight'
+   65527: 'Invalid index'
+   65528: 'Unable to insert an item'
+   65529: 'Invalid owner'
+   65530: '%s is already associated with %s'
+   65531: '%d is an invalid PageIndex value.  PageIndex must be between 0 and %d'
+   65532: 'This control requires version 4.70 or greater of COMCTL32.DLL'
+   65533: 'Tab position incompatible with current tab style'
+   65534: 'Tab style incompatible with current tab position'
+   65535: 'Bitmap image is not valid'
+
+
+=== RT_ACCELERATOR ===
+
+
+=== RT_VERSION ===
+--- VERSION 1 size=712 ---
+  FileVersion    = 2.0.2.1
+  ProductVersion = 2.0.2.1
+  FileFlagsMask=0x3f FileFlags=0x0 FileOS=0x4 FileType=0x1 FileSubtype=0x0
+  UTF-16 string runs:
+    'VS_VERSION_INFO'
+    'StringFileInfo'
+    '040904E4'
+    'CompanyName'
+    'IGT'
+    'FileDescription'
+    'SAS Simulator'
+    'FileVersion'
+    '2.0.2.1'
+    'InternalName'
+    'LegalCopyright'
+    'Copyright IGT 2002'
+    'LegalTrademarks'
+    'IGT'
+    'OriginalFilename'
+    'SasTest.exe'
+    'ProductName'
+    'SAS Simulator'
+    'ProductVersion'
+    '1.0.0.0'
+    'VarFileInfo'
+    'Translation'
+
+
+=== RT_RCDATA / other named resources (first 400 bytes each) ===
+--- RT_RCDATA / DVCLAL (lang 0) size=16 ---
+   ascii: {<:y&q?
+--- RT_RCDATA / TFORM1 (lang 0) size=36720 ---
+   ascii: TPF0 | TForm1 | Form1 | Left | Width | Height | Caption | SAS Test Program | Color | clBtnFace | Constraints.MinHeight | Constraints.MinWidth | Font.Charset | DEFAULT_CHARSET | Font.Color | clWindowText | Font.Height | Font.Name | MS Sans Serif | Font.Style | Menu | MainMenu1 | OldCreateOrder | Position | poScreenCenter | ShowHint | OnClose | FormClose | OnCreate | FormCreate | DesignSize | PixelsPerInch | TextHeight | TButton | ResendStructButton | Left | Width | Height | Caption | Resend Last Message | TabOrder | OnClick | ResendStructButtonClick | TButton | SendCC | Left | Width | Height | Caption | Send Custom Command | Enabled | TabOrder | OnClick | SendCCClick | TComboBox | ComboBox1 | Left | Width | Height | ItemHeight | TabOrder | Text | Long Poll Commands | OnChange | ComboBox1Change | TComboBox | ComboBox2 | Left | Width | Height | ItemHeight | TabOrder | Text | Electronic Funds Transfer | OnChange | ComboBox2Change | TEdit | Edit1 | Left | Width
+--- RT_RCDATA / TINPUTDIALOG (lang 0) size=6932 ---
+   ascii: TPF0 | TInputDialog | InputDialog | Left | ActiveControl | Edit1 | BorderIcons | BorderStyle | bsDialog | Caption | Dialog | ClientHeight | ClientWidth | Color | clBtnFace | Font.Charset | DEFAULT_CHARSET | Font.Color | clWindowText | Font.Height | Font.Name | MS Sans Serif | Font.Style | OldCreateOrder | Position | poScreenCenter | OnClose | FormClose | PixelsPerInch | TextHeight | TBevel | Bevel1 | Left | Width | Height | Shape | bsFrame | TLabel | Message | Left | Width | Height | Caption | Message | TImage | Image1 | Left | Width | Height | Picture.Data | TBitmap
+--- RT_RCDATA / TPOPUP (lang 0) size=1939 ---
+   ascii: TPF0 | TPOPUP | POPUP | Left | BorderStyle | bsDialog | Caption | Key Pad | ClientHeight | ClientWidth | Color | clBtnFace | Font.Charset | DEFAULT_CHARSET | Font.Color | clWindowText | Font.Height | Font.Name | MS Sans Serif | Font.Style | FormStyle | fsStayOnTop | OldCreateOrder | PixelsPerInch | TextHeight | TGroupBox | Keys | Left | Width | Height | Caption | Keys | TabOrder | TButton | Button1 | Left | Width | Height | Caption | TabOrder | OnClick | Button1Click | TButton | Button2 | Left | Width | Height | Caption | TabOrder | OnClick | Button1Click | TButton | Button3 | Left | Width | Height | Caption | TabOrder | OnClick | Button1Click | TButton | Button5 | Left | Width | Height | Caption | TabOrder | OnClick | Button1Click | TButton | Button6 | Left | Width | Height | Caption | TabOrder | OnClick | Button1Click | TButton | Button7
+--- RT_RCDATA / TSASABOUTBOX (lang 0) size=71001 ---
+   ascii: TPF0 | TSASAboutBox | SASAboutBox | Left | BorderIcons | BorderStyle | bsDialog | Caption | IGT SAS Simulator | ClientHeight | ClientWidth | Color | clBtnFace | Font.Charset | DEFAULT_CHARSET | Font.Color | clWindowText | Font.Height | Font.Name | MS Sans Serif | Font.Style | OldCreateOrder | Position | poScreenCenter | OnActivate | FormActivate | OnClose | FormClose | PixelsPerInch | TextHeight | TPanel | Panel1 | Left | Width | Height | BevelInner | bvRaised | BevelOuter | bvLowered | ParentColor | TabOrder | TLabel | VersionLAB | Left | Width | Height | Caption | Version 1.1 | IsControl | TLabel | Copyright | Left | Width | Height | Caption | 5Copyright (c) 1997-2005 International Game Technology | IsControl | TImage | Image1 | Left | Width | Height | Picture.Data | TBitmap | ?ppn`R | |y~y | y~y~~~~{y~y | ~~~~~~ | ~~~~~~~ | y~~~~~ | wwwwwwwwwww | wywwyy| | zwwwwwwww~ | yw~wyw
+
+
+=== IMPORTS ===
+Total DLLs: 9   Total imports: 406
+
+--- ADVAPI32.DLL  (3 imports) ---
+   RegCloseKey                   RegOpenKeyExA                 RegQueryValueExA              
+
+--- KERNEL32.DLL  (121 imports) ---
+   BuildCommDCBA                 ClearCommError                CloseHandle                   CompareStringA                
+   CopyFileA                     CreateEventA                  CreateFileA                   CreateThread                  
+   DeleteCriticalSection         DeleteFileA                   EnterCriticalSection          EnumCalendarInfoA             
+   ExitProcess                   ExitThread                    FileTimeToDosDateTime         FileTimeToLocalFileTime       
+   FindClose                     FindFirstFileA                FindResourceA                 FormatMessageA                
+   FreeLibrary                   FreeResource                  GetACP                        GetCPInfo                     
+   GetCommandLineA               GetCurrentDirectoryA          GetCurrentProcess             GetCurrentProcessId           
+   GetCurrentThread              GetCurrentThreadId            GetDateFormatA                GetDiskFreeSpaceA             
+   GetEnvironmentStrings         GetExitCodeThread             GetFileAttributesA            GetFileSize                   
+   GetFileType                   GetLastError                  GetLocalTime                  GetLocaleInfoA                
+   GetModuleFileNameA            GetModuleHandleA              GetOEMCP                      GetOverlappedResult           
+   GetPrivateProfileStringA      GetProcAddress                GetProcessHeap                GetStartupInfoA               
+   GetStdHandle                  GetStringTypeExA              GetStringTypeW                GetSystemInfo                 
+   GetThreadLocale               GetTickCount                  GetTimeZoneInformation        GetVersion                    
+   GetVersionExA                 GlobalAddAtomA                GlobalAlloc                   GlobalDeleteAtom              
+   GlobalFindAtomA               GlobalFree                    GlobalHandle                  GlobalLock                    
+   GlobalReAlloc                 GlobalUnlock                  HeapAlloc                     HeapFree                      
+   InitializeCriticalSection     InterlockedDecrement          InterlockedIncrement          LCMapStringA                  
+   LeaveCriticalSection          LoadLibraryA                  LoadLibraryExA                LoadResource                  
+   LocalAlloc                    LocalFree                     LockResource                  MulDiv                        
+   MultiByteToWideChar           PurgeComm                     RaiseException                ReadFile                      
+   ResetEvent                    ResumeThread                  RtlUnwind                     SetCommMask                   
+   SetCommState                  SetCommTimeouts               SetConsoleCtrlHandler         SetCurrentDirectoryA          
+   SetEndOfFile                  SetErrorMode                  SetEvent                      SetFilePointer                
+   SetHandleCount                SetLastError                  SetPriorityClass              SetThreadLocale               
+   SetThreadPriority             SetupComm                     SizeofResource                Sleep                         
+   TlsAlloc                      TlsFree                       TlsGetValue                   TlsSetValue                   
+   UnhandledExceptionFilter      VirtualAlloc                  VirtualFree                   VirtualQuery                  
+   WaitCommEvent                 WaitForSingleObject           WideCharToMultiByte           WriteFile                     
+   WritePrivateProfileStringA    lstrcmpA                      lstrcpyA                      lstrcpynA                     
+   lstrlenA                      
+
+--- VERSION.DLL  (3 imports) ---
+   GetFileVersionInfoA           GetFileVersionInfoSizeA       VerQueryValueA                
+
+--- COMCTL32.DLL  (23 imports) ---
+   ImageList_Add                 ImageList_BeginDrag           ImageList_Create              ImageList_Destroy             
+   ImageList_DragEnter           ImageList_DragLeave           ImageList_DragMove            ImageList_DragShowNolock      
+   ImageList_Draw                ImageList_DrawEx              ImageList_EndDrag             ImageList_GetBkColor          
+   ImageList_GetDragImage        ImageList_GetIconSize         ImageList_GetImageCount       ImageList_Read                
+   ImageList_Remove              ImageList_ReplaceIcon         ImageList_SetBkColor          ImageList_SetDragCursorImage  
+   ImageList_SetIconSize         ImageList_Write               #ordinal 17                   
+
+--- COMDLG32.DLL  (2 imports) ---
+   GetOpenFileNameA              GetSaveFileNameA              
+
+--- GDI32.DLL  (71 imports) ---
+   BitBlt                        CombineRgn                    CopyEnhMetaFileA              CreateBitmap                  
+   CreateBrushIndirect           CreateCompatibleBitmap        CreateCompatibleDC            CreateDIBSection              
+   CreateDIBitmap                CreateFontIndirectA           CreateHalftonePalette         CreatePalette                 
+   CreatePenIndirect             CreateRectRgn                 CreateSolidBrush              DeleteDC                      
+   DeleteEnhMetaFile             DeleteObject                  ExcludeClipRect               ExtTextOutA                   
+   GetBitmapBits                 GetBrushOrgEx                 GetClipBox                    GetClipRgn                    
+   GetCurrentPositionEx          GetDCOrgEx                    GetDIBColorTable              GetDIBits                     
+   GetDeviceCaps                 GetEnhMetaFileBits            GetEnhMetaFileHeader          GetEnhMetaFilePaletteEntries  
+   GetObjectA                    GetPaletteEntries             GetPixel                      GetRgnBox                     
+   GetStockObject                GetSystemPaletteEntries       GetTextExtentPoint32A         GetTextMetricsA               
+   GetWinMetaFileBits            GetWindowOrgEx                IntersectClipRect             LineTo                        
+   MaskBlt                       MoveToEx                      PatBlt                        PlayEnhMetaFile               
+   Polyline                      RealizePalette                RectVisible                   Rectangle                     
+   RestoreDC                     SaveDC                        SelectClipRgn                 SelectObject                  
+   SelectPalette                 SetBkColor                    SetBkMode                     SetBrushOrgEx                 
+   SetDIBColorTable              SetEnhMetaFileBits            SetPixel                      SetROP2                       
+   SetStretchBltMode             SetTextColor                  SetViewportOrgEx              SetWinMetaFileBits            
+   SetWindowOrgEx                StretchBlt                    UnrealizeObject               
+
+--- USER32.DLL  (164 imports) ---
+   ActivateKeyboardLayout        AdjustWindowRectEx            BeginDeferWindowPos           BeginPaint                    
+   CallNextHookEx                CallWindowProcA               CharLowerA                    CharLowerBuffA                
+   CharNextA                     CheckMenuItem                 ChildWindowFromPoint          ClientToScreen                
+   CreateIcon                    CreateMenu                    CreatePopupMenu               CreateWindowExA               
+   DefFrameProcA                 DefMDIChildProcA              DefWindowProcA                DeferWindowPos                
+   DeleteMenu                    DestroyCursor                 DestroyIcon                   DestroyMenu                   
+   DestroyWindow                 DispatchMessageA              DrawEdge                      DrawFocusRect                 
+   DrawFrameControl              DrawIcon                      DrawIconEx                    DrawMenuBar                   
+   DrawTextA                     EnableMenuItem                EnableScrollBar               EnableWindow                  
+   EndDeferWindowPos             EndPaint                      EnumThreadWindows             EnumWindows                   
+   EqualRect                     FillRect                      FindWindowA                   FrameRect                     
+   GetActiveWindow               GetCapture                    GetClassInfoA                 GetClassNameA                 
+   GetClientRect                 GetClipboardData              GetCursor                     GetCursorPos                  
+   GetDC                         GetDCEx                       GetDesktopWindow              GetDlgItem                    
+   GetFocus                      GetForegroundWindow           GetIconInfo                   GetKeyNameTextA               
+   GetKeyState                   GetKeyboardLayout             GetKeyboardLayoutList         GetKeyboardState              
+   GetKeyboardType               GetLastActivePopup            GetMenu                       GetMenuItemCount              
+   GetMenuItemID                 GetMenuItemInfoA              GetMenuState                  GetMenuStringA                
+   GetMessagePos                 GetParent                     GetPropA                      GetScrollInfo                 
+   GetScrollPos                  GetScrollRange                GetSubMenu                    GetSystemMenu                 
+   GetSystemMetrics              GetTopWindow                  GetWindow                     GetWindowDC                   
+   GetWindowLongA                GetWindowPlacement            GetWindowRect                 GetWindowTextA                
+   GetWindowThreadProcessId      InflateRect                   InsertMenuA                   InsertMenuItemA               
+   IntersectRect                 InvalidateRect                IsChild                       IsDialogMessageA              
+   IsIconic                      IsRectEmpty                   IsWindow                      IsWindowEnabled               
+   IsWindowVisible               IsZoomed                      KillTimer                     LoadBitmapA                   
+   LoadCursorA                   LoadIconA                     LoadKeyboardLayoutA           LoadStringA                   
+   MapVirtualKeyA                MapWindowPoints               MessageBoxA                   MsgWaitForMultipleObjects     
+   OemToCharA                    OffsetRect                    PeekMessageA                  PostMessageA                  
+   PostQuitMessage               PtInRect                      RedrawWindow                  RegisterClassA                
+   RegisterClipboardFormatA      RegisterWindowMessageA        ReleaseCapture                ReleaseDC                     
+   RemoveMenu                    RemovePropA                   ScreenToClient                ScrollWindow                  
+   SendMessageA                  SetActiveWindow               SetCapture                    SetClassLongA                 
+   SetCursor                     SetFocus                      SetForegroundWindow           SetMenu                       
+   SetMenuItemInfoA              SetPropA                      SetRect                       SetScrollInfo                 
+   SetScrollPos                  SetScrollRange                SetTimer                      SetWindowLongA                
+   SetWindowPlacement            SetWindowPos                  SetWindowTextA                SetWindowsHookExA             
+   ShowCursor                    ShowOwnedPopups               ShowScrollBar                 ShowWindow                    
+   SystemParametersInfoA         TrackPopupMenu                TranslateMDISysAccel          TranslateMessage              
+   UnhookWindowsHookEx           UnregisterClassA              UpdateWindow                  WaitMessage                   
+   WinHelpA                      WindowFromPoint               wsprintfA                     GetSysColor                   
+
+--- WINMM.DLL  (4 imports) ---
+   timeBeginPeriod               timeEndPeriod                 timeKillEvent                 timeSetEvent                  
+
+--- OLEAUT32.DLL  (15 imports) ---
+   #ordinal 15                   #ordinal 25                   #ordinal 20                   #ordinal 19                   
+   #ordinal 148                  #ordinal 26                   #ordinal 40                   #ordinal 4                    
+   #ordinal 6                    #ordinal 5                    #ordinal 12                   #ordinal 9                    
+   #ordinal 10                   #ordinal 11                   #ordinal 8                    
+
+
+=== EXPORTS ===
+  Export directory RVA 0xca000 size 520

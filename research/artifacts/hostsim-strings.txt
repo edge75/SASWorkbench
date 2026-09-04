@@ -1,0 +1,1653 @@
+!This program cannot be run in DOS mode.
+ Rich
+.text
+`.rdata
+@.data
+.rsrc
+P(+Q$
+P(+Q$
+P(+Q$
+9AHt 
+9AHu9
+`PhW'
+t!j$hl
+P ;Q twj(
+P$;Q$twj(
+P4;Q4
+P8;Q8
+P<;Q<
+PD;QDtkj(
+`RhQ'
+`Qhe'
+$he0D
+666666666
+6 !"#$%&'()6*+66666,6-6666666666666666666666666666.6666666666666666666666666666666666666/0123466666666666666666666.5
+`Qhb'
+dQhk'
+hPh`'
+dQhm'
+;ADul
+j.h@fK
+Ph@fK
+@h@fK
+QhH K
+Ph` K
+;Hxt;
+;Hxt;
+;Hxt;
+PhD!K
+PhT!K
+Rh\!K
+Rhd!K
+Phh!K
+Qhl!K
+Ahd"K
+Ph|$K
+t%hh%K
+Wh|%K
+PhX&K
+Ph\&K
+Phx&K
+Rh<(K
+PhX(K
+HTQjv
+PhT*K
+Rhh*K
+P(+Q$
+Rh(+K
+j0hX+K
+Ph(,K
+Qh,,K
+Ph4,K
+Qh8,K
+Ph<,K
+PhD,K
+`Qhf'
+Ph -K
+$h0-K
+Rh@-K
+QhP-K
+$hh-K
+t*h|-K
+t"h@.K
+uQhT.K
+jjjjjjj
+Xh02K
+IhT2K
+:h|2K
+Ph(4K
+Ph44K
+`h84K
+RhD4K
+Phd4K
+Ph 5K
+Qh\5K
+Qh|5K
+Qh86K
+`QhW'
+PhD6K
+tdj#hP6K
+@PhT'
+Ph47K
+tIj#hP7K
+QhX8K
+j$h49K
+RhD9K
+tuj#hp9K
+j#h(:K
+j$h,;K
+RhD;K
+tej#hp;K
+`Qh['
+Rh4<K
+Ph<<K
+QQSVW
+>"u:F
+XPVSS
+Rhx<K
+SSWVj
+GetFileVersionInfoA
+GetFileVersionInfoSizeA
+VerQueryValueA
+VERSION.dll
+SetupDiDestroyDeviceInfoList
+SetupDiGetDeviceRegistryPropertyA
+SetupDiGetDeviceInterfaceDetailA
+SetupDiEnumDeviceInterfaces
+SetupDiGetClassDevsA
+SETUPAPI.dll
+MFC42.DLL
+__CxxFrameHandler
+fclose
+fprintf
+fopen
+memcpy
+_purecall
+isprint
+isdigit
+iscntrl
+isxdigit
+toupper
+islower
+_mbscmp
+strtoul
+??0exception@@QAE@ABV0@@Z
+_CxxThrowException
+sprintf
+_mbsicmp
+_ftol
+strncmp
+memmove
+memset
+strtol
+strcpy
+strlen
+_mbsrchr
+_stat
+strtod
+strncpy
+MSVCRT.dll
+__dllonexit
+_onexit
+_except_handler3
+?terminate@@YAXXZ
+??1type_info@@UAE@XZ
+_exit
+_XcptFilter
+_acmdln
+__getmainargs
+_initterm
+__setusermatherr
+_adjust_fdiv
+__p__commode
+__p__fmode
+__set_app_type
+_controlfp
+InterlockedDecrement
+CreateEventA
+CloseHandle
+WaitForSingleObject
+SetEvent
+WaitForMultipleObjects
+InitializeCriticalSection
+DeleteCriticalSection
+EnterCriticalSection
+LeaveCriticalSection
+GetModuleFileNameA
+GlobalFree
+GlobalUnlock
+GlobalLock
+GlobalAlloc
+CreateFileA
+GetLastError
+GetVersionExA
+MulDiv
+ReleaseMutex
+CreateMutexA
+SetUnhandledExceptionFilter
+SetFilePointer
+FormatMessageA
+GetModuleHandleA
+VirtualQuery
+IsBadWritePtr
+WriteFile
+SetWaitableTimer
+CreateWaitableTimerA
+ResetEvent
+SetCommTimeouts
+SetCommState
+GetCommState
+GetOverlappedResult
+ReadFile
+WaitCommEvent
+SetCommMask
+MultiByteToWideChar
+lstrlenA
+GetStartupInfoA
+KERNEL32.dll
+EnableWindow
+SendMessageA
+GetWindowRect
+GetDC
+ReleaseDC
+MessageBoxA
+GetSubMenu
+LoadMenuA
+ScreenToClient
+GetKeyState
+PostMessageA
+GetParent
+GetSystemMetrics
+GetDialogBaseUnits
+GetClientRect
+IsWindowVisible
+GetDlgCtrlID
+GetFocus
+GetNextDlgTabItem
+wvsprintfA
+UpdateWindow
+SetCursor
+LoadCursorA
+SetCursorPos
+GetCursorPos
+IsWindow
+BringWindowToTop
+InvalidateRect
+SetTimer
+KillTimer
+LoadIconA
+TranslateAcceleratorA
+GetMenuItemCount
+GetMenuItemID
+FillRect
+GetSysColor
+SetWindowTextA
+GetWindowTextA
+GetWindowTextLengthA
+USER32.dll
+GetTextExtentPoint32A
+GetTextMetricsA
+GetDeviceCaps
+TextOutA
+DeleteObject
+CreateSolidBrush
+SetTextColor
+SetBkColor
+CreateFontA
+GetWindowExtEx
+StartDocA
+StartPage
+EndPage
+AbortDoc
+EndDoc
+LPtoDP
+SetMapMode
+GDI32.dll
+CoInitialize
+CoUninitialize
+CLSIDFromProgID
+CLSIDFromString
+OleRun
+CoCreateInstance
+ole32.dll
+OLEAUT32.dll
+??1_Lockit@std@@QAE@XZ
+??0_Lockit@std@@QAE@XZ
+??0logic_error@std@@QAE@ABV01@@Z
+??0out_of_range@std@@QAE@ABV01@@Z
+??1out_of_range@std@@UAE@XZ
+??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ
+??0out_of_range@std@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@1@@Z
+??0?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@PBDABV?$allocator@D@1@@Z
+MSVCP60.dll
+wcslen
+_stricmp
+_strdup
+_ltoa
+_setmbcp
+WideCharToMultiByte
+LocalFree
+CACKConfigPage
+Field %d
+(00) Transfer target
+(01) Date/Time
+(10) Patron name
+(11) Patron acct#
+(13) Acct. balance
+(41) Debit card#
+(42) Trans. fee
+(43) Total debit amt.
+PollDef.txt
+Field%i, Receipt code %2X = %s
+Field code (00)-Transfer target = "
+Transfer target BAD SIZE (%d)
+Field code (10)-Patron name = "
+Patron name BAD SIZE (%d)
+Field code (01)-Date/Time = 
+Date/Time BAD DATA (
+Date/Time BAD SIZE (%d)
+Field code (11)-Patron account number  "
+Patron account number BAD SIZE (%d)
+Account balance  = 
+Account balance BAD DATA (
+Account balance BAD SIZE (%d)
+Field code (42)-Transaction fee = 
+Transaction fee BAD DATA (
+Transaction fee BAD SIZE (%d)
+Field code (43)-Total debit amount = 
+Total debit amount BAD DATA (
+Total debit amount BAD SIZE (%d)
+Field code (41)-Debit card number = 
+Debit card number BAD DATA (
+Debit card number BAD SIZE (%d)
+UNKNOWN CODE %d
+BAD SIZE
+BAD SIZE
+>`----ascii param
+PollDef.txt
+%s = %s
+ BAD PARSE
+%s: ASCII parameter requires a size
+PollDef.txt
+%s = %s
+ BAD VALUE (
+ BAD PARSE
+%s: BCD parameter requires a size
+%I64X
+%I64u
+----binary param
+Decimal
+Binary
+PollDef.txt
+%s = %X
+0x%I64X
+%I64u
+ BAD PARSE
+length
+radix
+decimal
+binary
+%s: invalid size %d (must be between 1 and 8)
+ --- bitmapParm
+%s: bitmap parameter requires a size
+bitmap_field
+offset
+bool_parm
+(Bit %d) 
+choice_parm
+(Bits %d to %d) 
+Bitmap field: invalid parameter type %s
+PollDef.txt
+%s = %u
+ BAD PARSE
+PollDef.txt
+%s = %X
+%s BAD VALUE (%d)
+ - BAD PARSE
+%s: invalid size %d (must be between 1 and 4)
+(%%0%dX) %%s
+choice_entry
+value
+Command queue, couldn't send command %02X
+Unable to get sequence number for command!
+Unable to find command %02X for response processing!
+CommandQueue process response error: %s
+.?AVout_of_range@std@@
+.?AVexception@@
+.?AVlogic_error@std@@
+CDataPacket extraction ran past end of buffer
+CCommConfigPage
+\ComPortSettings.dat
+\ComPortSettings.dat
+\ComPortSettings.dat
+\ComPortSettings.dat
+Error reading ticket list file
+.PAVCArchiveException@@
+.PAVCObject@@
+.PAVCException@@
+CConfigSheet
+\StringFileInfo\040904B0\%s
+TraceFilters.dat
+\Tracefilters.dat
+\Tracefilters.dat
+\Tracefilters.dat
+\Tracefilters.dat
+Error reading trace filter file
+Required_Acct.dat
+\TestData\
+\TestData\
+\TestData\
+\TestData\
+Error reading Config file
+\MeterSetDefinitions.dat
+\MeterSetDefinitions.dat
+\MeterSetDefinitions.dat
+\MeterSetDefinitions.dat
+//LoopDefs1.dat
+//LoopDefs2.dat
+//LoopDefs3.dat
+//UserLoopDefs.dat
+Error reading polling loop definition file
+//PollDefsSet1.dat
+//PollDefsSet2.dat
+//PollDefsSet3.dat
+//UserPollDefinition.dat
+%02X - %s
+Unable to create poll "%s" -- too many %02X polls created
+Too many polls!
+Error reading poll definition file
+Too many instances of poll %02X -- will discard some
+Too many polls!
+Unable to create polls for %02X
+<Default>
+Invalid
+%02X - %s
+Poll uses CRC
+Poll does not use CRC
+Invalid Address
+EGM Address must be between 0 and 255
+(%d) %s
+You can't define an empty poll list
+%02X - %s
+%02X - User-defined poll
+.?AVCString@@
+Could not get OS version. (err=%lx)
+SetupDiGetClassDevs failed. (err=%lx)
+SetupDiGetDeviceInterfaceDetail failed. (err=%lx)
+SetupDiEnumDeviceInterfaces failed. (err=%lx)
+Can't create exception response
+Exception can't be zero
+Can't create exception response
+A poll must be specified for response to the exception
+Can't create exception response
+Exception already has a response
+Exc. %02X ignored
+Exc. %02X reply with %s
+Changes pending
+You have changed the exception response but not added it to the list.
+Do you want to add the exception response?
+Exc. %02X ignored
+Exc. %02X reply with %s
+%8lu.%d
+GEPBCDSet %02X:%04X:%02X response processing error: %s
+CDataPacket insertion ran past end of buffer
+CGEPSetExceptionResponse response processing error: %s
+GEPGetCommand %02X:%04X:%02X response processing error: %s
+GEPRedeemTicket response processing error: %s
+GEPSendPoll response processing error: %s
+CGEPSetExceptionResponse response processing error: %s
+GEPSetPollBody response processing error: %s
+GEPSetPollCRC response processing error: %s
+GEPSetPollDelays response processing error: %s
+GEPSetPollWakeup response processing error: %s
+GEPSimpleSet %02X:%04X:%02X response processing error: %s
+GEPPerformDefinePollList response processing error: %s
+%I64X
+----Hex param
+PollDef.txt
+%s = %s
+ = 0x
+ BAD PARSE
+%s: Hex parameter requires a size
+0123456789012345
+Current
+Required Accounting
+dummy
+dummy
+Validation Type: %i
+GEPSimplePerform %08X response processing error: %s
+Multiple command %02X FAILED
+Delay %d mS after byte %d
+Delay %d mS after byte %d
+A specific delay for byte %d already exists.
+Duplicate delay specified
+%x %X
+*** Log started at %s ***
+%x %X
+*** Log stopped at %s ***
+USER ACTION -- 
+Log files (*.log)|*.log|All files|*.*||
+*.log
+Log File Error
+Unexpected version of logfile, operation cancelled
+*.log
+%s%05d.log
+%s%05d.log
+.PAVCFileException@@
+--Display All Traces--
+--Display One-Key Poll--
+<New Filter...>
+Absolute time
+Relative to start of last message
+Relative to start of last poll
+Relative to end of last message
+Relative to end of last poll
+Wall-clock time
+Raw data only
+Text only
+Both Raw and Text
+CMainFrame
+_SingletonLock
+Meter 
+No description available for meter %04X
+<None>
+%04X - %s
+%I64X
+meter = 
+BAD DATA
+BAD DATA
+Meter set must have a name
+<New Set...>
+<None>
+<New Set...>
+Short meter change trace data (length %d)
+<New Set...>
+Delete Meter Set
+Are you sure you want to delete the meter set "
+<None>
+Short meter change trace data (length %d)
+//=====================================================
+Exception code: %08X %s
+Fault address:  %08X %02X:%08X %s
+Registers:
+EAX:%08X
+EBX:%08X
+ECX:%08X
+EDX:%08X
+ESI:%08X
+EDI:%08X
+CS:EIP:%04X:%08X
+SS:ESP:%04X:%08X  EBP:%08X
+DS:%04X  ES:%04X  FS:%04X  GS:%04X
+Flags:%08X
+ACCESS_VIOLATION
+DATATYPE_MISALIGNMENT
+BREAKPOINT
+SINGLE_STEP
+ARRAY_BOUNDS_EXCEEDED
+FLT_DENORMAL_OPERAND
+FLT_DIVIDE_BY_ZERO
+FLT_INEXACT_RESULT
+FLT_INVALID_OPERATION
+FLT_OVERFLOW
+FLT_STACK_CHECK
+FLT_UNDERFLOW
+INT_DIVIDE_BY_ZERO
+INT_OVERFLOW
+PRIV_INSTRUCTION
+IN_PAGE_ERROR
+ILLEGAL_INSTRUCTION
+NONCONTINUABLE_EXCEPTION
+STACK_OVERFLOW
+INVALID_DISPOSITION
+GUARD_PAGE
+INVALID_HANDLE
+NTDLL.DLL
+Call stack:
+Address   Frame     Logical addr  Module
+%08X  %08X  %04X:%08X %s
+---Optional Param
+ascii_parm
+bcd_parm
+hex_parm
+binary_parm
+bool_parm
+variable_meter_parm
+variable_meter_response
+variable_ascii_parm
+variable_bcd_parm
+choice_parm
+bitmap_parm
+aft_receipt_parm
+variable_hex_parm
+option_choice_parm
+poll_2F_meter_parm
+optional
+Optional parm: invalid sub-parameter type %s
+----Optional Choice param
+%s BAD VALUE (%d)
+ BAD PARSE
+%s: invalid size %d (must be between 1 and 4)
+option_choice_entry
+value
+ascii_parm
+bcd_parm
+hex_parm
+binary_parm
+bool_parm
+variable_meter_parm
+variable_meter_response
+variable_ascii_parm
+variable_bcd_parm
+choice_parm
+bitmap_parm
+aft_receipt_parm
+variable_hex_parm
+OptionChoice parm: invalid sub-parameter type %s
+_SingletonLock
+Unknown packet type %d
+ACKWaitState::Receive error, %s
+_SingletonLock
+Unknown packet type %d
+ACKWaitState::Receive error, %s
+_SingletonLock
+Unknown packet type %d
+IdleState::Receive error, %s
+SyncState::Receive error, %s
+_SingletonLock
+BAD PADDING SIZE
+Padding parameter requires a size
+Number
+Number
+Value
+Value
+ value BAD PARSE
+CProgressivePage
+%0.2f
+_SingletonLock
+_SingletonLock
+\PollTemplates.xml
+\UserPollTemplates.xml
+\ResponseTemplates.xml
+\UserResponseTemplates.xml
+\EventTemplates.xml
+Gaming Standards Association
+GSA - SAS 6.01 Host Simulator
+General Poll
+Serial Communication: The application is unable to establish a handle to port - %s.
+Version 
+CompanyName
+LegalCopyright
+ProductName
+ProductVersion
+CSASHostSimDoc
+\configFiles.txt
+\configDesc.txt
+CSASHostSimView
+Error opening file
+Cannot locate configDesc.txt.
+User Defined
+Error opening file
+Cannot locate configFiles.txt
+User_Defined.dat
+\SASHostLog
+Current
+<New Loop...>
+<New Poll...>
+Current
+<New Poll...>
+<New Loop...>
+Current
+Error creating poll "%02X - %s"
+Invalid Address
+EGM Address must be between 0 and 255
+Invalid Address
+EGM Address must be between 0 and 255
+Error creating poll "%02X - %s"
+Error sending poll
+Error encountered sending single poll
+Stop Polling Loop
+Start Polling Loop
+Error creating poll "%02X - %s"
+Updating Test Configurations
+ will be changed.  Are you sure?
+Current
+You must restart the GUI simulator to update and allow communication on %s.
+Current
+Current
+Send to multiple games?
+Send to multiple games?
+Game numbers
+Game numbers
+Unable to parse data for 
+ascii_parm
+bcd_parm
+hex_parm
+binary_parm
+bool_parm
+variable_meter_parm
+variable_meter_response
+variable_ascii_parm
+variable_bcd_parm
+choice_parm
+bitmap_parm
+padding
+optional
+aft_receipt_parm
+variable_hex_parm
+option_choice_parm
+poll_2F_meter_parm
+Msxml2.DOMDocument
+SAS_template
+length
+multigame
+Unknown parameter type %s
+Can't add "%s" -- template %02X named "%s" already exists
+Duplicate template
+Line %d: %s
+Error text: "%s"
+XML Parse Error
+--Display All Traces--
+--Display One-Key Poll--
+<New Filter...>
+Resume Trace
+Pause
+Pause Trace
+Pause
+Resume Trace
+Pause Trace
+Start Log
+Stop Log
+Start Logging
+Stop Logging
+New Setup
+Current
+Current
+Add host configuration.
+This setup name already existed.  Specify a different name
+Current
+Required_Acct.dat
+\TestConfigFile.dat
+\TestConfigFile.dat
+\TestConfigFile.dat
+\TestConfigFile.dat
+Error reading Config file
+CTicketConfigPage
+Standard
+System
+Secure Enhanced
+\TicketList.dat
+\TicketList.dat
+\TicketList.dat
+\TicketList.dat
+Error reading ticket list file
+Cashable
+Restricted Promotional
+Non-restricted Promotional
+Non-redeemable Cashout
+Handpay/Jackpot Receipt
+UNKNOWN
+redeemed
+%16s  %-8.2f  %s %s
+ Expires 
+, Pool %d
+%010d
+val #: %u
+Cashable
+Restricted Promotional
+Non-restricted Promotional
+Non-redeemable Cashout
+Handpay/Jackpot Receipt
+this ticket
+these tickets
+Are you sure you want to delete %s?
+Delete ticket
+%d.%d
+DENOM %.2f - 
+%I64X
+RESYNC
+%I64X
+General Poll
+DENOM %.2f - 
+***PAUSE***
+----------
+USER ACTION -- 
+%8lu.%d
+%8lu.%d
+%8lu.%d
+%8lu.%d
+%8lu.%d
+%x %X
+AFT transfer funds
+AFT lock
+Receive multiple progressive
+Cashable amount
+Current
+Cumulative
+Nonrestricted
+nonrestricted
+Transaction ID
+Pool ID
+EGM transfer limit
+Cashable
+Current
+Cumulative
+Nonrestricted
+nonrestricted
+Transaction ID
+Pool ID
+EGM transfer limit
+Trace Files (*.trc)|*.trc|All Files (*.*)|*.*||
+*.trc
+Trace started at %x %X
+Trace saved %x %X
+Timestamp is 
+absolute time
+relative to start of previous poll
+relative to start of previous message
+relative to end of previous poll
+relative to end of previous message
+wall-clock time
+UNKNOWN FORMAT
+          
+       
+                 
+HOST   
+EGM    
+%8lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+%x %X
+[%02X] 
+%02X 
+          
+Error saving trace
+Unable to open logfile "
+Times New Roman
+SAS Trace Printout
+Trace started at %x %X
+Trace printed %x %X
+%8lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+-------
+%5lu.%d
+%x %X
+[%02X] 
+%02X 
+%x %X
+SAS Trace, printed %s
+Page %d
+Timestamp is 
+absolute time
+relative to start of previous poll
+relative to start of previous message
+relative to end of previous poll
+relative to end of previous message
+wall-clock time
+UNKNOWN FORMAT
+AFT transfer funds
+AFT lock
+Receive multiple
+Byte string contains invalid characters
+Byte string must be even length
+0123456789ABCDEF
+0123456789
+PollDef.txt
+%s = %s
+ BAD PARSE
+length
+%s: Variable-length ASCII parameter requires a maximum size
+PollDef.txt
+%s = %s
+ BAD PARSE
+length
+%s: Variable-length BCD parameter requires a maximum size
+----variable hex param
+PollDef.txt
+%s = %s
+ BAD PARSE
+ BAD PARSE
+length
+%s: Variable-length hex parameter requires a maximum size
+Meter %d
+PollDef.txt
+%s = %4X
+BAD DATA
+Meter %d
+Value
+%I64X
+=Value omitted
+%04X BAD VALUE (%s)
+%04X BAD SIZE
+%04X BAD DATA
+BAD DATA
+%02X - %s
+WARNING: Values have changed
+The current filter definition has been changed.  Do you want to save the changes?
+%02X - %s
+%02X - User-defined poll
+Delete Trace Filter
+Are you sure you want to delete the filter "
+%02X - User-defined poll
+WARNING: Values have changed
+The current filter definition has been changed.  Do you want to save the changes?
+<Default>
+Invalid
+WARNING: Values have changed
+The current poll definition has been changed.  Do you want to save the changes?
+PollDef.txt
+Poll Template
+Raw poll data: 
+PollDef.txt
+CRC = %s
+Multi-Denom Preamble = %s
+Poll must have a name
+%02X - %s
+Byte string contains invalid characters
+Byte string must be even length
+Delete Poll
+Are you sure you want to delete the poll "
+WARNING: Values have changed
+The current poll definition has been changed.  Do you want to save the changes?
+Problems saving changes -- please try again
+Error creating poll "%s"
+WARNING: Values have changed
+The current polling loop definition has been changed.  Do you want to save the changes?
+(%d) %s
+Invalid Address
+EGM Address must be between 0 and 255
+(%d) %s
+Polling loop must have a name
+You can't define an empty poll list
+Delete Polling Loop
+Are you sure you want to delete the loop "
+WARNING: Values have changed
+The current polling loop definition has been changed.  Do you want to save the changes?
+Problems saving changes -- please try again
+Error creating polling loop %s
+Byte %d
+Byte %d
+.?AVtype_info@@
+.?AV_com_error@@
+4))4+
+wwwww
+Configure
+Settings...
+Define Poll...
+Define Raw Poll...
+View/Modify Poll Definitions...
+Define Polling Loop...
+View/Modify Polling Loop...
+Set Exception Responses...
+Ticket Database...
+Windows
+Meters
+Game/Denom Meters
+Exceptions
+About HostSim...
+Dummy
+Timing details...
+Dummy
+Save selected traces...
+Print selected traces...
+Trace/Log
+Define Trace Filter...
+View/Modify Trace Filter...
+Pause Trace
+Pause
+Save Trace to Text File...
+Print Trace Information...
+Log File...
+Stop Logging
+View Log...
+Timestamp Format
+Absolute time
+Relative to start of last message
+Relative to start of last poll
+Relative to end of last message
+Relative to end of last poll
+Wall-clock time
+Data Parsing
+Raw data only
+Text only
+Both Raw and Text
+About SAS Host Simulator
+MS Sans Serif
+SASHostSim Version 1.1
+Copyright (C) 2003
+Version x.xxA
+MS Sans Serif
+Start Polling Loop
+to EGM address
+One-Key Polls
+to EGM address
+to EGM address
+to EGM address
+to EGM address
+to EGM address
+to EGM address
+to EGM address
+Polling rate (ms):
+Polling loop:
+Static
+Regular
+Bad CRC
+Ctrl-F1
+Ctrl-F2
+Ctrl-F3
+Ctrl-F4
+Ctrl-F5
+Ctrl-F6
+Ctrl-F7
+Ctrl-F8
+Ctrl-Click to view/modify poll
+Test Number:
+Poll Set:
+Add/Change...
+Test Configuration Templates
+Communication Port:
+Test Group:
+Enable SAS Pogressive Broadcast
+Define Raw Poll
+MS Sans Serif
+No CRC
+Valid CRC
+Invalid CRC
+Cancel
+Name for poll:
+Poll Number:
+Poll Data:
+Interbyte Delays...
+Wakeup Bits...
+Define Polling Loop
+MS Sans Serif
+Add to Loop
+Move Up ^
+Remove
+Move Down v
+Cancel
+Name:
+Send to EGM address
+Define Poll
+MS Sans Serif
+Multi-Denom Poll
+No CRC
+Valid CRC
+Invalid CRC
+Interbyte Delays...
+Wakeup Bits...
+Cancel
+Poll Template:
+Name for poll:
+Static
+View/Modify Definition of Poll
+MS Sans Serif
+Save Changes
+Copy Poll
+Clear Changes
+Delete
+Multi-Denom Poll
+No CRC
+Valid CRC
+Invalid CRC
+Interbyte Delays...
+Wakeup Bits...
+Poll Template:
+Poll name:
+Static
+New name:
+View/Modify Definition of Polling Loop
+MS Sans Serif
+Save Changes
+Copy Polling Loop
+Clear Changes
+Delete
+Add to Loop
+Move Up ^
+Remove
+Move Down v
+Name:
+Send to EGM address
+New name:
+Exception Responses
+MS Sans Serif
+Cancel
+Exception
+Add Response
+Remove Response
+Ignore exception
+Respond with
+Remove response to get default behavior for an exception
+ACK/NACK
+MS Sans Serif
+msctls_updown32
+Spin1
+msctls_updown32
+Spin2
+Treat any response as ACK
+Ignore final NACK response
+Move to next poll after receiving real-time exception
+Delay between bad response and resend poll (ms):
+Number of times to NACK (including final NACK):
+SAS Comms
+MS Sans Serif
+msctls_updown32
+Spin1
+msctls_updown32
+Spin1
+Poll time starts after reply received
+Verify data fields (non-BCD data in BCD field, e.g.)
+Send RESYNC on startup
+Send RESYNC on comm error
+Use Real-Time Events
+Display exception 1F (no activity, waiting for user input)
+Poll rate (ms)
+Time from response to next poll (ms)
+UART wakeup bit is delayed
+Tickets
+MS Sans Serif
+Allow ticket printing
+Request cashout information
+Confirm cashout request
+Request ticket information
+Allow ticket redemption
+Request validation data
+Send redemption data
+Validation Type: 
+Validation Number:
+Ticket Printing Verification (System validation)
+Delay (ms)
+Delay (ms)
+Validation System ID:
+Ticket Printing (All validations)
+Delay (ms)
+Ticket Redemption (Secure Enhanced and System validation)
+Delay (ms)
+Delay (ms)
+Request completion status
+Delay (ms)
+Tickets In System
+MS Sans Serif
+Redeemed
+Add Ticket
+Save Changes
+Delete Ticket
+Ticket number:
+Amount:
+Ticket type:
+Ticket System ID:
+Expiration:
+Restricted pool ID:
+Progressives
+MS Sans Serif
+Send multiple progressive updates in a single poll (86)
+Progressive group:
+Delay between progressive updates (ms):
+Levels (value in cents)
+Level 1
+Level 2
+Level 3
+Level 4
+Level 5
+Level 6
+Level 7
+Level 8
+Level 9
+Level 10
+Level 11
+Level 12
+Level 13
+Level 14
+Level 15
+Level 16
+Level 17
+Level 18
+Level 19
+Level 20
+Level 21
+Level 22
+Level 23
+Level 24
+Level 25
+Level 26
+Level 27
+Level 28
+Level 29
+Level 30
+Level 31
+Level 32
+Amount:
+Amount:
+Inc. value:
+Inc. value:
+Broadcast address:
+Enable progressive incrementation
+SAS Trace
+MS Sans Serif
+Pause Trace
+Clear Window
+Start Logging
+msctls_updown32
+Spin1
+Trace filter:
+Show:
+line(s) before/after filtered line
+Enhanced Trace View
+Define Test
+MS Sans Serif
+E&xit
+Name of New Setup:
+Setup List:
+&Delete
+Rename
+VS_VERSION_INFO
+StringFileInfo
+040904b0
+Comments
+CompanyName
+Gaming Standards Association
+FileDescription
+SAS Host Simulator Application
+FileVersion
+InternalName
+SASHostSim
+LegalCopyright
+Copyright 
+ 2006
+LegalTrademarks
+OriginalFilename
+SASHostSim.EXE
+PrivateBuild
+ProductName
+SAS 6.01 Host Simulator
+ProductVersion
+SpecialBuild
+VarFileInfo
+Translation
+1A - Send Current Credits
+1B - Send Hand Pay Information
+1C - Send Meters
+1E - Send Bill Count Meters
+1F - Send Gaming Machine ID
+20 - Send Bills Meter Amount
+21 - ROM Signature Validation, Seed 0000
+21 - ROM Signature Validation, Seed 1234
+21 - ROM Signature Validation, Seed ABCD
+2A - Send True Coin In
+2B - Send True Coin Out
+2C - Send Current Hopper Level
+2D - Send Hand Paid Cancelled Credits
+2E - Delay Game 500mS
+2E - Delay Game 3 seconds
+1A - Send Current Credits
+1B - Send Hand Pay Information
+1C - Send Meters
+1E - Send Bill Count Meters
+1F - Send Gaming Machine ID
+20 - Send Bills Meter Amount
+21 - ROM Signature Validation, Seed 0000
+21 - ROM Signature Validation, Seed 1234
+21 - ROM Signature Validation, Seed ABCD
+2A - Send True Coin In
+2B - Send True Coin Out
+2C - Send Current Hopper Level
+2D - Send Hand Paid Cancelled Credits
+2E - Delay Game 500mS
+2E - Delay Game 3 seconds
+Meter Values
+MS Sans Serif
+View/Modify
+Delete
+Meter 1 Name:
+99999999999999999999
+Meter 2 Name:
+99999999999999999999
+Meter 3 Name:
+99999999999999999999
+Meter 4 Name:
+99999999999999999999
+Meter 5 Name:
+99999999999999999999
+Meter 6 Name:
+99999999999999999999
+Meter 7 Name:
+99999999999999999999
+Meter 8 Name:
+99999999999999999999
+Meter 9 Name:
+99999999999999999999
+Meter 10 Name:
+99999999999999999999
+Meter 11 Name:
+99999999999999999999
+Meter 12 Name:
+99999999999999999999
+Meter 13 Name:
+99999999999999999999
+Meter 14 Name:
+99999999999999999999
+Meter 15 Name:
+99999999999999999999
+Meter 16 Name:
+99999999999999999999
+Meter 17 Name:
+99999999999999999999
+Meter 18 Name:
+99999999999999999999
+Meter 19 Name:
+99999999999999999999
+Meter 20 Name:
+99999999999999999999
+Meter set:
+Game # (0 for EGM)
+Denom
+Select Meters to Display
+MS Sans Serif
+Meter set name:
+Meter 1
+Meter 2
+Meter 3
+Meter 4
+Meter 5
+Meter 6
+Meter 7
+Meter 8
+Meter 9
+Meter 10
+Meter 11
+Meter 12
+Meter 13
+Meter 14
+Meter 15
+Meter 16
+Meter 17
+Meter 18
+Meter 19
+Meter 20
+Cancel
+Inter-byte Delays
+MS Sans Serif
+Add Inter-byte Delays
+Add Delay
+Remove Delay
+Cancel
+Default inter-byte delay
+Byte-specific delays
+Delay
+after byte
+Address byte is byte 0
+Message Filter
+MS Sans Serif
+Show selected polls
+Show all polls EXCEPT selected polls
+Remove
+Cancel
+Name:
+Poll number
+Set Wakeup Bits
+MS Sans Serif
+Remove
+Cancel
+Set wakeup bit on byte
+Address byte is byte 0
+Detailed Timing
+MS Sans Serif
+Index
+Time from prev byte (ms)
+Log File View
+MS Sans Serif
+msctls_updown32
+Spin1
+Save...
+Print...
+Logfile:
+Timestamp format:
+Data format:
+Trace filter:
+lines before/after filtered lines
+Meter value for multiple games/denominations
+MS Sans Serif
+Meter:
+Active:
+Game:
+Denom:
+Meter Value:
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+99999999999999999999
+Exceptions
+MS Sans Serif
+Clear List
+View/Modify Message Filters
+MS Sans Serif
+Save Changes
+Copy Filter
+Clear Changes
+Delete
+Filtered Poll Selections
+Show selected polls
+Show all polls EXCEPT selected polls
+Remove
+Filter name:
+Poll number
+New name:
+8SASHostSim
+SASHos
+SASHostSim.Document
+SASHos Document
+SASHostSim
+Ready
+?Display program information, version number and copyright
+About4Quit the application; prompts to save documents
+Change the window size
+Change the window position
+Reduce the window to an icon
+Enlarge the window to full size"Switch to the next document window&Switch to the previous document window9Close the active window and prompts to save the documents
+!Restore the window to normal size
+Activate Task List
+NO CONNECTION
+Host Simulator Configuration
+Define polls to be sent to EGM View/Modify definitions of polls
+/Specify which polls to view in the trace window3Pause the trace (or resume the trace, whatever....)0Define a sequence of polls to be sent to the EGM
+.Define arbitrary byte stream to be sent to EGM
+7View/Modify the sequence of polls to be sent to the EGM7Specify the poll to be sent in response to an exception
+1View/Modify the polls to view in the trace window
+#Click here for description of meter
+Coin In
+Coin Out
+Jackpot Credits
+Hand Paid Cancelled Credits
+Cancelled Credits
+Games Played
+Games Won
+Games Lost
+Coin Acceptor Cr
+Hopper Out Credits
+Coin Drop Credits
+Bill Credits
+Current Credits
+Ticket In cents
+Ticket Out cents
+Restricted Ticket In cents
+Restricted Ticket Out cents
+Ticket In count
+Ticket Out count
+Restricted Ticket In count
+Restricted Ticket Out count
+Ticket In
+Ticket Out
+EFT In
+EFT Out
+Restricted Play
+Non-restricted Play
+Restricted Credits
+EGM Paid Paytable Win
+EGM Paid Progressive Win
+EGM Paid Bonus Win
+Attendant Paid Paytable Win
+Attendant Paid Prog Win
+Attendant Bonus Win
+Credits Won
+Hand Paid Credits
+Total Drop Credits
+Games Since Power-up
+Games Since Door Closed
+External Coin Acceptor Cr
+Cashable Ticket In
+Cashable Only Ticket In
+Restricted Ticket In
+Non-restricted Ticket In
+Cashable Ticket Out
+Restricted Ticket Out
+Cashable No Debit EFT In
+Restricted EFT In
+Non-Restricted EFT In
+Debit EFT In
+Cashable EFT Out
+Restricted EFT Out
+Non-restricted EFT Out
+Current Bill Count
+Current Bill Credits
+Number of $1
+Number of $2
+Number of $5
+Number of $10
+Number of $20
+Number of $25
+Number of $50
+Number of $100
+Number of $200
+Number of $250
+Number of $500
+Number of $1000
+Number of $2000
+Number of $2500
+Number of $5000
+Number of $10K
+Number of $20K
+Number of $25K
+Number of $50K
+Number of $100K
+Number of $200K
+Number of $250K
+Number of $500K
+Number of $1mil
+Current res. on EGM cents
+Current non-res. on EGM cents
+Deductible bonus meter credits
+Non-ded. bonus meter credits
+Wager match bonus meter credits
+Current wager credits
+Slot door opened count
+Power reset count
+Hopper level
+Tournament games played
+Tournament games won
+Tournament credits wagered
+Tournament credits won
+Bills inserted (dollars)#Total regular cash. ticket in count Total res. promo ticket in count
+#Total nonres. promo ticket in count!Total cash/debit ticket out count!Total res. promo ticket out count
+Total Bills to Drop
+Number of $1 to Drop
+Number of $2 to Drop
+Number of $5 to Drop
+Number of $10 to Drop
+Number of $20 to Drop
+Number of $50 to Drop
+Number of $100 to Drop
+Number of $200 to Drop
+Number of $500 to Drop
+Number of $1000 to Drop
+Total Bills Div. to Hopper
+Number of $1 Div. to Hopper
+Number of $2 Div. to Hopper
+Number of $5 Div. to Hopper
+Number of $10 Div. to Hopper
+Number of $20 Div. to Hopper
+Number of $50 Div. to Hopper
+Number of $100 Div. to Hopper
+Number of $200 Div. to Hopper
+Number of $500 Div. to Hopper
+Number of $1K Div. to Hopper
+Total Bills Disp. from Hopper
+Number of $1 Disp. from Hopper
+Number of $2 Disp. from Hopper
+Number of $5 Disp. from Hopper
+Number of $10 Disp. from Hopper
+Number of $20 Disp. from Hopper
+Number of $50 Disp. from Hopper Number of $100 Disp. from Hopper Number of $200 Disp. from Hopper Number of $500 Disp. from Hopper
+Number of $1K Disp. from Hopper
+Cash. ticket in cents
+Cash. ticket in count
+Res. ticket in cents
+Res. ticket in count
+Non-res. ticket in cents
+Non-res. ticket in count
+Cash. ticket out cents
+Cash. ticket out count
+Res. ticket out cents
+Res. ticket out count
+Debit ticket out cents
+Debit ticket out count
+Handpay, cashout, rcpt cents
+Handpay, cashout, rcpt count
+Handpay, win, rcpt cents
+Handpay, win, rcpt count
+Handpay, cashout, no rcpt cents
+Handpay, cashout, no rcpt count
+Handpay, win, no rcpt cents
+Handpay, win, no rcpt count
+In-house cash. to EGM cents
+In-house cash. to EGM count
+In-house res. to EGM cents
+In-house res. to EGM count
+In-house non-res. to EGM cents
+In-house non-res. to EGM count
+Debit to EGM cents
+Debit to EGM count
+In-house cash. to ticket cents
+In-house cash. to ticket count
+In-house res. to ticket cents
+In-house res. to ticket count
+Debit to ticket cents
+Debit to ticket count
+Bonus cash. to EGM cents
+Bonus cash. to EGM count
+Bonus non-res. to EGM cents
+Bonus non-res. to EGM count
+In-house cash. to host cents
+In-house cash. to host count
+In-house res. to host cents
+In-house res. to host count
+In-house non-res. to host cents
+In-house non-res. to host count
+Real coin in
+Real coin out
+Current cash. on EGM cents
+Total coin in credits
+Total coin out credits
+Total jackpot credits!Total hand paid cancelled credits
+Total cancelled credits
+Games played
+Games won
+Games lost Total credits from coin acceptor
+Total credits paid from hopper Total credits from coins to drop!Total credits from bills accepted
+Current creditsATotal cashable ticket in, including nonrestricted tickets (cents):Total cashable ticket out, including debit tickets (cents)"Total restricted ticket in (cents)#Total restricted ticket out (cents)DTotal cashable ticket in, including nonrestricted tickets (quantity)=Total cashable ticket out, including debit tickets (quantity)%Total restricted ticket in (quantity)&Total restricted ticket out (quantity)STotal ticket in, including cashable, nonrestricted and restricted tickets (credits)[Total ticket out, including cashable, nonrestricted, restricted and debit tickets (credits)
+Total electronic transfers to gaming machine, including cashable, nonrestricted, restricted and debit, whether transfer is to game or to ticket (credits)kTotal electronic transfers to host, including cashable, nonrestricted, restricted and win amounts (credits)(Total restricted amount played (credits)+Total nonrestricted amount played (credits)
+Current restricted credits^Total machine paid paytable win, not including pregressive or external bonus amounts (credits),Total machine paid progressive win (credits)/Total machine paid external bonus win (credits)`Total attendant paid paytable win, not including progressive or external bonus amounts (credits)$Total attendant paid progressive win1Total attendant paid external bonus win (credits);Total won credits (sum of total coin out and total jackpot)TTotal hand paid credits (sum of total hand paid cancelled credits and total jackpot)rTotal drop, including but not limited to coins to drop, bills to drop, tickets to drop and electronic in (credits)
+Games since last power reset
+Games since slot door closure
+)Total credits from external coin acceptorOTotal cashable ticket in, including nonrestricted promotional tickets (credits)STotal cashable ticket in, not including nonrestricted promotional tickets (credits)0Total restricted promotional ticket in (credits)3Total nonrestricted promotional ticket in (credits)<Total cashable ticket out, including debit tickets (credits)1Total restricted promotional ticket out (credits)oElectronic cashable transfer to gaming machine, not including nonrestricted, debit, or external bonus (credits)lElectronic restricted promotional transfers to gaming machine, not including external bonus awards (credits)oElectronic nonrestricted promotional transfers to gaming machine, not including external bonus awards (credits)6Electronic depit transfers to gaming machine (credits)/Electronic cashable transfers to host (credits)=Electronic restricted promotional transfers to host (credits)@Electronic nonrestricted promotional transfers to host (credits)(Number of bills currently in the stacker7Total value of bills currently in the stacker (credits)
+$Total number of $1.00 bills accepted$Total number of $2.00 bills accepted$Total number of $5.00 bills accepted%Total number of $10.00 bills accepted%Total number of $20.00 bills accepted%Total number of $25.00 bills accepted%Total number of $50.00 bills accepted&Total number of $100.00 bills accepted&Total number of $200.00 bills accepted&Total number of $250.00 bills accepted&Total number of $500.00 bills accepted(Total number of $1,000.00 bills accepted(Total number of $2,000.00 bills accepted(Total number of $2,500.00 bills accepted(Total number of $5,000.00 bills accepted)Total number of $10,000.00 bills accepted
+)Total number of $20,000.00 bills accepted)Total number of $25,000.00 bills accepted)Total number of $50,000.00 bills accepted*Total number of $100,000.00 bills accepted*Total number of $200,000.00 bills accepted*Total number of $250,000.00 bills accepted*Total number of $500,000.00 bills accepted,Total number of $1,000,000.00 bills accepted Total credits from bills to drop#Total number of $1.00 bills to drop#Total number of $2.00 bills to drop#Total number of $5.00 bills to drop$Total number of $10.00 bills to drop$Total number of $20.00 bills to drop$Total number of $50.00 bills to drop%Total number of $100.00 bills to drop
+%Total number of $200.00 bills to drop%Total number of $500.00 bills to drop&Total number of $1000.00 bills to drop0Total credit from bills bills diverted to hopper.Total number of $1.00 bills diverted to hopper.Total number of $2.00 bills diverted to hopper.Total number of $5.00 bills diverted to hopper/Total number of $10.00 bills diverted to hopper/Total number of $20.00 bills diverted to hopper/Total number of $50.00 bills diverted to hopper0Total number of $100.00 bills diverted to hopper0Total number of $200.00 bills diverted to hopper0Total number of $500.00 bills diverted to hopper1Total number of $1000.00 bills diverted to hopper.Total credits from bills dispensed from hopper1Total number of $1.00 Bills dispensed from hopper
+1Total number of $2.00 Bills dispensed from hopper1Total number of $5.00 Bills dispensed from hopper2Total number of $10.00 Bills dispensed from hopper2Total number of $20.00 Bills dispensed from hopper2Total number of $50.00 Bills dispensed from hopper3Total number of $100.00 Bills dispensed from hopper3Total number of $200.00 Bills dispensed from hopper3Total number of $500.00 Bills dispensed from hopper4Total number of $1000.00 Bills dispensed from hopper
+Cashable ticket in (cents)
+Cashable ticket in (quantity)
+Restricted ticket in (cents)
+Restricted ticket in (quantity)
+Nonrestricted ticket in (cents)"Nonrestricted ticket in (quantity)
+Cashable ticket out (cents)
+Cashable ticket out (quantity)
+Restricted ticket out (cents) Restricted ticket out (quantity)
+Debit ticket out (cents)
+Debit ticket out (quantity)7Validated handpay from cashout, receipt printed (cents):Validated handpay from cashout, receipt printed (quantity):Validated handpay from single win, receipt printed (cents)=Validated handpay from single win, receipt printed (quantity)2Validated handpay from cashout, no receipt (cents)5Validated handpay from cashout, no receipt (quantity)5Validated handpay from single win, no receipt (cents)8Validated handpay from single win, no receipt (quantity)5In-house cashable transfers to gaming machine (cents)8In-house cashable transfers to gaming machine (quantity)7In-house restricted transfers to gaming machine (cents)
+:In-house restricted transfers to gaming machine (quantity):In-house nonrestricted transfers to gaming machine (cents)=In-house nonrestricted transfers to gaming machine (quantity))Debit transfers to gaming machine (cents),Debit transfers to gaming machine (quantity)-In-house cashable transfers to ticket (cents)0In-house cashable transfers to ticket (quantity)/In-house restricted transfers to ticket (cents)2In-house restricted transfers to ticket (quantity)!Debit transfers to ticket (cents)$Debit transfers to ticket (quantity)2Bonus cashable transfers to gaming machine (cents)5Bonus cashable transfers to gaming machine (quantity)7Bonus nonrestricted transfers to gaming machine (cents):Bonus nonrestricted transfers to gaming machine (quantity)+In-house cashable transfers to host (cents).In-house cashable transfers to host (quantity)-In-house restricted transfers to host (cents)0In-house restricted transfers to host (quantity)0In-house nonrestricted transfers to host (cents)3In-house nonrestricted transfers to host (quantity)
+Real coin in
+Real coin outPCurrent cashable credits on gaming machine, not including non-restricted (cents)4Current restricted credits on gaming machine (cents)7Current nonrestricted credits on gaming machine (cents) Deductible bonus meter (credits)$Non-deductible bonus meter (credits)!Wager match bonus meter (credits)
+Current wager (credits)
+Slot door opened count
+Power reset count
+Hopper level
+Tournament games played
+Tournament games won
+Tournament credits wagered
+Tournament credits won"Dollar value of all bills inserted

@@ -1,0 +1,532 @@
+=== C:/igs/GSA SAS Host Simulator v1.1/Defaults/UserPollDefinition.dat ===
+fileVersion=1  groups=123  polls=284  (record tags found: 284)  parsed 0x5A8A of 0x5A8A bytes
+
+LP 00  (2 definitions)
+   [00.1] "00 - General Poll"                                  data=(none)                                   no CRC
+   [00.2] "00 - "                                              data=00                                       CRC unset (FF)
+
+LP 01  (1 definition)
+   [01.1] "01 - Shutdown"                                      data=01                                       valid CRC
+
+LP 02  (1 definition)
+   [02.1] "02 - Startup"                                       data=02                                       valid CRC
+
+LP 03  (1 definition)
+   [03.1] "03 - Sound off"                                     data=03                                       valid CRC
+
+LP 04  (1 definition)
+   [04.1] "04 - Sound on"                                      data=04                                       valid CRC
+
+LP 05  (1 definition)
+   [05.1] "05 - Reel spin or game play sounds disabled"        data=05                                       valid CRC
+
+LP 06  (1 definition)
+   [06.1] "06 - Enable bill acceptor"                          data=06                                       valid CRC
+
+LP 07  (1 definition)
+   [07.1] "07 - Disable bill acceptor"                         data=07                                       valid CRC
+
+LP 08  (1 definition)
+   [08.1] "08 - User Defined"                                  data=08 dd 00 00 00 01                        valid CRC
+
+LP 09  (6 definitions)
+   [09.1] "09 - Send Enable Game 1"                            data=09 00 01 01                              valid CRC
+   [09.2] "09 - Send Disable Game 1"                           data=09 00 01 01                              valid CRC
+   [09.3] "09 - (B0) User Defined Disable"                     data=09 00 00 00                              valid CRC
+   [09.4] "09 - (B0) User Defined Enable"                      data=09 00 00 01                              valid CRC
+   [09.5] "09 - User Defined Disable Game"                     data=09 00 01 01                              valid CRC
+   [09.6] "09 - User Defined Enable Game"                      data=09 00 01 01                              valid CRC
+
+LP 0A  (1 definition)
+   [0A.1] "0A - Enter maintenance mode"                        data=0a                                       valid CRC
+
+LP 0B  (1 definition)
+   [0B.1] "0B - Exit maintenance mode"                         data=0b                                       valid CRC
+
+LP 0E  (2 definitions)
+   [0E.1] "0E - RTE - Enable"                                  data=0e 01                                    valid CRC
+   [0E.2] "0E - RTE - Disable"                                 data=0e 00                                    valid CRC
+
+LP 0F  (1 definition)
+   [0F.1] "0F - Send meters 10 through 15"                     data=0f                                       no CRC
+
+LP 10  (1 definition)
+   [10.1] "10 - Send total cancelled credit meter"             data=10                                       no CRC
+
+LP 11  (1 definition)
+   [11.1] "11 - Send total coin in meter"                      data=11                                       no CRC
+
+LP 12  (1 definition)
+   [12.1] "12 - Send total coin out meter"                     data=12                                       no CRC
+
+LP 13  (1 definition)
+   [13.1] "13 - Send total drop meter"                         data=13                                       no CRC
+
+LP 14  (1 definition)
+   [14.1] "14 - Send total jackpot meter"                      data=14                                       no CRC
+
+LP 15  (1 definition)
+   [15.1] "15 - Send games played meter"                       data=15                                       no CRC
+
+LP 16  (1 definition)
+   [16.1] "16 - Send games won meter"                          data=16                                       no CRC
+
+LP 17  (1 definition)
+   [17.1] "17 - Send games lost meter"                         data=17                                       no CRC
+
+LP 18  (1 definition)
+   [18.1] "18 - Send games since last power up and slot door closure" data=18                                       no CRC
+
+LP 19  (1 definition)
+   [19.1] "19 - Send meters 11 through 15"                     data=19                                       no CRC
+
+LP 1A  (1 definition)
+   [1A.1] "1A - Send current credits"                          data=1a                                       no CRC
+
+LP 1B  (1 definition)
+   [1B.1] "1B - Send handpay information"                      data=1b                                       no CRC
+
+LP 1C  (1 definition)
+   [1C.1] "1C - Send meters"                                   data=1c                                       no CRC
+
+LP 1E  (1 definition)
+   [1E.1] "1E - Send bill meters (counts)"                     data=1e                                       no CRC
+
+LP 1F  (3 definitions)
+   [1F.1] "1F - Send gaming machine ID and information"        data=1f                                       no CRC
+   [1F.2] "1F - No WB"                                         data=1f                                       no CRC
+   [1F.3] "1F - (B0) User Defined"                             data=1f                                       valid CRC
+
+LP 20  (1 definition)
+   [20.1] "20 - Send dollar value of bills meter"              data=20                                       no CRC
+
+LP 21  (3 definitions)
+   [21.1] "21 - ROM Signature 0 seed"                          data=21 00 00                                 valid CRC
+   [21.2] "21 - ROM Signature 1 seed"                          data=21 01 00                                 valid CRC
+   [21.3] "21 - ROM Signature 2 seed"                          data=21 02 00                                 valid CRC
+
+LP 2A  (1 definition)
+   [2A.1] "2A - Send true coin in"                             data=2a                                       no CRC
+
+LP 2B  (1 definition)
+   [2B.1] "2B - Send true coin out"                            data=2b                                       no CRC
+
+LP 2C  (1 definition)
+   [2C.1] "2C - Send current hopper level"                     data=2c                                       no CRC
+
+LP 2D  (2 definitions)
+   [2D.1] "2D - Send total hand paid cancelled credits"        data=2d 00 00                                 valid CRC
+   [2D.2] "2D - User Defined"                                  data=2d 00 00                                 valid CRC
+
+LP 2E  (3 definitions)
+   [2E.1] "2E - Game Delay 5 seconds"                          data=2e 50 00                                 valid CRC
+   [2E.2] "2E - Game Delay Disable"                            data=2e 00 00                                 valid CRC
+   [2E.3] "2E - Game Delay 10 seconds"                         data=2e 00 01                                 valid CRC
+
+LP 2F  (2 definitions)
+   [2F.1] "2F - (B0) User Defined"                             data=2f 0a 00 01 08 27 09 0a 02 03 05 04      valid CRC
+   [2F.2] "2F - Basic Meters 1"                                data=2f 0c 00 00 00 01 08 27 09 0a 02 03 05 04 valid CRC
+
+LP 31  (1 definition)
+   [31.1] "31 - Send $1.00 bills in meter"                     data=31                                       no CRC
+
+LP 32  (1 definition)
+   [32.1] "32 - Send $2.00 bills in meter"                     data=32                                       no CRC
+
+LP 33  (1 definition)
+   [33.1] "33 - Send $5.00 bills in meter"                     data=33                                       no CRC
+
+LP 34  (1 definition)
+   [34.1] "34 - Send $10.00 bills in meter"                    data=34                                       no CRC
+
+LP 35  (1 definition)
+   [35.1] "35 - Send $20.00 bills in meter"                    data=35                                       no CRC
+
+LP 36  (1 definition)
+   [36.1] "36 - Send $50.00 bills in meter"                    data=36                                       no CRC
+
+LP 37  (1 definition)
+   [37.1] "37 - Send $100.00 bills in meter"                   data=37                                       no CRC
+
+LP 38  (1 definition)
+   [38.1] "38 - Send $500.00 bills in meter"                   data=38                                       no CRC
+
+LP 39  (1 definition)
+   [39.1] "39 - Send $1,000.00 bills in meter"                 data=39                                       no CRC
+
+LP 3A  (1 definition)
+   [3A.1] "3A - Send $200.00 bills in meter"                   data=3a                                       no CRC
+
+LP 3B  (1 definition)
+   [3B.1] "3B - Send $25.00 bills in meter"                    data=3b                                       no CRC
+
+LP 3C  (1 definition)
+   [3C.1] "3C - Send $2,000.00 bills in meter"                 data=3c                                       no CRC
+
+LP 3D  (1 definition)
+   [3D.1] "3D - Send cash-out ticket information"              data=3d                                       no CRC
+
+LP 3E  (1 definition)
+   [3E.1] "3E - Send $2,500.00 bills in meter"                 data=3e                                       no CRC
+
+LP 3F  (1 definition)
+   [3F.1] "3F - Send $5,000.00 bills in meter"                 data=3f                                       no CRC
+
+LP 40  (1 definition)
+   [40.1] "40 - Send $10,000.00 bills in meter"                data=40                                       no CRC
+
+LP 41  (1 definition)
+   [41.1] "41 - Send $20,000.00 bills in meter"                data=41                                       no CRC
+
+LP 42  (1 definition)
+   [42.1] "42 - Send $25,000.00 bills in meter"                data=42                                       no CRC
+
+LP 43  (1 definition)
+   [43.1] "43 - Send $50,000.00 bills in meter"                data=43                                       no CRC
+
+LP 44  (1 definition)
+   [44.1] "44 - Send $100,000.00 bills in meter"               data=44                                       no CRC
+
+LP 45  (1 definition)
+   [45.1] "45 - Send $250.00 bills in meter"                   data=45                                       no CRC
+
+LP 46  (2 definitions)
+   [46.1] "46 - Send credit amount of all bills acepted"       data=46                                       no CRC
+   [46.2] "46 - Send credit amount of all bills accepted"      data=46                                       no CRC
+
+LP 47  (1 definition)
+   [47.1] "47 - Send coin amount accepted from external coin acceptor" data=47                                       no CRC
+
+LP 48  (1 definition)
+   [48.1] "48 - Send last accepted bill information"           data=48                                       no CRC
+
+LP 49  (1 definition)
+   [49.1] "49 - Send number of bills currently in stacker"     data=49                                       no CRC
+
+LP 4A  (1 definition)
+   [4A.1] "4A - Send credit amount of all bills currently in stacker" data=4a                                       no CRC
+
+LP 4C  (4 definitions)
+   [4C.1] "4C - Set Validation ID seq 1"                       data=4c 01 00 10 01 00 00                     valid CRC
+   [4C.2] "4C - Set Validation ID seq 99"                      data=4c 01 00 10 99 00 00                     valid CRC
+   [4C.3] "4C - View Validation ID"                            data=4c 00 00 00 00 00 00                     valid CRC
+   [4C.4] "4C - User Defined"                                  data=4c 01 00 10 ff ff ff                     valid CRC
+
+LP 4D  (4 definitions)
+   [4D.1] "4D - Send Enhanced Validation Information FC-00"    data=4d 00                                    valid CRC
+   [4D.2] "4D - Send Enhanced Validation Information FC-FF"    data=4d ff                                    valid CRC
+   [4D.3] "4D - Send Enhanced Validation Information FC-01"    data=4d 01                                    valid CRC
+   [4D.4] "4D - User Defined 1"                                data=4d 00                                    valid CRC
+
+LP 4F  (1 definition)
+   [4F.1] "4F - Send current hopper status"                    data=4f                                       no CRC
+
+LP 50  (1 definition)
+   [50.1] "50 - User Defined"                                  data=50 ff                                    valid CRC
+
+LP 51  (1 definition)
+   [51.1] "51 - Send total number of games implemented"        data=51                                       no CRC
+
+LP 52  (1 definition)
+   [52.1] "52 - User Defined"                                  data=52 00 00                                 valid CRC
+
+LP 53  (2 definitions)
+   [53.1] "53 - Send Game 1 Configuration"                     data=53 00 01                                 valid CRC
+   [53.2] "53 - User Defined 1"                                data=53 00 00                                 valid CRC
+
+LP 54  (1 definition)
+   [54.1] "54 - Send SAS version ID and EGM serial number"     data=54                                       no CRC
+
+LP 55  (1 definition)
+   [55.1] "55 - Send selected game number"                     data=55                                       no CRC
+
+LP 56  (3 definitions)
+   [56.1] "56 - Send enabled game numbers"                     data=56                                       no CRC
+   [56.2] "56 - (B0 .05) Send enabled game numbers"            data=56                                       no CRC
+   [56.3] "56 - (B0) User Defined"                             data=56                                       no CRC
+
+LP 57  (1 definition)
+   [57.1] "57 - Send pending cashout information"              data=57                                       no CRC
+
+LP 58  (1 definition)
+   [58.1] "58 - Receive Validation Number"                     data=58 11 00 00 00 00 00 00 12 34            valid CRC
+
+LP 6E  (2 definitions)
+   [6E.1] "6E - User Defined"                                  data=6e 01 02                                 valid CRC
+   [6E.2] "6E - Send Authentication Info (Action 3)"           data=6e 01 03                                 valid CRC
+
+LP 6F  (27 definitions)
+   [6F.1] "6F - 6F No Meter"                                   data=6f 02 00 01                              valid CRC
+   [6F.2] "6F - 0005 Meter"                                    data=6f 04 00 00 05 00                        valid CRC
+   [6F.3] "6F - Basic Meters 1"                                data=6f 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [6F.4] "6F - AFT Meters 1"                                  data=6f 14 00 00 00 00 1b 00 19 00 b8 00 b9 00 ba 00 bb 00 bc 00 bd 00 valid CRC
+   [6F.5] "6F - User Defined 1"                                data=6f 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [6F.6] "6F - User Defined 2"                                data=6f 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [6F.7] "6F - (B0) User Defined 1"                           data=6f 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [6F.8] "6F - (B0) User Defined 2"                           data=6f 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [6F.9] "6F - Bills 1-1k Meters"                             data=6f 1a 00 00 40 00 41 00 42 00 43 00 44 00 45 00 46 00 47 00 48 00 49 00 4a 00 4b 00 valid CRC
+   [6F.10] "6F - Bills 2k-1mil Meters"                          data=6f 1a 00 00 4c 00 4d 00 4e 00 4f 00 50 00 51 00 52 00 53 00 54 00 55 00 56 00 57 00 valid CRC
+   [6F.11] "6F - Drop/Bill"                                     data=6f 0a 00 00 0b 00 24 00 3e 00 3f 00      valid CRC
+   [6F.12] "6F - Win/Loss"                                      data=6f 0c 00 00 05 00 06 00 07 00 25 00 26 00 valid CRC
+   [6F.13] "6F - Ticket"                                        data=6f 18 00 00 15 00 16 00 19 00 1a 00 1b 00 28 00 29 00 2a 00 2b 00 2c 00 2d 00 valid CRC
+   [6F.14] "6F - Ticket 2"                                      data=6f 16 00 00 86 00 87 00 88 00 89 00 8a 00 8b 00 8c 00 8d 00 8e 00 8f 00 valid CRC
+   [6F.15] "6F - Ticket 3"                                      data=6f 0e 00 00 90 00 91 00 92 00 93 00 82 00 83 00 valid CRC
+   [6F.16] "6F - Wins"                                          data=6f 16 00 00 1c 00 1d 00 1e 00 01 00 1f 00 20 00 21 00 02 00 22 00 23 00 valid CRC
+   [6F.17] "6F - EFT"                                           data=6f 14 00 00 17 00 18 00 2e 00 2f 00 30 00 31 00 32 00 33 00 34 00 valid CRC
+   [6F.18] "6F - AFT Meters 2"                                  data=6f 16 00 00 a0 00 a1 00 a2 00 a3 00 a4 00 a5 00 a6 00 a7 00 a8 00 a9 00 valid CRC
+   [6F.19] "6F - AFT Meters 3"                                  data=6f 12 00 00 aa 00 ab 00 ac 00 ad 00 ae 00 af 00 b0 00 b1 00 valid CRC
+   [6F.20] "6F - AFT Meters 4"                                  data=6f 0c 00 00 01 00 02 00 1a 00 1e 00 21 00 valid CRC
+   [6F.21] "6F - User Defined Group 1 meters"                   data=6f 0e 00 00 00 00 01 00 02 00 05 00 06 00 07 00 valid CRC
+   [6F.22] "6F - User All Game Group 1 meters"                  data=6f 0e 00 00 00 00 01 00 02 00 05 00 06 00 07 00 valid CRC
+   [6F.23] "6F - User All Game Group 2 meters"                  data=6f 10 00 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 22 00 valid CRC
+   [6F.24] "6F - User Defined Group 2 meters"                   data=6f 10 00 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 22 00 valid CRC
+   [6F.25] "6F - User Defined Progressive"                      data=6f 12 00 00 01 00 02 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 valid CRC
+   [6F.26] "6F - Progressive Meters"                            data=6f 12 00 00 01 00 02 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 valid CRC
+   [6F.27] "6F - User Defined Bonus Meters"                     data=6f 0e 00 00 00 00 01 00 02 00 0c 00 1e 00 21 00 valid CRC
+
+LP 70  (1 definition)
+   [70.1] "70 - Send ticket validation data"                   data=70                                       no CRC
+
+LP 71  (4 definitions)
+   [71.1] "71 - Send Redeem Ticket Command"                    data=71 16 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 valid CRC
+   [71.2] "71 - Send Redeem Ticket Command Status"             data=71 16 ff 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 valid CRC
+   [71.3] "71 - User Defined"                                  data=71 16 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 valid CRC
+   [71.4] "71 - Interrogate"                                   data=71 01 ff                                 valid CRC
+
+LP 72  (24 definitions)
+   [72.1] "72 - Table 1 poll"                                  data=72 34 00 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09 87 65 43 21 01 30 00 00 00 00 00 00 00 valid CRC
+   [72.2] "72 - User Defined Transfer Funds Status"            data=72 02 ff 00                              valid CRC
+   [72.3] "72 - User Defined 5"                                data=72 56 00 00 20 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 20 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 31 30 00 00 00 00 00 00 21 10 0d 44 61 76 69 64 20 54 68 6f 6d 73 6f 6e 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 23 95 valid CRC
+   [72.4] "72 - Transfer Funds Cancel"                         data=72 02 80 00                              valid CRC
+   [72.5] "72 - Unsupported Transfer Code"                     data=72 34 f1 00 40 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 21 43 65 87 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 30 00 00 00 00 00 00 00 valid CRC
+   [72.6] "72 - User Defined 6"                                data=72 56 00 00 20 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 20 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 31 30 00 00 00 00 00 00 21 10 0d 44 61 76 69 64 20 54 68 6f 6d 73 6f 6e 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 23 95 valid CRC
+   [72.7] "72 - Transfer Funds EGM Initiate 3"                 data=72 34 01 00 00 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 30 00 00 00 00 00 00 00 valid CRC
+   [72.8] "72 - Transfer Funds Peek Current"                   data=72 02 fe 00                              valid CRC
+   [72.9] "72 - Transfer Funds EGM Initiate 5"                 data=72 34 01 00 00 00 00 00 00 00 00 00 00 10 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 35 00 00 00 00 00 00 00 valid CRC
+   [72.10] "72 - Transfer Funds EGM Initiate 4"                 data=72 34 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 34 00 00 00 00 00 00 00 valid CRC
+   [72.11] "72 - Transfer Funds Host Initiate 1"                data=72 35 00 00 80 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09 87 65 43 21 02 31 31 00 00 00 00 00 00 00 valid CRC
+   [72.12] "72 - Transfer Funds Host Initiate 2"                data=72 4d 00 00 80 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 80 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 32 32 00 00 00 00 00 00 18 10 04 44 61 76 65 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 00 05 valid CRC
+   [72.13] "72 - Transfer Funds Host Initiate 3"                data=72 35 01 00 80 00 00 01 00 00 00 00 01 00 00 00 00 01 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 33 33 00 00 00 00 00 00 00 valid CRC
+   [72.14] "72 - Transfer Funds Host Initiate 4"                data=72 35 01 00 80 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 34 34 00 00 00 00 00 00 00 valid CRC
+   [72.15] "72 - Transfer Funds Host Initiate 5"                data=72 35 01 00 80 00 00 00 00 00 00 00 00 10 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 35 35 00 00 00 00 00 00 00 valid CRC
+   [72.16] "72 - Transfer Funds Host Initiate 6"                data=72 35 00 00 80 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 08 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 36 36 00 00 00 00 00 00 00 valid CRC
+   [72.17] "72 - Transfer Funds EGM Initiate 6"                 data=72 34 01 00 00 00 00 00 05 00 00 00 00 05 00 00 00 00 05 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 36 00 00 00 00 00 00 00 valid CRC
+   [72.18] "72 - Transfer Funds EGM Initiate 2C"                data=72 4c 01 00 11 00 00 00 06 00 00 00 00 00 00 00 00 00 00 00 80 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 32 00 00 00 00 00 00 18 10 04 44 61 76 65 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 00 05 valid CRC
+   [72.19] "72 - Transfer Funds EGM Initiate 2B"                data=72 4c 00 00 11 00 00 00 06 00 00 00 00 00 00 00 00 00 00 00 80 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 32 00 00 00 00 00 00 18 10 04 44 61 76 65 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 00 05 valid CRC
+   [72.20] "72 - User Defined 1"                                data=72 55 00 00 20 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 20 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 39 00 00 00 00 00 00 21 10 0d 44 61 76 69 64 20 54 68 6f 6d 73 6f 6e 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 23 95 valid CRC
+   [72.21] "72 - User Defined 2"                                data=72 34 00 00 10 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 32 00 00 00 00 00 00 00 valid CRC
+   [72.22] "72 - User Defined 3"                                data=72 35 01 00 00 00 00 00 10 00 00 00 00 00 00 00 00 00 00 00 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 31 35 00 00 00 00 00 00 00 valid CRC
+   [72.23] "72 - User Defined Status"                           data=72 02 ff 2f                              valid CRC
+   [72.24] "72 - User Defined 4"                                data=72 56 00 00 20 00 00 00 05 00 00 00 00 00 00 00 00 00 00 00 20 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 31 30 00 00 00 00 00 00 21 10 0d 44 61 76 69 64 20 54 68 6f 6d 73 6f 6e 11 09 31 32 33 34 35 36 37 38 39 13 05 00 00 00 23 95 valid CRC
+
+LP 73  (9 definitions)
+   [73.1] "73 - AFT Initialize Register EGM"                   data=73 1d 00 39 30 00 00 90 78 56 34 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 45 23 01 00 valid CRC
+   [73.2] "73 - AFT Interogate EGM"                            data=73 01 ff                                 valid CRC
+   [73.3] "73 - AFT Register EGM"                              data=73 1d 01 39 30 00 00 21 43 65 87 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 21 43 05 00 valid CRC
+   [73.4] "73 - AFT Register EGM POS 0"                        data=73 1d 01 39 30 00 00 21 43 65 87 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 valid CRC
+   [73.5] "73 - AFT Cancel Register EGM"                       data=73 01 80                                 valid CRC
+   [73.6] "73 - AFT Acknowledge Transfer"                      data=73 1d 40 39 30 00 00 90 78 56 34 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 45 23 01 00 valid CRC
+   [73.7] "73 - AFT Initialize Register EGM Bad Asset"         data=73 1d 00 31 d4 00 00 21 43 65 87 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 45 23 01 00 valid CRC
+   [73.8] "73 - AFT Register EGM Bad Asset"                    data=73 1d 01 31 d4 00 00 21 43 65 87 09 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 21 43 05 00 valid CRC
+   [73.9] "73 - AFT Initialize Register EGM 0 Data"            data=73 1d 00 39 30 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 valid CRC
+
+LP 74  (11 definitions)
+   [74.1] "74 - AFT Request Lock 00"                           data=74 00 0f 99 99                           valid CRC
+   [74.2] "74 - AFT Cancel Lock 80"                            data=74 80 0f 99 99                           valid CRC
+   [74.3] "74 - AFT Interrogate Status FF"                     data=74 ff 00 00 00                           valid CRC
+   [74.4] "74 - AFT Disable Transfers FF"                      data=74 ff 00 00 00                           valid CRC
+   [74.5] "74 - AFT Disable Transfers 00"                      data=74 00 00 00 00                           valid CRC
+   [74.6] "74 - AFT Disable Transfers 80"                      data=74 80 00 00 00                           valid CRC
+   [74.7] "74 - AFT request lock 00 - 0 Timout"                data=74 00 00 00 00                           valid CRC
+   [74.8] "74 - AFT Request Lock 00 - 0 Timeout"               data=74 00 0f 00 00                           valid CRC
+   [74.9] "74 - AFT Request Lock 00 - TC 2"                    data=74 00 02 99 99                           valid CRC
+   [74.10] "74 - User Defined Request Lock 00"                  data=74 00 01 99 99                           valid CRC
+   [74.11] "74 - User Defined Interrogate Status FF"            data=74 ff 00 00 00                           valid CRC
+
+LP 75  (1 definition)
+   [75.1] "75 - User Defined Receipt Data"                     data=75 0d 00 0b 4d 79 20 4c 6f 63 61 74 69 6f 6e valid CRC
+
+LP 76  (2 definitions)
+   [76.1] "76 - Set custom AFT ticket data 00"                 data=76 28 00 00 0b 54 65 73 74 20 43 61 73 69 6e 6f 01 0f 31 32 33 34 20 50 65 6e 6e 79 20 4c 61 6e 65 02 00 10 03 20 20 20 03 00 valid CRC
+   [76.2] "76 - Clear custom AFT ticket data 80"               data=76 01 80                                 valid CRC
+
+LP 7B  (4 definitions)
+   [7B.1] "7B - User Defined 1"                                data=7b 08 00 00 00 00 00 00 00 00            valid CRC
+   [7B.2] "7B - User Defined 1"                                data=7b 08 00 00 00 00 00 00 00 00            valid CRC
+   [7B.3] "7B - User Defined 2"                                data=7b 08 20 00 00 00 00 00 00 00            valid CRC
+   [7B.4] "7B - User Defined 3"                                data=7b 08 00 00 00 00 00 00 00 00            valid CRC
+
+LP 7C  (5 definitions)
+   [7C.1] "7C - Set Extended Ticket Data 1"                    data=7c 51 00 0b 54 65 73 74 20 43 61 73 69 6e 6f 01 0e 31 31 31 20 50 65 6e 6e 79 20 4c 61 6e 65 02 15 41 6e 79 77 68 65 72 65 2c 20 57 6f 72 6c 64 20 30 31 32 31 30 10 0d 50 4c 41 59 41 42 4c 45 20 4f 4e 4c 59 20 0c 44 45 42 49 54 20 54 49 43 4b 45 54 valid CRC
+   [7C.2] "7C - Set Extended Ticket Data 2"                    data=7c 5b 20 0e 44 45 42 49 54 20 54 49 43 4b 45 54 20 32 10 0f 50 4c 41 59 41 42 4c 45 20 4f 4e 4c 59 20 32 02 17 41 6e 79 77 68 65 72 65 2c 20 57 6f 72 6c 64 20 30 31 32 31 30 20 32 01 10 31 31 31 20 50 65 6e 6e 79 20 4c 61 6e 65 20 32 00 0d 54 65 73 74 20 43 61 73 69 6e 6f 20 32 valid CRC
+   [7C.3] "7C - Set Extended Ticket Data all codes 0 length"   data=7c 0a 00 00 01 00 02 00 10 00 20 00      valid CRC
+   [7C.4] "7C - Set Extended Ticket Data Blank"                data=7c 14 00 02 20 20 01 02 20 20 02 02 20 20 10 02 20 20 20 02 20 20 valid CRC
+   [7C.5] "7C - Set Extended Ticket Data Interrogate"          data=7c 00                                    valid CRC
+
+LP 7D  (5 definitions)
+   [7D.1] "7D - Set Ticket Data 1"                             data=7d 3c 00 00 00 0e 37 44 20 54 65 73 74 20 43 61 73 69 6e 6f 11 37 44 20 31 31 31 20 50 65 6e 6e 79 20 4c 61 6e 65 17 37 44 20 41 6e 79 77 68 65 72 65 20 57 6f 72 6c 64 20 30 31 32 31 30 valid CRC
+   [7D.2] "7D - Set Ticket Data 2"                             data=7d 42 00 00 00 10 37 44 20 54 65 73 74 20 43 61 73 69 6e 6f 20 32 13 37 44 20 31 31 31 20 50 65 6e 6e 79 20 4c 61 6e 65 20 32 19 37 44 20 41 6e 79 77 68 65 72 65 20 57 6f 72 6c 64 20 30 31 32 31 30 20 32 valid CRC
+   [7D.3] "7D - Interrogate"                                   data=7d 00                                    valid CRC
+   [7D.4] "7D - Set Ticket Data Blank"                         data=7d 0c 00 00 00 02 20 20 02 20 20 02 20 20 valid CRC
+   [7D.5] "7D - Set Ticket Data Interrogate"                   data=7d 06 00 00 00 00 00 00                  valid CRC
+
+LP 7E  (1 definition)
+   [7E.1] "7E - Send current date and time"                    data=7e                                       no CRC
+
+LP 7F  (3 definitions)
+   [7F.1] "7F - User Defined"                                  data=7f 12 03 20 03 00 00 00                  valid CRC
+   [7F.2] "7F - Receive date and time 1"                       data=7f 12 03 20 03 00 00 00                  valid CRC
+   [7F.3] "7F - Receive date and time 2"                       data=7f 05 11 20 04 22 22 22                  valid CRC
+
+LP 80  (2 definitions)
+   [80.1] "80 - Receive progressive amount"                    data=80 01 01 00 00 01 00 00                  valid CRC
+   [80.2] "80 - User Defined"                                  data=80 00 01 00 00 01 00 00                  valid CRC
+
+LP 83  (2 definitions)
+   [83.1] "83 - User Defined"                                  data=83 00 00                                 valid CRC
+   [83.2] "83 - Send Cumulative Progressive Wins game 0"       data=83 00 00                                 valid CRC
+
+LP 84  (1 definition)
+   [84.1] "84 - Send progressive win amount"                   data=84                                       no CRC
+
+LP 85  (1 definition)
+   [85.1] "85 - Send SAS progressive win amount"               data=85                                       no CRC
+
+LP 86  (1 definition)
+   [86.1] "86 - User Defined"                                  data=86 19 01 01 00 00 01 00 00 02 00 00 01 50 00 03 00 00 02 00 00 04 00 00 02 50 00 valid CRC
+
+LP 87  (1 definition)
+   [87.1] "87 - Send multiple SAS progressive win amounts"     data=87                                       no CRC
+
+LP 8A  (3 definitions)
+   [8A.1] "8A - User Defined 1"                                data=8a 00 00 05 00 00                        valid CRC
+   [8A.2] "8A - User Defined 2"                                data=8a 00 00 00 06 01                        valid CRC
+   [8A.3] "8A - User Defined 3"                                data=8a 00 00 00 07 02                        valid CRC
+
+LP 8B  (4 definitions)
+   [8B.1] "8B - User Defined Enable 1"                         data=8b 00 00 00 00 99 99 99 99 82 00 00      valid CRC
+   [8B.2] "8B - User Defined Disable"                          data=8b 00 00 00 00 00 00 99 99 01 01 00      valid CRC
+   [8B.3] "8B - User Defined Enable 2"                         data=8b 00 00 00 00 00 00 99 99 02 00 00      valid CRC
+   [8B.4] "8B - User Defined Enable 3"                         data=8b 00 00 00 00 00 00 99 99 02 00 00      valid CRC
+
+LP 8C  (2 definitions)
+   [8C.1] "8C - User Defined"                                  data=8c 00 00 05 00 00 00 01 00 00            valid CRC
+   [8C.2] "8C - Exit Tournament"                               data=8c 00 00 00 00 00 00 00 00 00            valid CRC
+
+LP 8E  (1 definition)
+   [8E.1] "8E - Send card information"                         data=8e                                       no CRC
+
+LP 8F  (1 definition)
+   [8F.1] "8F - Send physical reel stop information"           data=8f                                       no CRC
+
+LP 90  (1 definition)
+   [90.1] "90 - Send legacy bonus win amount"                  data=90                                       no CRC
+
+LP 94  (1 definition)
+   [94.1] "94 - Remote handpay reset"                          data=94                                       valid CRC
+
+LP 95  (1 definition)
+   [95.1] "95 - Send tournament games played"                  data=95 02 00 00                              valid CRC
+
+LP 96  (1 definition)
+   [96.1] "96 - Send tournament games won"                     data=96 02 00 00                              valid CRC
+
+LP 97  (1 definition)
+   [97.1] "97 - Send tournament credits wagered"               data=97 02 00 00                              valid CRC
+
+LP 98  (1 definition)
+   [98.1] "98 - Send tournament credits won"                   data=98 02 00 00                              valid CRC
+
+LP 99  (2 definitions)
+   [99.1] "99 - Send tournament meters"                        data=99 02 00 00                              valid CRC
+   [99.2] "99 - User Defined"                                  data=99 02 00 00                              valid CRC
+
+LP 9A  (2 definitions)
+   [9A.1] "9A - Send Legacy Bonus Meters"                      data=9a 00 00                                 valid CRC
+   [9A.2] "9A - User Defined Bonus Meters"                     data=9a 00 00                                 valid CRC
+
+LP A0  (3 definitions)
+   [A0.1] "A0 - Send Enabled Features Game 0"                  data=a0 00 00                                 valid CRC
+   [A0.2] "A0 - Send Enabled Features Game 1"                  data=a0 00 01                                 valid CRC
+   [A0.3] "A0 - User Defined"                                  data=a0 00 00                                 valid CRC
+
+LP A4  (2 definitions)
+   [A4.1] "A4 - Send Cashout Limit"                            data=a4 00 00                                 valid CRC
+   [A4.2] "A4 - User Defined"                                  data=a4 00 00                                 valid CRC
+
+LP A8  (2 definitions)
+   [A8.1] "A8 - Handpay reset method standard"                 data=a8 00                                    valid CRC
+   [A8.2] "A8 - Handpay reset method credit meter"             data=a8 01                                    valid CRC
+
+LP AA  (2 definitions)
+   [AA.1] "AA - Enable Auto Rebet"                             data=aa 01                                    valid CRC
+   [AA.2] "AA - Disable Auto Rebet"                            data=aa 00                                    valid CRC
+
+LP AF  (27 definitions)
+   [AF.1] "AF - Basic Meters 1"                                data=af 1a 00 00 00 00 01 00 08 00 27 00 09 00 0a 00 02 00 03 00 05 00 04 00 07 00 0c 00 valid CRC
+   [AF.2] "AF - (B0)  User Defined 1"                          data=af 1a 00 00 00 00 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00 09 00 10 00 11 00 valid CRC
+   [AF.3] "AF - (B0) User Defined 2"                           data=af 1a 00 00 00 00 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00 09 00 10 00 11 00 valid CRC
+   [AF.4] "AF - AFT Meters 2"                                  data=af 16 00 00 a0 00 a1 00 a2 00 a3 00 a4 00 a5 00 a6 00 a7 00 a8 00 a9 00 valid CRC
+   [AF.5] "AF - User Defined 1"                                data=af 1a 00 00 00 00 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00 09 00 10 00 11 00 valid CRC
+   [AF.6] "AF - User Defined 2"                                data=af 1a 00 00 00 00 01 00 02 00 03 00 04 00 05 00 06 00 07 00 08 00 09 00 10 00 11 00 valid CRC
+   [AF.7] "AF - 0005 Meter"                                    data=af 04 00 00 05 00                        valid CRC
+   [AF.8] "AF - Bills 1-1k Meters"                             data=af 1a 00 00 40 00 41 00 42 00 43 00 44 00 45 00 46 00 47 00 48 00 49 00 4a 00 4b 00 valid CRC
+   [AF.9] "AF - Bills 2k-1mil Meters"                          data=af 1a 00 00 4c 00 4d 00 4e 00 4f 00 50 00 51 00 52 00 53 00 54 00 55 00 56 00 57 00 valid CRC
+   [AF.10] "AF - Drop/Bill"                                     data=af 0a 00 00 0b 00 24 00 3e 00 3f 00      valid CRC
+   [AF.11] "AF - Win/Loss"                                      data=af 0c 00 00 05 00 06 00 07 00 25 00 26 00 valid CRC
+   [AF.12] "AF - Ticket"                                        data=af 18 00 00 15 00 16 00 19 00 1a 00 1b 00 28 00 29 00 2a 00 2b 00 2c 00 2d 00 valid CRC
+   [AF.13] "AF - Ticket 2"                                      data=af 16 00 00 86 00 87 00 88 00 89 00 8a 00 8b 00 8c 00 8d 00 8e 00 8f 00 valid CRC
+   [AF.14] "AF - Ticket 3"                                      data=af 0e 00 00 90 00 91 00 92 00 93 00 82 00 83 00 valid CRC
+   [AF.15] "AF - Wins"                                          data=af 16 00 00 1c 00 1d 00 1e 00 01 00 1f 00 20 00 21 00 02 00 22 00 23 00 valid CRC
+   [AF.16] "AF - EFT"                                           data=af 16 00 00 16 00 17 00 18 00 2e 00 2f 00 30 00 31 00 32 00 33 00 34 00 valid CRC
+   [AF.17] "AF - AFT Meters 1"                                  data=af 14 00 00 00 00 19 00 1b 00 b8 00 b9 00 ba 00 bb 00 bc 00 bd 00 valid CRC
+   [AF.18] "AF - AFT Meters 3"                                  data=af 12 00 00 aa 00 ab 00 ac 00 ad 00 ae 00 af 00 b0 00 b1 00 valid CRC
+   [AF.19] "AF - AFT Meters 4"                                  data=af 0c 00 00 01 00 02 00 1a 00 1e 00 21 00 valid CRC
+   [AF.20] "AF - User Defined Group 1 meters"                   data=af 0e 00 00 00 00 01 00 02 00 05 00 06 00 07 00 valid CRC
+   [AF.21] "AF - User All Game Group 1 meters"                  data=af 0e 00 00 00 00 01 00 02 00 05 00 06 00 07 00 valid CRC
+   [AF.22] "AF - User All Game Group 2 meters"                  data=af 10 00 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 22 00 valid CRC
+   [AF.23] "AF - User Defined Group 2 meters"                   data=af 10 00 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 22 00 valid CRC
+   [AF.24] "AF - User Defined Progressive"                      data=af 12 00 00 01 00 02 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 valid CRC
+   [AF.25] "AF - Progressive Meters"                            data=af 12 00 00 01 00 02 00 1c 00 1d 00 1e 00 1f 00 20 00 21 00 valid CRC
+   [AF.26] "AF - User Defined Bonus Meters"                     data=af 0e 00 00 00 00 01 00 02 00 0c 00 1e 00 21 00 valid CRC
+   [AF.27] "AF - No Meter"                                      data=af 02 00 00                              valid CRC
+
+LP B1  (1 definition)
+   [B1.1] "B1 - Send current player denomination"              data=b1                                       no CRC
+
+LP B2  (1 definition)
+   [B2.1] "B2 - Send enabled player denominations"             data=b2                                       no CRC
+
+LP B3  (1 definition)
+   [B3.1] "B3 - Send token denomination"                       data=b3                                       no CRC
+
+LP B5  (5 definitions)
+   [B5.1] "B5 - Send Extended Game 0 Information"              data=b5 00 00                                 valid CRC
+   [B5.2] "B5 - (B0) User Defined"                             data=b5 00 00                                 valid CRC
+   [B5.3] "B5 - (B0 .00) Send Extended Game 1 Information"     data=b5 00 01                                 valid CRC
+   [B5.4] "B5 - Send Extended Game 1 Information"              data=b5 00 01                                 valid CRC
+   [B5.5] "B5 - User Defined"                                  data=b5 00 00                                 valid CRC
+
+LP BF  (1 definition)
+   [BF.1] "BF - Unimplemented poll"                            data=bf 01 02 03 04 05 06                     valid CRC
+
+LP CF  (1 definition)
+   [CF.1] "CF - Unimplemented poll"                            data=cf 01 02 03 04 05 06 07 08 09            valid CRC
+
+LP D3  (6 definitions)
+   [D3.1] ""                                                   data=(none)                                   no CRC
+   [D3.2] ""                                                   data=(none)                                   no CRC
+   [D3.3] ""                                                   data=(none)                                   no CRC
+   [D3.4] ""                                                   data=(none)                                   no CRC
+   [D3.5] ""                                                   data=(none)                                   no CRC
+   [D3.6] ""                                                   data=(none)                                   no CRC
+
+LP D4  (1 definition)
+   [D4.1] ""                                                   data=(none)                                   no CRC
+
+LP F1  (1 definition)
+   [F1.1] ""                                                   data=(none)                                   no CRC
+
+LP FE  (2 definitions)
+   [FE.1] "FE - Undefined"                                     data=fe                                       no CRC
+   [FE.2] "FE - (B0) User Defined"                             data=fe                                       no CRC

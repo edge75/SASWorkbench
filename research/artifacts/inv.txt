@@ -1,0 +1,186 @@
+### PollTemplates.xml : 137 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1, "SAS_template": 137, "binary_parm": 65, "bcd_parm": 69, "choice_parm": 33, "choice_entry": 263, "variable_ascii_parm": 28, "variable_meter_parm": 2, "bool_parm": 71, "optional": 59, "bitmap_parm": 7, "bitmap_field": 53, "hex_parm": 2, "aft_receipt_parm": 1, "option_choice_parm": 2, "option_choice_entry": 10, "variable_hex_parm": 4}
+  SAS_template@cmd : 137 distinct values
+  SAS_template@crc : {"yes": 70}
+  SAS_template@length : {"yes": 15}
+  SAS_template@multigame : {"yes": 19}
+  SAS_template@name : 137 distinct values
+  aft_receipt_parm@name : 1 distinct values
+  bcd_parm@name : 27 distinct values
+  bcd_parm@size : {"5": 25, "2": 24, "4": 13, "1": 4, "8": 2, "3": 1}
+  binary_parm@length : {"yes": 2}
+  binary_parm@name : 30 distinct values
+  binary_parm@radix : {"decimal": 27}
+  binary_parm@size : {"1": 52, "2": 6, "4": 5, "3": 2}
+  bitmap_field@offset : {"0": 7, "1": 5, "2": 5, "3": 5, "4": 4, "5": 4, "15": 3, "7": 3, "6": 2, "8": 1, "9": 1, "10": 1, "11": 1, "12": 1, "13": 1, "14": 1, "16": 1, "17": 1, "18": 1, "19": 1, "20": 1, "21": 1, "22": 1, "23": 1}
+  bitmap_field@size : {"7": 1}
+  bitmap_parm@name : 7 distinct values
+  bitmap_parm@size : {"1": 4, "2": 2, "4": 1}
+  bool_parm@name : 51 distinct values
+  choice_entry@name : 92 distinct values
+  choice_entry@value : {"00": 31, "F1": 30, "01": 29, "02": 25, "10": 22, "20": 17, "11": 11, "12": 10, "13": 10, "21": 10, "22": 10, "23": 10, "80": 8, "03": 8, "FF": 4, "40": 3, "05": 2, "81": 2, "82": 2, "60": 2, "04": 2, "83": 1, "84": 1, "85": 1, "86": 1, "87": 1, "88": 1, "FE": 1, "90": 1, "0": 1, "1": 1, "06": 1, "07": 1, "08": 1, "09": 1, "0A": 1}
+  choice_parm@name : 13 distinct values
+  choice_parm@size : {"1": 33}
+  hex_parm@name : 1 distinct values
+  hex_parm@size : {"20": 2}
+  option_choice_entry@name : 9 distinct values
+  option_choice_entry@value : {"F1": 2, "00": 1, "01": 1, "0001": 1, "0002": 1, "0004": 1, "0008": 1, "0010": 1, "0020": 1}
+  option_choice_parm@name : 2 distinct values
+  option_choice_parm@size : {"1": 1, "4": 1}
+  optional@name : 11 distinct values
+  variable_ascii_parm@length : {"yes": 28}
+  variable_ascii_parm@name : 9 distinct values
+  variable_ascii_parm@size : {"40": 14, "22": 10, "4": 2, "20": 1, "127": 1}
+  variable_hex_parm@length : {"yes": 4}
+  variable_hex_parm@name : 4 distinct values
+  variable_hex_parm@size : {"16": 2, "127": 1, "20": 1}
+  variable_meter_parm@name : 1 distinct values
+
+### ResponseTemplates.xml : 116 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1, "SAS_template": 116, "binary_parm": 85, "bcd_parm": 184, "bool_parm": 104, "padding": 2, "ascii_parm": 10, "choice_parm": 79, "choice_entry": 1238, "optional": 73, "variable_ascii_parm": 8, "bitmap_parm": 12, "bitmap_field": 89, "variable_bcd_parm": 4, "variable_meter_response": 2, "hex_parm": 1, "variable_hex_parm": 3, "option_choice_parm": 1, "option_choice_entry": 7, "poll_2F_meter_parm": 10}
+  SAS_template@cmd : 116 distinct values
+  SAS_template@crc : {"yes": 114}
+  SAS_template@length : {"yes": 21}
+  SAS_template@name : 116 distinct values
+  ascii_parm@name : 6 distinct values
+  ascii_parm@size : {"3": 3, "4": 3, "2": 2, "6": 2}
+  bcd_parm@name : 66 distinct values
+  bcd_parm@size : {"4": 103, "2": 38, "5": 34, "3": 3, "8": 3, "1": 3}
+  binary_parm@length : {"yes": 2}
+  binary_parm@name : 47 distinct values
+  binary_parm@radix : {"decimal": 31, "hex": 1}
+  binary_parm@size : {"1": 66, "2": 9, "4": 7, "3": 3}
+  bitmap_field@offset : {"0": 12, "1": 11, "2": 10, "3": 8, "4": 7, "5": 6, "7": 6, "6": 4, "15": 2, "8": 1, "9": 1, "10": 1, "11": 1, "12": 1, "13": 1, "14": 1, "16": 1, "17": 1, "18": 1, "19": 1, "20": 1, "21": 1, "22": 1, "23": 1, "24": 1, "25": 1, "26": 1, "27": 1, "28": 1, "29": 1, "30": 1, "31": 1}
+  bitmap_field@size : {"1": 6, "2": 2}
+  bitmap_parm@name : 12 distinct values
+  bitmap_parm@size : {"1": 9, "4": 2, "2": 1}
+  bool_parm@name : 88 distinct values
+  choice_entry@name : 251 distinct values
+  choice_entry@value : {"02": 57, "01": 48, "04": 48, "00": 48, "F1": 47, "05": 46, "06": 46, "07": 46, "08": 45, "09": 45, "0A": 43, "0B": 43, "0C": 43, "0D": 43, "0E": 43, "03": 36, "10": 34, "11": 27, "0": 26, "12": 26, "13": 26, "14": 26, "15": 26, "16": 26, "17": 26, "18": 26, "19": 26, "0F": 24, "1A": 24, "80": 10, "40": 9, "FF": 7, "20": 7, "22": 7, "23": 7, "24": 6, "29": 6, "81": 6, "82": 5, "62": 5, "63": 5, "64": 5, "65": 5, "67": 5, "69": 5, "6B": 5, "60": 3, "C0": 3, "21": 2, "83": 2, "84": 2, "85": 2, "86": 2, "87": 2, "88": 2, "89": 2, "8A": 2, "8B": 2, "90": 2, "C1": 2, "1": 2, "2": 2, "25": 1, "26": 1, "27": 1, "28": 1, "30": 1, "31": 1, "32": 1, "33": 1, "34": 1, "35": 1, "36": 1, "37": 1, "38": 1, "39": 1, "8C": 1, "8D": 1, "8E": 1, "8F": 1, "91": 1, "92": 1, "93": 1, "94": 1, "95": 1, "9F": 1, "41": 1, "C2": 1, "C3": 1, "C4": 1, "C5": 1}
+  choice_parm@name : 33 distinct values
+  choice_parm@size : {"1": 79}
+  hex_parm@name : 1 distinct values
+  hex_parm@size : {"20": 1}
+  option_choice_entry@name : 7 distinct values
+  option_choice_entry@value : {"0001": 1, "0002": 1, "0004": 1, "0008": 1, "0010": 1, "0020": 1, "F1": 1}
+  option_choice_parm@name : 1 distinct values
+  option_choice_parm@size : {"4": 1}
+  optional@name : 3 distinct values
+  padding@size : {"10": 1, "3": 1}
+  poll_2F_meter_parm@name : 2 distinct values
+  variable_ascii_parm@length : {"yes": 7, "no": 1}
+  variable_ascii_parm@name : 8 distinct values
+  variable_ascii_parm@size : {"20": 3, "40": 2, "128": 1, "4": 1, "8": 1}
+  variable_bcd_parm@length : {"yes": 4}
+  variable_bcd_parm@name : 4 distinct values
+  variable_bcd_parm@size : {"9": 4}
+  variable_hex_parm@length : {"yes": 3}
+  variable_hex_parm@name : 3 distinct values
+  variable_hex_parm@size : {"16": 2, "20": 1}
+  variable_meter_response@name : 1 distinct values
+
+### EventTemplates.xml : 116 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1, "SAS_template": 116, "choice_parm": 3, "choice_entry": 94, "bcd_parm": 9, "binary_parm": 6, "bitmap_parm": 1, "bitmap_field": 3, "bool_parm": 2}
+  SAS_template@cmd : 116 distinct values
+  SAS_template@name : 116 distinct values
+  bcd_parm@name : 8 distinct values
+  bcd_parm@size : {"4": 5, "2": 4}
+  binary_parm@name : 6 distinct values
+  binary_parm@size : {"1": 6}
+  bitmap_field@offset : {"0": 1, "6": 1, "7": 1}
+  bitmap_field@size : {"6": 1}
+  bitmap_parm@name : 1 distinct values
+  bitmap_parm@size : {"1": 1}
+  bool_parm@name : 2 distinct values
+  choice_entry@name : 92 distinct values
+  choice_entry@value : {"01": 3, "02": 3, "03": 3, "04": 3, "05": 3, "06": 3, "07": 3, "08": 3, "09": 3, "10": 3, "11": 3, "12": 3, "13": 3, "14": 3, "15": 3, "16": 3, "17": 3, "18": 3, "19": 3, "F1": 3, "00": 2, "20": 2, "21": 2, "22": 2, "23": 2, "24": 1, "25": 1, "26": 1, "27": 1, "28": 1, "29": 1, "30": 1, "31": 1, "32": 1, "33": 1, "34": 1, "35": 1, "36": 1, "37": 1, "38": 1, "39": 1, "0": 1, "0A": 1, "0B": 1, "0C": 1, "0D": 1, "0E": 1, "0F": 1, "1A": 1}
+  choice_parm@name : 3 distinct values
+  choice_parm@size : {"1": 3}
+
+### UserPollTemplates.xml : 0 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1}
+
+### UserResponseTemplates.xml : 0 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1}
+
+### Defaults\PollTemplates.xml : 137 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1, "SAS_template": 137, "binary_parm": 65, "bcd_parm": 69, "choice_parm": 33, "choice_entry": 262, "variable_ascii_parm": 28, "variable_meter_parm": 2, "bool_parm": 71, "optional": 59, "bitmap_parm": 7, "bitmap_field": 53, "hex_parm": 2, "aft_receipt_parm": 1, "option_choice_parm": 2, "option_choice_entry": 10, "variable_hex_parm": 4}
+  SAS_template@cmd : 137 distinct values
+  SAS_template@crc : {"yes": 70}
+  SAS_template@length : {"yes": 15}
+  SAS_template@multigame : {"yes": 19}
+  SAS_template@name : 137 distinct values
+  aft_receipt_parm@name : 1 distinct values
+  bcd_parm@name : 27 distinct values
+  bcd_parm@size : {"5": 25, "2": 24, "4": 13, "1": 4, "8": 2, "3": 1}
+  binary_parm@length : {"yes": 2}
+  binary_parm@name : 30 distinct values
+  binary_parm@radix : {"decimal": 27}
+  binary_parm@size : {"1": 52, "2": 6, "4": 5, "3": 2}
+  bitmap_field@offset : {"0": 7, "1": 5, "2": 5, "3": 5, "4": 4, "5": 4, "15": 3, "7": 3, "6": 2, "8": 1, "9": 1, "10": 1, "11": 1, "12": 1, "13": 1, "14": 1, "16": 1, "17": 1, "18": 1, "19": 1, "20": 1, "21": 1, "22": 1, "23": 1}
+  bitmap_field@size : {"7": 1}
+  bitmap_parm@name : 7 distinct values
+  bitmap_parm@size : {"1": 4, "2": 2, "4": 1}
+  bool_parm@name : 51 distinct values
+  choice_entry@name : 91 distinct values
+  choice_entry@value : {"00": 31, "F1": 30, "01": 29, "02": 25, "10": 22, "20": 17, "11": 11, "12": 10, "13": 10, "21": 10, "22": 10, "23": 10, "80": 8, "03": 8, "FF": 4, "40": 3, "81": 2, "82": 2, "60": 2, "04": 2, "83": 1, "84": 1, "85": 1, "86": 1, "87": 1, "88": 1, "FE": 1, "90": 1, "0": 1, "1": 1, "05": 1, "06": 1, "07": 1, "08": 1, "09": 1, "0A": 1}
+  choice_parm@name : 13 distinct values
+  choice_parm@size : {"1": 33}
+  hex_parm@name : 1 distinct values
+  hex_parm@size : {"20": 2}
+  option_choice_entry@name : 9 distinct values
+  option_choice_entry@value : {"F1": 2, "00": 1, "01": 1, "0001": 1, "0002": 1, "0004": 1, "0008": 1, "0010": 1, "0020": 1}
+  option_choice_parm@name : 2 distinct values
+  option_choice_parm@size : {"1": 1, "4": 1}
+  optional@name : 11 distinct values
+  variable_ascii_parm@length : {"yes": 28}
+  variable_ascii_parm@name : 9 distinct values
+  variable_ascii_parm@size : {"40": 14, "22": 10, "4": 2, "20": 1, "127": 1}
+  variable_hex_parm@length : {"yes": 4}
+  variable_hex_parm@name : 4 distinct values
+  variable_hex_parm@size : {"16": 2, "127": 1, "20": 1}
+  variable_meter_parm@name : 1 distinct values
+
+### Defaults\ResponseTemplates.xml : 116 SAS_template elements, root tag=SAS_templates
+tag histogram: {"SAS_templates": 1, "SAS_template": 116, "binary_parm": 85, "bcd_parm": 184, "bool_parm": 104, "padding": 2, "ascii_parm": 10, "choice_parm": 79, "choice_entry": 1238, "optional": 73, "variable_ascii_parm": 8, "bitmap_parm": 12, "bitmap_field": 89, "variable_bcd_parm": 4, "variable_meter_response": 2, "hex_parm": 1, "variable_hex_parm": 3, "option_choice_parm": 1, "option_choice_entry": 7, "poll_2F_meter_parm": 10}
+  SAS_template@cmd : 116 distinct values
+  SAS_template@crc : {"yes": 114}
+  SAS_template@length : {"yes": 21}
+  SAS_template@name : 116 distinct values
+  ascii_parm@name : 6 distinct values
+  ascii_parm@size : {"3": 3, "4": 3, "2": 2, "6": 2}
+  bcd_parm@name : 66 distinct values
+  bcd_parm@size : {"4": 103, "2": 38, "5": 34, "3": 3, "8": 3, "1": 3}
+  binary_parm@length : {"yes": 2}
+  binary_parm@name : 47 distinct values
+  binary_parm@radix : {"decimal": 31, "hex": 1}
+  binary_parm@size : {"1": 66, "2": 9, "4": 7, "3": 3}
+  bitmap_field@offset : {"0": 12, "1": 11, "2": 10, "3": 8, "4": 7, "5": 6, "7": 6, "6": 4, "15": 2, "8": 1, "9": 1, "10": 1, "11": 1, "12": 1, "13": 1, "14": 1, "16": 1, "17": 1, "18": 1, "19": 1, "20": 1, "21": 1, "22": 1, "23": 1, "24": 1, "25": 1, "26": 1, "27": 1, "28": 1, "29": 1, "30": 1, "31": 1}
+  bitmap_field@size : {"1": 6, "2": 2}
+  bitmap_parm@name : 12 distinct values
+  bitmap_parm@size : {"1": 9, "4": 2, "2": 1}
+  bool_parm@name : 88 distinct values
+  choice_entry@name : 251 distinct values
+  choice_entry@value : {"02": 57, "01": 48, "04": 48, "00": 48, "F1": 47, "05": 46, "06": 46, "07": 46, "08": 45, "09": 45, "0A": 43, "0B": 43, "0C": 43, "0D": 43, "0E": 43, "03": 36, "10": 34, "11": 27, "0": 26, "12": 26, "13": 26, "14": 26, "15": 26, "16": 26, "17": 26, "18": 26, "19": 26, "0F": 24, "1A": 24, "80": 10, "40": 9, "FF": 7, "20": 7, "22": 7, "23": 7, "24": 6, "29": 6, "81": 6, "82": 5, "62": 5, "63": 5, "64": 5, "65": 5, "67": 5, "69": 5, "6B": 5, "60": 3, "C0": 3, "21": 2, "83": 2, "84": 2, "85": 2, "86": 2, "87": 2, "88": 2, "89": 2, "8A": 2, "8B": 2, "90": 2, "C1": 2, "1": 2, "2": 2, "25": 1, "26": 1, "27": 1, "28": 1, "30": 1, "31": 1, "32": 1, "33": 1, "34": 1, "35": 1, "36": 1, "37": 1, "38": 1, "39": 1, "8C": 1, "8D": 1, "8E": 1, "8F": 1, "91": 1, "92": 1, "93": 1, "94": 1, "95": 1, "9F": 1, "41": 1, "C2": 1, "C3": 1, "C4": 1, "C5": 1}
+  choice_parm@name : 33 distinct values
+  choice_parm@size : {"1": 79}
+  hex_parm@name : 1 distinct values
+  hex_parm@size : {"20": 1}
+  option_choice_entry@name : 7 distinct values
+  option_choice_entry@value : {"0001": 1, "0002": 1, "0004": 1, "0008": 1, "0010": 1, "0020": 1, "F1": 1}
+  option_choice_parm@name : 1 distinct values
+  option_choice_parm@size : {"4": 1}
+  optional@name : 3 distinct values
+  padding@size : {"10": 1, "3": 1}
+  poll_2F_meter_parm@name : 2 distinct values
+  variable_ascii_parm@length : {"yes": 7, "no": 1}
+  variable_ascii_parm@name : 8 distinct values
+  variable_ascii_parm@size : {"20": 3, "40": 2, "128": 1, "4": 1, "8": 1}
+  variable_bcd_parm@length : {"yes": 4}
+  variable_bcd_parm@name : 4 distinct values
+  variable_bcd_parm@size : {"9": 4}
+  variable_hex_parm@length : {"yes": 3}
+  variable_hex_parm@name : 3 distinct values
+  variable_hex_parm@size : {"16": 2, "20": 1}
+  variable_meter_response@name : 1 distinct values
+

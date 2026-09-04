@@ -1,0 +1,84 @@
+=== SAS description ===
+Options that exist only under the SAS protocol.
+manufacturer id        - mandatory, game id from table C-1 appendix C. Also accepted at
+                         the "Market" level, where it used to be written, so existing
+                         configurations keep working - a warning says where it was read
+                         from.
+transaction receipts   - whether this machine may print SAS 6.02 section 8.11.2 AFT
+                         transaction receipts (true/false, default FALSE).
+                         Support will be completed in a future release: not every printer
+                         driver can lay out the 24 line body yet, so this stays off unless
+                         a configuration asks for it, and a machine that says nothing
+                         about receipts refuses the request rather than promising one.
+                         Machine configuration, not an operator setting: it is reported
+                         to the host in a long poll 74 status mask, and section 8.1 has
+                         a change to those masks cancel the AFT registration with
+                         exception 6E. The audit menu shows it without offering to
+                         change it.
+                         When false, a long poll 72 transfer that asks for a receipt is
+                         refused with Table 8.3e status 90 before any funds move.
+progressive level hit at notification
+                       - whether the progressive level hit is announced to the host when
+                         the win is confirmed instead of when the prize is awarded
+                         (true/false, default FALSE).
+                         The default reports it at the award, which is what lets the host
+                         reduce the amount first for win capping or a simultaneous win
+                         elsewhere, and is what every release so far has done.
+                         Set it true only where the amount is settled at the moment the
+                         win is confirmed: an external jackpot controller that resets its
+                         accumulated amount on the level hit then does so at the win
+                         rather than after the win animation. The win reaches the queue
+                         the host reads at the same moment, and the award reports only
+                         that it has been paid, so the host is told once either way.
+start network          - when the machine brings its host link up. One of:
+                         "immediately" (default) - as soon as a polling address is
+                                         configured, which is what every release so far
+                                         has done;
+                         "audit exit"  - not until every configuration page has been
+                                         saved AND the audit menu has been left;
+                         "restart"     - not until the first start after the machine's
+                                         configuration was complete, so the session in
+                                         which it was configured stays off the host.
+                         A machine whose configuration was already complete when it was
+                         switched on is never held back, so editing one page on a working
+                         machine does not take it off the host. While the link is held
+                         back the machine shows "Network Not Running - Configuration In
+                         Progress" on the jurisdiction message line and goes on playing,
+                         taking money and paying out exactly as before.
+                         A polling address of 0 still disables the link on its own, per
+                         SAS 6.02 section 2.1, whatever this is set to.
+attendant menu reporting
+                       - what the machine takes as proof that the attendant menu has been
+                         entered, and so when it reports exceptions 82 and 83. One of:
+                         "on page displayed" (default) - the audit page reaching the
+                                         player. The game application says so by asking
+                                         for the platform's page, or by calling
+                                         qspAuditPageDisplayed() for one it draws itself.
+                                         An audit entry whose page never appears is
+                                         reported as a general tilt, exception 20;
+                         "on audit entry" - the audit condition going up. For a game that
+                                         draws its own attendant menu and cannot be changed
+                                         to declare it. Nothing is reported for a page that
+                                         did not appear, because in this mode the machine
+                                         cannot tell - so prefer the default and the call.
+accounting denomination
+                       - the unit, in whole cents, that every credit value this machine
+                         reports to the host is counted in (default 1).
+                         SAS 6.02 section 16 calls this the accounting denomination. It is
+                         reported in long polls 1F and 53 and is the unit of every meter,
+                         real-time event and legacy bonus amount the specification defines
+                         in credits. Ticket, transfer and progressive amounts are fixed in
+                         cents by the specification and never follow it.
+                         It must be a denomination SAS can express - one of 1, 2, 3, 5, 10,
+                         15, 20, 25, 40, 50, 100, 200, 250, 500 cents and the larger table
+                         C-4 values - and it must divide every denomination the player can
+                         be offered, or the machine refuses to start the host link and says
+                         so on the SAS configuration audit page.
+                         A coarser unit buys headroom in the fixed width fields the
+                         protocol reports money in, which is what a machine with a very
+                         large top award needs; the cost is that amounts are reported to
+                         that resolution.
+                         Changing it does NOT change what the machine reports on the next
+                         restart. The value in force is held in non-volatile memory and is
+                         adopted only by a memory clear, which is what a change of
+                         accounting denomination requires in any case.

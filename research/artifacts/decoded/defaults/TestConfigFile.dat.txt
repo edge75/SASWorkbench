@@ -1,0 +1,3 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\Defaults\TestConfigFile.dat ===
+  version   : 20
+  test file : 'Communications.dat '

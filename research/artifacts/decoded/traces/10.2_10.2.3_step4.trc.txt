@@ -1,0 +1,41 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.3\step4.trc ===
+started : 2026-07-20 17:56:26
+stamps  : relative to end of previous poll
+events  : 37 (31 messages, 16 HOST, 15 EGM)
+  HOST           WAKE 01 51                                  Send total number of games implemented:
+  EGM       29.7      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST      41.9 WAKE 01 4C 01 00 00 00 00 00 08 F3          Set secure enhanced validation ID: Machine ID = 0x1; Sequence number = 0x0;
+  EGM       28.6      01 4C 01 00 00 00 00 00 08 F3          Set secure enhanced validation ID: Machine ID = 0x1; Sequence number = 0x0;
+  HOST      44.1 WAKE 81                                     General Poll
+  EGM       29.5      00                                     No Activity
+  -- separator --
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       32.3      4F                                     Bill Accepted
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       25.7      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM                 01 7E 07 20 20 26 17 57 38 0D 39       Send current date and time: Date = 07202026; Time = 175738;
+  HOST           WAKE 81                                     General Poll
+  EGM       31.8      66                                     Cash out button pressed
+  HOST      40.0 WAKE 80                                     RESYNC
+  HOST      40.0 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM                 01 7E 07 20 20 26 17 57 43 59 F4       Send current date and time: Date = 07202026; Time = 175743;
+  HOST           WAKE 81                                     General Poll
+  EGM       31.1      3D                                     A cashout ticket has been printed
+  HOST      40.1 WAKE 00 86 0D 01 01 00 00 00 00 00 02 00 00 00 00 00 06 6D Receive multiple progressive levels: Group = 1; Level = 1; Amount = 0000000000; Level = 2; Amount = 0000000000;
+  HOST      39.6 WAKE 80                                     RESYNC
+  -- separator --
+  EGM                 01 7E 07 20 20 26 17 57 58 0B 5A       Send current date and time: Date = 07202026; Time = 175758;
+  HOST           WAKE 81                                     General Poll
+  EGM       32.9      3D                                     A cashout ticket has been printed
+  HOST      40.1 WAKE 80                                     RESYNC
+  HOST      40.1 WAKE 00 86 0D 01 01 00 00 00 00 00 02 00 00 00 00 00 06 6D Receive multiple progressive levels: Group = 1; Level = 1; Amount = 0000000000; Level = 2; Amount = 0000000000;
+  -- separator --
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       34.5      3D                                     A cashout ticket has been printed
+  HOST      40.2 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       25.8      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --

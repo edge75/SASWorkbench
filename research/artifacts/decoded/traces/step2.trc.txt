@@ -1,0 +1,6 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\step2.trc ===
+started : 2026-07-19 12:47:05
+stamps  : relative to end of previous poll
+events  : 2 (2 messages, 1 HOST, 1 EGM)
+  HOST           WAKE 01 A0 00 00 6C 13                      Send enabled features: Game number = 0000;
+  EGM       34.5      01 A0 00 00 D2 CD 03 00 00 00 92 40    Send enabled features: Game number = 0000; Feature 1: (Bit 0) Jackpot multiplier enabled = NO; (Bit 1) AFT bonus awards = YES; (Bit 2) Legacy bonus awards = NO; (Bit 3) Tournaments = NO; (Bit 4) Validation extensions = YES; (Bits 5 to 6) Validation style - (02) Secure Enhanced; (Bit 7) Ticket redemption = YES; Feature 2: (Bits 0 to 1) Meter model - (01) Won credits metered when won; (Bit 2) Tickets to total drop and total cancelled credits = YES; (Bit 3) Extended meters = YES; (Bit 4) Component Authentication = NO; (Bit 6) Advanced Funds Transfer = YES; (Bit 7) Multi-denom extensions = YES; Feature 3: (Bit 0) 40 ms polling rate supported = YES; (Bit 1) Multiple SAS progressive win reporting = YES; (Bit 2) Meter change notification supported = NO;

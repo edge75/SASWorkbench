@@ -1,0 +1,304 @@
+2524:Ab p
+74930:Kjj
+76462:jjh
+104156:jjjj
+111678:jjjj
+112262:jjj
+133690:+,-
+152783:jjh
+155119:jjj
+160149:jjj
+160203:jjjjj
+162454:jjj
+180175:jjj
+184023:Bjj
+197663:jjjj
+242812:jjjj
+257583:jjjjj
+258141:Kjj
+267386:Djj
+268083:jjjj
+274510:jjjj
+277642:jjjjj
+281044:jjjjj
+281133:jjjjj
+282419:jjh
+284853:jjjjj
+289579:jjjj
+290894:jjjj
+291458:jjjj
+291583:jjjj
+292703:jjh
+294956:jjj
+297972:jjjjj
+300608:jjj
+327987:Ejj
+336504:9-+,
+338750:E F
+368105:jjjj
+376053:jjjjj
+376335:jjjjj
+378233:jjjj
+378326:jjjj
+379091:jjj
+385192:jjj
+435051:jjj
+444611:jjjjj
+448500:jjh
+448564:jjh
+495283:Gjjh
+510859:jjjj
+511939:jjjj
+546715:jjj
+557467:jjj
+559356:jjjj
+564005:jjjjjjh
+568803:jjj
+571402:jjj
+572292:jjj
+579372:jjh
+583893:jjj
+590612:jh0
+598510:jjjj
+610719:jjj
+634011:jjj
+652781:jjj
+664386:jjj
+664785:jjj
+670372:jjj
+684561:jjj
+693991:jjh
+717056:jjj
+769856:(null)
+769970:         (((((                  H
+771079:-/:
+771340:cCC
+771910:N-INF
+771922:+INF
+771932:-NAN
+771942:+NAN
+796186:BBABORT
+796202:BBALL
+796214:BBCANCEL
+796232:BBCLOSE
+796248:BBHELP
+796262:BBIGNORE
+796280:BBNO
+796290:BBOK
+796300:BBRETRY
+796316:BBYES
+796328:PREVIEWGLYPH
+796354:DLGTEMPLATE
+796378:DVCLAL
+796392:TFORM1
+796406:TINPUTDIALOG
+796432:TPOPUP
+796446:TSASABOUTBOX
+796472:MAINICON
+804306:MS Sans Serif
+804366:Mon
+804374:Tue
+804382:Wed
+804390:Thu
+804398:Fri
+804406:Sat
+804414:Sunday
+804428:Monday
+804442:Tuesday
+804458:Wednesday
+804478:Thursday
+804496:Friday
+804510:Saturday
+804562:Oct
+804570:Nov
+804578:Dec
+804586:January
+804602:February
+804620:March
+804632:April
+804644:May
+804652:June
+804662:July
+804672:August
+804686:September
+804706:October
+804722:November
+804740:December
+804758:Sun
+804798:Interface not supported
+804846:Exception in safecall method
+804904:%s (%s, line %d)
+804938:Abstract Error?Access violation at address %p in module '%s'. %s of address %p
+805096:System Error.  Code: %d.
+805154:A call to an OS function failed
+805218:Jan
+805226:Feb
+805234:Mar
+805242:Apr
+805250:May
+805258:Jun
+805266:Jul
+805274:Aug
+805282:Sep
+805320:!Variant array index out of bounds
+805390:Variant array is locked
+805438:Invalid variant type conversion
+805502:Invalid variant operation!Invalid variant operation ($%.8x)
+805622:Variant is not an array
+805670:Invalid NULL variant operation5Could not convert variant of type (%s) into type (%s)=Overflow while converting variant of type (%s) into type (%s)
+805964:Variant overflow
+805998:Invalid argument
+806032:Invalid variant type
+806074:Operation not supported
+806122:Unexpected variant error
+806172:External exception %x
+806216:Assertion failed
+806282:Floating point overflow
+806330:Floating point underflow
+806380:Invalid pointer operation
+806432:Invalid class typecast0Access violation at address %p. %s of address %p
+806576:Stack overflow
+806606:Control-C hit
+806634:Privileged instruction(Exception %s in module %s at %p.
+806748:%s%s
+806762:Application Error1Format '%s' invalid or incompatible with argument
+806898:No argument for format '%s'"Variant method calls not supported
+807024:Read
+807034:Write
+807046:Error creating variant array
+807138:'%s' is not a valid time!'%s' is not a valid date and time
+807256:Out of memory
+807284:I/O error %d
+807310:File not found
+807340:Invalid filename
+807374:Too many open files
+807414:File access denied
+807452:Read beyond end of file
+807500:Disk full
+807520:Invalid numeric input
+807564:Division by zero
+807598:Range check error
+807634:Integer overflow Invalid floating point operation
+807734:Floating point division by zero
+807830:List index out of bounds (%d)+Out of memory while expanding memory stream
+807978:Error reading %s%s%s: %s
+808028:Stream read error
+808064:Property is read-only
+808108:Resource %s not found
+808152:%s.Seek not implemented$Operation not allowed on sorted list$%s not in a class registration group
+808348:Property %s does not exist
+808402:Stream write error
+808440:Thread creation error: %s
+808492:Thread Error: %s (%d)!'%s' is not a valid integer value('%s' is not a valid floating point value
+808686:'%s' is not a valid date
+808768:ECheckSynchronize called from thread $%x, which is NOT the main thread
+808910:Class %s not found
+808948:A class named %s already exists%List does not allow duplicates ($0%x)#A component named %s already exists%String list does not allow duplicates
+809236:Cannot create file %s
+809280:Cannot open file %s
+809320:Unable to write to %s
+809364:Invalid stream format$''%s'' is not a valid component name
+809482:Invalid property value
+809528:Invalid property path
+809572:Invalid property value List capacity out of bounds (%d)
+809684:List count out of bounds (%d)
+809778:Docked control must have a name%Error removing control from dock tree
+809918: - Dock zone not found
+809964: - Dock zone has no control,Multiselect mode must be on for this feature
+810110:Separator
+810130:Error setting %s.Count8Listbox (%s) style must be virtual in order to set Count"Unable to find a Table of Contents
+810360:No help found for %s#No context-sensitive help installed$No topic-based help system installed
+810548:Ancestor for '%s' not found
+810604:Cannot assign a %s to a %s
+810658:Bits index out of range*Can't write to a read-only resource stream
+810826:PgDn
+810836:End
+810844:Home
+810854:Left
+810870:Right
+810882:Down
+810892:Ins
+810900:Del
+810908:Shift+
+810922:Ctrl+
+810934:Alt+
+810944:Unable to insert a line Clipboard does not support Icons
+811058:Text exceeds memo capacity/Menu '%s' is already being used by another form
+811242:&No
+811256:Cancel
+811270:&Help
+811282:&Abort
+811296:&Retry
+811310:&Ignore
+811326:&All
+811336:N&o to All
+811358:Yes to &All
+811382:BkSp
+811392:Tab
+811400:Esc
+811408:Enter
+811420:Space
+811432:PgUp
+811474:&Help
+811486:&Close
+811500:&Ignore
+811516:&Retry
+811530:Abort
+811542:&All
+811552:Cannot drag a form
+811590:Metafiles
+811610:Enhanced Metafiles
+811648:Icons
+811660:Bitmaps
+811676:Warning
+811692:Error
+811704:Information
+811728:Confirm
+811744:&Yes
+811784:)Cannot change Visible in OnShow or OnHide"Cannot make a visible window modal
+811940:Scrollbar property out of range
+812004:%s property out of range
+812054:Menu index out of range
+812102:Menu inserted twice
+812142:Sub-menu is not in menu
+812190:Not enough timers available@GroupIndex cannot be less than a previous menu item's GroupIndex5Cannot create form. No MDI forms are currently active0Can only modify an image if it contains a bitmap*A control cannot have itself as its parent
+812674:Cancel
+812688:&Yes
+812698:&No
+812738:Icon image is not valid
+812786:Metafile is not valid!Cannot change the size of an icon
+812898:Unsupported clipboard format
+812956:Out of system resources
+813004:Canvas does not allow drawing
+813064:Invalid image size
+813102:Invalid ImageList
+813138:Invalid ImageList Index)Failed to read ImageList data from stream(Failed to write ImageList data to stream$Error creating window device context
+813426:Error creating window class+Cannot focus a disabled or invisible window!Control '%s' has no parent window
+813638:Cannot hide an MDI Child Form
+813730:Failed to clear tab control Failed to delete tab at index %d"Failed to retrieve tab at index %d Failed to get object at index %d"Failed to set tab "%s" at index %d Failed to set object at index %d<MultiLine must be True when TabPosition is tpLeft or tpRight
+814246:Invalid index
+814274:Unable to insert an item
+814324:Invalid owner %s is already associated with %sE%d is an invalid PageIndex value.  PageIndex must be between 0 and %d=This control requires version 4.70 or greater of COMCTL32.DLL0Tab position incompatible with current tab style0Tab style incompatible with current tab position
+814878:Bitmap image is not valid
+931738:VS_VERSION_INFO
+931830:StringFileInfo
+931866:040904E4
+931890:CompanyName
+931916:IGT
+931930:FileDescription
+931964:SAS Simulator
+931998:FileVersion
+932024:2.0.2.1
+932046:InternalName
+932082:LegalCopyright
+932112:Copyright IGT 2002
+932158:LegalTrademarks
+932192:IGT
+932206:OriginalFilename
+932240:SasTest.exe
+932270:ProductName
+932296:SAS Simulator
+932330:ProductVersion
+932360:1.0.0.0
+932382:VarFileInfo
+932414:Translation

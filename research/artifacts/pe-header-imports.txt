@@ -1,0 +1,143 @@
+=== PE HEADER ===
+Machine: 0x014c  NumberOfSections: 8  TimeDateStamp: 1134777236 (0x43a35394)  OptHdrSize: 224  Characteristics: 0x010e
+Link date (UTC): 2005-12-16T23:53:56
+Optional magic: 0x010b (PE32)
+Linker 5.0  EntryPoint RVA 0x13e4  ImageBase 0x400000  Subsystem 2 (WINDOWS_GUI)  NumDataDirs 16
+  DataDir[ 0] EXPORT       RVA 0x000ca000 size 520
+  DataDir[ 1] IMPORT       RVA 0x000c7000 size 10330
+  DataDir[ 2] RESOURCE     RVA 0x000cb000 size 139264
+  DataDir[ 5] BASERELOC    RVA 0x000ed000 size 51924
+  DataDir[ 9] TLS          RVA 0x000c6000 size 24
+=== SECTIONS ===
+  .text    VA 0x00001000 VSize 0x000b0000 RawPtr 0x00000600 RawSize 0x000afe00 Chars 0x60000020
+  .data    VA 0x000b1000 VSize 0x00014000 RawPtr 0x000b0400 RawSize 0x0000e600 Chars 0xc0000040
+  .tls     VA 0x000c5000 VSize 0x00001000 RawPtr 0x000bea00 RawSize 0x00000200 Chars 0xc0000040
+  .rdata   VA 0x000c6000 VSize 0x00001000 RawPtr 0x000bec00 RawSize 0x00000200 Chars 0x50000040
+  .idata   VA 0x000c7000 VSize 0x00003000 RawPtr 0x000bee00 RawSize 0x00002a00 Chars 0x40000040
+  .edata   VA 0x000ca000 VSize 0x00001000 RawPtr 0x000c1800 RawSize 0x00000400 Chars 0x40000040
+  .rsrc    VA 0x000cb000 VSize 0x00022000 RawPtr 0x000c1c00 RawSize 0x00022000 Chars 0x40000040
+  .reloc   VA 0x000ed000 VSize 0x0000d000 RawPtr 0x000e3c00 RawSize 0x0000cc00 Chars 0x50000040
+
+=== IMPORTS ===
+--- ADVAPI32.DLL ---
+    RegCloseKey                   RegOpenKeyExA                 RegQueryValueExA            
+    (3 functions)
+--- KERNEL32.DLL ---
+    BuildCommDCBA                 ClearCommError                CloseHandle                   CompareStringA              
+    CopyFileA                     CreateEventA                  CreateFileA                   CreateThread                
+    DeleteCriticalSection         DeleteFileA                   EnterCriticalSection          EnumCalendarInfoA           
+    ExitProcess                   ExitThread                    FileTimeToDosDateTime         FileTimeToLocalFileTime     
+    FindClose                     FindFirstFileA                FindResourceA                 FormatMessageA              
+    FreeLibrary                   FreeResource                  GetACP                        GetCPInfo                   
+    GetCommandLineA               GetCurrentDirectoryA          GetCurrentProcess             GetCurrentProcessId         
+    GetCurrentThread              GetCurrentThreadId            GetDateFormatA                GetDiskFreeSpaceA           
+    GetEnvironmentStrings         GetExitCodeThread             GetFileAttributesA            GetFileSize                 
+    GetFileType                   GetLastError                  GetLocalTime                  GetLocaleInfoA              
+    GetModuleFileNameA            GetModuleHandleA              GetOEMCP                      GetOverlappedResult         
+    GetPrivateProfileStringA      GetProcAddress                GetProcessHeap                GetStartupInfoA             
+    GetStdHandle                  GetStringTypeExA              GetStringTypeW                GetSystemInfo               
+    GetThreadLocale               GetTickCount                  GetTimeZoneInformation        GetVersion                  
+    GetVersionExA                 GlobalAddAtomA                GlobalAlloc                   GlobalDeleteAtom            
+    GlobalFindAtomA               GlobalFree                    GlobalHandle                  GlobalLock                  
+    GlobalReAlloc                 GlobalUnlock                  HeapAlloc                     HeapFree                    
+    InitializeCriticalSection     InterlockedDecrement          InterlockedIncrement          LCMapStringA                
+    LeaveCriticalSection          LoadLibraryA                  LoadLibraryExA                LoadResource                
+    LocalAlloc                    LocalFree                     LockResource                  MulDiv                      
+    MultiByteToWideChar           PurgeComm                     RaiseException                ReadFile                    
+    ResetEvent                    ResumeThread                  RtlUnwind                     SetCommMask                 
+    SetCommState                  SetCommTimeouts               SetConsoleCtrlHandler         SetCurrentDirectoryA        
+    SetEndOfFile                  SetErrorMode                  SetEvent                      SetFilePointer              
+    SetHandleCount                SetLastError                  SetPriorityClass              SetThreadLocale             
+    SetThreadPriority             SetupComm                     SizeofResource                Sleep                       
+    TlsAlloc                      TlsFree                       TlsGetValue                   TlsSetValue                 
+    UnhandledExceptionFilter      VirtualAlloc                  VirtualFree                   VirtualQuery                
+    WaitCommEvent                 WaitForSingleObject           WideCharToMultiByte           WriteFile                   
+    WritePrivateProfileStringA    lstrcmpA                      lstrcpyA                      lstrcpynA                   
+    lstrlenA                    
+    (121 functions)
+--- VERSION.DLL ---
+    GetFileVersionInfoA           GetFileVersionInfoSizeA       VerQueryValueA              
+    (3 functions)
+--- COMCTL32.DLL ---
+    ImageList_Add                 ImageList_BeginDrag           ImageList_Create              ImageList_Destroy           
+    ImageList_DragEnter           ImageList_DragLeave           ImageList_DragMove            ImageList_DragShowNolock    
+    ImageList_Draw                ImageList_DrawEx              ImageList_EndDrag             ImageList_GetBkColor        
+    ImageList_GetDragImage        ImageList_GetIconSize         ImageList_GetImageCount       ImageList_Read              
+    ImageList_Remove              ImageList_ReplaceIcon         ImageList_SetBkColor          ImageList_SetDragCursorImage
+    ImageList_SetIconSize         ImageList_Write               Ordinal#17                  
+    (23 functions)
+--- COMDLG32.DLL ---
+    GetOpenFileNameA              GetSaveFileNameA            
+    (2 functions)
+--- GDI32.DLL ---
+    BitBlt                        CombineRgn                    CopyEnhMetaFileA              CreateBitmap                
+    CreateBrushIndirect           CreateCompatibleBitmap        CreateCompatibleDC            CreateDIBSection            
+    CreateDIBitmap                CreateFontIndirectA           CreateHalftonePalette         CreatePalette               
+    CreatePenIndirect             CreateRectRgn                 CreateSolidBrush              DeleteDC                    
+    DeleteEnhMetaFile             DeleteObject                  ExcludeClipRect               ExtTextOutA                 
+    GetBitmapBits                 GetBrushOrgEx                 GetClipBox                    GetClipRgn                  
+    GetCurrentPositionEx          GetDCOrgEx                    GetDIBColorTable              GetDIBits                   
+    GetDeviceCaps                 GetEnhMetaFileBits            GetEnhMetaFileHeader          GetEnhMetaFilePaletteEntries
+    GetObjectA                    GetPaletteEntries             GetPixel                      GetRgnBox                   
+    GetStockObject                GetSystemPaletteEntries       GetTextExtentPoint32A         GetTextMetricsA             
+    GetWinMetaFileBits            GetWindowOrgEx                IntersectClipRect             LineTo                      
+    MaskBlt                       MoveToEx                      PatBlt                        PlayEnhMetaFile             
+    Polyline                      RealizePalette                RectVisible                   Rectangle                   
+    RestoreDC                     SaveDC                        SelectClipRgn                 SelectObject                
+    SelectPalette                 SetBkColor                    SetBkMode                     SetBrushOrgEx               
+    SetDIBColorTable              SetEnhMetaFileBits            SetPixel                      SetROP2                     
+    SetStretchBltMode             SetTextColor                  SetViewportOrgEx              SetWinMetaFileBits          
+    SetWindowOrgEx                StretchBlt                    UnrealizeObject             
+    (71 functions)
+--- USER32.DLL ---
+    ActivateKeyboardLayout        AdjustWindowRectEx            BeginDeferWindowPos           BeginPaint                  
+    CallNextHookEx                CallWindowProcA               CharLowerA                    CharLowerBuffA              
+    CharNextA                     CheckMenuItem                 ChildWindowFromPoint          ClientToScreen              
+    CreateIcon                    CreateMenu                    CreatePopupMenu               CreateWindowExA             
+    DefFrameProcA                 DefMDIChildProcA              DefWindowProcA                DeferWindowPos              
+    DeleteMenu                    DestroyCursor                 DestroyIcon                   DestroyMenu                 
+    DestroyWindow                 DispatchMessageA              DrawEdge                      DrawFocusRect               
+    DrawFrameControl              DrawIcon                      DrawIconEx                    DrawMenuBar                 
+    DrawTextA                     EnableMenuItem                EnableScrollBar               EnableWindow                
+    EndDeferWindowPos             EndPaint                      EnumThreadWindows             EnumWindows                 
+    EqualRect                     FillRect                      FindWindowA                   FrameRect                   
+    GetActiveWindow               GetCapture                    GetClassInfoA                 GetClassNameA               
+    GetClientRect                 GetClipboardData              GetCursor                     GetCursorPos                
+    GetDC                         GetDCEx                       GetDesktopWindow              GetDlgItem                  
+    GetFocus                      GetForegroundWindow           GetIconInfo                   GetKeyNameTextA             
+    GetKeyState                   GetKeyboardLayout             GetKeyboardLayoutList         GetKeyboardState            
+    GetKeyboardType               GetLastActivePopup            GetMenu                       GetMenuItemCount            
+    GetMenuItemID                 GetMenuItemInfoA              GetMenuState                  GetMenuStringA              
+    GetMessagePos                 GetParent                     GetPropA                      GetScrollInfo               
+    GetScrollPos                  GetScrollRange                GetSubMenu                    GetSystemMenu               
+    GetSystemMetrics              GetTopWindow                  GetWindow                     GetWindowDC                 
+    GetWindowLongA                GetWindowPlacement            GetWindowRect                 GetWindowTextA              
+    GetWindowThreadProcessId      InflateRect                   InsertMenuA                   InsertMenuItemA             
+    IntersectRect                 InvalidateRect                IsChild                       IsDialogMessageA            
+    IsIconic                      IsRectEmpty                   IsWindow                      IsWindowEnabled             
+    IsWindowVisible               IsZoomed                      KillTimer                     LoadBitmapA                 
+    LoadCursorA                   LoadIconA                     LoadKeyboardLayoutA           LoadStringA                 
+    MapVirtualKeyA                MapWindowPoints               MessageBoxA                   MsgWaitForMultipleObjects   
+    OemToCharA                    OffsetRect                    PeekMessageA                  PostMessageA                
+    PostQuitMessage               PtInRect                      RedrawWindow                  RegisterClassA              
+    RegisterClipboardFormatA      RegisterWindowMessageA        ReleaseCapture                ReleaseDC                   
+    RemoveMenu                    RemovePropA                   ScreenToClient                ScrollWindow                
+    SendMessageA                  SetActiveWindow               SetCapture                    SetClassLongA               
+    SetCursor                     SetFocus                      SetForegroundWindow           SetMenu                     
+    SetMenuItemInfoA              SetPropA                      SetRect                       SetScrollInfo               
+    SetScrollPos                  SetScrollRange                SetTimer                      SetWindowLongA              
+    SetWindowPlacement            SetWindowPos                  SetWindowTextA                SetWindowsHookExA           
+    ShowCursor                    ShowOwnedPopups               ShowScrollBar                 ShowWindow                  
+    SystemParametersInfoA         TrackPopupMenu                TranslateMDISysAccel          TranslateMessage            
+    UnhookWindowsHookEx           UnregisterClassA              UpdateWindow                  WaitMessage                 
+    WinHelpA                      WindowFromPoint               wsprintfA                     GetSysColor                 
+    (164 functions)
+--- WINMM.DLL ---
+    timeBeginPeriod               timeEndPeriod                 timeKillEvent                 timeSetEvent                
+    (4 functions)
+--- OLEAUT32.DLL ---
+    Ordinal#15                    Ordinal#25                    Ordinal#20                    Ordinal#19                  
+    Ordinal#148                   Ordinal#26                    Ordinal#40                    Ordinal#4                   
+    Ordinal#6                     Ordinal#5                     Ordinal#12                    Ordinal#9                   
+    Ordinal#10                    Ordinal#11                    Ordinal#8                   
+    (15 functions)

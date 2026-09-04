@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\ALESSI~1.QUI\AppData\Local\Temp\claude\C--IGT3\473c2bfe-6dd0-4a0e-979a-2d6bd2da83f6\scratchpad\research\gsa_decode\decode_polldefs.py", line 146, in <module>
+    main(p, '-v' in sys.argv)
+  File "C:\Users\ALESSI~1.QUI\AppData\Local\Temp\claude\C--IGT3\473c2bfe-6dd0-4a0e-979a-2d6bd2da83f6\scratchpad\research\gsa_decode\decode_polldefs.py", line 128, in main
+    r = parse(path)
+  File "C:\Users\ALESSI~1.QUI\AppData\Local\Temp\claude\C--IGT3\473c2bfe-6dd0-4a0e-979a-2d6bd2da83f6\scratchpad\research\gsa_decode\decode_polldefs.py", line 92, in parse
+    code = d[o]; ninst = d[o + 1]; o += 5      # 5-byte group header
+IndexError: index out of range

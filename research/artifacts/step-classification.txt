@@ -1,0 +1,327 @@
+TOTAL STEPS 297
+needs human judgement    130  44%
+wire-only                109  37%
+needs EGM stimulus        58  20%
+
+PER TEST  (wire / stimulus / human)
+10.1.1      1   1   0   total 2
+10.1.2      1   1   0   total 2
+10.1.3      8   2   6   total 16
+10.1.4      2   3   1   total 6
+10.1.5      2   4   7   total 13
+10.1.6      4   0   2   total 6
+10.1.7      4   2   4   total 10
+10.2.1      6   2   5   total 13
+10.2.2      2   0   0   total 2
+10.2.3     16   1   4   total 21
+10.2.4     11   0   6   total 17
+10.2.5      1   4   8   total 13
+10.2.6      1   3   9   total 13
+10.2.7      3   2   3   total 8
+10.2.8      6   4  11   total 21
+10.2.9     12   1   8   total 21
+10.2.10     9   1   6   total 16
+10.2.11     3   3   7   total 13
+10.2.12     4   4  10   total 18
+10.2.13     4   7  10   total 21
+10.2.14     5   7  15   total 27
+10.2.15     4   6   8   total 18
+
+DETAIL
+10.2.1     1  needs human judgement  | RAM clear EGM（如有必要）。設定 EGM 為 Secure Enhanced Validation。啟用 handpay validation、receipt printing、printing restricted tickets、validation extension（若支援）。 || 
+10.2.1     2  wire-only              | 啟動 Polling Loop。發送 F1。 || EGM 回應 F1： (01) EGM address（無 wakeup bit） (A0) 1-byte command (0000) 2-BCD game number = 0 1-byte Features1 1-byte Features2 1-byte Features3 3-byte reserved, LSB first 2-byte CRC, LSB first  Features
+10.2.1     3  needs human judgement  | 觀察 trace window 30 秒。 || EGM 每 15 秒發送 exception 3F 。 EGM 不可遊玩且處於 validation tilt 狀態。
+10.2.1     4  needs EGM stimulus     | 停止 Loop 1。開主門。Power cycle EGM 並等待完全重啟。 || 
+10.2.1     5  needs human judgement  | 清除 trace window。啟動 Loop 1 並觀察 trace window。 || EGM 重啟後第一個回報的 exception 為 3F 。其他 exception 在 3F 之後才回報。 EGM 持續每 15 秒回報 exception 3F 。 EGM 仍不可遊玩且處於 validation tilt 狀態。
+10.2.1     6  needs human judgement  | 發送 F2。 || EGM 回應 F2： EGM address（無 wakeup bit） (4C) 1-byte command (010010) 3-byte machine validation ID, LSB first (010000) 3-byte sequence number, LSB first (0000-FFFF) 2-byte CRC, LSB first  EGM 不再發送 excepti
+10.2.1     7  needs human judgement  | 發送 F4。 || EGM 回應 F4 與步驟 6 完全相同。 EGM 保持可遊玩且無 validation tilt。
+10.2.1     8  wire-only              | 發送 F3。 || EGM 回應 F3 格式同步驟 6，但 sequence number = 0x99 。
+10.2.1     9  wire-only              | 發送 F4。 || EGM 回應 F4 與步驟 8 完全相同。
+10.2.1    10  wire-only              | Ctrl + F2。 || EGM NACK 或忽略 F2。
+10.2.1    11  wire-only              | 發送 F4。 || EGM 回應 F4 與步驟 9 完全相同。
+10.2.1    12  wire-only              | Ctrl + F4。 || EGM NACK 或忽略 F4。
+10.2.1    13  needs EGM stimulus     | Power cycle EGM 並等待 EGM 與 host 重新建立通訊。 || EGM 斷電後不發送 exception 3F 。
+10.2.2     1  wire-only              | 啟動 Loop 1 持續 15 秒，然後暫停並檢視 trace window。 || EGM 回應所有發送至其 address 的 poll。
+10.2.2     2  wire-only              | 清除並恢復 trace。啟動 Loop 2。等待 15 秒後暫停並檢視 trace window。 || EGM 回應所有發送至其 address 的 poll。
+10.2.3     1  wire-only              | 啟動 Loop 1。 || 
+10.2.3     2  wire-only              | 發送 F1 三次。 || EGM 三次都回應 F1： (01) 1-byte EGM SAS address (4D) 1-byte Command (00) 1-byte Validation Type = 00 (Cashable) (00) 1-byte Index Number (00000000) 4-BCD Date (000000) 3-BCD Time 8-BCD Validation Number = 0
+10.2.3     3  wire-only              | 發送 F3。 || EGM 回應 F3 格式同 Test 10.2.1 步驟 6，但： Machine Validation ID = 0x01 Sequence Number = 0x01
+10.2.3     4  needs human judgement  | 投入 credits 並 cash out to ticket。觀察 trace window 超過 30 秒。 || EGM 列印出 cashout ticket。 EGM 每 15 秒發送 exception 3D 或 3E 。
+10.2.3     5  needs EGM stimulus     | 選擇 Loop 2。開主門。Power cycle EGM。等待 EGM 與 HostSim 恢復通訊。 || 
+10.2.3     6  wire-only              | 發送 F6。 || EGM 回應 F6 發出 exception 3D 或 3E 。
+10.2.3     7  needs human judgement  | 停止 Loop 2 等待超過 15 秒（或直到 EGM 開始 chirp）。發送 F5, F6, F6, F6, F5, F6。 || EGM 回應第 1、第 2、最後一個 F6 帶 exception 3D 或 3E 。 第 3 個 F6 EGM 可能回應也可能不回應。
+10.2.3     8  wire-only              | 發送 F5, F1, F1, F1, F5, F1。 || EGM 回應第 1、第 2、最後一個 F1（格式同步驟 2），但： Validation type = 00 Index > 0（01~1F） Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 6338-7426-2374-8784 Amount = cashout 金額（分） Ticket Sequence Number > 0000（0000~270
+10.2.3     9  wire-only              | 啟動 Loop 1 並觀察 trace window 超過 30 秒。 || EGM 每 15 秒對 general poll 回應 exception 3D 或 3E 。 在第一個 3D / 3E 之後，EGM 回應其他 exception。
+10.2.3    10  wire-only              | 發送 F4。 || EGM 回應 F4 同步驟 3，但 Sequence Number = 0x02 。
+10.2.3    11  wire-only              | 發送 F2 並等待超過 15 秒。 || EGM 回應 F2 與步驟 8 完全相同。 EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.3    12  wire-only              | 發送 F4。 || EGM 回應 F4 與步驟 10 完全相同。
+10.2.3    13  wire-only              | 發送 F1 並等待超過 15 秒。 || EGM 回應 F1 與步驟 8 完全相同。 EGM 停止回報 exception 3D / 3E 。
+10.2.3    14  wire-only              | 再次發送 F1。 || EGM 回應 F1 與步驟 2 完全相同（全零）。
+10.2.3    15  needs human judgement  | 投入 credits 並再次 cash out to ticket。 || EGM 列印 cashout ticket。 EGM 每 15 秒回報 exception 3D 或 3E 。
+10.2.3    16  wire-only              | Ctrl + F1。 || EGM 忽略或 NACK F1。 EGM 持續回報 exception 3D / 3E 。
+10.2.3    17  wire-only              | 發送 F1。 || EGM 回應 F1 格式同步驟 8，但： Index = 步驟 8 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 0277-9195-7475-6456 Amount = cashout 金額（分） Ticket Sequence Number = 步驟 8 + 1 Expiration 為 MMDDYYYY 或天數 EGM 
+10.2.3    18  wire-only              | 發送 F4。 || EGM 回應 F4 同步驟 3，但 Sequence Number = 0x03 。
+10.2.3    19  wire-only              | 發送 F3 和 F4。 || EGM 回應 F3 和 F4 與步驟 18 完全相同。
+10.2.3    20  needs human judgement  | 投入 credits 並 cash out to ticket。 || EGM 列印 cashout ticket。 EGM 每 15 秒回報 exception 3D / 3E 。
+10.2.3    21  wire-only              | 發送 F1。 || EGM 回應 F1 格式同步驟 8，但： Index = 步驟 17 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 0677-4902-7529-6352 Amount = cashout 金額（分） Ticket Sequence Number = 步驟 17 + 1 Expiration 為 MMDDYYYY 或天數 EG
+10.2.4     1  wire-only              | 啟動 Loop 1。 || 
+10.2.4     2  wire-only              | 發送 F1。 || EGM 回應格式同 Test 10.2.1 步驟 6，但： Machine Validation ID = 0xFFFFFF Sequence Number = 0xFFFFFE
+10.2.4     3  needs human judgement  | 投入 cashable credits 並 cash out to ticket。觀察 trace window。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D： Validation type = 00 Index > 0（01~1F） Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 0000-0000-8006-1624 Amount = cashout 金額（分） T
+10.2.4     4  wire-only              | 發送 F5。 || EGM 回應同步驟 2，但 Sequence Number = 0xFFFFFF 。
+10.2.4     5  needs human judgement  | 投入 cashable credits 並 cash out to ticket。觀察 trace window。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D： Validation type = 00 Index = 步驟 3 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 3577-5759-0786-4320 Amount = cashout
+10.2.4     6  wire-only              | 發送 F5。 || EGM 回應同步驟 2，但 Sequence Number = 0x0 （從 FFFFFF rollover 到 0）。
+10.2.4     7  needs human judgement  | 投入 cashable credits 並 cash out to ticket。觀察 trace window。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D： Validation type = 00 Index = 步驟 5 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 9529-4486-5049-2376 Amount = cashout
+10.2.4     8  wire-only              | 發送 F5。 || EGM 回應同步驟 2，但 Sequence Number = 0x1 。
+10.2.4     9  wire-only              | 發送 F2 和 F5。 || EGM 回應 F2 和 F5： Machine Validation ID = 0x1 Sequence Number = 0xFFFFFE
+10.2.4    10  wire-only              | 發送 F3 和 F5。 || EGM 回應 F3 和 F5： Machine Validation ID = 0xFFFF99 Sequence Number = 0x999999
+10.2.4    11  needs human judgement  | 投入 cashable credits 並 cash out to ticket。觀察 trace window。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D： Validation type = 00 Index = 步驟 7 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 2195-7162-0687-6517 Amount = cashout
+10.2.4    12  wire-only              | 發送 F5。 || EGM 回應同步驟 10，但 Sequence Number = 0x99999A 。
+10.2.4    13  wire-only              | 發送 F4 和 F5。 || EGM 回應 F4 和 F5： Machine Validation ID = 0x654321 Sequence Number = 0x123456
+10.2.4    14  needs human judgement  | 投入 cashable credits 並 cash out to ticket。觀察 trace window。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D： Validation type = 00 Index = 步驟 11 的 index + 1 Date = 實際 EGM 日期 Time = 實際列印時間 Validation ID = 7166-4767-3591-9448 Amount = cashou
+10.2.4    15  wire-only              | 發送 F5。 || EGM 回應同步驟 13，但 Sequence Number = 0x123457 。
+10.2.4    16  wire-only              | Ctrl + F1。 || EGM NACK Ctrl + F1。
+10.2.4    17  needs human judgement  | 重複步驟 14（投入 credits 並 cash out to ticket）。 || EGM 列印 cashout ticket，validation number = 4329-0620-6382-8368 。
+10.2.5     1  wire-only              | 啟動 Loop 1。 || 
+10.2.5     2  needs human judgement  | 投入現金 credits 並 cash out to ticket。 || EGM 列印 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 00 。
+10.2.5     3  needs human judgement  | 針對剛列印的 ticket，編輯 F2： || Validation number = ticket 上的 validation number Transfer code = 01 （Restricted promotional） Transfer amount = 1000 Parsing code = 0 Restricted expiration = Pool ID = 0 Ticket 上的 validation number 為 ba
+10.2.5     4  needs EGM stimulus     | 插入 ticket。收到 EGM exception 67 後，發送 F1, F2。 || EGM 入帳 $10 credits。
+10.2.5     5  needs human judgement  | Cash out credits to ticket。（假設 EGM 已設定可列印 restricted promotional ticket） || EGM 列印 $10.00 的 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 01 。
+10.2.5     6  needs human judgement  | 針對剛列印的 ticket，編輯 F2 的 Validation data： || Validation number = ticket validation number Transfer code = 02 （Non-restricted promotional） Transfer amount = 1500 Parsing code = 0 Restricted expiration = Pool ID = 0
+10.2.5     7  needs EGM stimulus     | 插入 ticket。收到 EGM exception 67 後，發送 F1, F2。 || EGM 入帳 $15 credits。
+10.2.5     8  needs human judgement  | Cash out credits to ticket。（假設 EGM 設定列印 restricted promotional ticket） || EGM 列印 $15.00 的 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 00 。
+10.2.5     9  needs human judgement  | 投入紙鈔 credits 並遊玩直到產生 win to credit meter。將所有剩餘 credits cash out to ticket。 || EGM 列印 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 00 。
+10.2.5    10  needs human judgement  | 取得一張 cashout ticket。編輯 F2： || Validation number = ticket validation number Transfer code = 01 （Restricted promotional） Transfer amount = 500 Parsing code = 0 Restricted expiration = Pool ID = 0
+10.2.5    11  needs EGM stimulus     | 插入 ticket。收到 EGM exception 67 後，發送 F1, F2。 || EGM 入帳 $5 credits。
+10.2.5    12  needs EGM stimulus     | 下注最多 $5 進行遊玩。 || 
+10.2.5    13  needs human judgement  | Cash out 因贏分產生的剩餘 credits。若步驟 12 無贏分，重複步驟 10~12 直到有 credits 可 cashout。 || EGM 列印剩餘 credits 的 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 00 。
+10.2.6     1  wire-only              | 啟動 Loop 1。 || 
+10.2.6     2  needs human judgement  | 調整 cashout/credit limit 使 cashout handpay 可觸發。若支援 handpay receipt 則啟用，否則跳至步驟 8。 || 
+10.2.6     3  needs human judgement  | 投入足夠 credits 以觸發 handpay。Cash out credits。 || EGM 鎖定為 handpay 狀態。
+10.2.6     4  needs human judgement  | Reset handpay。 || EGM 列印 Cashout Receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 10 。
+10.2.6     5  needs EGM stimulus     | 調整 jackpot/credit limit 使 win to handpay 容易觸發。 || 
+10.2.6     6  needs human judgement  | 投入 credits 並遊玩直到觸發 win to handpay。 || EGM 鎖定為 handpay（win amount）。
+10.2.6     7  needs human judgement  | Reset handpay。 || EGM 列印 Jackpot Receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 20 。
+10.2.6     8  needs human judgement  | 停用 handpay receipt（若目前已啟用）。 || 
+10.2.6     9  needs EGM stimulus     | 調整 cashout/credit limit 使 cashout handpay 可觸發。 || 
+10.2.6    10  needs human judgement  | 投入足夠 credits 以觸發 handpay。Cash out credits。 || EGM 鎖定為 handpay。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 40 。
+10.2.6    11  needs EGM stimulus     | 調整 jackpot/credit limit 使 win to handpay 容易觸發。 || 
+10.2.6    12  needs human judgement  | 投入 credits 並遊玩直到觸發 win to handpay。 || EGM 鎖定為 handpay（win amount）。
+10.2.6    13  needs human judgement  | Reset handpay。 || EGM 列印 Jackpot Receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2，Validation Type = 60 。
+10.2.7     1  wire-only              | 啟動 Loop 1。 || 
+10.2.7     2  needs EGM stimulus     | 重新調整 credit/jackpot limit 使 cashout ticket 可正常產出。 || 
+10.2.7     3  needs human judgement  | 投入 credits。Cash out to ticket 並觀察 trace window 中 Long Poll 4D 的回應。記錄回應中的 Index number 以供後續比較。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2： Index number > 0（01~1F） Ticket number > 0（0000~270F），LSB first Long Poll 4D 回應中的 Ticket number 與列印 ticket 上的號碼一
+10.2.7     4  needs human judgement  | 重複步驟 3 直到回應中的 Index number = 01。 || Index number 從某值依序遞增到 N，然後 rollback 到 1（跳過 0），其中 N 為 Ticket buffer size，N 必須在 5~31 之間。 Ticket number 持續遞增，本測試中不會 rollback 到 0。 每次 Ticket number 都與列印 ticket 號碼一致。
+10.2.7     5  needs EGM stimulus     | Power cycle EGM 並等待通訊重新建立。 || 
+10.2.7     6  needs human judgement  | 投入 credits 並 cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2： Index number = 02 Ticket number = 步驟 4 最後一張 ticket + 1 Ticket number 與列印 ticket 號碼一致。
+10.2.7     7  wire-only              | 修改 F1 的 function code = 1。 || EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2： 包含正確的 ticket 資料 Index number = 01 。
+10.2.7     8  wire-only              | 重複步驟 7，依序使用 function code = 2 到 N（N = ticket buffer size）。 || EGM 回應 Long Poll 4D 格式同 Test 10.2.3 步驟 2： 包含正確的 ticket 資料 Index number = F1 中輸入的 function code。
+10.2.8     1  wire-only              | 啟動 Loop 1 並發送 F1 確認 EGM 與 HostSim 已同步。 || 
+10.2.8     2  needs EGM stimulus     | 重新調整 credit/jackpot limit 使 cashout ticket 可正常產出。 || 
+10.2.8     3  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。
+10.2.8     4  needs human judgement  | 投入 credits。再次 cash out to ticket。 || EGM 鎖定為 handpay（credit amount）。
+10.2.8     5  needs human judgement  | Reset handpay。 || EGM 恢復可遊玩狀態。 EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.8     6  needs human judgement  | 投入 credits。再次 cash out to ticket。 || EGM 再次鎖定為 handpay（credit amount）。
+10.2.8     7  needs human judgement  | Reset handpay。 || EGM 恢復可遊玩狀態。 EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.8     8  needs human judgement  | Power cycle EGM 並等待通訊重新建立。 || EGM 開機後仍可遊玩。 EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.8     9  needs human judgement  | 投入 credits。再次 cash out to ticket。Reset handpay。 || EGM 再次鎖定為 handpay（credit amount）。 Reset 後 EGM 恢復可遊玩。 EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.8    10  wire-only              | 重複發送 F1 直到 Long Poll 4D 回應資料 = 全零。 || 
+10.2.8    11  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。
+10.2.8    12  wire-only              | 發送 F1。 || EGM 回應 Long Poll 4D 帶正確的 ticket 資料。 EGM 停止回報 exception 3D / 3E 。
+10.2.8    13  needs EGM stimulus     | 投入 credits。 || 
+10.2.8    14  wire-only              | 停止 Loop 1 並等待 > 10 秒。 || 
+10.2.8    15  needs human judgement  | Cash out credits to ticket。 || EGM 鎖定為 handpay（credit amount）。
+10.2.8    16  needs EGM stimulus     | Reset handpay。 || 
+10.2.8    17  wire-only              | 啟動 Loop 1。發送 F1。 || EGM 回應 Long Poll 4D 帶正確的 ticket 資料。 EGM 停止回報 exception 3D / 3E 。
+10.2.8    18  needs human judgement  | 投入 credits 並列印 tickets。列印 N-1 張 ticket（N = ticket buffer size）。 || EGM 持續每 15 秒回報 exception 3D 或 3E 。 EGM 保持可遊玩狀態。
+10.2.8    19  needs EGM stimulus     | 投入 credits。 || 投入 credits 後，EGM 變為 disabled。 （因為 buffer 僅剩一個位置可存放未讀取的 validation information） EGM 持續每 15 秒回報 exception 3D 或 3E 。
+10.2.8    20  needs human judgement  | 發送 F1 一次。 || EGM 回應 F1 帶 buffer 中最舊的未讀取 ticket 資訊。 EGM 持續回報 exception 3D / 3E 。 EGM 恢復為可遊玩狀態。
+10.2.8    21  wire-only              | 重複發送 F1 直到 Long Poll 4D 回應資料 = 全零。 || EGM 逐一回應正確的 ticket 資料，直到所有 ticket 記錄都已被讀取。
+10.2.9     1  needs EGM stimulus     | 啟動 Loop 1。本測試假設 Long Poll 7B 和 7C 先前未發送過。若已發送，可能需 RAM clear。 || 
+10.2.9     2  wire-only              | 發送 F1。 || EGM 回應 F1： (01) 1-byte Address (7D) 1-byte command (01) 1-byte ACK flag (0000-FFFF) 2-byte CRC, LSB first
+10.2.9     3  wire-only              | 發送 F8。 || EGM 回應 F8 同步驟 2，但 ACK flag = 0 。
+10.2.9     4  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 30 天或 MMDDYYYY（EGM 當前日期 + 30 天）。 列印 ticket 包含： Expiration = 30 天 Location = Test Casino Address1 = 111 Penny Lane Address2 =
+10.2.9     5  wire-only              | 發送 F2。 || EGM 不回應 F2（Global poll，address 0）。
+10.2.9     6  wire-only              | 發送 F8。 || EGM 回應 F8 同步驟 2（ACK flag = 01）。
+10.2.9     7  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天或 MMDDYYYY（EGM 當前日期 + 255 天）。 列印 ticket 包含： Expiration = 255 天 Location = Test Casino 2 Address1 = 111 Penny Lane 2 Add
+10.2.9     8  wire-only              | 發送 F3。 || EGM 回應 F3 同步驟 2（ACK flag = 01）。
+10.2.9     9  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 30 天 Location = （空） Address1 = 111 Penny Lane Address2 = Anywhere World 01210
+10.2.9    10  wire-only              | 發送 F4。 || EGM 回應 F4 同步驟 2（ACK flag = 01）。
+10.2.9    11  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 30 天 Location = Test Casino Address1 = （空） Address2 = Anywhere World 01210
+10.2.9    12  wire-only              | 發送 F5。 || EGM 不回應 F5（Global poll，address 0）。
+10.2.9    13  wire-only              | 發送 F8。 || EGM 回應 F8 同步驟 2（ACK flag = 01）。
+10.2.9    14  wire-only              | 再次發送 F8。 || EGM 回應 F8 同步驟 2，但 ACK flag = 0 。
+10.2.9    15  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 30 天 Location = Test Casino Address1 = 111 Penny Lane Address2 = （空）
+10.2.9    16  wire-only              | 發送 F6。 || EGM 回應 F6 同步驟 2（ACK flag = 01）。
+10.2.9    17  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 99 天 Location = （空） Address1 = （空） Address2 = （空）
+10.2.9    18  wire-only              | 每秒發送 F1 兩次，持續 5 秒。 || EGM 對每個 F1 都回應同步驟 2（ACK flag = 01）。
+10.2.9    19  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 30 天或 MMDDYYYY。 列印 ticket 包含： Expiration = 30 天 Location = Test Casino Address1 = 111 Penny Lane Address2 = Anywhere World 0
+10.2.9    20  wire-only              | 發送 F7 並記錄回應。 || 
+10.2.9    21  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 若步驟 20 中 EGM 回應 F7 的 ACK flag = 01 ，則： Long Poll 4D expiration = 254 天 Ticket 上 Expiration = 254 天 Location = AB Address1 = a Address2 = b  否則（ACK flag ≠
+10.2.10    1  wire-only              | 啟動 Loop 1。本測試假設 EGM 支援 Validation Extensions（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.10    2  wire-only              | 發送 F7。 || EGM 回應 F7，ACK flag = 01 。
+10.2.10    3  wire-only              | 發送 F1。 || EGM 回應 F1： (01) 1-byte Address (7C) 1-byte command (01) 1-byte ACK flag (0000-FFFF) 2-byte CRC, LSB first
+10.2.10    4  wire-only              | 發送 F6。 || EGM 回應 F6 同步驟 3，但 ACK flag = 0 。
+10.2.10    5  needs human judgement  | 投入 credits。Cash out to ticket。本測試假設 Long Poll 7B 先前未發送過。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天或 MMDDYYYY。 列印 ticket 包含： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = TEST CASINO Address1 = 111
+10.2.10    6  wire-only              | 發送 F2。 || EGM 不回應 F2（Global poll，address 0）。
+10.2.10    7  wire-only              | 發送 F6 兩次。 || 第 1 次 F6：EGM 回應同步驟 3（ACK flag = 01）。 第 2 次 F6：ACK flag = 00 。
+10.2.10    8  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印正確金額的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天。 列印 ticket 包含： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = TEST CASINO 2 Address1 = 111 PENNY L
+10.2.10    9  wire-only              | 發送 F3。 || EGM 回應 F3 同步驟 3（ACK flag = 01）。
+10.2.10   10  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = （Default 或先前 7D 資料） Address1 = （Default 或先前 7D 資料） Address2 = （Default 或先前 7D 資料）
+10.2.10   11  wire-only              | 再次發送 F1。 || EGM 回應 F1 同步驟 3（ACK flag = 01）。
+10.2.10   12  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = TEST CASINO Address1 = 111 PENNY LANE Address2 = ANYWHERE, WORLD 01210
+10.2.10   13  wire-only              | 發送 F7。 || EGM 回應 F7，ACK flag = 01 。
+10.2.10   14  needs human judgement  | 投入 credits。Cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = TEST CASINO Address1 = 111 PENNY LANE Address2 = ANYWHERE, WORLD 01210
+10.2.10   15  needs EGM stimulus     | Power cycle EGM 並等待通訊重新建立。 || 
+10.2.10   16  needs human judgement  | 投入 credits 並 cash out to ticket。 || EGM 列印 ticket 並回應 Long Poll 4D： Expiration = 255 天 Ticket title = （預設，如 Cashout Ticket） Location = TEST CASINO Address1 = 111 PENNY LANE Address2 = ANYWHERE, WORLD 01210
+10.2.11    1  needs human judgement  | 啟動 Loop 1。本測試假設 EGM 支援列印 restricted tickets 和 Validation Extensions（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.11    2  wire-only              | 發送 F1。 || EGM 不回應 F1（Global poll，address 0）。
+10.2.11    3  needs human judgement  | 取得一張 ticket 並修改 F5 的 Validation data： || Validation number = ticket validation number Amount = 1700 Transfer code = 01 其他欄位 = 0
+10.2.11    4  needs EGM stimulus     | 插入 ticket，收到 exception 67 後發送 F4, F5。 || EGM 入帳 $17 credits。
+10.2.11    5  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $17.00 的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天。 列印 ticket 包含： Expiration = 255 天 Ticket title = PLAYABLE ONLY 2 Location = TEST CASINO 2 Address1 = 111 PENNY LAN
+10.2.11    6  wire-only              | 發送 F2。 || EGM 回應 F2，ACK flag = 01 。
+10.2.11    7  needs human judgement  | 取得一張 ticket 並修改 F5 的 Validation data： || Validation number = ticket validation number Amount = 1400 Transfer code = 01 其他欄位 = 0
+10.2.11    8  needs EGM stimulus     | 插入 ticket，收到 exception 67 後發送 F4, F5。 || EGM 入帳 $14 credits。
+10.2.11    9  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $14.00 的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天。 列印 ticket 包含： Expiration = 255 天 Ticket title = （Default title） Location = TEST CASINO 2 Address1 = 111 PENNY LAN
+10.2.11   10  wire-only              | 發送 F3。 || EGM 回應 F3，ACK flag = 01 。
+10.2.11   11  needs human judgement  | 取得一張 ticket 並修改 F5 的 Validation data： || Validation number = ticket validation number Amount = 1900 Transfer code = 01 其他欄位 = 0
+10.2.11   12  needs EGM stimulus     | 插入 ticket，收到 exception 67 後發送 F4, F5。 || EGM 入帳 $19 credits。
+10.2.11   13  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $19.00 的 ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應 expiration = 255 天。 列印 ticket 包含： Expiration = 255 天 Ticket title = RESTRICTED PROMO Location = TEST CASINO 2 Address1 = 111 PENNY LA
+10.2.12    1  needs human judgement  | 啟動 Loop 1。本測試假設 EGM 支援 Validation Extensions 且已啟用 handpay validation 和 receipt printing（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.12    2  needs human judgement  | 發送 F5。 || EGM 回應 F5： (01) 1-byte Address (7B) 1-byte command (00-nn) 1-byte 後續 byte 數（不含 CRC） (00000000-FFFFFFFF) 4-byte Asset number, LSB first (0000-3F80) 2-byte Status bits, LSB first (0000-9999) 2-BCD Casha
+10.2.12    3  needs EGM stimulus     | 若步驟 2 中 Status bit 0 或 1 = 0，檢查 EGM 對應設定（必要時 RAM clear 並重新設定）。 || 
+10.2.12    4  wire-only              | 發送 F1。 || EGM 回應 F1 同步驟 2，但 Status bit 0 = 0 。
+10.2.12    5  needs human judgement  | 投入 credits 並 cash out to ticket。 || EGM 鎖定為 handpay。
+10.2.12    6  needs human judgement  | Reset handpay。 || EGM 列印 handpay receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 10 Amount = handpay 金額（分）。
+10.2.12    7  wire-only              | 發送 F2, F5。 || EGM 回應 F5 同步驟 2，但 Status bit 0 = 1 。
+10.2.12    8  needs EGM stimulus     | 投入 credits。 || 
+10.2.12    9  needs human judgement  | Cash out credits to ticket。 || EGM 列印正確金額的 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 00 Amount = cashout 金額（分）。
+10.2.12   10  wire-only              | 發送 F3, F1。 || EGM 回應 F1： Status bit 0 = 0 Status bit 1 = 0
+10.2.12   11  needs human judgement  | 投入 credits 並 cash out to ticket。 || EGM 鎖定為 handpay。
+10.2.12   12  needs human judgement  | Reset handpay。 || EGM 不列印 handpay receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 40 Amount = handpay 金額（分）。
+10.2.12   13  needs EGM stimulus     | 調整 jackpot/credit limit 使 win to handpay 容易觸發。 || 
+10.2.12   14  needs EGM stimulus     | 投入 credits 並遊玩直到觸發 win to handpay。 || 
+10.2.12   15  needs human judgement  | Reset handpay。 || EGM 不列印 jackpot receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 60 Amount = handpay 金額（分）。
+10.2.12   16  wire-only              | 發送 F4。 || EGM 回應 F4 同步驟 10 的 F1 回應，但 Status bit 1 = 1 。
+10.2.12   17  needs human judgement  | 投入 credits 並 cashout。 || EGM 鎖定為 handpay。
+10.2.12   18  needs human judgement  | Reset handpay。 || EGM 列印 handpay receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 10 Amount = handpay 金額（分）。
+10.2.13    1  needs human judgement  | 啟動 Loop 1。本測試假設 EGM 支援 Validation Extensions；handpay validation 和 receipt printing 已啟用（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.13    2  wire-only              | 發送 F1。 || EGM 回應 F1 同 Test 10.2.12 步驟 2，且 Status bit 0~2 = 1 。
+10.2.13    3  needs EGM stimulus     | 若步驟 2 中 Status bit 0、1 或 2 = 0，檢查 EGM 對應設定（必要時 RAM clear 並重新設定），否則進入步驟 4。 || 
+10.2.13    4  wire-only              | 發送 F4。 || EGM 回應同 Test 10.2.12 步驟 2，且 Status bit 2 = 0 。
+10.2.13    5  needs EGM stimulus     | 調整 cashout/credit limit 使 cashout handpay 可觸發。 || 
+10.2.13    6  needs human judgement  | 投入 credits 並 cashout。 || EGM 鎖定為 handpay。
+10.2.13    7  needs human judgement  | Reset handpay。 || EGM 不列印 handpay receipt。 EGM 不發送 exception 3D 或 3E 。
+10.2.13    8  needs EGM stimulus     | 投入 credits 並遊玩直到觸發 win to handpay。 || 
+10.2.13    9  needs human judgement  | Reset handpay。 || EGM 不列印 jackpot receipt。 EGM 不發送 exception 3D 或 3E 。
+10.2.13   10  wire-only              | 發送 F5。 || EGM 回應 F5 同 Test 10.2.12 步驟 2，且 Status bit 2 = 1 。
+10.2.13   11  needs EGM stimulus     | 調整 cashout/credit limit 使 cashout handpay 可觸發。 || 
+10.2.13   12  needs human judgement  | 投入足夠 credits 觸發 handpay。Cash out credits。 || EGM 鎖定為 handpay。
+10.2.13   13  needs human judgement  | Reset handpay。 || EGM 列印 handpay receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 10 Amount = handpay 金額（分）。
+10.2.13   14  needs EGM stimulus     | 調整 jackpot limit 使 win to handpay 容易觸發。投入 credits 並遊玩直到觸發 win to handpay。 || 
+10.2.13   15  needs human judgement  | Reset handpay。 || EGM 列印 jackpot receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 20 Amount = handpay 金額（分）。
+10.2.13   16  wire-only              | 發送 F3。 || EGM 回應 F3 同 Test 10.2.12 步驟 2，且 Status bit 1 = 0 。
+10.2.13   17  needs EGM stimulus     | 調整 cashout/credit limit 使 cashout handpay 可觸發。 || 
+10.2.13   18  needs human judgement  | 投入足夠 credits 觸發 handpay。Cash out credits。 || EGM 鎖定為 handpay。
+10.2.13   19  needs human judgement  | Reset handpay。 || EGM 不列印 handpay receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 40 Amount = handpay 金額（分）。
+10.2.13   20  needs EGM stimulus     | 調整 jackpot limit 使 win to handpay 容易觸發。投入 credits 並遊玩直到觸發 win to handpay。 || 
+10.2.13   21  needs human judgement  | Reset handpay。 || EGM 不列印 jackpot receipt。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D（格式同 Test 10.2.3）： Validation Type code = 60 Amount = handpay 金額（分）。
+10.2.14    1  needs human judgement  | 啟動 Loop 1。本測試假設 EGM 支援 Validation Extensions 且已啟用列印 restricted ticket 和 ticket redemption（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.14    2  needs human judgement  | 設定 EGM 允許列印 restricted tickets 和 ticket redemption（如尚未設定，RAM clear）。 || 
+10.2.14    3  needs human judgement  | 發送 F1。 || EGM 回應 F1 同 Test 10.2.12 步驟 2： Status bit 3 = 1 （允許列印 restricted ticket） Status bit 4 = 1 （允許列印 foreign restricted tickets）
+10.2.14    4  needs human judgement  | 取得一張 cashout ticket。編輯 F8： || Validation Number = ticket validation number Amount = 1200 Transfer code = 01 其他欄位 = 0
+10.2.14    5  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F7, F8。 || EGM 入帳 $12.00。
+10.2.14    6  needs human judgement  | Cash out credits to ticket。 || EGM 列印 restricted promotional ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 帶正確 validation data（validation type code = 01 ）。
+10.2.14    7  wire-only              | 發送 F3。 || EGM 回應 F3 同步驟 3，但 Status bit 3 = 0 。
+10.2.14    8  needs human judgement  | 取得上一張 cashout ticket。編輯 F8： || Validation Number = ticket validation number Amount = 900 Transfer code = 01 其他欄位 = 0
+10.2.14    9  needs EGM stimulus     | 插入 ticket，收到 exception 67 後，發送 F7, F8。 || EGM 入帳 $9.00。
+10.2.14   10  needs human judgement  | Cash out credits to ticket。 || EGM 不列印 ticket。 EGM 可能短暫顯示 promotional credits 無法 cashout 的訊息。
+10.2.14   11  needs EGM stimulus     | 投入現金 credits 並 cash out to ticket。 || EGM 僅列印 cashable 金額的 cashout ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 帶正確 validation data（validation type code = 00 ）。
+10.2.14   12  wire-only              | 發送 F4。 || EGM 回應 F4 同步驟 3，且 Status bit 3 = 1 。
+10.2.14   13  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $9.00 的 restricted ticket。 EGM 回應 Long Poll 4D 同步驟 6。
+10.2.14   14  wire-only              | 發送 F2。 || EGM 回應 F2 同步驟 3，且 Status bit 0 = 0 。
+10.2.14   15  needs human judgement  | 取得一張 cashout ticket。編輯 F8： || Validation Number = ticket validation number Amount = 700 Transfer code = 01 其他欄位 = 0
+10.2.14   16  needs EGM stimulus     | 插入 ticket，收到 exception 67 後，發送 F7, F8。 || EGM 入帳 $7.00。
+10.2.14   17  needs human judgement  | Cash out credits to ticket。 || EGM 不 cashout credits。 EGM 可能短暫顯示 printer 不可用或類似訊息。
+10.2.14   18  wire-only              | 發送 F1。 || EGM 回應 F1：bit 0~5 = 1 ，bit 15 = 1 。
+10.2.14   19  needs human judgement  | 再次 cash out credits to ticket。 || EGM 列印 $7.00 的 restricted ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 帶正確 validation data（validation type code = 01 ）。
+10.2.14   20  wire-only              | 發送 F5。 || EGM 回應 F5 同步驟 18，但 bit 4 = 0 。
+10.2.14   21  needs human judgement  | 取得一張 cashout ticket。編輯 F8： || Validation Number = ticket validation number Amount = 1100 Transfer code = 01 其他欄位 = 0
+10.2.14   22  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F7, F8。 || EGM 入帳 $11.00。
+10.2.14   23  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $11.00 的 restricted ticket。 EGM 發送 exception 3D 或 3E 。 EGM 回應 Long Poll 4D 帶正確 validation data（validation type code = 01 ）。
+10.2.14   24  needs EGM stimulus     | 投入現金 credits。 || 
+10.2.14   25  needs human judgement  | 取得一張 cashout ticket。編輯 F8： || Validation Number = ticket validation number Amount = 500 Transfer code = 01 其他欄位 = 0
+10.2.14   26  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F7, F8。 || EGM 入帳 $5.00。
+10.2.14   27  needs human judgement  | Cash out credits to ticket。 || EGM 列印步驟 24 投入金額的 cashout ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應正確 validation data（validation type code = 00 ）。 EGM 可能緊接著列印 $5.00 的 restricted ticket。 EGM 持續發送 exception 3D / 3E 直到 host 發送
+10.2.15    1  wire-only              | 啟動 Loop 1。本測試假設 EGM 支援 Validation Extensions 且已啟用 secure enhanced 和 ticket redemption（見 Test 10.2.1 Long Poll A0 回應，feature code 1, bit4）。 || 
+10.2.15    2  needs human judgement  | 設定 EGM 允許列印 restricted tickets 和 ticket redemption（如尚未設定，RAM clear）。 || 
+10.2.15    3  wire-only              | 發送 F1。 || EGM 回應 F1 同 Test 10.2.12 步驟 2： Status bit 5 = 1 （允許 ticket redemption）
+10.2.15    4  needs human judgement  | 取得一張 cashout ticket。編輯 F5： || Validation Number = ticket validation number Amount = 400 Transfer code = 01 其他欄位 = 0
+10.2.15    5  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F4, F5。 || EGM 入帳 $4.00（restricted promotional credits）。
+10.2.15    6  needs human judgement  | 取得一張 cashout ticket。編輯 F5： || Validation Number = ticket validation number Amount = 600 Transfer code = 00 其他欄位 = 0
+10.2.15    7  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F4, F5。 || EGM 入帳 $6.00（cashable）。
+10.2.15    8  wire-only              | 發送 F2。 || EGM 回應 F2 同步驟 3，但 Status bit 5 = 0 。
+10.2.15    9  needs EGM stimulus     | 插入任何 ticket 並觀察 trace window。 || EGM 不回報 exception 67 。 EGM 立即退出 ticket。
+10.2.15   10  needs human judgement  | Cash out credits。 || EGM 列印 $6.00 的 cashout ticket。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應正確 validation data（validation type code = 00 ）。 EGM 可能緊接著列印 $4.00 的 restricted ticket。 EGM 持續發送 exception 3D / 3E 直到 host 發送 Lo
+10.2.15   11  wire-only              | 發送 F3。 || EGM 回應 F3 同步驟 3，且 Status bit 5 = 1 。
+10.2.15   12  needs human judgement  | 取得一張 cashout ticket。編輯 F5： || Validation Number = ticket validation number Amount = 800 Transfer code = 01 其他欄位 = 0
+10.2.15   13  needs EGM stimulus     | 插入 ticket，收到 exception 67 後，發送 F4, F5。 || EGM 入帳 $8.00（restricted promotional）。
+10.2.15   14  needs human judgement  | 取得一張 cashout ticket。編輯 F5： || Validation Number = ticket validation number Amount = 1300 Transfer code = 02 其他欄位 = 0
+10.2.15   15  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F4, F5。 || EGM 入帳 $13.00（non-restricted promotional）。
+10.2.15   16  needs human judgement  | 取得一張 cashout ticket。編輯 F5： || Validation Number = ticket validation number Amount = 200 Transfer code = 00 其他欄位 = 0
+10.2.15   17  needs EGM stimulus     | 插入 ticket。收到 exception 67 後，發送 F4, F5。 || EGM 入帳 $2.00（cashable）。
+10.2.15   18  needs human judgement  | Cash out credits to ticket。 || EGM 列印 $15.00 的 cashout ticket（$2 cashable + $13 non-restricted）。 EGM 發送 exception 3D 或 3E 。 Long Poll 4D 回應正確 validation data（validation type code = 00 ）。 EGM 可能緊接著列印 $8.00 的 restricted ticket。 EGM 持
+10.1.1     1  needs EGM stimulus     | 如有必要，RAM clear EGM。設定 EGM 為 standard validation。 || 
+10.1.1     2  wire-only              | 啟動 Polling Loop。發送 F1。 EGM 回應 LP A0，格式符合 [2] Table 7.14b，且 Feature Codes 1 bit 6~5 = 00（符合 [2] Table 7.14c）。 || 
+10.1.2     1  wire-only              | 啟動 Loop 1。 || 
+10.1.2     2  needs EGM stimulus     | 插入數張 cashout ticket 並觀察 trace window。 EGM 不回報 exception 67。 EGM 不接受（stack）或給予信用（credit）該票券。 || 
+10.1.3     1  wire-only              | 啟動 Loop 1，發送 F1 確認通訊已同步。 || 
+10.1.3     2  needs EGM stimulus     | 開啟再關閉 EGM 門。 || 
+10.1.3     3  needs human judgement  | 在 EGM 上有 credits 的情況下，按 cashout。 EGM 列印票券。 || 
+10.1.3     4  needs EGM stimulus     | 按 Service 按鈕點亮再清除。 || 
+10.1.3     5  wire-only              | 重複發送 F2 直到 trace window 出現 exception 00 或 1F。檢視 trace window。 EGM 在第一個 general poll 回應中送出一個 1-byte exception 3D (Ticket Printed)，接著在後續 general poll 回應 || 
+10.1.3     6  wire-only              | 發送 F3。 EGM 回應 F3，格式： (01) 1-byte EGM address (3D) 1-byte command (XXXX) 4-BCD standard validation number (XXXXX) 5-BCD 票券金額（cents） (0000-FFFF) 2-byte  || 
+10.1.3     7  needs human judgement  | 投入 credits 到 EGM 並 cashout。 EGM 列印票券。 || 
+10.1.3     8  wire-only              | 停止 Loop 1。依序發送 F1, F2, F2, F2, F1, F2, F1。 EGM 在前兩個 F2 回應中送出 exception 3D，第三個 F2 可忽略或送出 3D。 EGM 在最後一個 F2 回應中送出 exception 3D。 || 
+10.1.3     9  wire-only              | 啟動 Loop 2。 || 
+10.1.3    10  needs human judgement  | 投入 credits 並按 cashout。 EGM 列印正確金額的票券。 EGM 發出 exception 3D。 || 
+10.1.3    11  needs human judgement  | 再次投入 credits 並按 cashout。 EGM 列印正確金額的票券。 EGM 發出 exception 3D。 || 
+10.1.3    12  wire-only              | 發送 F3。 EGM 回應 F3，validation ID 非零，金額與 Step 11 的出票金額一致。 || 
+10.1.3    13  wire-only              | 如有更多 exception 3D 被回報，再發送 F3。 EGM 回應 F3。若 validation ID 和金額非零，應對應 Step 11 列印的票券。 || 
+10.1.3    14  wire-only              | 發送 F3。 EGM 回應 F3，格式與 Step 6 相同。 || 
+10.1.3    15  needs human judgement  | 若 EGM 支援，設定 EGM 列印 cashout receipt。投入 credits 並 cashout。發送 F3。 EGM 列印 cashout receipt 並送出 exception 3D。 EGM 適當回應 F3。 || 
+10.1.3    16  needs human judgement  | 若 EGM 支援，設定 EGM 列印 jackpot receipt。投入 credits 並遊玩到贏得 jackpot。發送 F3。 EGM 列印 jackpot receipt 並送出 exception 3D。 EGM 適當回應 F3。 || 
+10.1.4     1  needs EGM stimulus     | 若 EGM 支援多 SAS 通道且 standard validation 可設定在不同通道，則設定並啟用至少兩個 SAS 通道（standard validation 在其中一個）。若僅支援單通道，跳過此測試。 || 
+10.1.4     2  wire-only              | 確認 SASHostSim 連接到 validation 通道。啟動 Loop 1。 || 
+10.1.4     3  needs human judgement  | 投入 credits 並按 cashout。 EGM 列印票券。 EGM 送出 exception 3D。 || 
+10.1.4     4  needs EGM stimulus     | 將 SASHostSim 切換到非 validation 的通道。 EGM 送出一次 exception 3D。 || 
+10.1.4     5  wire-only              | 發送 F1。 EGM 忽略 F1， 或 EGM 回應 F1，但 validation ID 和金額為零。 || 
+10.1.4     6  needs EGM stimulus     | 將 SASHostSim 切換回 validation 通道。再次發送 F1。 EGM 適當回應 F1，含非零的 validation number 和已列印的票券金額。 || 
+10.1.5     1  wire-only              | 啟動 Loop 1 並選擇 Meter Set 1。 || 
+10.1.5     2  wire-only              | 發送 F1，驗證 feature code 2, bit 2。參見 10.1.1 通過標準。 || 
+10.1.5     3  needs human judgement  | 觀察 Meter Set 1 並記錄目前的值。 各 meter code 的值與 EGM 上對應的計量器一致： 0004 – total cancelled credits 000E – Total tickets out credits 0012 – Total tickets out count || 
+10.1.5     4  needs EGM stimulus     | 投入 credits 並 cashout。 EGM 發出 exception 3D 並回應 LP 3D（cashout 資訊）。 || 
+10.1.5     5  needs human judgement  | 觀察 Meter Set 1 視窗。 • 0004 增加 cashout 金額（SAS accounting credits）若 LP A0 feature 2 bit 2 = 1；否則不遞增。 • 0016 和 002C 增加 cashout 金額（SAS accounting credits）。 || 
+10.1.5     6  needs human judgement  | 投入 $10 的 credits。遊玩掉 $5。將剩餘全部 cashout。 EGM 列印正確 cashout 金額的票券。 EGM 發出 exception 3D。 EGM 回應 LP 3D，validation ID 非零且金額正確。 || 
+10.1.5     7  needs human judgement  | 選擇並觀察 Meter Set 1。 （遞增規則同 Step 5，基於 Step 6 的 cashout 金額） || 
+10.1.5     8  needs EGM stimulus     | 調整 cashout limit，使可產生 cashout-to-handpay。投入足夠 credits。 || 
+10.1.5     9  needs human judgement  | Cashout credits 以觸發 handpay。重置 handpay。觀察 Meter Set 1。 0004 增加 handpay 金額（accounting credits）。 其他 meter 不遞增。 || 
+10.1.5    10  needs EGM stimulus     | 調整 credit/jackpot limit，使 win-to-handpay 容易觸發。 || 
+10.1.5    11  needs human judgement  | 投入 credits 並遊玩到 win-to-handpay 發生，觀察 Meter Set 1。 所有 meter 值不遞增。 || 
+10.1.5    12  needs EGM stimulus     | 調整 credit/cashout limit，使 win-to-printer 容易觸發。 || 
+10.1.5    13  needs human judgement  | 投入 credits 並遊玩到 win-to-printer 發生，觀察 Meter Set 1。 （遞增規則同 Step 5，基於 win-to-printer 金額） || 
+10.1.6     1  wire-only              | 啟動 Loop 1，發送 F1 確認通訊同步。 || 
+10.1.6     2  wire-only              | 發送 F3 啟用 RTE。 EGM ACK F3。 || 
+10.1.6     3  needs human judgement  | 投入 credits 並按 cashout。 EGM 列印票券。 EGM 在回應 EGM address 的 host long poll 時送出 RTE 格式的 exception 3D： (01) 1-byte EGM address (FF) 1-byte RTE Identifier (3D || 
+10.1.6     4  needs human judgement  | 投入 credits。停止 Loop 1，然後 cashout。 EGM 列印票券。 || 
+10.1.6     5  wire-only              | 發送 F1, F2, F1, F2, F1, F2。 EGM 在回應 general poll 81 時送出 RTE 格式的 exception 3D（格式同 Step 3）。 || 
+10.1.6     6  wire-only              | 啟動 Loop 1。發送 F4 停用 RTE。 || 
+10.1.7     1  wire-only              | 啟動 Loop 1。 || 
+10.1.7     2  needs human judgement  | 投入 credits 並 cashout。 EGM 列印票券，含正確資料。 EGM 送出 exception 3D。 || 
+10.1.7     3  needs EGM stimulus     | Power cycle EGM，等待通訊重新建立。 || 
+10.1.7     4  wire-only              | 發送 F1。 EGM 回應 LP 3D，validation ID 和金額與 Step 2 列印的票券一致。 || 
+10.1.7     5  needs human judgement  | 投入 credits 並 cashout。 EGM 列印票券，含正確資料。 EGM 送出 exception 3D。 EGM 回應 LP 3D，validation ID 和金額與本次票券一致。 此票的 validation ID 非零且與 Step 2 的 ID 不同。 || 
+10.1.7     6  wire-only              | 發送 F1。 EGM 回應 LP 3D，validation ID 和金額與 Step 5 的票券一致。 || 
+10.1.7     7  needs EGM stimulus     | RAM clear EGM 並重新設定為 standard validation。確認 EGM 與 HostSim 通訊正常。 || 
+10.1.7     8  needs human judgement  | 投入 credits 並 cashout。 EGM 列印票券，含正確資料。 EGM 送出 exception 3D。 EGM 回應 LP 3D，validation ID 和金額與本次票券一致。 此票的 validation ID 非零且與 Step 2 或 4 的 ID 不同。 || 
+10.1.7     9  wire-only              | 發送 F1。 EGM 回應 F1，validation ID 非零且金額與 Step 8 的票券一致。 || 
+10.1.7    10  needs human judgement  | 再重複 Step 5 和 6 一次。 此票的 validation ID 與先前所有已列印票券的 ID 不同。 || 

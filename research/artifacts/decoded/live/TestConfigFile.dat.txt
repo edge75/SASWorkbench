@@ -1,0 +1,3 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\TestConfigFile.dat ===
+  version   : 20
+  test file : 'Legacy_Bonus.dat'

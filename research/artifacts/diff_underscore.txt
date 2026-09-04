@@ -1,0 +1,129 @@
+--- sastest.ini	2025-02-25 17:19:14.072591300 +0100
++++ /c/IGT3/_________sastest.ini	2017-03-02 02:59:24.000000000 +0100
+@@ -4,7 +4,7 @@
+ 
+ [SAS Protocols]
+ Wakeup Delay = 2
+-Port = 11
++Port = 3
+ Poll Rate = 200
+ Address = 1
+ Validation = Enhanced
+@@ -1580,12 +1580,63 @@
+ 017400019000
+ 0174ff000000
+ 014C000001000000
+-81
+ 016F0e0000000001000200030004000d00
++80
++81
++81
+ 
+ [Script]
+-80 = Sending Sync
+-81 = General poll
++01210000 = ROM signature verification
++010f = send meters
++0110
++0111
++0112
++0113
++0115
++0116
++0117
++0118
++0119
++011a
++011e
++011f
++0120
++0131
++0132
++0133
++0134
++0135
++0136
++0137
++0146
++0148
++0154
++016F0000000064CF
++017B
++017E
++01A0
++012F0000008B2B
++0151
++01520000E02A
++0153
++0155
++0156
++014C000000000000
++014D00
++013D
++015000
++015001
++015002
++015003
++015004
++015010
++015020
++015040
++015060
++015080
++015081
++015082
++;script 1 - default scripts
+ ;0193 = Unimplemented
+ ;8100 = General Poll PLUS!
+ ;0111 = Coin In
+@@ -1593,6 +1644,13 @@
+ ;007f0308200114301424ca = set clock
+ ;017e = get time 1
+ ;01fe = unsupported
++; script 2 - used for Implied NAK
++;80 = Sending Sync
++;81 = General poll
++;81 = General poll
++;81 = General poll
++
++
+ 
+ [AFT]
+ Asset Number =777
+@@ -1634,21 +1692,21 @@
+ 
+ ;make sure there are "=" or it wont work.
+ [Meter Test]
+-0111  = test
+-0112  = test
+-0113  = test
+-0114  = test
+-010F  = get meters
+-012F03000000 = get selected meters
+-012F03000001 = get selected meters
+-012F03000002 = get selected meters
+-012F03000003 = get selected meters
+-012F03000004 = get selected meters
+-012F03000005 = get selected meters
+-012F03000006 = get selected meters
+-012F03000007 = get selected meters
+-012F03000008 = get selected meters
+-012F03000009 = get selected meters
++0211  = test
++0212  = test
++0213  = test
++0214  = test
++020F  = get meters
++022F03000000 = get selected meters
++022F03000001 = get selected meters
++022F03000002 = get selected meters
++022F03000003 = get selected meters
++022F03000004 = get selected meters
++022F03000005 = get selected meters
++022F03000006 = get selected meters
++022F03000007 = get selected meters
++022F03000008 = get selected meters
++022F03000009 = get selected meters
+ 0135 = send $20.00 bill meter
+ 81 = Sending General Poll
+ 0136 = send $50.00 bill meter

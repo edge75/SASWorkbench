@@ -1,0 +1,19 @@
+# build
+out/
+build/
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+.vs/
+CMakeUserPresets.json
+
+# runtime
+PROGRESS.md.bak
+runs/
+*.trc.tmp
+
+# python
+__pycache__/
+*.pyc

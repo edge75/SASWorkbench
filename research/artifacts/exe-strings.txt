@@ -1,0 +1,209 @@
+===================================================================
+ sastest.exe  FILTERED STRINGS  (Sysinternals strings v2.54)
+ cmd: strings -nobanner -a -n 4  /  strings -nobanner -u -n 4
+===================================================================
+
+### A. IDENTITY / BUILD ###
+6708:Borland C++ - Copyright 2002 Borland Corporation
+6709:IGT SAS Test Program
+11755:IGT SAS Simulator
+12554:SAS Simulator
+SAS Simulator
+Copyright IGT 2002
+SasTest.exe
+SAS Simulator
+
+### B. SERIAL / COMM (hard-coded) ###
+COM1:
+COM2:
+COM3:
+COM4:,COM5:
+COM6:
+COM7:
+COM8:
+baud=19200 parity=S data=8 stop=2
+baud=19200 parity=M data=8 stop=2
+baud=19200 parity=S data=8 stop=2
+Could not create Comm Port
+Error
+TIGTComm
+680:Index
+689:Index
+919:Index
+926:Index
+1523:Index
+1551:Index
+4324:Index
+4331:Index
+6716:Wakeup Delay
+6717:Port
+6744:BuildCommPort failed!
+6795:Echo
+6798:Index
+6806:Port
+6829:GAME IS SENDING WAKE UP BITS!!!
+6848:Transmitting->0111 Multiple Wake up Bits
+7086:EchoingCB
+7087:EchoIndexCB
+7399:Could not create Comm Port
+9215:EchoingCB
+
+### C. FILES / EXTENSIONS / DEFAULT NAMES ###
+6713:TXRXData.dat
+6741:sastest.ini
+6755:SASTEST.INI
+6846:SAStest.hlp
+6859:DD2K_%d.BINx
+6872:SasReport.txt
+6873:TXT File (*.txt)|*.txt|Any File (*.*)|*.*
+6879:*.AFT
+6880:AFT Setup File (*.AFT)|*.aft|Any File|*.*
+6881:*.SET
+6882:Setup File (*.set)|*.set|Any File|*.*
+6883:*.AFT
+6884:AFT Setup File (*.AFT)|*.aft|Any File|*.*
+6885:*.SET
+6886:Setup File (*.set)|*.set|Any File|*.*
+11423:TxRxData.Dat
+11425:)Dat File (*.dat)|*.dat|Any File (*.*)|*.*
+11443:*.set
+11445:%Setup File (*.set)|*.set|Any File|*.*
+11452:*.set
+11454:*Set Files (*.set)|*.set|Any File (*.*)|*.*
+
+### D. INI SECTION NAMES READ BY THE EXE ###
+265:[YY]
+327:[YY]
+1361:[YY]
+1827:[YY]
+1836:[YY]
+1846:[YY]
+1884:[YY]
+1913:[YY]
+1943:[YY]
+2618:[YY]
+3154:[YY]
+3592:[YY]
+3609:[YY]
+3622:[YY]
+3683:[YY]
+3849:[YY]
+4542:[YY]
+4600:[YY]
+4660:[YY]
+4815:[YY]
+5248:[YY]
+5309:[YY]
+5323:[YY]
+5475:[YY]
+5529:[YY]
+5891:[YY]
+6051:[YY]
+6058:[YY]
+6373:[YY]
+6396:[YY]
+6564:[YY]
+6756:[SAS Protocols]
+6757:[Long Poll Commands]
+6758:[Electronic Funds Transfer]
+6759:[ASDC]
+6760:[Messages]
+6761:[General Poll]
+6762:[Status Messages]
+6763:[Quick Commands]
+6764:[Script]
+6765:[Bonus Game Data Structures]
+6766:[Message Structures]
+6767:[Denominations]
+6768:[Ticket Transfer Codes]
+6769:[Ticket Machine Status Codes]
+6770:[Validation Type Codes]
+6771:[Data Structures]
+6824:[ACTIVE HELP]
+
+### E. INI KEY NAMES READ BY THE EXE ###
+Cannot open input file!!
+INI FILE NOT FOUND
+Wakeup Delay
+Port
+Poll Rate
+Address
+Validation
+Communications
+Communications
+Echo
+Communications
+Communications
+Index
+Electronic Funds Transfer
+SAS Protocols
+SAS Protocols
+CRC Check
+SAS Protocols
+Timing
+SAS Protocols
+Port
+Supports SAS Version
+SAS Protocols
+Version
+Supports SAS Version 1.0
+SAS Protocols
+Length
+
+### F. ERROR / STATUS / LOG MESSAGES ###
+6714:Cannot open input file!!
+6715:INI FILE NOT FOUND
+6744:BuildCommPort failed!
+6745:ERROR: SetPriorityClass
+6747:ERROR: SetThreadPriority
+6749:ERROR: SetPriorityClass
+6751:ERROR: SetThreadPriority
+6753:Unable to open data file!
+6754:File Error!!
+6807:Supports SAS Version
+6810:Supports SAS Version 1.0
+6830:*************EFT MESSAGE**************************
+6831:Simulated broken RX TX Line..Message not processed
+6832:0 bytes received  Transaction incomplete
+6833:**************END EFT MESSAGE*********************
+6834:Transaction Complete
+6836: <-CRC Error !
+6837: ms response time)
+6839:Transaction Started
+6840:Auto GP Off
+6841:GP Interval = 
+6842:Start Display
+6843:Stop Display
+6844:Structure Editor
+6854:********TXRX line restored***********
+6855:EFT DIfference is: 
+6867:ERROR Invalid Line # Shutting down game!!!
+6868:File not Found
+8585:Stop Display
+8616:Command Set Structure Editor
+8689:Auto GP Off
+9014:Report CRC Errors
+9059:Force CRC Error
+12561:Supports SAS Versions
+
+### G. FORMAT STRINGS ###
+6827:$%02X = ACK
+6828:$%02X = NACK
+6847:Group = %d
+6849:%010.0f
+6850:%16s
+6851:$%02X
+6852:%06s
+6853:%06s
+6860:File%d
+6863:Frequency%d
+6865:Mult%d
+7402:Level %d Amount
+7621:%02d/%02d/%04d %02d:%02d:%02d.%03d 
+7634:%s %s %02d %02d:%02d:%02d %4d%s
+
+### H. COMMAND-LINE EVIDENCE (Borland CRT internals ONLY) ###
+7623:No space for command line argument vector
+7627:Out of memory in _setargv0
+7830:GetCommandLineA
+  (no usage text, no switch table, no option strings found anywhere)

@@ -1,0 +1,36 @@
+[    15.00ms] --  listening on 127.0.0.1:9760, waiting for the EGM
+[  4672.00ms] --  EGM connected from 127.0.0.1:57671
+[  4687.00ms] TX 1.80   sync poll - address zero
+[  4890.00ms] TX 1.81   general poll
+[  4922.00ms] RX 0.15
+[  5109.00ms] TX 1.80   sync poll - address zero
+[  5312.00ms] TX 1.81   general poll
+[  5359.00ms] RX 0.11
+[  5531.00ms] TX 1.80   sync poll - address zero
+[  5750.00ms] TX 1.81   general poll
+[  5781.00ms] RX 0.18
+[  5953.00ms] TX 1.80   sync poll - address zero
+[  6172.00ms] TX 1.81   general poll
+[  6203.00ms] RX 0.98
+[  6390.00ms] TX 1.80   sync poll - address zero
+[  6594.00ms] TX 1.81   general poll
+[  6625.00ms] RX 0.99
+[  6797.00ms] TX 1.80   sync poll - address zero
+[  7000.00ms] TX 1.81   general poll
+[  7031.00ms] RX 0.17
+[  7219.00ms] TX 1.80   sync poll - address zero
+[  7437.00ms] TX 1.81   general poll
+[  7469.00ms] RX 0.15
+[  7640.00ms] TX 1.80   sync poll - address zero
+[  7828.00ms] TX 1.81   general poll
+[  7859.00ms] RX 0.11
+[  8047.00ms] TX 1.80   sync poll - address zero
+[  8250.00ms] TX 1.81   general poll
+[  8281.00ms] RX 0.00
+[  8453.00ms] TX 1.80   sync poll - address zero
+[  8656.00ms] TX 1.81   general poll
+[  8687.00ms] RX 0.00
+[  8859.00ms] TX 1.01 0.1F   long poll 1F - send gaming machine ID
+[  8890.00ms] RX 0.01 0.1F 0.51 0.58 0.30 0.30 0.31 0.02 0.FF 0.00 0.00 0.00 0.30 0.30 0.31 0.00 0.00 0.00 0.39 0.32 0.31 0.30 0.86 0.3F
+[ 11890.00ms] --  34 symbol(s) in 11 message(s) received from the EGM
+[ 11890.00ms] --  EGM messages carrying a wakeup bit: 0 (expected 0)

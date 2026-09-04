@@ -1,0 +1,103 @@
+FILE: C:\Progetti\libsas\utils\igt\TXRXData.dat
+#    TIMESTAMP                DIR    BYTES / MEANING
+------------------------------------------------------------------------------------------------------------
+0    (none)                   TX>=  --                                 *** MISSING (log starts mid-transaction) ***
+                              RX<=  00                                 single byte (addr/poll 0x00)
+1    Thu Mar 02 04:11:43 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+2    Thu Mar 02 04:11:43 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+3    Thu Mar 02 04:11:44 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+4    Thu Mar 02 04:11:44 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+5    Thu Mar 02 04:11:44 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+6    Thu Mar 02 04:11:44 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+7    Thu Mar 02 04:11:44 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+8    Thu Mar 02 04:11:44 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+9    Thu Mar 02 04:11:45 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+10   Thu Mar 02 04:11:45 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+11   Thu Mar 02 04:11:45 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+12   Thu Mar 02 04:11:45 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+13   Thu Mar 02 04:11:46 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+14   Thu Mar 02 04:11:46 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+15   Thu Mar 02 04:11:46 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+16   Thu Mar 02 04:11:46 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+17   Thu Mar 02 04:11:46 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+18   Thu Mar 02 04:11:46 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+19   Thu Mar 02 04:11:47 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+20   Thu Mar 02 04:11:47 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+21   Thu Mar 02 04:11:47 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+22   Thu Mar 02 04:11:47 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+23   Thu Mar 02 04:11:48 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+24   Thu Mar 02 04:11:48 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+25   Thu Mar 02 04:11:48 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+26   Thu Mar 02 04:11:48 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+27   Thu Mar 02 04:11:48 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+28   Thu Mar 02 04:11:48 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+29   Thu Mar 02 04:11:49 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+30   Thu Mar 02 04:11:49 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+31   Thu Mar 02 04:11:49 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+32   Thu Mar 02 04:11:49 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+33   Thu Mar 02 04:11:50 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+34   Thu Mar 02 04:11:50 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+35   Thu Mar 02 04:11:50 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+36   Thu Mar 02 04:11:50 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+37   Thu Mar 02 04:11:50 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+38   Thu Mar 02 04:11:50 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+39   Thu Mar 02 04:11:51 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+40   Thu Mar 02 04:11:51 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+41   Thu Mar 02 04:11:51 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+42   Thu Mar 02 04:11:51 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+43   Thu Mar 02 04:11:52 2017 TX>=  80                                 Re-Sync / general poll (even)
+                              RX<=  --                                 *** NO RESPONSE (timeout) ***
+44   Thu Mar 02 04:11:52 2017 TX>=  81                                 General Poll (odd)
+                              RX<=  00                                 single byte (addr/poll 0x00)
+45   Thu Mar 02 04:11:52 2017 TX>=  01 11                              addr=1 cmd=$11 Send coin in meter
+                              RX<=  01 11 00 00 46 00 99 A9            addr=1 cmd=$11 Send coin in meter  CRC=OK (calc A999, wire A999)
+46   Thu Mar 02 04:11:52 2017 TX>=  01 12                              addr=1 cmd=$12 Send coin out meter
+                              RX<=  01 12 00 00 30 85 E4 C3            addr=1 cmd=$12 Send coin out meter  CRC=OK (calc C3E4, wire C3E4)
+47   Thu Mar 02 04:11:52 2017 TX>=  01 13                              addr=1 cmd=$13 Send drop meter
+                              RX<=  01 13 00 26 12 70 E3 AD            addr=1 cmd=$13 Send drop meter  CRC=OK (calc ADE3, wire ADE3)
+48   Thu Mar 02 04:11:52 2017 TX>=  01 14                              addr=1 cmd=$14 Send jackpot meter
+                              RX<=  01 14 00 00 00 00 7B 9D            addr=1 cmd=$14 Send jackpot meter  CRC=OK (calc 9D7B, wire 9D7B)
+49   Thu Mar 02 04:11:53 2017 TX>=  01 0F                              addr=1 cmd=$0F Send selected meters (multi)
+                              RX<=  01 0F 00 00 61 50 00 00 46 00 00 00 30 85 00 26 12 70 00 00 00 00 00 00 00 26 13 59 addr=1 cmd=$0F Send selected meters (multi)  CRC=OK (calc 5913, wire 5913)

@@ -1,0 +1,11 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\Tracefilters.dat ===
+version=1  filters=9
+  [0] tag=2 kind=1 "ROM signature"         1 codes: 21
+  [1] tag=2 kind=1 "Ticket Tests"         10 codes: 3D 4C 4D 57 58 70 71 7B 7C 7D
+  [2] tag=2 kind=1 "Tickets/AFT"          16 codes: 3D 4C 4D 57 58 70 71 72 73 74 75 76 7B 7C 7D A0
+  [3] tag=2 kind=1 "11 filter"             1 codes: 11
+  [4] tag=2 kind=1 "Multi-Game A4"         2 codes: 09 A4
+  [5] tag=2 kind=1 "Progressive"           6 codes: 80 83 84 85 86 87
+  [6] tag=2 kind=1 "2F Filter"             1 codes: 2F
+  [7] tag=2 kind=1 ""                      1 codes: 3F
+  [8] tag=2 kind=1 "General Poll"          1 codes: 81

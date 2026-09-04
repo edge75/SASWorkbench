@@ -1,0 +1,163 @@
+EGM Test Scripts v1.2 - ç¬¬10ç«  Tickets (10.1 Standard Cashout Validation)
+ç¬¬10ç«  Tickets â 10.1 Standard Cashout Validationï¼æ¨æºåºç¥¨é©è­ï¼
+SECTION 3: TICKETING | GSA SAS Toolkit v1.2 for SAS v6.01/6.02 | gsa-p0074.001.01
+æ¸¬è©¦æè¦
+é ç® å§å®¹
+é ä¼°ç¸½æé 2.5 â 4 å°æ
+æ¸¬è©¦é ç®æ¸ 7 é ï¼10.1.1 ~ 10.1.7ï¼
+æ¸¬è©¦é ç® ä¼°è¨æé èªªæ
+10.1.1 Standard Validation Configuration 5-10 åé é©è­ LP A0 åå ± Standard Validation è¨­å®
+10.1.2 No Ticket Redemption 5-10 åé ç¢ºèª Standard æ¨¡å¼ä¸ä¸æ¥åç¥¨å¸åæ
+10.1.3 Cashout Ticket 1 30-45 åé å®æ´åºç¥¨æµç¨ãexception 3DãLP 3D åæ
+10.1.4 Ticket Printed â Non-Validating Host 15-20 åé å¤ééæéé©è­ééçè¡çº
+10.1.5 Ticket Meters 45-60 åé åºç¥¨ç¸éè¨éå¨éå¢é©è­ï¼å« handpay/win-to-printerï¼
+10.1.6 Ticket Printed â RTE {3D} 15-20 åé RTE æ¨¡å¼ä¸åºç¥¨ exception æ ¼å¼
+10.1.7 Cashout Ticket 2 20-30 åé Power cycle å¾ç¥¨æè³è¨ä¿æãå¯ä¸ validation ID
+æéè¨­å / ç°å¢ ç¨é
+EGMï¼æ¯æ´ Standard Ticket Validationï¼ æ¸¬è©¦å°è±¡
+HostSim æ¸¬è©¦ä¸»æ© ç¼é LP / æ¥æ¶ exception
+ææ cashout ticketï¼æ¸å¼µï¼ 10.1.2 ç¥¨å¸åææ¸¬è©¦
+Printerï¼å§å»ºæå¤æ¥ï¼ åå°ç¥¨å¸/æ¶æ
+é¢¨éªé ç® èªªæ å»ºè­°å°ç­
+éè§¸ç¼ win-to-handpay 10.1.5 éèª¿æ´ credit/jackpot limit è§¸ç¼ handpay äºåç¢ºèª EGM éé¡è¨­å®æ¹å¼
+éè§¸ç¼ win-to-printer 10.1.5 ééç©å°è´å¾ç´æ¥åå°çéé¡ è¨­å®æ¥µä½ limit ä½¿å®¹æè§¸ç¼
+å¤ SAS éé 10.1.4 éè¦éééè¨­å® è¥ EGM åå®ééå¯è·³éæ­¤æ¸¬è©¦
+åç½®æ¢ä»¶ï¼é©ç¨ 10.1 æææ¸¬è©¦ï¼ï¼
+â¢ EGM SAS address = 1
+â¢ EGM å·²è¨­å®çº Standard Ticket Validation
+â¢ EGM é RTE æ¨¡å¼ï¼power cycle æ host é disable RTE å³å¯ï¼
+â¢ å¦æ¯æ´ handpay receipt æ jackpot receiptï¼è¨­å® EGM åå°æ¶æ
+åè Table
+LP 3D â Send Cashout Ticket Information åææ ¼å¼
+æ¬ä½ Bytes å¼ èªªæ
+Address 1 binary 01 EGM addressï¼ä¸å« wakeup bitï¼
+Command 1 binary 3D Send cashout ticket information
+Validation Number 4 BCD XXXX Standard validation numberï¼å¯ä¸å¼ï¼
+Ticket Amount 5 BCD XXXXX ç¥¨å¸éé¡ï¼å®ä½ï¼centsï¼
+CRC 2 binary 0000-FFFF 16-bit CRC, LSB first
+RTE æ¨¡å¼ä¸ Exception 3D æ ¼å¼
+æ¬ä½ Bytes å¼ èªªæ
+Address 1 binary 01 EGM address
+RTE Identifier 1 binary FF RTE è­å¥ç¢¼
+Exception Code 1 binary 3D Ticket Printed
+CRC 2 binary 0000-FFFF 16-bit CRC, LSB first
+10.1.5 ç¸é Meter Codes
+Meter Code èªªæ å®ä½
+0004 Total cancelled credits SAS accounting credits
+000E Total tickets out credits cents
+0012 Total tickets out count count
+0016 Total ticket out credits SAS accounting credits
+002C Total cashable ticket out credits SAS accounting credits
+0038 Total cashable ticket out quantity count
+0086 Regular cashable ticket out cents cents
+0087 Regular cashable ticket out quantity count
+10.1.1 Standard Validation Configurationï¼æ¨æºé©è­è¨­å®ï¼
+æ¸¬è©¦éæ± [1] 10.1.1
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.01
+One Key Polls F1 = A0-Send Enabled Features Game 0, address 1
+Polling Loops 1 = Basic_1
+Filters Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 å¦æå¿è¦ï¼RAM clear EGMãè¨­å® EGM çº standard validationã
+2 åå Polling Loopãç¼é F1ã EGM åæ LP A0ï¼æ ¼å¼ç¬¦å [2] Table 7.14bï¼ä¸ Feature Codes 1 bit 6~5 = 00ï¼ç¬¦å [2] Table 7.14cï¼ã
+åè¨»ï¼ EGM åªè½è¨­å®çºä¸ç¨® ticket validation æ¨¡å¼ã
+10.1.2 No Ticket Redemptionï¼ç¡ç¥¨å¸åæï¼
+æ¸¬è©¦éæ± [1] 10.1.2
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.02
+One Key Polls ï¼ç¡ï¼
+Polling Loops 1 = Basic_1
+Filters 1 = Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 åå Loop 1ã
+2 æå¥æ¸å¼µ cashout ticket ä¸¦è§å¯ trace windowã EGM ä¸åå ± exception 67ã EGM ä¸æ¥åï¼stackï¼æçµ¦äºä¿¡ç¨ï¼creditï¼è©²ç¥¨å¸ã
+åè¨»ï¼ Standard Validation æ¨¡å¼ä¸ç¥¨å¸ä¸å¯è¢«åæã
+10.1.3 Cashout Ticket 1ï¼åºç¥¨æ¸¬è©¦ 1ï¼
+æ¸¬è©¦éæ± [1] 10.1.3 â¢ Long poll 3D: Send cashout ticket information â¢ Exception 3D: A cashout ticket has been printed â¢ Handpay and jackpot receipt
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.03
+One Key Polls F1 = 00-General poll, address 0 F2 = 00-General poll, address 1 F3 = 3D-Send cashout ticket information, address 1
+Polling Loops 1 = Basic_No General 2 = Basic_1
+Filters 1 = Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 åå Loop 1ï¼ç¼é F1 ç¢ºèªéè¨å·²åæ­¥ã
+2 éååéé EGM éã
+3 å¨ EGM ä¸æ credits çææ³ä¸ï¼æ cashoutã EGM åå°ç¥¨å¸ã
+4 æ Service æéé»äº®åæ¸é¤ã
+5 éè¤ç¼é F2 ç´å° trace window åºç¾ exception 00 æ 1Fãæª¢è¦ trace windowã EGM å¨ç¬¬ä¸å general poll åæä¸­éåºä¸å 1-byte exception 3D (Ticket Printed)ï¼æ¥èå¨å¾çº general poll åæä¸­éåºï¼ 11 â Slot Door Open 12 â Slot Door Closed 71 â Change light on 72 â Change Light Off
+6 ç¼é F3ã EGM åæ F3ï¼æ ¼å¼ï¼ (01) 1-byte EGM address (3D) 1-byte command (XXXX) 4-BCD standard validation number (XXXXX) 5-BCD ç¥¨å¸éé¡ï¼centsï¼ (0000-FFFF) 2-byte CRC, LSB first
+7 æå¥ credits å° EGM ä¸¦ cashoutã EGM åå°ç¥¨å¸ã
+8 åæ­¢ Loop 1ãä¾åºç¼é F1, F2, F2, F2, F1, F2, F1ã EGM å¨åå©å F2 åæä¸­éåº exception 3Dï¼ç¬¬ä¸å F2 å¯å¿½ç¥æéåº 3Dã EGM å¨æå¾ä¸å F2 åæä¸­éåº exception 3Dã
+9 åå Loop 2ã
+10 æå¥ credits ä¸¦æ cashoutã EGM åå°æ­£ç¢ºéé¡çç¥¨å¸ã EGM ç¼åº exception 3Dã
+11 åæ¬¡æå¥ credits ä¸¦æ cashoutã EGM åå°æ­£ç¢ºéé¡çç¥¨å¸ã EGM ç¼åº exception 3Dã
+12 ç¼é F3ã EGM åæ F3ï¼validation ID éé¶ï¼éé¡è Step 11 çåºç¥¨éé¡ä¸è´ã
+13 å¦ææ´å¤ exception 3D è¢«åå ±ï¼åç¼é F3ã EGM åæ F3ãè¥ validation ID åéé¡éé¶ï¼æå°æ Step 11 åå°çç¥¨å¸ã
+14 ç¼é F3ã EGM åæ F3ï¼æ ¼å¼è Step 6 ç¸åã
+15 è¥ EGM æ¯æ´ï¼è¨­å® EGM åå° cashout receiptãæå¥ credits ä¸¦ cashoutãç¼é F3ã EGM åå° cashout receipt ä¸¦éåº exception 3Dã EGM é©ç¶åæ F3ã
+16 è¥ EGM æ¯æ´ï¼è¨­å® EGM åå° jackpot receiptãæå¥ credits ä¸¦éç©å°è´å¾ jackpotãç¼é F3ã EGM åå° jackpot receipt ä¸¦éåº exception 3Dã EGM é©ç¶åæ F3ã
+10.1.4 Ticket Printed â Non-Validating Host {3D}ï¼éé©è­ä¸»æ©çåºç¥¨è¡çºï¼
+æ¸¬è©¦éæ± [1] 10.1.4
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.04
+One Key Polls F1 = 3D-Send cashout ticket information, address 1
+Polling Loops 1 = Basic_1
+Filters 1 = Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 è¥ EGM æ¯æ´å¤ SAS ééä¸ standard validation å¯è¨­å®å¨ä¸åééï¼åè¨­å®ä¸¦åç¨è³å°å©å SAS ééï¼standard validation å¨å¶ä¸­ä¸åï¼ãè¥åæ¯æ´å®ééï¼è·³éæ­¤æ¸¬è©¦ã
+2 ç¢ºèª SASHostSim é£æ¥å° validation ééãåå Loop 1ã
+3 æå¥ credits ä¸¦æ cashoutã EGM åå°ç¥¨å¸ã EGM éåº exception 3Dã
+4 å° SASHostSim åæå°é validation çééã EGM éåºä¸æ¬¡ exception 3Dã
+5 ç¼é F1ã EGM å¿½ç¥ F1ï¼ æ EGM åæ F1ï¼ä½ validation ID åéé¡çºé¶ã
+6 å° SASHostSim åæå validation ééãåæ¬¡ç¼é F1ã EGM é©ç¶åæ F1ï¼å«éé¶ç validation number åå·²åå°çç¥¨å¸éé¡ã
+10.1.5 Ticket Metersï¼åºç¥¨è¨éå¨ï¼
+æ¸¬è©¦éæ± [1] 10.1.5 Meter Codes: 0004, 000E, 0012, 0016, 002C, 0038, 0086, 0087
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.05
+One Key Polls F1 = A0-Send Enabled Features Game 0, address 1
+Polling Loops 1 = Ticket meters
+Filters 1 = Display One-Key Poll
+Meter Set 1 = Legacy ticket meters
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 åå Loop 1 ä¸¦é¸æ Meter Set 1ã
+2 ç¼é F1ï¼é©è­ feature code 2, bit 2ãåè¦ 10.1.1 ééæ¨æºã
+3 è§å¯ Meter Set 1 ä¸¦è¨éç®åçå¼ã å meter code çå¼è EGM ä¸å°æçè¨éå¨ä¸è´ï¼ 0004 â total cancelled credits 000E â Total tickets out credits 0012 â Total tickets out count 0016 â Total ticket out credits 002C â Total cashable ticket out credits 0038 â Total cashable ticket out quantity 0086 â Regular cashable ticket out cents 0087 â Regular cashable ticket out quantity
+4 æå¥ credits ä¸¦ cashoutã EGM ç¼åº exception 3D ä¸¦åæ LP 3Dï¼cashout è³è¨ï¼ã
+5 è§å¯ Meter Set 1 è¦çªã â¢ 0004 å¢å  cashout éé¡ï¼SAS accounting creditsï¼è¥ LP A0 feature 2 bit 2 = 1ï¼å¦åä¸éå¢ã â¢ 0016 å 002C å¢å  cashout éé¡ï¼SAS accounting creditsï¼ã â¢ 000E å 0086 å¢å  cashout éé¡ï¼centsï¼ã â¢ 0012ã0038ã0087 åå¢å  1ã â¢ å¶ä» meter å¼ä¸è®ã
+6 æå¥ $10 ç creditsãéç©æ $5ãå°å©é¤å¨é¨ cashoutã EGM åå°æ­£ç¢º cashout éé¡çç¥¨å¸ã EGM ç¼åº exception 3Dã EGM åæ LP 3Dï¼validation ID éé¶ä¸éé¡æ­£ç¢ºã
+7 é¸æä¸¦è§å¯ Meter Set 1ã ï¼éå¢è¦åå Step 5ï¼åºæ¼ Step 6 ç cashout éé¡ï¼
+8 èª¿æ´ cashout limitï¼ä½¿å¯ç¢ç cashout-to-handpayãæå¥è¶³å¤  creditsã
+9 Cashout credits ä»¥è§¸ç¼ handpayãéç½® handpayãè§å¯ Meter Set 1ã 0004 å¢å  handpay éé¡ï¼accounting creditsï¼ã å¶ä» meter ä¸éå¢ã
+10 èª¿æ´ credit/jackpot limitï¼ä½¿ win-to-handpay å®¹æè§¸ç¼ã
+11 æå¥ credits ä¸¦éç©å° win-to-handpay ç¼çï¼è§å¯ Meter Set 1ã ææ meter å¼ä¸éå¢ã
+12 èª¿æ´ credit/cashout limitï¼ä½¿ win-to-printer å®¹æè§¸ç¼ã
+13 æå¥ credits ä¸¦éç©å° win-to-printer ç¼çï¼è§å¯ Meter Set 1ã ï¼éå¢è¦åå Step 5ï¼åºæ¼ win-to-printer éé¡ï¼
+10.1.6 Ticket Printed â RTE {3D}ï¼RTE æ¨¡å¼åºç¥¨ï¼
+æ¸¬è©¦éæ± [1] 10.1.6
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.06
+One Key Polls F1 = 00-General Poll, address 0 F2 = 00-General Poll, address 1 F3 = 0E-RTE-Enable, address 1 F4 = 0E-RTE-Disable, address 1
+Polling Loops 1 = Basic_No General
+Filters 1 = Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 åå Loop 1ï¼ç¼é F1 ç¢ºèªéè¨åæ­¥ã
+2 ç¼é F3 åç¨ RTEã EGM ACK F3ã
+3 æå¥ credits ä¸¦æ cashoutã EGM åå°ç¥¨å¸ã EGM å¨åæ EGM address ç host long poll æéåº RTE æ ¼å¼ç exception 3Dï¼ (01) 1-byte EGM address (FF) 1-byte RTE Identifier (3D) 1-byte Exception code (0000-FFFF) 2-byte CRC, LSB first EGM åæ LP 3Dï¼å«æ­£ç¢ºç validation ID åéé¡ã
+4 æå¥ creditsãåæ­¢ Loop 1ï¼ç¶å¾ cashoutã EGM åå°ç¥¨å¸ã
+5 ç¼é F1, F2, F1, F2, F1, F2ã EGM å¨åæ general poll 81 æéåº RTE æ ¼å¼ç exception 3Dï¼æ ¼å¼å Step 3ï¼ã
+6 åå Loop 1ãç¼é F4 åç¨ RTEã
+10.1.7 Cashout Ticket 2ï¼åºç¥¨æ¸¬è©¦ 2 â Power Cycle èå¯ä¸ IDï¼
+æ¸¬è©¦éæ± [1] 10.1.7 â¢ Maintaining ticket information during power off â¢ Unique validation number between power off and RAM clear
+HostSim è¨­å® Test Group: Standard Validation, Test Number: TEST_10.01.07
+One Key Polls F1 = 3D-Send cashout ticket information, address 1
+Polling Loops 1 = Basic_1
+Filters 1 = Display One-Key Poll
+æ­¥é© æ¸¬è©¦æ­¥é© ééæ¨æº P/F
+1 åå Loop 1ã
+2 æå¥ credits ä¸¦ cashoutã EGM åå°ç¥¨å¸ï¼å«æ­£ç¢ºè³æã EGM éåº exception 3Dã
+3 Power cycle EGMï¼ç­å¾éè¨éæ°å»ºç«ã
+4 ç¼é F1ã EGM åæ LP 3Dï¼validation ID åéé¡è Step 2 åå°çç¥¨å¸ä¸è´ã
+5 æå¥ credits ä¸¦ cashoutã EGM åå°ç¥¨å¸ï¼å«æ­£ç¢ºè³æã EGM éåº exception 3Dã EGM åæ LP 3Dï¼validation ID åéé¡èæ¬æ¬¡ç¥¨å¸ä¸è´ã æ­¤ç¥¨ç validation ID éé¶ä¸è Step 2 ç ID ä¸åã
+6 ç¼é F1ã EGM åæ LP 3Dï¼validation ID åéé¡è Step 5 çç¥¨å¸ä¸è´ã
+7 RAM clear EGM ä¸¦éæ°è¨­å®çº standard validationãç¢ºèª EGM è HostSim éè¨æ­£å¸¸ã
+8 æå¥ credits ä¸¦ cashoutã EGM åå°ç¥¨å¸ï¼å«æ­£ç¢ºè³æã EGM éåº exception 3Dã EGM åæ LP 3Dï¼validation ID åéé¡èæ¬æ¬¡ç¥¨å¸ä¸è´ã æ­¤ç¥¨ç validation ID éé¶ä¸è Step 2 æ 4 ç ID ä¸åã
+9 ç¼é F1ã EGM åæ F1ï¼validation ID éé¶ä¸éé¡è Step 8 çç¥¨å¸ä¸è´ã
+10 åéè¤ Step 5 å 6 ä¸æ¬¡ã æ­¤ç¥¨ç validation ID èååææå·²åå°ç¥¨å¸ç ID ä¸åã
+ä¾æºï¼GSA SAS Toolkit v1.2 for SAS v6.01/6.02, EGM Test Scripts (gsa-p0074.001.01), Chapter 10 â Tickets, Section 10.1 Standard Cashout Validation, Pages 159-168.
+[1] = Requirements Document | [2] = SAS Protocol Manual v6.02
+ç¿»è­¯åæ´çæ¥æï¼2026-07-14

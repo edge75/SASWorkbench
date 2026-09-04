@@ -1,0 +1,964 @@
+
+##############################################################################
+# form_TFORM1.dfm
+##############################################################################
+Form1 : TForm1
+    Caption='SAS Test Program'
+    Position=poScreenCenter
+  ResendStructButton : TButton
+      Caption='Resend Last Message'
+      OnClick=ResendStructButtonClick
+  SendCC : TButton
+      Caption='Send Custom Command'
+      OnClick=SendCCClick
+      Enabled=False
+  ComboBox1 : TComboBox
+      Text='Long Poll Commands'
+      OnChange=ComboBox1Change
+  ComboBox2 : TComboBox
+      Text='Electronic Funds Transfer'
+      OnChange=ComboBox2Change
+  Edit1 : TEdit
+      Text='Custom Command'
+      OnChange=Edit1Change
+  CRCBox : TCheckBox
+      Caption='CRC'
+  ReSend : TButton
+      Caption='<- Resend'
+      OnClick=ReSendClick
+      Enabled=False
+  Resend2 : TButton
+      Caption='<-Resend'
+      OnClick=Resend2Click
+      Enabled=False
+  Button2 : TButton
+      Caption='Clear Msg. Disp'
+      OnClick=Button2Click
+  Button3 : TButton
+      Caption='Clear Tx/Rx Disp'
+      OnClick=Button3Click
+  Button6 : TButton
+      Caption='Stop Display'
+      OnClick=Button6Click
+  PageControl2 : TPageControl
+    TabSheet5 : TTabSheet
+        Caption='Command Sets'
+      ComboBox5 : TComboBox
+          Text='Command Sets'
+          OnChange=ComboBox5Change
+    TabSheet6 : TTabSheet
+        Caption='Command Set Structure Editor'
+      ComboBox6 : TComboBox
+          Text='Structures'
+          OnChange=ComboBox6Change
+  PageControl1 : TPageControl
+    TabSheet2 : TTabSheet
+        Caption='General Poll/Address'
+      (unnamed) : TLabel
+          Caption='GPs'
+      Label3 : TLabel
+          Caption='40ms'
+      Label4 : TLabel
+          Caption='Off'
+      Label5 : TLabel
+          Caption='2 seconds'
+      Label16 : TLabel
+          Caption='2'
+      Label17 : TLabel
+          Caption='Poll up to '
+      GPlab : TLabel
+          Caption='Auto GP Off'
+      TrackBar1 : TTrackBar
+          Hint='Move to Change General  poll rate'
+          OnChange=TrackBar1Change
+          Min=20
+          Max=2100
+          Position=2100
+      Button9 : TButton
+          Caption='200ms GPs'
+          OnClick=Button9Click
+      ms40 : TButton
+          Caption='40 ms GPs'
+          OnClick=ms40Click
+      Button10 : TButton
+          Caption='80 ms GPs'
+          OnClick=Button10Click
+      UpDown1 : TUpDown
+          OnClick=UpDown1Click
+          Min=40
+          Max=2000
+          Position=2000
+      Button11 : TButton
+          Caption='GPs OFF'
+          OnClick=Button11Click
+      GP100 : TButton
+          Caption='150ms GP''s'
+          OnClick=GP100Click
+      SASAddress : TRadioGroup
+          Caption='SAS Address'
+          Items.Strings=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50', '51', '52', '53', '54', '55', '56', '57', '58', '58', '60', '61', '62', '63', '64')
+          OnClick=SASAddressClick
+      CycleAddress : TCheckBox
+          Caption='Cycle Address'
+      UpDown3 : TUpDown
+          Hint='Sets the Max Address for Cycling'
+          OnClick=UpDown3Click
+          Min=1
+          Max=64
+          Position=2
+      ShowPhantoms : TCheckBox
+          Caption='Show Syncs / GPs'
+          Hint='Display the General Polls and the Phantom Polls'
+      NoPhantom : TCheckBox
+          Caption='No Sync (80)'
+          Checked=True
+          State=cbChecked
+      NoSync : TCheckBox
+          Caption='No Sync (with time slot)'
+      WakeUpCheckBox : TCheckBox
+          Caption='Wake Up Bits'
+          Hint='Unchecking this box disables wakeup bits '
+          OnClick=WakeUpCheckBoxClick
+          Checked=True
+          State=cbChecked
+      GroupBox13 : TGroupBox
+          Caption='Comm Info'
+        Label7 : TLabel
+            Caption='Time Outs='
+        Label6 : TLabel
+            Caption='0'
+        Label51 : TLabel
+            Caption='Bytes Read ='
+        Label15 : TLabel
+            Caption='0'
+    TabSheet3 : TTabSheet
+        Caption='Quick Cmd'
+      ComboBox3 : TListBox
+          OnClick=ComboBox3Change
+    ScriptTab : TTabSheet
+        Caption='Misc'
+      Label25 : TLabel
+          Caption='WU Delay Milliseconds '
+      Button12 : TButton
+          Caption='Send Multiple Wakeup Bits'
+          OnClick=Button12Click
+      MWB0111 : TButton
+          Caption='Test MWB0111'
+          OnClick=MWB0111Click
+      GroupBox1 : TGroupBox
+          Caption='Last Command'
+        EditResend : TEdit
+        RepeatButton : TButton
+            Caption='Send Command'
+            OnClick=RepeatButtonClick
+            Enabled=False
+        AddCRC : TCheckBox
+            Caption='Add CRC'
+      ForceEFTACK : TCheckBox
+          Caption='Force EFT ACK'
+      GPButton : TButton
+          Caption='Send GP'
+          OnClick=GPButtonClick
+      SendPhantom : TButton
+          Caption='Re-Sync'
+          OnClick=SendPhantomClick
+      Disp1F : TCheckBox
+          Caption='Display Idle Activity'
+          Hint='Display the $00(no activiy) or the $!F(waiting for user input)'
+      CRCErrors : TCheckBox
+          Caption='Report CRC Errors'
+      Respond51 : TCheckBox
+          Caption='Auto respond to req. for handpay info'
+          Hint='Respond with $1B (Send Hand Pay Information) to a  $51 or $66 '
+          Checked=True
+          State=cbChecked
+      Trans0 : TCheckBox
+          Caption='"0" the  Transaction field'
+          Hint='Place a "0" in the transaction field'
+      EFTRespond : TCheckBox
+          Caption='Respond Selected EFT'
+          Hint='Respond with athe selected EFT transaction'
+      CRCError : TCheckBox
+          Caption='Force CRC Error'
+      ComboBox7 : TComboBox
+          Text='1'
+          Items.Strings=('1', '2', '3', '4', '5', '6', '7', '8', '9', '10')
+          OnChange=ComboBox7Change
+      ComboBox4 : TComboBox
+          Text='$A5 ASDC Commands'
+          OnChange=ComboBox4Change
+      test : TButton
+          Caption='test'
+          OnClick=testClick
+      NoEFTACK : TCheckBox
+          Caption='No EFT ACK'
+      GroupBox10 : TGroupBox
+          Caption='Priority'
+        Priority0 : TButton
+            Caption='Priority Normal'
+            OnClick=Priority0Click
+        Priority1 : TButton
+            Caption='Priority High'
+            OnClick=Priority1Click
+      TimingCB : TCheckBox
+          Caption='Monitor Timing'
+      Button1 : TButton
+          Caption='Test Button'
+          OnClick=Button1Click
+      RTERGB : TGroupBox
+          Caption='Real Time Event Rep'
+        SetRTER : TButton
+            Caption='Set '
+            OnClick=SetRTERClick
+        ClrRTER : TButton
+            Caption='Clear'
+            OnClick=ClrRTERClick
+      GroupBox11 : TGroupBox
+          Caption='DTR for Fiber Optic'
+        SetDTRButton : TButton
+            Caption='Set'
+            Hint='Sets the DTR and RTS lines high'
+            OnClick=SetDTRButtonClick
+        ClearDTRButton : TButton
+            Caption='Clear'
+            Hint='Sets the DTR and RTS lines low'
+            OnClick=ClearDTRButtonClick
+      GroupBox12 : TGroupBox
+          Caption='Comm Loopback'
+        EchoingCB : TCheckBox
+            Caption='Echoing Enabled'
+        EchoIndexCB : TCheckBox
+            Caption='Use Echo Index'
+            Hint='Check this box if first byte of recieved messages is cut off'
+      LabeledEdit1 : TLabeledEdit
+    TabSheet7 : TTabSheet
+        Caption='Multi-Denom'
+      Preamble : TCheckBox
+          Caption='Add preamble to long polls'
+      SASDenomComboBox : TComboBox
+          Text='SASDenomComboBox'
+          OnChange=SASDenomComboBoxChange
+      CheckListBox1 : TCheckListBox
+    TabSheet8 : TTabSheet
+        Caption='Validation'
+      RadioGroup1 : TRadioGroup
+          Caption='Validation Type'
+          Items.Strings=('No Automatic processing', 'Standard', 'Secure Enhanced', 'System')
+          ItemIndex=0
+      GroupBox2 : TGroupBox
+          Caption='System Validation'
+        Label19 : TLabel
+            Caption='System Validation Number:'
+        Label21 : TLabel
+            Caption='Validation System ID:'
+        SysValidationEdit : TEdit
+            Text='0123456789098765'
+        UseValidation : TCheckBox
+            Caption='Change to this Number'
+            OnClick=UseValidationClick
+        Edit2 : TEdit
+            Text='01'
+        AutoIncVal : TCheckBox
+            Caption='Auto Increment Validation Num.'
+        RandSysValButton : TButton
+            Caption='Randomize SVN'
+            OnClick=RandSysValButtonClick
+      GroupBox4 : TGroupBox
+          Caption='Secure Enhanced Validation'
+        Label32 : TLabel
+            Caption='Machine  ID:'
+        Label33 : TLabel
+            Caption='Sequence #:'
+        EnhMachineIDEdit : TEdit
+            Text='000001'
+        EnhSequenceEdit : TEdit
+            Text='000000'
+        InitEnhVal : TButton
+            Caption='Initialize Enhanced Validation'
+            OnClick=InitEnhValClick
+        AutoInitCB : TCheckBox
+            Caption='Auto Initialize Validation'
+      BadValNum : TCheckBox
+          Caption='Bad Validation Num'
+      BadTransCode : TCheckBox
+          Caption='Bad Transfer Code'
+      InsertGP : TCheckBox
+          Caption='InsertGP'
+    TabSheet9 : TTabSheet
+        Caption='Redemption'
+      Label22 : TLabel
+          Caption='Validation Data:'
+      GroupBox3 : TGroupBox
+          Caption='Redemption'
+        Label18 : TLabel
+            Caption='Transfer Codes'
+        Label20 : TLabel
+            Caption='Ticket Amount:'
+        TxfrAmt : TEdit
+            Text='2500'
+        UseTrans : TCheckBox
+            Caption='Use this amount'
+        InsertHex : TCheckBox
+            Caption='Insert hex value'
+        TransferCodesCB : TComboBox
+            Text='Transfer Codes'
+            OnChange=TransferCodesCBChange
+      EnhValidationEdit : TEdit
+          Text='000000000000000000'
+      EnhValNumCheckBox : TCheckBox
+          Caption='Use this #'
+      AutoValReplyBox : TCheckBox
+          Caption='Auto Redemption'
+          Checked=True
+          State=cbChecked
+      Send70 : TButton
+          Caption='Send 70 - Interrogate'
+          OnClick=Send70Click
+      SetValidationFlags : TButton
+          Caption='Send 71 - Redeem Tkt'
+          OnClick=SetValidationFlagsClick
+      GetStatus : TButton
+          Caption='Send 71 - Get Status'
+          OnClick=GetStatusClick
+      GroupBox5 : TGroupBox
+          Caption='Restricted Redemption'
+        Label23 : TLabel
+            Caption='Restricted Expiration'
+        Label24 : TLabel
+            Caption='Pool ID'
+        RestrictedExpirationEdit : TEdit
+            Text='00000000'
+        PoolIDEdit : TEdit
+            Text='0000'
+        UseAFT : TCheckBox
+            Caption='Use Restricted Redemption'
+    TabSheet4 : TTabSheet
+        Caption='Scripting'
+      PageControl4 : TPageControl
+        TabSheet16 : TTabSheet
+            Caption='Script'
+          Scripting : TCheckBox
+              Caption='Scripting'
+              OnClick=ScriptingClick
+          ListBox1 : TListBox
+          ListBox2 : TListBox
+        TabSheet17 : TTabSheet
+            Caption='Meter Test'
+          GroupBox6 : TGroupBox
+              Caption='Individual Meter Test'
+            Label26 : TLabel
+                Caption='Meter'
+            Label27 : TLabel
+                Caption='Position'
+            Label28 : TLabel
+                Caption='How Many Bytes'
+            Label29 : TLabel
+                Caption='Times Meter Changed = '
+            Label30 : TLabel
+                Caption='0'
+            Label31 : TLabel
+                Caption='This feature only works with scripting'
+            MonitoredMeterCmd : TComboBox
+                Text='MonitoredMeterCmd'
+                Items.Strings=('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1A', '1B', '1C', '1D', '1E', '1F', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2A', '2B', '2C', '2D', '2E', '2F', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '3A', '3B', '3C', '3D', '3E', '3F', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '4A', '4B', '4C', '4D', '4E', '4F', '50', '51', '52', '53', '54', '55', '56', '57', '58', '59', '5A', '5B', '5C', '5D', '5E', '5F', '60', '61', '62', '63', '64', '65', '66', '67', '68', '69', '6A', '6B', '6C', '6D', '6E', '6F', '70', '71', '72', '73', '74', '75', '76', '77', '78', '79', '7A', '7B', '7C', '7D', '7E', '7F', '80', '81', '82', '83', '84', '85', '86', '87', '88', '89', '8A', '8B', '8C', '8D', '8E', '8F', '90', '91', '92', '93', '94', '95', '96', '97', '98', '99', '9A', '9B', '9C', '9D', '9E', '9F', 'A0', 'A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'B0', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'BA', 'BB', 'BC', 'BD', 'BE', 'BF', 'C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'CA', 'CB', 'CC', 'CD', 'CE', 'CF', 'D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'DA', 'DB', 'DC', 'DD', 'DE', 'DF', 'E0', 'E1', 'E2', 'E3', 'E4', 'E5', 'E6', 'E7', 'E8', 'E9', 'EA', 'EB', 'EC', 'ED', 'EE', 'EF', 'F0', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'FA', 'FB', 'FC ...TRUNC
+            MonitoredMeterPos : TComboBox
+                Text='MonitoredMeterPos'
+                Items.Strings=('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36', '37', '38', '39', '40')
+            MonitoredMeterBytes : TComboBox
+                Text='MonitoredMeterBytes'
+                Items.Strings=('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20')
+            MonitorMeter : TCheckBox
+                Caption='Monitor Meter'
+                OnClick=MonitorMeterClick
+          MeterTest : TButton
+              Caption='Meter Test'
+              OnClick=MeterTestClick
+    Progressive : TTabSheet
+        Caption='Progressive'
+      Label36 : TLabel
+          Caption='Group= 1'
+      Label34 : TLabel
+          Caption='Broadcast Interval'
+      Label1 : TLabel
+          Caption='3 second(s)'
+      Label14 : TLabel
+          Caption='Levels'
+      In : TLabel
+          Caption='Increment amt.'
+      Do86 : TCheckBox
+          Caption='Use Multiple Level Progressive Broadcast'
+          OnClick=Do86Click
+      ProgRepeat : TCheckBox
+          Caption='Enable Progressive Broadcasts'
+          OnClick=ProgRepeatClick
+      DispBroad : TCheckBox
+          Caption='Display Broadcasts'
+          Hint='Turns on the display of progressive messages'
+      UpDown2 : TUpDown
+          OnClick=UpDown2Click
+          Min=0
+          Max=255
+          Position=1
+      Button4 : TButton
+          Caption='Broadcast'
+          OnClick=Button4Click
+      Do80 : TCheckBox
+          Caption='Use Single Level Progressive Broadcast'
+          OnClick=Do80Click
+          Checked=True
+          State=cbChecked
+      UpDown6 : TUpDown
+          OnClick=UpDown6Click
+          Min=1
+          Max=10
+          Position=3
+      IncProgCB : TCheckBox
+          Caption='Enable Progressive Incrementing'
+          OnClick=IncProgCBClick
+    TabSheet1 : TTabSheet
+        Caption='EFT Test'
+      EFTStat : TLabel
+          Caption='EFTStat'
+      BreakEFT : TCheckBox
+          Caption='Break TXRX line on final ACK from game'
+          Hint='Breaks line after first ack'
+      RestoreRXLineButton : TButton
+          Caption='Restore TXRX Line'
+          OnClick=RestoreRXLineButtonClick
+      Garble : TCheckBox
+          Caption='Garble'
+      EFTButton : TButton
+          Caption='EFTButton'
+          OnClick=EFTButtonClick
+      EFTEdit : TEdit
+          Text='EFTEdit'
+      ComboBox8 : TComboBox
+          Text='ComboBox8'
+      ComboBox9 : TComboBox
+          Text='Denoms'
+          Items.Strings=('.01', '.05', '.10', '.25', '.50', '1.00', '2.00', '5.00', '10.00', '20.00', '50.00', '100.00', '500.00', '1000.00', '10000.00')
+      ACKCB : TCheckBox
+          Caption='ACKCB'
+      SetACK : TButton
+          Caption='Set ACK'
+          OnClick=SetACKClick
+      Button7 : TButton
+          Caption='Inc Trans.'
+          OnClick=Button7Click
+      DecTrans : TButton
+          Caption='Dec Trans.'
+          OnClick=DecTransClick
+    TabSheet10 : TTabSheet
+        Caption='AFT'
+      PageControl3 : TPageControl
+        TabSheet11 : TTabSheet
+            Caption='Registration / Lock'
+          GroupBox8 : TGroupBox
+              Caption='AFT Lock'
+            LockCodeLabel : TLabel
+                Caption='Lock Code'
+            LockTimeoutLabel : TLabel
+                Caption='Lock Timeout'
+            LockCodeCB : TComboBox
+                Text='Lock Code'
+                Items.Strings=('00= Request Lock', '80= Cancel lock or pending lock request', 'FF= Interrogate current status only')
+            LockCondition1 : TCheckBox
+                Caption='TXFR to Machine OK'
+            LockCondition2 : TCheckBox
+                Caption='TXFR  from Machine OK'
+            LockCondition3 : TCheckBox
+                Caption='TXFR to Printer OK'
+            LockCondition4 : TCheckBox
+                Caption='Bonus to Machine OK'
+            LockTimeoutEdit : TEdit
+                Text='500'
+            AFTLockButton : TButton
+                Caption='AFT Lock'
+                OnClick=AFTLockButtonClick
+          GroupBox7 : TGroupBox
+              Caption='AFT Registration'
+            RegCodeLabel : TLabel
+                Caption='Reg. Code'
+            AssetLabel : TLabel
+                Caption='Asset #'
+            RegKeyLabel : TLabel
+                Caption='Reg. Key'
+            POSIDLabel : TLabel
+                Caption='POSID'
+            AFTAssetEdit : TEdit
+                Text='3041AB00'
+            AFTRegKeyEdit : TEdit
+                Text='9876543210123456'
+                Hint='Enter Value in BCD'
+            AFTRegCodeComboBox : TComboBox
+                Text='AFT Registration Code'
+                Items.Strings=('00 = Initialize Registration', '01 = Register Gaming Machine', '40 = Request Operator Acknowledgement', '80 = Unregister Gaming Machine', 'FF = Read Current Registration')
+                OnChange=AFTRegCodeComboBoxChange
+            RegGamingMach : TButton
+                Caption='Register Gaming Machine'
+                OnClick=RegGamingMachClick
+            AFTPOSIDEdit : TEdit
+                Text='11223344'
+            AutoRegisterCB : TCheckBox
+                Caption='Auto Register'
+                Checked=True
+                State=cbChecked
+        TabSheet12 : TTabSheet
+            Caption='Transfer Funds'
+          PoolIDLabel : TLabel
+              Caption='Pool ID'
+          ExpirationLabel : TLabel
+              Caption='Expiration'
+          CashableLabel : TLabel
+              Caption='Cashable Amount'
+          RestrictedLabel : TLabel
+              Caption='Restricted Amount'
+          NonRestrictedLabel : TLabel
+              Caption='Non Restricted Amount'
+          TransactionIDLabel : TLabel
+              Caption='Transaction ID'
+          TransIndexLabel : TLabel
+              Caption='Trans Index'
+          Label49 : TLabel
+              Caption='Edit Reciept Data:'
+          TransferCodeCB : TComboBox
+              Text='Transfer Codes'
+              Items.Strings=('00 = Transfer request, full transfer only', '01 = Transfer request, partial transfer allowed', '80 = Cancel transfer request', 'FF = Interrogate')
+          TransferTypeCB : TComboBox
+              Text='Transfer Types'
+              Items.Strings=('00 = Txfr in-house amount from host to GM', '10 = Txfr bonus coin out win amount from host to GM', '11 = Txfrr bonus jackpot win amount from host to GM', '20 = Txfr in-house amount from host to ticket ', '40 = Txfrr debit amount from host to GM', '60 = Txfr debit amount from host to ticket', '80 = Txfr in-house amount from GM to host', '90 = Txfr win amount from GM to host')
+          CashableEdit : TEdit
+              Text='0000000000'
+          RestrictedEdit : TEdit
+              Text='0000000000'
+          NonRestrictedEdit : TEdit
+              Text='0000000000'
+          TransferFlag0 : TCheckBox
+              Caption='Host Cashout Enable Control'
+          TransferFlag1 : TCheckBox
+              Caption='Host Cashout Enable'
+          TransferFlag2 : TCheckBox
+              Caption='Host Cashout Mode  0=soft 1=hard'
+          TransferFlag6 : TCheckBox
+              Caption='Accept only if locked'
+          TransferFlag7 : TCheckBox
+              Caption='Transaction Receipt request'
+          TransactionIDEdit : TEdit
+              Text='TransactionIDEdit'
+          ExpirationEdit : TEdit
+              Text='ExpirationEdit'
+          AFTPoolIDEdit : TEdit
+              Text='AFTPoolIDEdit'
+          RecieptDataCB : TComboBox
+              Text='Receipt Data'
+              Items.Strings=('00 = Transfer source/destination', '01 = Date and time', '10 = Patron name', '11 = Patron acct#', '13 = Account Balance', '41 = ATM card#', '42 = Transaction fee', '43 = Total debit amount')
+              OnChange=RecieptDataCBChange
+          AFTTransactionButton : TButton
+              Caption='Do AFT Transaction'
+              OnClick=AFTTransactionButtonClick
+          TransSDCB : TCheckBox
+              Caption='Trans Src/Dest'
+          DateTimeCB : TCheckBox
+              Caption='Date/Time'
+          PatronNameCB : TCheckBox
+              Caption='Patron Name'
+          PatronAcctCB : TCheckBox
+              Caption='Patron Acct'
+          AccountBalanceCB : TCheckBox
+              Caption='Account Balance'
+          ATMCardCB : TCheckBox
+              Caption='ATM Card Number'
+          TransactionFeeCB : TCheckBox
+              Caption='Transaction Fee'
+          TotalDebitCB : TCheckBox
+              Caption='Total Debit'
+          TransIndexEdit : TEdit
+              Text='00'
+          InterrogateButton : TButton
+              Caption='Interrogate AFT'
+              OnClick=InterrogateButtonClick
+          AutoInterrogateCB : TCheckBox
+              Caption='Auto Interrogate'
+              Hint='Check this box to auto interrogate when 69 is recieved'
+              Checked=True
+              State=cbChecked
+          TransIDAppend : TEdit
+              Text='0'
+              Hint='Append Transaction ID Auto increments when checked'
+          AppendTRID : TCheckBox
+              Caption='Append Transaction ID'
+              Hint='Check to append Tansaction ID for unique values'
+          UpDown4 : TUpDown
+              OnClick=UpDown4Click
+              Min=0
+              Max=99
+              Position=0
+          ZeroRegKey : TCheckBox
+              Caption='Zero Reg Key'
+          AutoIncTID : TCheckBox
+              Caption='Auto Inc TID'
+              OnClick=AutoIncTIDClick
+          TransIDError : TCheckBox
+              Caption='Trans ID Error'
+          CancelAFTButton : TButton
+              Caption='Cancel AFT Transaction'
+              OnClick=CancelAFTButtonClick
+          UpDown5 : TUpDown
+              Min=0
+              Position=0
+          TransferFlag3 : TCheckBox
+              Caption='Cashout from Gaming Machine Request.'
+          TransferFlag5 : TCheckBox
+              Caption='Use custon ticket data'
+        TabSheet15 : TTabSheet
+            Caption='Receipt'
+          Label50 : TLabel
+              Caption='Edit Transaction Receipt Data Fields'
+          TransReceiptCB : TComboBox
+              Text='TransReceiptCB'
+              Items.Strings=('00 = Location', '01 =Address 1', '02 = Address 2', '10 = In House Line 1', '11 = In House Line 2', '12 = In House Line 3', '13 = In House Line 4', '20 = Debit Line 1', '21 = Debit Line 2', '22 = Debit Line 3', '23 = Debit Line 4')
+              OnChange=TransReceiptCBChange
+          LocationCB : TCheckBox
+              Caption='Location'
+          Address1CB : TCheckBox
+              Caption='Address 1'
+          Address2CB : TCheckBox
+              Caption='Address 2'
+          InHouse1CB : TCheckBox
+              Caption='In House 1'
+          InHouse2CB : TCheckBox
+              Caption='In House 2'
+          InHouse3CB : TCheckBox
+              Caption='In House 3'
+          InHouse4CB : TCheckBox
+              Caption='In House 4'
+          DebitLine1CB : TCheckBox
+              Caption='Debit Line 1'
+          DebitLine2CB : TCheckBox
+              Caption='Debit Line 2'
+          DebitLine3CB : TCheckBox
+              Caption='Debit Line 3'
+          DebitLine4CB : TCheckBox
+              Caption='Debit Line 4'
+          UpdateReceiptButton : TButton
+              Caption='Update Receipt Data (0x75)'
+              OnClick=UpdateReceiptButtonClick
+          SaveAFTDefaults : TButton
+              Caption='Save AFT Defaults'
+          RestoreAFTDefaults : TButton
+              Caption='Restore AFT Defaults'
+    TabSheet13 : TTabSheet
+        Caption='Pulltab'
+      PayLabel : TLabel
+          Caption='Pay for this sequence ='
+      RNGPayLabel : TLabel
+      PullTabLabel0 : TLabel
+          Caption='1 Line 1 coin '
+      Label2 : TLabel
+          Caption='3 Lines 1 coin '
+      Label8 : TLabel
+          Caption='5 Lines 1 coin '
+      Label9 : TLabel
+          Caption='7 Lines 1 coin '
+      Label10 : TLabel
+          Caption='9 Lines 1 coin '
+      Label11 : TLabel
+          Caption='9 Lines 2 coins'
+      Label12 : TLabel
+          Caption='9 Lines 3 coins '
+      Label13 : TLabel
+          Caption='9 Lines 4 coins '
+      Label35 : TLabel
+          Caption='9 Lines 5 coins '
+      Label37 : TLabel
+      Label38 : TLabel
+      Label39 : TLabel
+      Label40 : TLabel
+      Label41 : TLabel
+      Label42 : TLabel
+      Label43 : TLabel
+      Label44 : TLabel
+      Label45 : TLabel
+      Label46 : TLabel
+          Caption='Wins'
+      Label48 : TLabel
+          Caption='Game 1'
+      RNGPayLabel1 : TLabel
+      Label47 : TLabel
+          Caption='Game 2'
+      Label52 : TLabel
+          Caption='   '
+      Label53 : TLabel
+          Caption='   '
+      Label54 : TLabel
+          Caption='   '
+      Label55 : TLabel
+          Caption='   '
+      Label56 : TLabel
+          Caption='   '
+      Label57 : TLabel
+          Caption='   '
+      Label58 : TLabel
+          Caption='   '
+      Label59 : TLabel
+          Caption='   '
+      Label60 : TLabel
+          Caption='   '
+      Label61 : TLabel
+          Caption='Total Tabs'
+      GroupBox9 : TGroupBox
+          Caption='Pulltab'
+        TestLab : TLabel
+            Caption='TestLab'
+        RNGSeedCB : TCheckBox
+            Caption='RNG Seed Mode Enabled'
+            OnClick=RNGSeedCBClick
+        ForcePulltab : TButton
+            Caption='Force a Pulltab'
+            OnClick=ForcePulltabClick
+    TabSheet14 : TTabSheet
+        Caption='Report'
+      Memo3 : TMemo
+      AddReportEntryButton : TButton
+          Caption='Add Report Entry'
+          OnClick=AddReportEntryButtonClick
+      ClrRptButton : TButton
+          Caption='Clear'
+          OnClick=ClrRptButtonClick
+    TabSheet18 : TTabSheet
+        Caption='Authentication'
+      Label62 : TLabel
+          Caption='Action'
+      ActionCB : TComboBox
+          Text='00 = Interrogate number of installed components'
+          Items.Strings=('00 = Interrogate number of installed components', '01 = Read status of component', '02 = Authenticate component', '03 = Interrogate authentication status')
+          ItemIndex=0
+      Button5 : TButton
+          Caption='Send Authentication Info'
+          OnClick=Button5Click
+      Button8 : TButton
+          Caption='Interrogate'
+          OnClick=Button8Click
+      GroupBox14 : TGroupBox
+          Caption='Authentication Data'
+        Label67 : TLabel
+            Caption='Offset'
+        Label66 : TLabel
+            Caption='Seed'
+        Label65 : TLabel
+            Caption='Authentication Method'
+        OffsetEdit : TEdit
+            Text='66778899'
+        SeedEdit : TEdit
+            Text='1122334455'
+        AuthenticationMethodCB : TComboBox
+            Text='00000000  = None'
+            Items.Strings=('00000000  = None', '00000001 = CRC 16', '00000002 = CRC 32', '00000004 = MD5', '00000008 = Kobetron I', '00000010 = Kobetron II', '00000020 = SHA1')
+            ItemIndex=0
+        IncludeAuthCB : TCheckBox
+            Caption='Include Authentication Data'
+      GroupBox15 : TGroupBox
+          Caption='Address Specification'
+        Label64 : TLabel
+            Caption='Compnent Name'
+        Label63 : TLabel
+            Caption='Component Index'
+        ComponentNameEdit : TEdit
+            Text='0123456789'
+        ComponentIndexEdit : TEdit
+            Text='0123456789'
+        AddressingModeRB : TRadioGroup
+            Caption='Addressing Mode'
+            Items.Strings=('00 = addressing  by component index', '01 = addressing by component name')
+            ItemIndex=0
+        IncludeAddressCB : TCheckBox
+            Caption='Include Address Specification'
+      AuthAutoInterCB : TCheckBox
+          Caption='Auto Interrogate'
+          Checked=True
+          State=cbChecked
+  ClrDisps : TButton
+      Caption='Clear Both Displays'
+      OnClick=ClrDispsClick
+  Panel1 : TPanel
+      Caption='Panel1'
+    Splitter1 : TSplitter
+    Memo2 : TMemo
+        Lines.Strings=('')
+    Memo1 : TMemo
+        Lines.Strings=('')
+  MainMenu1 : TMainMenu
+    File1 : TMenuItem
+        Caption='File'
+      ReloadINIfile1 : TMenuItem
+          Caption='Reload INI file'
+          OnClick=ReloadINIfile1Click
+      SaveData1 : TMenuItem
+          Caption='Save Data'
+          OnClick=SaveData1Click
+          Enabled=False
+      SaveDefaultData1 : TMenuItem
+          Caption='Save Default Data'
+          OnClick=SaveDefaultData1Click
+      RestoreDF : TMenuItem
+          Caption='Restore Default Data'
+          OnClick=RestoreDFClick
+      SaveReportFile1 : TMenuItem
+          Caption='Save Report File'
+          OnClick=SaveReportFile1Click
+      Exit1 : TMenuItem
+          Caption='Exit'
+          OnClick=EXIT
+    Log1 : TMenuItem
+        Caption='Log'
+      CaptureData1 : TMenuItem
+          Caption='Capture Data'
+          Hint='Saves Data in TXRXData.Dat'
+          OnClick=CaptureData1Click
+    AFT1 : TMenuItem
+        Caption='AFT'
+      SaveAFTDefaults1 : TMenuItem
+          Caption='Save AFT Defaults'
+          OnClick=SaveAFTDefaults1Click
+      RestoreAFTdefaults1 : TMenuItem
+          Caption='Restore AFT defaults'
+          OnClick=RestoreAFTdefaults1Click
+    Help1 : TMenuItem
+        Caption='Help'
+      About1 : TMenuItem
+          Caption='About'
+          OnClick=About1Click
+      Help2 : TMenuItem
+          Caption='Help'
+          OnClick=Help2Click
+      ActiveHelp1 : TMenuItem
+          Caption='Active Help'
+          OnClick=ActiveHelp1Click
+  SaveDialog1 : TSaveDialog
+      Filter='Dat File (*.dat)|*.dat|Any File (*.*)|*.*'
+      DefaultExt='dat'
+  Timer1 : TTimer
+      Enabled=False
+      Interval=50
+  ProgRateTimer : TTimer
+      Enabled=False
+  SaveDefaults : TSaveDialog
+      Filter='Setup File (*.set)|*.set|Any File|*.*'
+      Title='Save SAS Defaults'
+      DefaultExt='*.set'
+  RestoreDefaults : TOpenDialog
+      Filter='Set Files (*.set)|*.set|Any File (*.*)|*.*'
+      Title='Restore Defaults'
+      DefaultExt='*.set'
+
+##############################################################################
+# form_TPOPUP.dfm
+##############################################################################
+POPUP : TPOPUP
+    Caption='Key Pad'
+  Keys : TGroupBox
+      Caption='Keys'
+    Button1 : TButton
+        Caption='1'
+        OnClick=Button1Click
+    Button2 : TButton
+        Caption='2'
+        OnClick=Button1Click
+    Button3 : TButton
+        Caption='3'
+        OnClick=Button1Click
+    Button5 : TButton
+        Caption='5'
+        OnClick=Button1Click
+    Button6 : TButton
+        Caption='6'
+        OnClick=Button1Click
+    Button7 : TButton
+        Caption='7'
+        OnClick=Button1Click
+    Button8 : TButton
+        Caption='8'
+        OnClick=Button1Click
+    Button9 : TButton
+        Caption='9'
+        OnClick=Button1Click
+    Button10 : TButton
+        Caption='0'
+        OnClick=Button1Click
+    Button4 : TButton
+        Caption='4'
+        OnClick=Button1Click
+    Button11 : TButton
+        Caption='S A'
+        Visible=False
+    Button12 : TButton
+        Caption='A'
+        OnClick=Button1Click
+    Button13 : TButton
+        Caption='B'
+        OnClick=Button1Click
+    Button14 : TButton
+        Caption='C'
+        OnClick=Button1Click
+    Button15 : TButton
+        Caption='D'
+        OnClick=Button1Click
+    Button16 : TButton
+        Caption='E'
+        OnClick=Button1Click
+    Button17 : TButton
+        Caption='F'
+        OnClick=Button1Click
+
+##############################################################################
+# form_TINPUTDIALOG.dfm
+##############################################################################
+InputDialog : TInputDialog
+    Caption='Dialog'
+    Position=poScreenCenter
+  Bevel1 : TBevel
+  Message : TLabel
+      Caption='Message'
+  Image1 : TImage
+  OKBtn : TButton
+      Caption='OK'
+  CancelBtn : TButton
+      Caption='Cancel'
+      Visible=False
+  Edit1 : TEdit
+      Text='Edit1'
+      Hint='Enter a value'
+      OnChange=Edit1Change
+  ComboBox1 : TComboBox
+      Text='ComboBox1'
+  PopupMenu1 : TPopupMenu
+    Keypad1 : TMenuItem
+        Caption='Keypad'
+        OnClick=Keypad1Click
+
+##############################################################################
+# form_TSASABOUTBOX.dfm
+##############################################################################
+SASAboutBox : TSASAboutBox
+    Caption='IGT SAS Simulator'
+    Position=poScreenCenter
+  Panel1 : TPanel
+    VersionLAB : TLabel
+        Caption='Version 1.1'
+    Copyright : TLabel
+        Caption='Copyright (c) 1997-2005 International Game Technology'
+    Image1 : TImage
+        Visible=False
+    ProductNameLab : TLabel
+        Caption='SAS Simulator'
+    SASVersionLabel : TLabel
+        Caption='Supports SAS Versions'
+    Memo1 : TMemo
+        Lines.Strings=('This  program uses multiple threads and will support  40 ms polling ', 'cycles and progressive broadcasts. As   a result a 200 mhz Pentium is ', 'required to run properly.  ', '', 'Conditions for use of this program:', 'This is a prototype test program, and should be treated as such. This ', 'program is supplied AS IS, no guarantees of operation,   warranties, or ', 'support is given. The user assumes all responsibility for any damage this ', 'program may cause.  This program is used with the express permission ', 'of IGT.', 'Any unauthorized distribution or duplication is strictly prohibited.')
+  OKButton : TButton
+      Caption='I Agree'
+  Button1 : TButton
+      Caption='I Don''t Agree'
+  Timer1 : TTimer
+      Enabled=False
+      Interval=50

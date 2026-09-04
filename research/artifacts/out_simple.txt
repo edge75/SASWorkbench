@@ -1,0 +1,41 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\ComPortSettings.dat ===
+  version   : 1
+  port      : COM3
+  baud      : 115200
+  framing   : 8N1  (bytesize=8 parity=0 stopbits=0)
+  trailing  : (none)
+
+=== C:/igs/GSA SAS Host Simulator v1.1\TestConfigFile.dat ===
+  version   : 20
+  test file : 'Legacy_Bonus.dat'
+
+=== C:/igs/GSA SAS Host Simulator v1.1\Tracefilters.dat ===
+version=1  filters=9
+  [0] tag=2 kind=1 "ROM signature"         1 codes: 21
+  [1] tag=2 kind=1 "Ticket Tests"         10 codes: 3D 4C 4D 57 58 70 71 7B 7C 7D
+  [2] tag=2 kind=1 "Tickets/AFT"          16 codes: 3D 4C 4D 57 58 70 71 72 73 74 75 76 7B 7C 7D A0
+  [3] tag=2 kind=1 "11 filter"             1 codes: 11
+  [4] tag=2 kind=1 "Multi-Game A4"         2 codes: 09 A4
+  [5] tag=2 kind=1 "Progressive"           6 codes: 80 83 84 85 86 87
+  [6] tag=2 kind=1 "2F Filter"             1 codes: 2F
+  [7] tag=2 kind=1 ""                      1 codes: 3F
+  [8] tag=2 kind=1 "General Poll"          1 codes: 81
+
+=== C:/igs/GSA SAS Host Simulator v1.1\TicketList.dat ===
+version=1  tickets=16
+  [ 0] number='7266579244968898'   sysId='00'  type=1 redeemed=0 amount=7          flag=1 expiry='00000000' pool=0
+  [ 1] number='0087000400000000'   sysId='00'  type=1 redeemed=0 amount=8.80005e+07 flag=0 expiry='89000400' pool=0
+  [ 2] number='5603506130806317'   sysId='00'  type=1 redeemed=0 amount=1000       flag=0 expiry='00000030' pool=0
+  [ 3] number='5556196448191477'   sysId='00'  type=1 redeemed=0 amount=1000       flag=0 expiry='00000030' pool=0
+  [ 4] number='0169370485315032'   sysId='00'  type=1 redeemed=0 amount=1000       flag=0 expiry='00000030' pool=0
+  [ 5] number='6338742623748784'   sysId='00'  type=1 redeemed=0 amount=1000       flag=0 expiry='00000030' pool=0
+  [ 6] number='000000004nded me'   sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [ 7] number='000000004\x00-\x00\x04\x00\x00\x00' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [ 8] number='000000004D DATA\x00' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [ 9] number='000000004(\x00!\x00%\x00)' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [10] number='0000000044\x00-\x001\x00>' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [11] number='000000004\x9f\x1a\x00d me' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [12] number='000000004D, 004E'   sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [13] number='0000000041\x00\x04\x00\x00\x00\x00' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [14] number='000000004\x01\x00\x00Game' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4
+  [15] number='000000004\x11\x02\x00\x00\x00\x00\x11' sysId='00'  type=1 redeemed=0 amount=50         flag=0 expiry='00005100' pool=4

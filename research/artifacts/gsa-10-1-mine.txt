@@ -1,0 +1,163 @@
+EGM Test Scripts v1.2 - 第10章 Tickets (10.1 Standard Cashout Validation)
+第10章 Tickets — 10.1 Standard Cashout Validation（標準出票驗證）
+SECTION 3: TICKETING | GSA SAS Toolkit v1.2 for SAS v6.01/6.02 | gsa-p0074.001.01
+測試摘要
+項目 | 內容
+預估總時間 | 2.5 – 4 小時
+測試項目數 | 7 項（10.1.1 ~ 10.1.7）
+測試項目 | 估計時間 | 說明
+10.1.1 Standard Validation Configuration | 5-10 分鐘 | 驗證 LP A0 回報 Standard Validation 設定
+10.1.2 No Ticket Redemption | 5-10 分鐘 | 確認 Standard 模式下不接受票券兌換
+10.1.3 Cashout Ticket 1 | 30-45 分鐘 | 完整出票流程、exception 3D、LP 3D 回應
+10.1.4 Ticket Printed – Non-Validating Host | 15-20 分鐘 | 多通道時非驗證通道的行為
+10.1.5 Ticket Meters | 45-60 分鐘 | 出票相關計量器遞增驗證（含 handpay/win-to-printer）
+10.1.6 Ticket Printed – RTE {3D} | 15-20 分鐘 | RTE 模式下出票 exception 格式
+10.1.7 Cashout Ticket 2 | 20-30 分鐘 | Power cycle 後票據資訊保持、唯一 validation ID
+所需設備 / 環境 | 用途
+EGM（支援 Standard Ticket Validation） | 測試對象
+HostSim 測試主機 | 發送 LP / 接收 exception
+有效 cashout ticket（數張） | 10.1.2 票券兌換測試
+Printer（內建或外接） | 列印票券/收據
+風險項目 | 說明 | 建議對策
+需觸發 win-to-handpay | 10.1.5 需調整 credit/jackpot limit 觸發 handpay | 事先確認 EGM 限額設定方式
+需觸發 win-to-printer | 10.1.5 需遊玩到贏得直接列印的金額 | 設定極低 limit 使容易觸發
+多 SAS 通道 | 10.1.4 需要雙通道設定 | 若 EGM 僅單通道可跳過此測試
+前置條件（適用 10.1 所有測試）：
+• EGM SAS address = 1
+• EGM 已設定為 Standard Ticket Validation
+• EGM 非 RTE 模式（power cycle 或 host 送 disable RTE 即可）
+• 如支援 handpay receipt 或 jackpot receipt，設定 EGM 列印收據
+參考 Table
+LP 3D – Send Cashout Ticket Information 回應格式
+欄位 | Bytes | 值 | 說明
+Address | 1 binary | 01 | EGM address（不含 wakeup bit）
+Command | 1 binary | 3D | Send cashout ticket information
+Validation Number | 4 BCD | XXXX | Standard validation number（唯一值）
+Ticket Amount | 5 BCD | XXXXX | 票券金額（單位：cents）
+CRC | 2 binary | 0000-FFFF | 16-bit CRC, LSB first
+RTE 模式下 Exception 3D 格式
+欄位 | Bytes | 值 | 說明
+Address | 1 binary | 01 | EGM address
+RTE Identifier | 1 binary | FF | RTE 識別碼
+Exception Code | 1 binary | 3D | Ticket Printed
+CRC | 2 binary | 0000-FFFF | 16-bit CRC, LSB first
+10.1.5 相關 Meter Codes
+Meter Code | 說明 | 單位
+0004 | Total cancelled credits | SAS accounting credits
+000E | Total tickets out credits | cents
+0012 | Total tickets out count | count
+0016 | Total ticket out credits | SAS accounting credits
+002C | Total cashable ticket out credits | SAS accounting credits
+0038 | Total cashable ticket out quantity | count
+0086 | Regular cashable ticket out cents | cents
+0087 | Regular cashable ticket out quantity | count
+10.1.1 Standard Validation Configuration（標準驗證設定）
+測試需求 | [1] 10.1.1
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.01
+One Key Polls | F1 = A0-Send Enabled Features Game 0, address 1
+Polling Loops | 1 = Basic_1
+Filters | Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 如有必要，RAM clear EGM。設定 EGM 為 standard validation。
+2 | 啟動 Polling Loop。發送 F1。 | EGM 回應 LP A0，格式符合 [2] Table 7.14b，且 Feature Codes 1 bit 6~5 = 00（符合 [2] Table 7.14c）。
+備註： EGM 只能設定為一種 ticket validation 模式。
+10.1.2 No Ticket Redemption（無票券兌換）
+測試需求 | [1] 10.1.2
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.02
+One Key Polls | （無）
+Polling Loops | 1 = Basic_1
+Filters | 1 = Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 啟動 Loop 1。
+2 | 插入數張 cashout ticket 並觀察 trace window。 | EGM 不回報 exception 67。 | EGM 不接受（stack）或給予信用（credit）該票券。
+備註： Standard Validation 模式下票券不可被兌換。
+10.1.3 Cashout Ticket 1（出票測試 1）
+測試需求 | [1] 10.1.3 | • Long poll 3D: Send cashout ticket information | • Exception 3D: A cashout ticket has been printed | • Handpay and jackpot receipt
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.03
+One Key Polls | F1 = 00-General poll, address 0 | F2 = 00-General poll, address 1 | F3 = 3D-Send cashout ticket information, address 1
+Polling Loops | 1 = Basic_No General | 2 = Basic_1
+Filters | 1 = Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 啟動 Loop 1，發送 F1 確認通訊已同步。
+2 | 開啟再關閉 EGM 門。
+3 | 在 EGM 上有 credits 的情況下，按 cashout。 | EGM 列印票券。
+4 | 按 Service 按鈕點亮再清除。
+5 | 重複發送 F2 直到 trace window 出現 exception 00 或 1F。檢視 trace window。 | EGM 在第一個 general poll 回應中送出一個 1-byte exception 3D (Ticket Printed)，接著在後續 general poll 回應中送出： | 11 – Slot Door Open | 12 – Slot Door Closed | 71 – Change light on | 72 – Change Light Off
+6 | 發送 F3。 | EGM 回應 F3，格式： | (01) 1-byte EGM address | (3D) 1-byte command | (XXXX) 4-BCD standard validation number | (XXXXX) 5-BCD 票券金額（cents） | (0000-FFFF) 2-byte CRC, LSB first
+7 | 投入 credits 到 EGM 並 cashout。 | EGM 列印票券。
+8 | 停止 Loop 1。依序發送 F1, F2, F2, F2, F1, F2, F1。 | EGM 在前兩個 F2 回應中送出 exception 3D，第三個 F2 可忽略或送出 3D。 | EGM 在最後一個 F2 回應中送出 exception 3D。
+9 | 啟動 Loop 2。
+10 | 投入 credits 並按 cashout。 | EGM 列印正確金額的票券。 | EGM 發出 exception 3D。
+11 | 再次投入 credits 並按 cashout。 | EGM 列印正確金額的票券。 | EGM 發出 exception 3D。
+12 | 發送 F3。 | EGM 回應 F3，validation ID 非零，金額與 Step 11 的出票金額一致。
+13 | 如有更多 exception 3D 被回報，再發送 F3。 | EGM 回應 F3。若 validation ID 和金額非零，應對應 Step 11 列印的票券。
+14 | 發送 F3。 | EGM 回應 F3，格式與 Step 6 相同。
+15 | 若 EGM 支援，設定 EGM 列印 cashout receipt。投入 credits 並 cashout。發送 F3。 | EGM 列印 cashout receipt 並送出 exception 3D。 | EGM 適當回應 F3。
+16 | 若 EGM 支援，設定 EGM 列印 jackpot receipt。投入 credits 並遊玩到贏得 jackpot。發送 F3。 | EGM 列印 jackpot receipt 並送出 exception 3D。 | EGM 適當回應 F3。
+10.1.4 Ticket Printed – Non-Validating Host {3D}（非驗證主機的出票行為）
+測試需求 | [1] 10.1.4
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.04
+One Key Polls | F1 = 3D-Send cashout ticket information, address 1
+Polling Loops | 1 = Basic_1
+Filters | 1 = Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 若 EGM 支援多 SAS 通道且 standard validation 可設定在不同通道，則設定並啟用至少兩個 SAS 通道（standard validation 在其中一個）。若僅支援單通道，跳過此測試。
+2 | 確認 SASHostSim 連接到 validation 通道。啟動 Loop 1。
+3 | 投入 credits 並按 cashout。 | EGM 列印票券。 | EGM 送出 exception 3D。
+4 | 將 SASHostSim 切換到非 validation 的通道。 | EGM 送出一次 exception 3D。
+5 | 發送 F1。 | EGM 忽略 F1， | 或 EGM 回應 F1，但 validation ID 和金額為零。
+6 | 將 SASHostSim 切換回 validation 通道。再次發送 F1。 | EGM 適當回應 F1，含非零的 validation number 和已列印的票券金額。
+10.1.5 Ticket Meters（出票計量器）
+測試需求 | [1] 10.1.5 | Meter Codes: 0004, 000E, 0012, 0016, 002C, 0038, 0086, 0087
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.05
+One Key Polls | F1 = A0-Send Enabled Features Game 0, address 1
+Polling Loops | 1 = Ticket meters
+Filters | 1 = Display One-Key Poll
+Meter Set | 1 = Legacy ticket meters
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 啟動 Loop 1 並選擇 Meter Set 1。
+2 | 發送 F1，驗證 feature code 2, bit 2。參見 10.1.1 通過標準。
+3 | 觀察 Meter Set 1 並記錄目前的值。 | 各 meter code 的值與 EGM 上對應的計量器一致： | 0004 – total cancelled credits | 000E – Total tickets out credits | 0012 – Total tickets out count | 0016 – Total ticket out credits | 002C – Total cashable ticket out credits | 0038 – Total cashable ticket out quantity | 0086 – Regular cashable ticket out cents | 0087 – Regular cashable ticket out quantity
+4 | 投入 credits 並 cashout。 | EGM 發出 exception 3D 並回應 LP 3D（cashout 資訊）。
+5 | 觀察 Meter Set 1 視窗。 | • 0004 增加 cashout 金額（SAS accounting credits）若 LP A0 feature 2 bit 2 = 1；否則不遞增。 | • 0016 和 002C 增加 cashout 金額（SAS accounting credits）。 | • 000E 和 0086 增加 cashout 金額（cents）。 | • 0012、0038、0087 各增加 1。 | • 其他 meter 值不變。
+6 | 投入 $10 的 credits。遊玩掉 $5。將剩餘全部 cashout。 | EGM 列印正確 cashout 金額的票券。 | EGM 發出 exception 3D。 | EGM 回應 LP 3D，validation ID 非零且金額正確。
+7 | 選擇並觀察 Meter Set 1。 | （遞增規則同 Step 5，基於 Step 6 的 cashout 金額）
+8 | 調整 cashout limit，使可產生 cashout-to-handpay。投入足夠 credits。
+9 | Cashout credits 以觸發 handpay。重置 handpay。觀察 Meter Set 1。 | 0004 增加 handpay 金額（accounting credits）。 | 其他 meter 不遞增。
+10 | 調整 credit/jackpot limit，使 win-to-handpay 容易觸發。
+11 | 投入 credits 並遊玩到 win-to-handpay 發生，觀察 Meter Set 1。 | 所有 meter 值不遞增。
+12 | 調整 credit/cashout limit，使 win-to-printer 容易觸發。
+13 | 投入 credits 並遊玩到 win-to-printer 發生，觀察 Meter Set 1。 | （遞增規則同 Step 5，基於 win-to-printer 金額）
+10.1.6 Ticket Printed – RTE {3D}（RTE 模式出票）
+測試需求 | [1] 10.1.6
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.06
+One Key Polls | F1 = 00-General Poll, address 0 | F2 = 00-General Poll, address 1 | F3 = 0E-RTE-Enable, address 1 | F4 = 0E-RTE-Disable, address 1
+Polling Loops | 1 = Basic_No General
+Filters | 1 = Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 啟動 Loop 1，發送 F1 確認通訊同步。
+2 | 發送 F3 啟用 RTE。 | EGM ACK F3。
+3 | 投入 credits 並按 cashout。 | EGM 列印票券。 | EGM 在回應 EGM address 的 host long poll 時送出 RTE 格式的 exception 3D： | (01) 1-byte EGM address | (FF) 1-byte RTE Identifier | (3D) 1-byte Exception code | (0000-FFFF) 2-byte CRC, LSB first | | EGM 回應 LP 3D，含正確的 validation ID 和金額。
+4 | 投入 credits。停止 Loop 1，然後 cashout。 | EGM 列印票券。
+5 | 發送 F1, F2, F1, F2, F1, F2。 | EGM 在回應 general poll 81 時送出 RTE 格式的 exception 3D（格式同 Step 3）。
+6 | 啟動 Loop 1。發送 F4 停用 RTE。
+10.1.7 Cashout Ticket 2（出票測試 2 – Power Cycle 與唯一 ID）
+測試需求 | [1] 10.1.7 | • Maintaining ticket information during power off | • Unique validation number between power off and RAM clear
+HostSim 設定 | Test Group: Standard Validation, Test Number: TEST_10.01.07
+One Key Polls | F1 = 3D-Send cashout ticket information, address 1
+Polling Loops | 1 = Basic_1
+Filters | 1 = Display One-Key Poll
+步驟 | 測試步驟 | 通過標準 | P/F
+1 | 啟動 Loop 1。
+2 | 投入 credits 並 cashout。 | EGM 列印票券，含正確資料。 | EGM 送出 exception 3D。
+3 | Power cycle EGM，等待通訊重新建立。
+4 | 發送 F1。 | EGM 回應 LP 3D，validation ID 和金額與 Step 2 列印的票券一致。
+5 | 投入 credits 並 cashout。 | EGM 列印票券，含正確資料。 | EGM 送出 exception 3D。 | EGM 回應 LP 3D，validation ID 和金額與本次票券一致。 | 此票的 validation ID 非零且與 Step 2 的 ID 不同。
+6 | 發送 F1。 | EGM 回應 LP 3D，validation ID 和金額與 Step 5 的票券一致。
+7 | RAM clear EGM 並重新設定為 standard validation。確認 EGM 與 HostSim 通訊正常。
+8 | 投入 credits 並 cashout。 | EGM 列印票券，含正確資料。 | EGM 送出 exception 3D。 | EGM 回應 LP 3D，validation ID 和金額與本次票券一致。 | 此票的 validation ID 非零且與 Step 2 或 4 的 ID 不同。
+9 | 發送 F1。 | EGM 回應 F1，validation ID 非零且金額與 Step 8 的票券一致。
+10 | 再重複 Step 5 和 6 一次。 | 此票的 validation ID 與先前所有已列印票券的 ID 不同。
+來源：GSA SAS Toolkit v1.2 for SAS v6.01/6.02, EGM Test Scripts (gsa-p0074.001.01), Chapter 10 – Tickets, Section 10.1 Standard Cashout Validation, Pages 159-168.
+[1] = Requirements Document | [2] = SAS Protocol Manual v6.02
+翻譯及整理日期：2026-07-14

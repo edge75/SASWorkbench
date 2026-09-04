@@ -1,0 +1,811 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\Defaults\PollLoopDefinitions.dat ===
+version=1  loops=53  unparsed tail=0
+
+  loop #1   "Basic_1"                    17 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=53 inst=3  
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=B3 inst=1  
+        addr=1   poll=B5 inst=1  
+        addr=1   poll=AF inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=3  
+        addr=1   poll=6F inst=39 
+        addr=1   poll=0F inst=1  
+        addr=1   poll=19 inst=1  
+        addr=1   poll=1C inst=1  
+
+  loop #2   "Basic_38"                   9 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=38  poll=1F inst=1  
+        addr=1   poll=1F inst=1  
+        addr=38  poll=51 inst=1  
+        addr=38  poll=00 inst=1  (general poll)
+        addr=38  poll=54 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=38  poll=7E inst=1  
+        addr=38  poll=00 inst=1  (general poll)
+
+  loop #3   "Basic_MLT"                  21 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=2   poll=1F inst=1  
+        addr=3   poll=1F inst=1  
+        addr=4   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=2   poll=51 inst=1  
+        addr=3   poll=51 inst=1  
+        addr=4   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=2   poll=00 inst=1  (general poll)
+        addr=3   poll=00 inst=1  (general poll)
+        addr=4   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=2   poll=54 inst=1  
+        addr=3   poll=54 inst=1  
+        addr=4   poll=54 inst=1  
+        addr=1   poll=7E inst=1  
+        addr=2   poll=7E inst=1  
+        addr=3   poll=7E inst=1  
+        addr=4   poll=7E inst=1  
+
+  loop #4   "Basic_No resync _1"         6 entries
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=1   poll=7E inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #5   "Basic_127"                  8 entries
+        addr=127 poll=1F inst=1  
+        addr=1   poll=1F inst=1  
+        addr=127 poll=51 inst=1  
+        addr=127 poll=00 inst=1  (general poll)
+        addr=127 poll=54 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=127 poll=7E inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #6   "Minimal_1"                  7 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=19 inst=1  
+        addr=1   poll=1C inst=1  
+        addr=1   poll=0F inst=1  
+        addr=1   poll=A0 inst=1  
+
+  loop #7   "AFT"                        14 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=4  
+        addr=1   poll=AF inst=17 
+        addr=1   poll=6F inst=18 
+        addr=1   poll=AF inst=18 
+        addr=1   poll=6F inst=19 
+        addr=1   poll=6F inst=20 
+        addr=1   poll=AF inst=19 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=AF inst=16 
+        addr=1   poll=6F inst=33 
+        addr=1   poll=AF inst=4  
+        addr=1   poll=6F inst=34 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #8   "Handpay"                    3 entries
+        addr=1   poll=1F inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=1B inst=1  
+
+  loop #9   "Basic Meters_1"             6 entries
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=6F inst=3  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=28 
+
+  loop #10  "RTE - No General"           6 entries
+        addr=1   poll=1F inst=1  
+        addr=38  poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=127 poll=54 inst=1  
+        addr=1   poll=0E inst=1  
+
+  loop #11  "Basic_No General"           7 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=38  poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=127 poll=54 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=7E inst=1  
+
+  loop #12  "Progressive-Meters"         7 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=25 
+        addr=1   poll=2F inst=6  
+        addr=1   poll=AF inst=24 
+        addr=1   poll=2F inst=3  
+        addr=1   poll=2F inst=4  
+
+  loop #13  "Multi-Denom 6F/AF game 0"   3 entries
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=22 
+        addr=1   poll=AF inst=21 
+
+  loop #14  "Meter-Group-2"              4 entries
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=23 
+        addr=1   poll=53 inst=2  
+        addr=1   poll=AF inst=22 
+
+  loop #15  "User Defined A4"            10 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=38  poll=1F inst=1  
+        addr=1   poll=A4 inst=2  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=127 poll=54 inst=1  
+        addr=1   poll=7E inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #16  "Meter-Group-1"              4 entries
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=22 
+        addr=1   poll=53 inst=2  
+        addr=1   poll=AF inst=21 
+
+  loop #17  "Basic_38_Only"              6 entries
+        addr=38  poll=1F inst=1  
+        addr=38  poll=51 inst=1  
+        addr=38  poll=00 inst=1  (general poll)
+        addr=38  poll=54 inst=1  
+        addr=38  poll=7E inst=1  
+        addr=38  poll=00 inst=1  (general poll)
+
+  loop #18  "Minimal_2"                  4 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #19  "Unimplemented polls"        3 entries
+        addr=1   poll=BF inst=1  
+        addr=1   poll=CF inst=1  
+        addr=1   poll=1F inst=1  
+
+  loop #20  "Ticket Meters"              11 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=13 
+        addr=1   poll=AF inst=12 
+        addr=1   poll=6F inst=14 
+        addr=1   poll=AF inst=13 
+        addr=1   poll=6F inst=15 
+        addr=1   poll=AF inst=14 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+
+  loop #21  "Bonus-Meters"               7 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=AF inst=42 
+        addr=1   poll=6F inst=41 
+        addr=1   poll=2F inst=2  
+        addr=1   poll=2F inst=22 
+        addr=1   poll=0F inst=1  
+
+  loop #22  "User Defined 09"            11 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=38  poll=1F inst=1  
+        addr=1   poll=09 inst=5  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=127 poll=54 inst=1  
+        addr=1   poll=09 inst=5  
+        addr=1   poll=7E inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #23  "loop_53_gameN"              3 entries
+        addr=1   poll=53 inst=2  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+
+  loop #24  "Basic_Bills In"             22 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=31 inst=1  
+        addr=1   poll=32 inst=1  
+        addr=1   poll=33 inst=1  
+        addr=1   poll=34 inst=1  
+        addr=1   poll=35 inst=1  
+        addr=1   poll=36 inst=1  
+        addr=1   poll=37 inst=1  
+        addr=1   poll=38 inst=1  
+        addr=1   poll=39 inst=1  
+        addr=1   poll=3A inst=1  
+        addr=1   poll=3B inst=1  
+        addr=1   poll=3C inst=1  
+        addr=1   poll=3E inst=1  
+        addr=1   poll=3F inst=1  
+        addr=1   poll=40 inst=1  
+        addr=1   poll=41 inst=1  
+        addr=1   poll=42 inst=1  
+        addr=1   poll=43 inst=1  
+        addr=1   poll=44 inst=1  
+        addr=1   poll=45 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #25  "User Defined meters"        5 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=0   poll=52 inst=1  
+        addr=0   poll=2F inst=4  
+        addr=1   poll=6F inst=5  
+        addr=1   poll=AF inst=5  
+
+  loop #26  "General Only"               2 entries
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+
+  loop #27  "Validation meters LP 50"    29 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=2  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=3  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=4  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=5  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=6  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=7  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=8  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=9  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=10 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=11 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=12 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=13 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #28  "Ticket Meters - 6F/AF"      11 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=13 
+        addr=1   poll=AF inst=12 
+        addr=1   poll=6F inst=14 
+        addr=1   poll=AF inst=13 
+        addr=1   poll=6F inst=15 
+        addr=1   poll=AF inst=14 
+        addr=1   poll=51 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=6F inst=38 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #29  "Ticket Meters - 2F"         9 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=2F inst=14 
+        addr=1   poll=51 inst=1  
+        addr=1   poll=2F inst=15 
+        addr=1   poll=54 inst=1  
+        addr=1   poll=2F inst=16 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=17 
+
+  loop #30  "Multi-ple legacy bonus pays" 22 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=8A inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=8A inst=2  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=90 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=90 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+
+  loop #31  "AFT - Cancelled by host"    26 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=72 inst=20 
+        addr=1   poll=72 inst=21 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=72 inst=2  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+
+  loop #32  "User Defined Loop"          20 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=19 inst=1  
+        addr=2   poll=11 inst=1  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=51 inst=1  
+        addr=1   poll=1C inst=1  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=2  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #33  "Core 2F meters"             16 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=3  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=6  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=2F inst=7  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=9  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=2F inst=10 
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=2F inst=11 
+        addr=1   poll=56 inst=1  
+        addr=1   poll=2F inst=4  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=8  
+
+  loop #34  "Core 6F, AF meters"         23 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=39 
+        addr=1   poll=AF inst=35 
+        addr=1   poll=6F inst=40 
+        addr=1   poll=AF inst=34 
+        addr=1   poll=6F inst=42 
+        addr=1   poll=AF inst=36 
+        addr=1   poll=AF inst=37 
+        addr=1   poll=6F inst=44 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=9  
+        addr=1   poll=AF inst=8  
+        addr=1   poll=6F inst=10 
+        addr=1   poll=AF inst=9  
+        addr=1   poll=6F inst=43 
+        addr=1   poll=AF inst=41 
+        addr=1   poll=6F inst=45 
+        addr=1   poll=AF inst=38 
+        addr=1   poll=6F inst=46 
+        addr=1   poll=AF inst=39 
+        addr=1   poll=6F inst=47 
+        addr=1   poll=AF inst=40 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #35  "2F - AFT"                   12 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=18 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=2F inst=19 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=20 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=21 
+        addr=1   poll=6F inst=13 
+        addr=1   poll=54 inst=1  
+        addr=1   poll=6F inst=14 
+
+  loop #36  "AFT Bonus_1"                6 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=2  
+        addr=1   poll=6F inst=41 
+        addr=1   poll=2F inst=22 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=AF inst=42 
+
+  loop #37  "Progressive LP 80"          27 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=0   poll=80 inst=4  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=0F inst=1  
+        addr=1   poll=2F inst=3  
+        addr=0   poll=80 inst=5  
+        addr=1   poll=2F inst=6  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=B1 inst=1  
+        addr=1   poll=53 inst=3  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=0   poll=80 inst=6  
+        addr=1   poll=53 inst=3  
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=B5 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=39 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=0   poll=80 inst=7  
+        addr=1   poll=6F inst=42 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=1D inst=1  
+        addr=1   poll=83 inst=2  
+        addr=1   poll=19 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=0   poll=80 inst=8  
+
+  loop #38  "All Addresses"              129 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=11 inst=1  
+        addr=2   poll=11 inst=1  
+        addr=3   poll=11 inst=1  
+        addr=4   poll=11 inst=1  
+        addr=5   poll=11 inst=1  
+        addr=6   poll=11 inst=1  
+        addr=7   poll=11 inst=1  
+        addr=8   poll=11 inst=1  
+        addr=9   poll=11 inst=1  
+        addr=10  poll=11 inst=1  
+        addr=11  poll=11 inst=1  
+        addr=12  poll=11 inst=1  
+        addr=13  poll=11 inst=1  
+        addr=14  poll=11 inst=1  
+        addr=15  poll=11 inst=1  
+        addr=16  poll=11 inst=1  
+        addr=17  poll=11 inst=1  
+        addr=18  poll=11 inst=1  
+        addr=19  poll=11 inst=1  
+        addr=20  poll=11 inst=1  
+        addr=21  poll=11 inst=1  
+        addr=22  poll=11 inst=1  
+        addr=23  poll=11 inst=1  
+        addr=24  poll=11 inst=1  
+        addr=25  poll=11 inst=1  
+        addr=26  poll=11 inst=1  
+        addr=27  poll=11 inst=1  
+        addr=28  poll=11 inst=1  
+        addr=29  poll=11 inst=1  
+        addr=30  poll=11 inst=1  
+        addr=31  poll=11 inst=1  
+        addr=32  poll=11 inst=1  
+        addr=33  poll=11 inst=1  
+        addr=34  poll=11 inst=1  
+        addr=35  poll=11 inst=1  
+        addr=36  poll=11 inst=1  
+        addr=37  poll=11 inst=1  
+        addr=38  poll=11 inst=1  
+        addr=39  poll=11 inst=1  
+        addr=40  poll=11 inst=1  
+        addr=41  poll=11 inst=1  
+        addr=42  poll=11 inst=1  
+        addr=43  poll=11 inst=1  
+        addr=44  poll=11 inst=1  
+        addr=45  poll=11 inst=1  
+        addr=46  poll=11 inst=1  
+        addr=47  poll=11 inst=1  
+        addr=48  poll=11 inst=1  
+        addr=49  poll=11 inst=1  
+        addr=50  poll=11 inst=1  
+        addr=51  poll=11 inst=1  
+        addr=52  poll=11 inst=1  
+        addr=53  poll=11 inst=1  
+        addr=54  poll=11 inst=1  
+        addr=55  poll=11 inst=1  
+        addr=56  poll=11 inst=1  
+        addr=57  poll=11 inst=1  
+        addr=58  poll=11 inst=1  
+        addr=59  poll=11 inst=1  
+        addr=60  poll=11 inst=1  
+        addr=61  poll=11 inst=1  
+        addr=62  poll=11 inst=1  
+        addr=63  poll=11 inst=1  
+        addr=64  poll=11 inst=1  
+        addr=65  poll=11 inst=1  
+        addr=66  poll=11 inst=1  
+        addr=67  poll=11 inst=1  
+        addr=68  poll=11 inst=1  
+        addr=69  poll=11 inst=1  
+        addr=70  poll=11 inst=1  
+        addr=71  poll=11 inst=1  
+        addr=72  poll=11 inst=1  
+        addr=73  poll=11 inst=1  
+        addr=74  poll=11 inst=1  
+        addr=75  poll=11 inst=1  
+        addr=76  poll=11 inst=1  
+        addr=77  poll=11 inst=1  
+        addr=78  poll=11 inst=1  
+        addr=79  poll=11 inst=1  
+        addr=80  poll=11 inst=1  
+        addr=81  poll=11 inst=1  
+        addr=82  poll=11 inst=1  
+        addr=83  poll=11 inst=1  
+        addr=84  poll=11 inst=1  
+        addr=85  poll=11 inst=1  
+        addr=86  poll=11 inst=1  
+        addr=87  poll=11 inst=1  
+        addr=88  poll=11 inst=1  
+        addr=89  poll=11 inst=1  
+        addr=90  poll=11 inst=1  
+        addr=91  poll=11 inst=1  
+        addr=92  poll=11 inst=1  
+        addr=93  poll=11 inst=1  
+        addr=94  poll=11 inst=1  
+        addr=95  poll=11 inst=1  
+        addr=96  poll=11 inst=1  
+        addr=97  poll=11 inst=1  
+        addr=98  poll=11 inst=1  
+        addr=99  poll=11 inst=1  
+        addr=100 poll=11 inst=1  
+        addr=101 poll=11 inst=1  
+        addr=102 poll=11 inst=1  
+        addr=103 poll=11 inst=1  
+        addr=104 poll=11 inst=1  
+        addr=105 poll=11 inst=1  
+        addr=106 poll=11 inst=1  
+        addr=107 poll=11 inst=1  
+        addr=108 poll=11 inst=1  
+        addr=109 poll=11 inst=1  
+        addr=110 poll=11 inst=1  
+        addr=111 poll=11 inst=1  
+        addr=112 poll=11 inst=1  
+        addr=113 poll=11 inst=1  
+        addr=114 poll=11 inst=1  
+        addr=115 poll=11 inst=1  
+        addr=116 poll=11 inst=1  
+        addr=117 poll=11 inst=1  
+        addr=118 poll=11 inst=1  
+        addr=119 poll=11 inst=1  
+        addr=120 poll=11 inst=1  
+        addr=121 poll=11 inst=1  
+        addr=122 poll=11 inst=1  
+        addr=123 poll=11 inst=1  
+        addr=124 poll=11 inst=1  
+        addr=125 poll=11 inst=1  
+        addr=126 poll=11 inst=1  
+        addr=127 poll=11 inst=1  
+        addr=128 poll=11 inst=1  
+
+  loop #39  "SAS Prog (86)"              5 entries
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=1C inst=1  
+        addr=1   poll=19 inst=1  
+
+  loop #40  "SAS Prog (80)"              7 entries
+        addr=2   poll=11 inst=1  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=1C inst=1  
+        addr=1   poll=19 inst=1  
+        addr=1   poll=7E inst=1  
+        addr=1   poll=FE inst=1  
+
+  loop #41  "Core 2F meters (2)"         16 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=3  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=6  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=2F inst=7  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=9  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=2F inst=10 
+        addr=1   poll=A0 inst=1  
+        addr=1   poll=2F inst=11 
+        addr=1   poll=56 inst=1  
+        addr=1   poll=2F inst=4  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=8  
+
+  loop #42  "Core 6F, AF meters (2)"     23 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=39 
+        addr=1   poll=AF inst=35 
+        addr=1   poll=6F inst=40 
+        addr=1   poll=AF inst=34 
+        addr=1   poll=6F inst=42 
+        addr=1   poll=AF inst=36 
+        addr=1   poll=AF inst=37 
+        addr=1   poll=6F inst=44 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=9  
+        addr=1   poll=AF inst=8  
+        addr=1   poll=6F inst=10 
+        addr=1   poll=AF inst=9  
+        addr=1   poll=6F inst=43 
+        addr=1   poll=AF inst=41 
+        addr=1   poll=6F inst=45 
+        addr=1   poll=AF inst=38 
+        addr=1   poll=6F inst=46 
+        addr=1   poll=AF inst=39 
+        addr=1   poll=6F inst=47 
+        addr=1   poll=AF inst=40 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #43  "Ticket Meters (2)"          11 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=13 
+        addr=1   poll=AF inst=12 
+        addr=1   poll=6F inst=14 
+        addr=1   poll=AF inst=13 
+        addr=1   poll=6F inst=15 
+        addr=1   poll=AF inst=14 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=54 inst=1  
+
+  loop #44  "Ticket Meters - 2F (2)"     9 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1F inst=1  
+        addr=1   poll=2F inst=14 
+        addr=1   poll=51 inst=1  
+        addr=1   poll=2F inst=15 
+        addr=1   poll=54 inst=1  
+        addr=1   poll=2F inst=16 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=17 
+
+  loop #45  "Ticket Meters - 6F/AF (2)"  11 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=13 
+        addr=1   poll=AF inst=12 
+        addr=1   poll=6F inst=14 
+        addr=1   poll=AF inst=13 
+        addr=1   poll=6F inst=15 
+        addr=1   poll=AF inst=14 
+        addr=1   poll=51 inst=1  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=6F inst=38 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #46  "Validation meters LP 50 (2)" 29 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=2  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=3  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=4  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=5  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=6  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=7  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=8  
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=9  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=10 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=11 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=12 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=50 inst=13 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #47  "2F - AFT (2)"               12 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=18 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=2F inst=19 
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=20 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=21 
+        addr=1   poll=6F inst=13 
+        addr=1   poll=54 inst=1  
+        addr=1   poll=6F inst=14 
+
+  loop #48  "AFT (2)"                    14 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=4  
+        addr=1   poll=AF inst=17 
+        addr=1   poll=6F inst=18 
+        addr=1   poll=AF inst=18 
+        addr=1   poll=6F inst=19 
+        addr=1   poll=6F inst=20 
+        addr=1   poll=AF inst=19 
+        addr=1   poll=1F inst=1  
+        addr=1   poll=AF inst=16 
+        addr=1   poll=6F inst=33 
+        addr=1   poll=AF inst=4  
+        addr=1   poll=6F inst=34 
+        addr=1   poll=00 inst=1  (general poll)
+
+  loop #49  "AFT Bonus_1 (2)"            6 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=2F inst=2  
+        addr=1   poll=6F inst=41 
+        addr=1   poll=2F inst=22 
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=AF inst=42 
+
+  loop #50  "Basic Meters_1 (2)"         6 entries
+        addr=1   poll=1F inst=1  
+        addr=1   poll=51 inst=1  
+        addr=1   poll=6F inst=3  
+        addr=1   poll=54 inst=1  
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=6F inst=28 
+
+  loop #51  "Bonus-Meters (2)"           7 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=00 inst=1  (general poll)
+        addr=1   poll=AF inst=42 
+        addr=1   poll=6F inst=41 
+        addr=1   poll=2F inst=2  
+        addr=1   poll=2F inst=22 
+        addr=1   poll=0F inst=1  
+
+  loop #52  "WSASProg(80)"               6 entries
+        addr=0   poll=00 inst=1  (general poll)
+        addr=1   poll=1C inst=1  
+        addr=1   poll=19 inst=1  
+        addr=1   poll=0F inst=1  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=1E inst=1  
+
+  loop #53  "WSASProg(86)"               5 entries
+        addr=1   poll=1C inst=1  
+        addr=1   poll=19 inst=1  
+        addr=1   poll=0F inst=1  
+        addr=1   poll=1F inst=1  
+        addr=1   poll=1E inst=1  

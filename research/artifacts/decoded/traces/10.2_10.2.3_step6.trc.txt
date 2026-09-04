@@ -1,0 +1,11 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.3\step6.trc ===
+started : 2026-07-20 17:59:41
+stamps  : relative to end of previous poll
+events  : 7 (6 messages, 4 HOST, 2 EGM)
+  HOST           WAKE 7F 54                                  Send SAS version ID and EGM serial number:
+  HOST      39.5 WAKE 7F 54                                  Send SAS version ID and EGM serial number:
+  HOST      39.6 WAKE 81                                     General Poll
+  EGM       23.1      3D                                     A cashout ticket has been printed
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       29.7      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --

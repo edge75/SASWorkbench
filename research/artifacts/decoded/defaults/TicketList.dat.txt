@@ -1,0 +1,3 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\Defaults\TicketList.dat ===
+version=1  tickets=1
+  [ 0] number='7266579244968898'   sysId='00'  type=1 redeemed=0 amount=7          flag=1 expiry='00000000' pool=0

@@ -1,0 +1,35 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.1\step3.trc ===
+started : 2026-07-20 15:07:53
+stamps  : relative to end of previous poll
+events  : 31 (25 messages, 12 HOST, 13 EGM)
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       28.4      3F                                     Validation ID not configured
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       35.0      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       25.2      3F                                     Validation ID not configured
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       21.6      01 54 09 36 30 32 31 30                Send SAS version ID and EGM serial number: SAS Version = "602"; SAS Version = "602";
+  -- separator --
+  HOST           WAKE 00 86 0D 01 01 00 00 00 00 00 02 00 00 00 00 00 06 6D Receive multiple progressive levels: Group = 1; Level = 1; Amount = 0000000000; Level = 2; Amount = 0000000000;
+  HOST      39.6 WAKE 81                                     General Poll
+  EGM       24.5      3F                                     Validation ID not configured
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       32.1      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  EGM                 01 7E 07 20 20 26 15 08 38 8A DC       Send current date and time: Date = 07202026; Time = 150838;
+  HOST           WAKE 81                                     General Poll
+  EGM       28.1      3F                                     Validation ID not configured
+  HOST      40.0 WAKE 80                                     RESYNC
+  HOST      40.1 WAKE 01 1F                                  Send gaming machine ID and information:
+  -- separator --
+  EGM                 01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST           WAKE 81                                     General Poll
+  EGM       30.3      3F                                     Validation ID not configured
+  HOST      40.0 WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       22.8      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  -- separator --
+  -- pause --

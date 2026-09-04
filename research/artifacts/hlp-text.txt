@@ -1,0 +1,529 @@
+===============================================================================
+SASTEST.HLP  -  raw text extraction
+Source: C:\IGT3\SASTEST.HLP  (30394 bytes, MS Windows 95 help, Thu Nov 7 2002)
+Magic 0x00035F3F. |SYSTEM record flags = 0  =>  NO LZ77, NO phrase compression.
+Internal files: |SYSTEM |TOPIC(24449B) |FONT |CTXOMAP |TTLBTREE |CONTEXT
+Method (a) Sysinternals strings succeeded; method (b) direct |TOPIC block decode
+used to recover the 1-3 char tokens strings dropped. Both are reproduced below.
+===============================================================================
+
+########## PART 1: Sysinternals strings -a -n 5 ##########
+|CONTEXT
+|CTXOMAP
+|FONT
+|SYSTEM
+|TOPIC
+|TTLBTREE
+HELP TOPICS
+Minimum system requirements
+Installation
+Overview
+Invoking a SAS/LONG POLL Command
+Invoking a EFT/ECT/SBM Command
+Working with the SASTest.INI File
+Known Problems
+Disclaimer 
+New Items 
+MINIMUM SYSTEM REQUIREMENTS
+SASTest
+  requires:
+An IBM Compatible Computer using at least a 200 mhz Pentium processor Windows 95/98/NT/2000/XP or higher, with 24 meg of ram.
+INSTALLATION
+Just copy the SASTest.exe and SASTest.ini and this help file to any directory you wish.
+To have it start from a  different COMM port: 
+1. Create A Shortcut in Windows 95/98 or NT. 
+2. Then edit the shortcut.
+3. Fill in the description box with any title you like.
+4. To select the comm port you are using, you must go to the INI file and under the SAS Protocols section specify the port . 
+example: port = 2   
+The above line sets the comm port to comm2.
+OVERVIEW
+The SASTest program allows you to test AFT - EFT 
+ ECT - SBM - SAS commands using
+the standard Windows point and click method. It is INI file driven, meaning that all commands and responses can be setup and changed in the SASTest.INI file. 
+  Auto Ticket Redemption/Validation is now supported, which allows complete testing of the ticket in ticket out process.
+Please remember the actual bytes transmitted and received is what is important!!! The English message window is just a convenience and if your INI file is incomplete these messages may not get translated.  
+Known Problems / Eccentricities
+Since the SAS protocol uses a "wake up bit" (a 9th bit) for machine addressing we have to use the parity bit as a substitute. Under DOS this would be no problem because there is direct access to the serial port hardware.  Windows on the other hand, isolates the program from the hardware using virtual drivers. For this program to be compatible with all the available COMM drivers out there, we had to use purely Windows API commands filtered through the COMM driver. This creates problems switching the parity bit on and off
+as necessary, because Windows requires you to totally re-initialize the COMM port and it is virtually impossible to determine if the byte with the wakeup bit really went out of the UART. Also Windows COMM drivers do not have any facility to mark any one byte received with an error, it can only let you know if any byte in the UART buffer has an error, making it again virtually impossible to tag an individual byte . Also Windows schedules usage of any process (thread) taking away time to let other apps use its multi-tasking. The receive buffer in this program uses a separate thread for reading the bytes coming in. Since it is unknown how many bytes are really coming in we have to wait for a time out. This causes polling cycle timing problems as well as response time problems when the game requires an ACK, Windows has a tendency to chop up your message causing the machine to time out.  There are times when things get out of sync with the messaging. Always look in the bottom window if something looks weird. Also if you have a slow machine Windows may want to 
+chop up
+ the return message.
+  In recent years as the processors get faster these problems become less and less prevalent.  
+DISCLAIMER
+This is a prototype test program and as such it was never meant for release.
+Please keep this in mind when usinQ
+g this program. It is basically a bare bones
+program to help develop SAS protocols. There are going to be errors and 
+strange behavior will be exhibited.
+INVOKING A SAS / LONG POLL COMMAND
+To invoke a SAS command press the small down arrow on the right side of the Long Poll Commands dropdown. Then pick the command from the list, the lower window will show what commands were sent in hex denoted by a TX= and what bytes were received denoted by a RX=. The upper window will show in English what was returned. Please note, if the English statement is not in the window it is probably not listed in the ini file. 
+INVOKING A ECT/EFT COMMAND
+To invoke a ECT/EFT command press the small down arrow on the right side of the ECT/EFT Commands dropdown. Then pick the command from the list, the lower window will show what commands were sent in hex denoted by a TX= and what bytes were received denoted by a RX=. The upper window will show in English what was returned.
+WORKING WITH THE SASTest.INI FILE
+To edit the SASTest.ini file use any standard text editor. The program at this time does not have any error checking for the format of the ini file ( eventually it will have in future releases). The best way to insert new commands is to look at how the others are formatted and copy those. Remember with no error checking, improperly inserted commands will cause unexpected results and program crashes.
+The following categories must be in the included verbatim: 
+[General Poll]
+[Long Poll Commands]
+[Electronic Funds Transfer]
+[ASDC]
+[Message Structures]
+[Status Messages]
+[Messages]
+[Script]
+[Bonus Game Data Structures]
+[Data Structures]
+[Quick Commands]
+[end]
+Usage of the [General Poll] category is as follows:
+Each entry is nothing more than the English description of the exceptions returned from a general poll. The format is:
+ $11 = Slot door was just opened.
+Where the 
+ is the exception.
+Where the 
+= Slot door was just opened.
+ Is the english statement that will appear ( minus the 
+ sign).
+Usage of the [Long Poll Commands] category is as follows:
+These entries require a more detailed understanding of SAS Commands. Each entry has a descriptor that allows you to specify the Command  the Command Description and an Option List.
+And as many input boxes as necessary to build any possible message.
+The first part is the Command, it must have a 
+ and a 2 character Hex Number followed by an 
+ sign. 
+The second part is the Command Description The actual entry to be used in the drop down followed by a comma (you can not use commas in this text).
+The third part is the option list that uses a Y/N format separated by commas to specify if you want the following:
+A length byte.
+A Transaction number.
+An ACK byte and An ACK to be transmitted.
+A Type Byte.
+A Status Byte.
+A CRC 
+Number of Input Boxes
+Example: 
+$XX = Command Definition, LENGTH(Y/N),TRANS(Y/N),ACK(Y/N),
+  |     \                        \     /          /
+  |     |                         \   / /--------/
+  |     |                         |  / /
+  |     |                         | | |
+$0C = Set Sound Volume           ,n,n,n,n,n,Y,1
+                                        | | | |
+     ----------------------------------/ / / /
+    /           ------------------------/ / /
+   /           /         ----------------/ /
+  /           /         /          -------/         
+ |           |         |          /  
+ |           |         |         |
+TYPE(Y/N),STATUS(Y/N),CRC(Y/N),# of input Boxes
+The Input Boxes use the following format:
+ followed by 2 hex characters used in the Command description followed by an 
+ sign. Then a message to be displayed by the input box followed by an 
+ sign. Then the number of data bytes to be used. 
+Example:
+?0C = Enter the Volume Level @
+Usage of the [Electronic Funds Transfer] category is as follows:
+Electronic Funds Transfer is identical to the Long Poll Commands with the exception that the Command Description appears in the Electronic Funds Transfer Drop Down.
+Usage of the [ASDC] category is as follows:
+The ASDC section is identical to The Long Poll with the exception of the second Y/N parameter, that parameter denotes the use of one of the  [Bonus Game Data Structures] and that structure will be used in the message sent out depending on the following (first)  Input Box data return.
+IMPORTANT: These commands will be going away in future releases because these messages can be formatted, edited, and sent more easily using the Message Structure section.
+Usage of the [Message Structure] category is as follows:
+Message Structure is identical to the Long Poll Commands with the exception that the you can specify an Input Box with 
+ bytes and it will allow you to pick a [Data Structure] (described later)
+Usage of the [Status Messages] category is as follows:
+ The [Status Messages] section works in the same manner as the  General poll section with the exception that the program looks at the Status Byte if it is denoted in the message sent. 
+Usage of the [Messages] category is as follows:
+When a Long Poll is sent out the reply can be trned into English by an entry in this section. The Format is a s follows: 
+  the Command in the reply followed by an 
+ sign.
+The English statement followed by an comma.
+The position in the message that you want read followed by a comma.
+ sign followed by an 
+ for ASCII or a 
+ for decimal with a 2 char number denoting haw many bytes to display. EXAMPLE:
+$0F = Cancelled Credit Meter = ,03,%d04
+$0F = Coin In Meter          = ,07,%d04
+$0F = Coin Out Meter         = ,11,%d04
+$0F = Coins to Drop Meter    = ,15,%d04
+$0F = Jackpot Meter          = ,19,%d04
+$0F = Games Played Meter     = ,23,%d04
+$10 = Cancelled Credit Meter = ,03,%d04
+$11 = Coin In Meter          = ,03,%d04
+$12 = Coin Out Meter         = ,03,%d04
+$13 = Drop Meter             = ,03,%d04
+$14 = Jackpot Meter          = ,03,%d04
+$15 = Games Played Meter     = ,03,%d04
+$16 = Games Won Meter        = ,03,%d04
+$17 = Games Lost Meter       = ,03,%d04
+$181 = Games Since last Door Close = ,05,%d02
+$182 = Games Since last Power Up =   ,03,%d02
+$19 = Coin In Meter       = ,03,%d04
+$19 = Coin Out Meter      = ,07,%d04
+$19 = Coins to Drop Meter = ,11,%d04
+$19 = Jackpot Meter       = ,15,%d04
+$19 = Games Played Meter  = ,19,%d04
+$1A = Current Credits     = ,03,%d04
+$1B = Progressive type    = ,03,%d01
+$1B = Level               = ,04,%d01
+$1B = Amount              = ,05,%d05
+$1B = Partial Pay         = ,10,%d02
+$1B = Unused              = ,12,%d11
+$1C = Coin In             = ,03,%d04
+$1C = Coin Out            = ,07,%d04
+$1C = Drop                = ,11,%d04
+$1C = JP meter            = ,15,%d04
+$1C = Games Played        = ,19,%d04
+$1C = Games Won           = ,23,%d04
+$1C = Door Open           = ,27,%d04
+$1C = Power Reset         = ,31,%d04
+$1D = Promotional Credits            ,03,%d04
+$1D = Downloaded Non-Cashable Credits,07,%d04
+$1D = Credits Cashed out to the Host ,11,%d04
+$1D = Downloaded Cashable Credits    ,15,%d04
+$1E = $1.00 Bill Meter  =,03,%d04
+$1E = $5.00 Bill Meter  =,07,%d04
+$1E = $10.00 Bill Meter =,11,%d04
+$1E = $20
+.00 Bill Meter =,15,%d04
+$1E = $50.00 Bill Meter =,19,%d04
+$1E = $100.00 Bill Meter=,23,%d04
+$1F = Gaming Machine ID ,03,%a02
+$1F = Additional ID     ,05,%a03
+$1F = Demonination      ,08,%d01
+$1F = Max bet           ,09,%d01
+$1F = Progressive       ,10,%d01
+$1F = Game Options      ,11,%d02
+$1F = Pay Table         ,13,%a06
+$1F = Base Percentage   ,19,%a04
+$20 =  Dollar value of Bill Meters ,03,%d04
+$21 = Rom Signature with 0 seed = ,03,%d02
+$22 = Load Non-cashable credits,06,%d04
+$23 = Promotional credits,06,%d04
+$24 = Force Cash out to host,06,%d04
+$25 = Forced cashout from Gaming machine,06,%d04
+$26 = Cashout dollar amount,05,%d05
+$27 = Current promotional credits,03,%d04
+$28 = Transaction #1 (newest),03,%d09
+$28 = Transaction #2         ,12,%d09
+$28 = Transaction #3         ,21,%d09
+$28 = Transaction #4         ,30,%d09
+$28 = Transaction #5 (oldest),39,%d09
+$28 =                         C T A S [   D    ],00,%d00
+$28 =                         M R C T [   A    ],00,%d00
+$28 =                         D N K A [   T    ],00,%d00
+$28 =                           #   T [   A    ],00,%d00
+$29 = Load cashable credits to machine,06,%d04
+$2A = True Coins In meter   =,03,%d04
+$2B = True Coins Out meter  =,03,%d04
+$31 = $1.00 Bill Meter
+    =,03,%d04
+$32 = $2.00 Bill Meter      =,03,%d04
+$33 = $5.00 Bill Meter      =,03,%d04
+$34 = $10.00 Bill Meter     =,03,%d04
+$35 = $20.00 Bill Meter     =,03,%d04
+$36 = $50.00 Bill Meter     =,03,%d04
+$37 = $100.00 Bill Meter    =,03,%d04
+$38 = $500.00 Bill Meter    =,03,%d04
+$39 = $1000.00 Bill Meter   =,03,%d04
+$3A = $200.00 Bill Meter    =,03,%d04
+$3B = $25.00 Bill Meter     =,03,%d04
+$3C = $2000.00 Bill Meter   =,03,%d04
+$3D = Cash out ticket information,03,%d04
+$3E = $2,500.00 Bill Meter  =,03,%d04
+$3F = $5,000.00 Bill Meter  =,03,%d04
+$40 = $10,000.00 Bill Meter =,03,%d04
+$41 = $20,000.00 Bill Meter =,03,%d04
+$42 = $25,000.00 Bill Meter =,03,%d04
+$43 = $50,000.00 Bill Meter =,03,%d04
+$44 = $100,000.00 Bill Meter=,03,%d04
+$45 = $250.00 Bill Meter    =,03,%d04
+$46 = Credit Amount of all Bills Accepted =,03,%d04
+$48 = Country Code      =,03,%d01
+$48 = Denomination Code =,04,%d01
+$48 = Bill Meter 
+=,05,%d04
+$49 = Current bills in stacker            =,03,%d04
+$4A = Credit Amount of bills in stacker   =,03,%d04
+$4E = Transaction 1  =,03,%d10
+$4E = Transaction 2  =,13,%d10
+$4E = Transaction 3  =,23,%d10
+$4E = Transaction 4  =,33,%d10
+$4E = Transaction 5  =,43,%d10
+$54 = SAS Version      =,04,%d04
+$51 = Number of Games Implemented =,04,%d01
+$52 = Meters for Game ,03,%d02
+$52 = Coin In      =,05,%d04
+$52 = Coin Out     =,09,%d04
+$52 = Jackpot      =,13,%d04
+$52 = Games Played =,17,%d04
+$54 = SAS Serial Number=,08,%d04
+$62 = Load Non-cashable credits,06,%d04
+$63 = Promotional credits,06,%d04
+$64 = Force Cash out to host,06,%d05
+$65 = Forced cashout from Gaming machine=,06,%d05
+$66 = Cashout Credit amount,06,%d04
+$69 = Load Cashable Credits=,06,%d04
+$6A = Available EFT Transactions =,03,%d04
+$83 = Cumulative Progressive Wins =,03,%d06
+$84 = Progressive Win Group        =,03,%d01
+$84 = Progressive Win Level        =,04,%d01
+$8F = Reel Stop 1 Information =,03,%d01
+$8F = Reel Stop 2 Information =,04,%d01
+$8F = Reel Stop 3 Information =,05,%d01
+$8F = Reel Stop 4 Information =,06,%d01
+$8F = Reel Stop 5 Information =,07,%d01
+$6A = Available EFT Transactions =,03,%d04
+$90 = Bonus Win Multiplier (Bit 7 = non deductable)=,03,%d01
+$90 = Bonus Win Jackpot Multiplier Amount =,04,%d04
+$90 = Bonus Win Tax Status =,08,%d01
+$90 = Bonus Win Award Amount =,09,%d04
+$9A = Bonus Meter Deductable    =,05,%d04
+$9A = Bonus Meter Non-Deductable=,09,%d04
+$9A = Bonus Meter Game # = ,03,%d02
+$9E = Current MW
+ buffer = ,03,%d04
+$9F = Canceled Wager Matching Buffer = ,03%d04
+$A0 = Enabled Features:,03,%d00
+$A0 = Features    =,05,%d02
+$A0 = Game Mode   =,07,%d02
+$A0 = LCD Mode    =,09,%d02
+$A1 = Cumulative Matched Wagers =,05,%d04
+$A1 = Game Number =,03,%d02
+$A4 = Cash Out Limit =,05,%d04
+$A4 = Game Number=,03,%d02
+$A5 = ASDC Command =,04,%d02
+$A5 = ASDC Data = ,06,%d10
+$A6 = Game Number          =,03,%d02
+$A6 = Deductable Bonus     =,05,%d04
+$A6 = Non-Deductable Bonus =,09,%d04
+$A7 = Game Number                  =,03,%d02
+$A7 = Triggered System Bonuses     =,05,%d04
+$A7 = Triggered Non-System Bonuses =,09,%d04
+$FD = dummy,00,%d05
+[Script]
+;0111 = Requesting Coin In Meter
+;81 = Sending General Poll
+;0112 = Requesting Coin Out Meter
+;81 = Sending General Poll
+;0113 = Requesting Coin to Drop Meter
+;81 = Sending General Poll
+;0115 = Requesting Games Played Meter
+;81 = Sending General Poll
+;011A = Requesting Credit Meter
+;81 = Sending General Poll
+;011F = Requesting Gaming Machine ID
+81 = Sending General Poll
+0110 = send game canceled credit meter
+81 = Sending General Poll
+0111 = send game coin in meter
+81 = Sending General Poll
+0112 = send game coin out meter
+81 = Sending General Poll
+0113 = send game coin drop meter
+81 = Sending General Poll
+0114 = send game jackpot meter
+81 = Sending General Poll
+0115 = send game handle meter
+81 = Sending General Poll
+0119 = Send Meters $11-$15.
+011a = send game current credit meter
+81 = Sending General Poll
+011b = send game handpay information
+81 = Sending General Poll
+011f = send game ID information
+81 = Sending General Poll
+0120 = send dollar value of bill meter
+81 = Sending General Poll
+012a = send game true coin in meter
+81 = Sending General Poll
+012b = send game true coin out meter
+81 = Sending General Poll
+0131 = send $1.00 bill meter
+81 = Sending General Poll
+0132 = send $2.00 bill meter
+81 = Sending General Poll
+0133 = send $5.00 bill meter
+81 = Sending General Poll
+0134 = send $10.00 bill meter
+81 = Sending General Poll
+0135 = send $20.00 bill meter
+81 = Sending General Poll
+0136 = send $50.00 bill meter
+81 = Sending General Poll
+0137 = send $100.00 bill meter
+81 = Sending General Poll
+80 = Sending Re-Sync
+[Bonus Game Data Structures]
+$01 = Times Pay Bonus ,5
+?01 = Enter Multiplier@1
+?01 = Enter Number of Games@1
+?01 = Enter Lower Trigger@1
+?01 = Enter Upper Trigger@1
+?01 = Enter Current Trigger@1
+$02 = Generic Pay Coin In Pay Bonus,5
+?02 = Enter Lower Bonus@4
+?02 = Enter Upper Bonus@4
+?02 = Enter Lower Trigger@4
+?02 = Enter Upper Trigger@4
+?02 = Enter Current Trigger@4
+$03 = Generic Pay Coin Out Bonus ,4
+?03 = Enter Bonus Pay@1
+?03 = Enter Trigger Level@1
+?03 = Enter Current Trigger@1
+?03 = Enter Trigger Multiplier@1
+$08 = Coin In Pick-A-Prize Bonus,5
+?08 = Enter Added Bonus (LSB First)@4
+?08 = Enter Win Table (LSB First)@2
+?08 = Enter Lower Trigger@4
+?08 = Enter Upper Trigger@4
+?08 = Enter Current Trigger@4
+$09 = Coin In Pick-A-Prize Bonus,3
+?09 = Enter Win Table (LSB First)@1
+?09 = Enter Added Bonus (LSB First)@4
+?09 = Enter Average coins wagered/step(LSB First)@4
+[Data Structures]
+BEGIN
+ ID 0004 THEME 0001 Diamond Mine = FF
+ Smart Pause Filter Reel 1 = 0001
+ Smart Pause Position = 02
+ Smart Pause Filter Reel 1 = 0304
+ Smart Pause Position = 05
+ Smart Pause Filter Reel 1 = 0607
+ Smart Pause Position = 08
+ Smart Pause Filter Reel 1 = 090A
+ Smart Pause Position = 0B
+BEGIN
+ Link Bonus Game Update = B0
+ Animation Flags = 02
+ Positions = 0001
+ Previous = 0002
+ Current = 0003
+ Current Amount = 0004
+ Reserved = 0005
+ Animation Flags = 02
+ Positions = 0001
+ Previous = 0002
+ Current = 0003
+ Current Amount = 0004
+ Reserved = 0005
+ Animation Flags = 02
+ Positions = 0001
+ Previous = 000C
+ Current = 0003
+ Current Amount = 0004
+ Reserved = 0005
+BEGIN
+ ASDC Command Open Close Live Video= A5
+ ASDC Sub Command = 04
+ Source TV = 00
+ Channel = 03
+ X/Y Full screen = 00000000FFFFFFFF
+ Duration = 0010
+BEGIN
+ Test Structure = 11
+ Test2 = 2222
+ Test3 = 3333
+ Test4 = 4444
+[Quick Commands]
+018A0000005000
+018A0000005001
+01A506010000000020
+01A506010000010020
+01A506010000020020
+01A506010000030020
+01A506020000012000
+01A506000200020020
+01A506000200030020
+01A5080300546573741000
+02A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F21300002A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F21300002A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F213000
+01A50E0400010300000000FFFFFFFF3000
+01A5020600
+012E1000
+019A0001
+019A0000
+[end]
+New Items in SAS test
+New items in sastest:
+GENERAL
+Updated to work with Windows NT, 2000, 98,95
+The sas tester that is released to the outside world is now the same as the internal version.
+POLLING
+Ability to cycle through address's up to a chosen number
+Multi denom preamble
+TICKET VALIDATION
+Automatic ticket validation for standard and enhanced.
+Manual ticket validation, with button to complete each part of the validation sequence.
+Adjustable Validation numbers.
+Adjustable ticket amounts.
+Error introduction into ticket data.
+English messages for ticket status
+FIBER OPTIC SUPPORT
+Sas test can now be used with fiber optics, such usage requires that the program allows the bytes it sends out to be echoed back and ignored. It seems that Win98 and WinNT handle the received characters differently. So to compensate there is an entry in the sastest.ini file to index that properly, just in case there is a problem. Also with this new functionality you can redeem tickets from multiple machines on the loop. The only caveat is the machines being polled must be on the loop you cannot poll a machine that doesn
+t answer at this time. 
+NEW REPORT BUILDING TOOL
+The SAS tester now has a report building tool. The way it works is it records the entire transaction into a buffer and you can insert that recorded data into the memo box on the report page. The buffer is cleared each time you select the long poll drop down, EFT drop down, or send a custom command. This feature doesn
+t work with scripting. 
+NEW SAVE/RESTORE DEFAULTS 
+You can now save most of the settings you have chosen in a .SET file. You may make as many with different configurations as you wish. The options are found under the File menu.   
+Times New Roman
+Arial
+Courier New
+Helvetica
+Courier
+MS Mincho
+@MS Mincho
+Times New Roman CE
+Times New Roman Cyr
+Times New Roman Greek
+Times New Roman Tur
+Times New Roman (Hebrew)
+Times New Roman (Arabic)
+Times New Roman Baltic
+
+
+########## PART 2: direct |TOPIC decode (fills in $ ? @ = tokens) ##########
+========================================================================
+TOPIC TITLES (|TTLBTREE) -- help table of contents
+========================================================================
+
+========================================================================
+|TOPIC decoded (uncompressed, 24377 payload bytes)
+========================================================================
+==HELP TOPICS=kyMinimum system requirementsInstallationOverviewInvoking a SAS/LONG POLL CommandInvoking a EFT/ECT/SBM CommandWorking with the SASTest.INI FileKnown ProblemsDisclaimer New Items  .MINIMUM SYSTEM REQUIREMENTSSASTest  requires:An IBM Compatible Computer using at least a 200 mhz Pentium processor Windows 95/98/NT/2000/XP or higher, with 24 meg of ram. .INSTALLATIONJust copy the SASTest.exe and SASTest.ini and this help file to any directory you wish.To have it start from a  different COMM port: 1. Create A Shortcut in Windows 95/98 or NT. 2. Then edit the shortcut.3. Fill in the description box with any title you like.4. To select the comm port you are using, you must go to the INI file and under the SAS Protocols section specify the port . example: port = 2   The above line sets the comm port to comm2. 2OVERVIEWThe SASTest program allows you to test AFT - EFT  ECT - SBM - SAS commands usingthe standard Windows point and click method. It is INI file driven, meaning that all commands and responses can be setup and changed in the SASTest.INI file.   Auto Ticket Redemption/Validation is now supported, which allows complete testing of the ticket in ticket out process.Please remember the actual bytes transmitted and received is what is important!!! The English message window is just a convenience and if your INI file is incomplete these messages may not get translated.  
+ (Known Problems / EccentricitiesSince the SAS protocol uses a "wake up bit" (a 9th bit) for machine addressing we have to use the parity bit as a substitute. Under DOS this would be no problem because there is direct access to the serial port hardware.  Windows on the other hand, isolates the program from the hardware using virtual drivers. For this program to be compatible with all the available COMM drivers out there, we had to use purely Windows API commands filtered through the COMM driver. This creates problems switching the parity bit on and off$as necessary, because Windows requires you to totally re-initialize the COMM port and it is virtually impossible to determine if the byte with the wakeup bit really went out of the UART. Also Windows COMM drivers do not have any facility to mark any one byte received with an error, it can only let you know if any byte in the UART buffer has an error, making it again virtually impossible to tag an individual byte . Also Windows schedules usage of any process (thread) taking away time to let other apps use its multi-tasking. The receive buffer in this program uses a separate thread for reading the bytes coming in. Since it is unknown how many bytes are really coming in we have to wait for a time out. This causes polling cycle timing problems as well as response time problems when the game requires an ACK, Windows has a tendency to chop up your message causing the machine to time out.  There are times when things get out of sync with the messaging. Always look in the bottom window if something looks weird. Also if you have a slow machine Windows may want to chop up the return message.
+  In recent years as the processors get faster these problems become less and less prevalent.  @@ .DISCLAIMERThis is a prototype test program and as such it was never meant for release.Please keep this in mind when using this program. It is basically a bare bonesprogram to help develop SAS protocols. There are going to be errors and strange behavior will be exhibited.@@@ *INVOKING A SAS / LONG POLL COMMANDTo invoke a SAS command press the small down arrow on the right side of the Long Poll Commands dropdown. Then pick the command from the list, the lower window will show what commands were sent in hex denoted by a TX= and what bytes were received denoted by a RX=. The upper window will show in English what was returned. Please note, if the English statement is not in the window it is probably not listed in the ini file. @	C	C .INVOKING A ECT/EFT COMMANDTo invoke a ECT/EFT command press the small down arrow on the right side of the ECT/EFT Commands dropdown. Then pick the command from the list, the lower window will show what commands were sent in hex denoted by a TX= and what bytes were received denoted by a RX=. The upper window will show in English what was returned.	C@ 0WORKING WITH THE SASTest.INI FILETo edit the SASTest.ini file use any standard text editor. The program at this time does not have any error checking for the format of the ini file ( eventually it will have in future releases). The best way to insert new commands is to look at how the others are formatted and copy those. Remember with no error checking, improperly inserted commands will cause unexpected results and program crashes.The following categories must be in the included verbatim: YI; D[General Poll][Long Poll Commands][Electronic Funds Transfer][ASDC][Message Structures][Status Messages][Messages][Script][Bonus Game Data Structures][Data Structures][Quick Commands][end]Usage of the [General Poll] category is as follows:Each entry is nothing more than the English description of the exceptions returned from a general poll. The format is: $11 = Slot door was just opened.Where the $11 is the exception.Where the = Slot door was just opened. Is the english statement that will appear ( minus the = sign). $Usage of the [Long Poll Commands] category is as follows:These entries require a more detailed understanding of SAS Commands. Each entry has a descriptor that allows you to specify the Command  the Command Description and an Option List.And as many input boxes as necessary to build any possible message.The first part is the Command, it must have a $ and a 2 character Hex Number followed by an = sign. The second part is the Command Description The actual entry to be used in the drop down followed by a comma (you can not use commas in this text).YI 4The third part is the option list that uses a Y/N format separated by commas to specify if you want the following:A length byte.A Transaction number.An ACK byte and An ACK to be transmitted.A Type Byte.A Status Byte.A CRC Number of Input BoxesExample: $XX = Command Definition, LENGTH(Y/N),TRANS(Y/N),ACK(Y/N),  |     \                        \     /          /  |     |                         \   / /--------/  |     |                         |  / / 0  |     |                         | | |$0C = Set Sound Volume           ,n,n,n,n,n,Y,1                                        | | | |     ----------------------------------/ / / /    /           ------------------------/ / /   /           /         ----------------/ /  /           /         /          -------/          |           |         |          /   |           |         |         |TYPE(Y/N),STATUS(Y/N),CRC(Y/N),# of input BoxesThe Input Boxes use the following format: BA ? followed by 2 hex characters used in the Command description followed by an = sign. Then a message to be displayed by the input box followed by an @ sign. Then the number of data bytes to be used. Example:?0C = Enter the Volume Level @Usage of the [Electronic Funds Transfer] category is as follows:The Electronic Funds Transfer is identical to the Long Poll Commands with the exception that the Command Description appears in the Electronic Funds Transfer Drop Down.$ &Usage of the [ASDC] category is as follows:The ASDC section is identical to The Long Poll with the exception of the second Y/N parameter, that parameter denotes the use of one of the  [Bonus Game Data Structures] and that structure will be used in the message sent out depending on the following (first)  Input Box data return.IMPORTANT: These commands will be going away in future releases because these messages can be formatted, edited, and sent more easily using the Message Structure section. VUsage of the [Message Structure] category is as follows:The Message Structure is identical to the Long Poll Commands with the exception that the you can specify an Input Box with  bytes and it will allow you to pick a [Data Structure] (described later)Usage of the [Status Messages] category is as follows: The [Status Messages] section works in the same manner as the  General poll section with the exception that the program looks at the Status Byte if it is denoted in the message sent. Usage of the [Messages] category is as follows:When a Long Poll is sent out the reply can be trned into English by an entry in this section. The Format is a s follows: $  the Command in the reply followed by an = sign.The English statement followed by an comma.The position in the message that you want read followed by a comma.A  sign followed by an  for ASCII or a  for decimal with a 2 char number denoting haw many bytes to display. EXAMPLE: ,$0F = Cancelled Credit Meter = ,03,%d04$0F = Coin In Meter          = ,07,%d04$0F = Coin Out Meter         = ,11,%d04$0F = Coins to Drop Meter    = ,15,%d04$0F = Jackpot Meter          = ,19,%d04$0F = Games Played Meter     = ,23,%d04$10 = Cancelled Credit Meter = ,03,%d04$11 = Coin In Meter          = ,03,%d04$12 = Coin Out Meter         = ,03,%d04$13 = Drop Meter             = ,03,%d04$14 = Jackpot Meter          = ,03,%d04$15 = Games Played Meter     = ,03,%d04 ,$16 = Games Won Meter        = ,03,%d04$17 = Games Lost Meter       = ,03,%d04$181 = Games Since last Door Close = ,05,%d02$182 = Games Since last Power Up =   ,03,%d02$19 = Coin In Meter       = ,03,%d04$19 = Coin Out Meter      = ,07,%d04$19 = Coins to Drop Meter = ,11,%d04$19 = Jackpot Meter       = ,15,%d04$19 = Games Played Meter  = ,19,%d04$1A = Current Credits     = ,03,%d04$1B = Progressive type    = ,03,%d01$1B = Level               = ,04,%d01 0$1B = Amount              = ,05,%d05$1B = Partial Pay         = ,10,%d02$1B = Unused              = ,12,%d11$1C = Coin In             = ,03,%d04$1C = Coin Out            = ,07,%d04$1C = Drop                = ,11,%d04$1C = JP meter            = ,15,%d04$1C = Games Played        = ,19,%d04$1C = Games Won           = ,23,%d04$1C = Door Open           = ,27,%d04$1C = Power Reset         = ,31,%d04$1D = Promotional Credits            ,03,%d04$1D = Downloaded Non-Cashable Credits,07,%d04 2$1D = Credits Cashed out to the Host ,11,%d04$1D = Downloaded Cashable Credits    ,15,%d04$1E = $1.00 Bill Meter  =,03,%d04$1E = $5.00 Bill Meter  =,07,%d04$1E = $10.00 Bill Meter =,11,%d04$1E = $20.00 Bill Meter =,15,%d04$1E = $50.00 Bill Meter =,19,%d04$1E = $100.00 Bill Meter=,23,%d04$1F = Gaming Machine ID ,03,%a02$1F = Additional ID     ,05,%a03$1F = Demonination      ,08,%d01$1F = Max bet           ,09,%d01$1F = Progressive       ,10,%d01 0$1F = Game Options      ,11,%d02$1F = Pay Table         ,13,%a06$1F = Base Percentage   ,19,%a04$20 =  Dollar value of Bill Meters ,03,%d04$21 = Rom Signature with 0 seed = ,03,%d02$22 = Load Non-cashable credits,06,%d04$23 = Promotional credits,06,%d04$24 = Force Cash out to host,06,%d04$25 = Forced cashout from Gaming machine,06,%d04$26 = Cashout dollar amount,05,%d05$27 = Current promotional credits,03,%d04$28 = Transaction #1 (newest),03,%d09 *$28 = Transaction #2         ,12,%d09$28 = Transaction #3         ,21,%d09$28 = Transaction #4         ,30,%d09$28 = Transaction #5 (oldest),39,%d09$28 =                         C T A S [   D    ],00,%d00$28 =                         M R C T [   A    ],00,%d00$28 =                         D N K A [   T    ],00,%d00$28 =                           #   T [   A    ],00,%d00$29 = Load cashable credits to machine,06,%d04$2A = True Coins In meter   =,03,%d04$2B = True Coins Out meter  =,03,%d04 4$31 = $1.00 Bill Meter    =,03,%d04$32 = $2.00 Bill Meter      =,03,%d04$33 = $5.00 Bill Meter      =,03,%d04$34 = $10.00 Bill Meter     =,03,%d04$35 = $20.00 Bill Meter     =,03,%d04$36 = $50.00 Bill Meter     =,03,%d04$37 = $100.00 Bill Meter    =,03,%d04$38 = $500.00 Bill Meter    =,03,%d04$39 = $1000.00 Bill Meter   =,03,%d04$3A = $200.00 Bill Meter    =,03,%d04$3B = $25.00 Bill Meter     =,03,%d04$3C = $2000.00 Bill Meter   =,03,%d04$3D = Cash out ticket information,03,%d04 4$3E = $2,500.00 Bill Meter  =,03,%d04$3F = $5,000.00 Bill Meter  =,03,%d04$40 = $10,000.00 Bill Meter =,03,%d04$41 = $20,000.00 Bill Meter =,03,%d04$42 = $25,000.00 Bill Meter =,03,%d04$43 = $50,000.00 Bill Meter =,03,%d04$44 = $100,000.00 Bill Meter=,03,%d04$45 = $250.00 Bill Meter    =,03,%d04$46 = Credit Amount of all Bills Accepted =,03,%d04$48 = Country Code      =,03,%d01$48 = Denomination Code =,04,%d01$48 = Bill Meter =,05,%d04$49 = Current bills in stacker            =,03,%d04 4$4A = Credit Amount of bills in stacker   =,03,%d04$4E = Transaction 1  =,03,%d10$4E = Transaction 2  =,13,%d10$4E = Transaction 3  =,23,%d10$4E = Transaction 4  =,33,%d10$4E = Transaction 5  =,43,%d10$54 = SAS Version      =,04,%d04$51 = Number of Games Implemented =,04,%d01$52 = Meters for Game ,03,%d02$52 = Coin In      =,05,%d04$52 = Coin Out     =,09,%d04$52 = Jackpot      =,13,%d04$52 = Games Played =,17,%d04$54 = SAS Serial Number=,08,%d04 0$62 = Load Non-cashable credits,06,%d04$63 = Promotional credits,06,%d04$64 = Force Cash out to host,06,%d05$65 = Forced cashout from Gaming machine=,06,%d05$66 = Cashout Credit amount,06,%d04$69 = Load Cashable Credits=,06,%d04$6A = Available EFT Transactions =,03,%d04$83 = Cumulative Progressive Wins =,03,%d06$84 = Progressive Win Group        =,03,%d01$84 = Progressive Win Level        =,04,%d01$8F = Reel Stop 1 Information =,03,%d01$8F = Reel Stop 2 Information =,04,%d01
+ .$8F = Reel Stop 3 Information =,05,%d01$8F = Reel Stop 4 Information =,06,%d01$8F = Reel Stop 5 Information =,07,%d01$6A = Available EFT Transactions =,03,%d04$90 = Bonus Win Multiplier (Bit 7 = non deductable)=,03,%d01$90 = Bonus Win Jackpot Multiplier Amount =,04,%d04$90 = Bonus Win Tax Status =,08,%d01$90 = Bonus Win Award Amount =,09,%d04$9A = Bonus Meter Deductable    =,05,%d04$9A = Bonus Meter Non-Deductable=,09,%d04$9A = Bonus Meter Game # = ,03,%d02 8$9E = Current MW buffer = ,03,%d04$9F = Canceled Wager Matching Buffer = ,03%d04$A0 = Enabled Features:,03,%d00$A0 = Features    =,05,%d02$A0 = Game Mode   =,07,%d02$A0 = LCD Mode    =,09,%d02$A1 = Cumulative Matched Wagers =,05,%d04$A1 = Game Number =,03,%d02$A4 = Cash Out Limit =,05,%d04$A4 = Game Number=,03,%d02$A5 = ASDC Command =,04,%d02$A5 = ASDC Data = ,06,%d10$A6 = Game Number          =,03,%d02$A6 = Deductable Bonus     =,05,%d04$A6 = Non-Deductable Bonus =,09,%d04 8$A7 = Game Number                  =,03,%d02$A7 = Triggered System Bonuses     =,05,%d04$A7 = Triggered Non-System Bonuses =,09,%d04$FD = dummy,00,%d05[Script];0111 = Requesting Coin In Meter;81 = Sending General Poll;0112 = Requesting Coin Out Meter;81 = Sending General Poll;0113 = Requesting Coin to Drop Meter;81 = Sending General Poll;0115 = Requesting Games Played Meter;81 = Sending General Poll;011A = Requesting Credit Meter;81 = Sending General Poll 8;011F = Requesting Gaming Machine ID81 = Sending General Poll0110 = send game canceled credit meter81 = Sending General Poll0111 = send game coin in meter81 = Sending General Poll0112 = send game coin out meter81 = Sending General Poll0113 = send game coin drop meter81 = Sending General Poll0114 = send game jackpot meter81 = Sending General Poll0115 = send game handle meter81 = Sending General Poll0119 = Send Meters $11-$15.011a = send game current credit meter 881 = Sending General Poll011b = send game handpay information81 = Sending General Poll011f = send game ID information81 = Sending General Poll0120 = send dollar value of bill meter81 = Sending General Poll012a = send game true coin in meter81 = Sending General Poll012b = send game true coin out meter81 = Sending General Poll0131 = send $1.00 bill meter81 = Sending General Poll0132 = send $2.00 bill meter81 = Sending General Poll0133 = send $5.00 bill meter
+
+ <81 = Sending General Poll0134 = send $10.00 bill meter81 = Sending General Poll0135 = send $20.00 bill meter81 = Sending General Poll0136 = send $50.00 bill meter81 = Sending General Poll0137 = send $100.00 bill meter81 = Sending General Poll80 = Sending Re-Sync[Bonus Game Data Structures]$01 = Times Pay Bonus ,5?01 = Enter Multiplier@1?01 = Enter Number of Games@1?01 = Enter Lower Trigger@1?01 = Enter Upper Trigger@1?01 = Enter Current Trigger@1; 6$02 = Generic Pay Coin In Pay Bonus,5?02 = Enter Lower Bonus@4?02 = Enter Upper Bonus@4?02 = Enter Lower Trigger@4?02 = Enter Upper Trigger@4?02 = Enter Current Trigger@4$03 = Generic Pay Coin Out Bonus ,4?03 = Enter Bonus Pay@1?03 = Enter Trigger Level@1?03 = Enter Current Trigger@1?03 = Enter Trigger Multiplier@1$08 = Coin In Pick-A-Prize Bonus,5?08 = Enter Added Bonus (LSB First)@4?08 = Enter Win Table (LSB First)@2?08 = Enter Lower Trigger@4
+ 8?08 = Enter Upper Trigger@4?08 = Enter Current Trigger@4$09 = Coin In Pick-A-Prize Bonus,3?09 = Enter Win Table (LSB First)@1?09 = Enter Added Bonus (LSB First)@4?09 = Enter Average coins wagered/step(LSB First)@4[Data Structures]BEGIN ID 0004 THEME 0001 Diamond Mine = FF Smart Pause Filter Reel 1 = 0001 Smart Pause Position = 02 Smart Pause Filter Reel 1 = 0304 Smart Pause Position = 05 Smart Pause Filter Reel 1 = 0607 Smart Pause Position = 08;y@? L Smart Pause Filter Reel 1 = 090A Smart Pause Position = 0BENDBEGIN Link Bonus Game Update = B0 Animation Flags = 02 Positions = 0001 Previous = 0002 Current = 0003 Current Amount = 0004 Reserved = 0005 Animation Flags = 02 Positions = 0001 Previous = 0002 Current = 0003 Current Amount = 0004 Reserved = 0005 Animation Flags = 02 Positions = 0001 Previous = 0002 Current = 0003 Current Amount = 0004 Reserved = 0005ENDBEGIN ASDC Command Open Close Live Video= A5QC J ASDC Sub Command = 04 Source TV = 00 Channel = 03 X/Y Full screen = 00000000FFFFFFFF Duration = 0010ENDBEGIN Test Structure = 11 Test2 = 2222 Test3 = 3333 Test4 = 4444END[Quick Commands]018A0000005000018A000000500101A50601000000002001A50601000001002001A50601000002002001A50601000003002001A50602000001200001A50600020002002001A50600020003002001A508030054657374100002A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F21300002A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F21300002A51403004D792073697374616073206120686F21300001A51403004D792073697374616073206120686F213000y@ 401A50E0400010300000000FFFFFFFF300001A5020600012E1000019A0001019A0000[end].iniQCPOQD "New Items in SAS testyD
+=QD
+New items in sastest:
+yD
+GENERAL9E
+Updated to work with Windows NT, 2000, 98,95
+The sas tester that is released to the outside world is now the same as the internal version.9E
+
+
+POLLING;uF
+Ability to cycle through address's up to a chosen number
+Multi denom preambleuF
+
+:G
+TICKET VALIDATION
+Automatic ticket validation for standard and enhanced.:G
+Manual ticket validation, with button to complete each part of the validation sequence.]H
+Adjustable Validation numbers.
+Adjustable ticket amounts.]H
+Error introduction into ticket data.:I  
+English messages for ticket statusbI;:I
+FIBER OPTIC SUPPORTbI &
+
+Sas test can now be used with fiber optics, such usage requires that the program allows the bytes it sends out to be echoed back and ignored. It seems that Win98 and WinNT handle the received characters differently. So to compensate there is an entry in the sastest.ini file to index that properly, just in case there is a problem. Also with this new functionality you can redeem tickets from multiple machines on the loop. The only caveat is the machines being polled must be on the loop you cannot poll a machine that doesnt answer at this time. 
+@[L
+NEW REPORT BUILDING TOOL &
+
+The SAS tester now has a report building tool. The way it works is it records the entire transaction into a buffer and you can insert that recorded data into the memo box on the report page. The buffer is cleared each time you select the long poll drop down, EFT drop down, or send a custom command. This feature doesnt work with scripting. [L
+
+LN
+NEW SAVE/RESTORE DEFAULTS 
+(O
+You can now save most of the settings you have chosen in a .SET file. You may make as many with different configurations as you wish. The options are found under the File menu.   LNPO
+(O
+

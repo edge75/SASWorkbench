@@ -1,0 +1,12 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.1\step6.trc ===
+started : 2026-07-20 15:12:17
+stamps  : relative to end of previous poll
+events  : 8 (6 messages, 3 HOST, 3 EGM)
+  HOST           WAKE 01 7E                                  Send current date and time:
+  EGM       28.9      01 7E 07 20 20 26 15 12 17 9E 6D       Send current date and time: Date = 07202026; Time = 151217;
+  HOST      44.6 WAKE 01 4C 01 00 10 01 00 00 75 6A          Set secure enhanced validation ID: Machine ID = 0x100001; Sequence number = 0x1;
+  EGM       26.1      01 4C 01 00 10 01 00 00 75 6A          Set secure enhanced validation ID: Machine ID = 0x100001; Sequence number = 0x1;
+  HOST      44.2 WAKE 81                                     General Poll
+  EGM       26.0      00                                     No Activity
+  -- separator --
+  -- pause --

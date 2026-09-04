@@ -1,0 +1,1546 @@
+=== PE HEADER ===
+File: C:\igs\GSA SAS Host Simulator v1.1\SASHostSim.exe  size=806912
+Machine=0x014c  NumberOfSections=4  TimeDateStamp=0x45005e95
+  Link date (UTC): 2006-09-07T18:01:57
+OptionalHeader magic=0x010b (PE32) size=224
+Characteristics=0x010f
+LinkerVersion=6.0
+SizeOfCode=0x9a000  AddressOfEntryPoint=0x8f326  ImageBase=0x400000
+Subsystem=2 (2=GUI,3=CUI)  OSVer=4.0  SubsysVer=4.0
+  Dir[1] Import: RVA=0x000add48 Size=0xdc
+  Dir[2] Resource: RVA=0x000b7000 Size=0x105e8
+  Dir[12] IAT: RVA=0x0009b000 Size=0x994
+
+=== SECTIONS ===
+  .text      VA=0x00001000 VSize=0x00099acb RawPtr=0x00001000 RawSize=0x0009a000 Char=0x60000020
+  .rdata     VA=0x0009b000 VSize=0x0001441e RawPtr=0x0009b000 RawSize=0x00015000 Char=0x40000040
+  .data      VA=0x000b0000 VSize=0x00006d58 RawPtr=0x000b0000 RawSize=0x00004000 Char=0xc0000040
+  .rsrc      VA=0x000b7000 VSize=0x000105e8 RawPtr=0x000b4000 RawSize=0x00011000 Char=0x40000040
+
+=== RESOURCE INVENTORY (72 leaves) ===
+  Type RT_ICON: 3 entries
+      names/ids = [1, 2, 3]
+  Type RT_MENU: 4 entries
+      names/ids = [104, 110, 117, 118]
+  Type RT_DIALOG: 25 entries
+      names/ids = [100, 101, 102, 103, 106, 107, 109, 111, 112, 114, 115, 116, 117, 118, 119, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209]
+  Type RT_STRING: 33 entries
+      names/ids = [7, 2049, 2050, 2051, 3585, 3605, 3697, 3825, 3826, 3876, 3877, 3878, 3879, 3880, 3881, 3882, 3883, 3884, 3885, 3886, 3887, 3938, 3939, 3940, 3941, 3942, 3943, 3944, 3945, 3946, 3947, 3948, 3949]
+  Type RT_ACCELERATOR: 1 entries
+      names/ids = [104]
+  Type RT_GROUP_ICON: 2 entries
+      names/ids = [104, 105]
+  Type RT_VERSION: 1 entries
+      names/ids = [1]
+  Type 240: 3 entries
+      names/ids = [101, 109, 112]
+
+
+=== RT_MENU (decoded menu trees) ===
+
+--- MENU id/name = 104   lang=1033   bytes=578 ---
+  + Configure
+    - Settings...                                                ID=32803
+    - ---- separator ----                                        ID=0
+    - Define Poll...                                             ID=32771
+    - Define Raw Poll...                                         ID=32779
+    - View/Modify Poll Definitions...                            ID=32772
+    - ---- separator ----                                        ID=0
+    - Define Polling Loop...                                     ID=32777
+    - View/Modify Polling Loop...                                ID=32798
+    - ---- separator ----                                        ID=0
+    - Set Exception Responses...                                 ID=32799
+    - ---- separator ----                                        ID=0
+    - Ticket Database...                                         ID=32821
+    - ---- separator ----                                        ID=0
+  + Windows
+    - Meters                                                     ID=32796
+    - Game/Denom Meters                                          ID=32812
+    - Exceptions                                                 ID=32797
+  - About HostSim...                                             ID=57664
+
+--- MENU id/name = 110   lang=1033   bytes=58 ---
+  + Dummy
+    - Timing details...                                          ID=32778
+
+--- MENU id/name = 117   lang=1033   bytes=124 ---
+  + Dummy
+    - Save selected traces...                                    ID=32801
+    - Print selected traces...                                   ID=57607
+
+--- MENU id/name = 118   lang=1033   bytes=886 ---
+  + Trace/Log
+    - Define Trace Filter...                                     ID=32775
+    - View/Modify Trace Filter...                                ID=32800
+    - Pause Trace	Pause                                          ID=32776
+    - Save Trace to Text File...                                 ID=32801
+    - Print Trace Information...                                 ID=57607
+    - ---- separator ----                                        ID=0
+    - Log File... [GRAYED]                                       ID=32773
+    - Stop Logging                                               ID=32774
+    - View Log...                                                ID=32802
+    - ---- separator ----                                        ID=0
+    + Timestamp Format
+      - Absolute time                                            ID=32813
+      - Relative to start of last message                        ID=32814
+      - Relative to start of last poll                           ID=32815
+      - Relative to end of last message                          ID=32822
+      - Relative to end of last poll                             ID=32823
+      - Wall-clock time                                          ID=32816
+    + Data Parsing
+      - Raw data only                                            ID=32818
+      - Text only                                                ID=32819
+      - Both Raw and Text                                        ID=32820
+
+
+=== RT_DIALOG (decoded) ===
+
+--- DIALOG 100 (lang 1033) DLGTEMPLATE ---
+  Caption : "About SAS Host Simulator"
+  Rect    : x=0 y=0 cx=235 cy=73  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 5
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   65535 STATIC               "#ordinal 104"                                11    21    21    20  0x50000003 WS_CHILD,WS_VISIBLE,SS_ICON
+    1058 STATIC               "SASHostSim Version 1.1"                      40    10   119     8  0x50020080 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1060 STATIC               "Copyright (C) 2003"                          40    44   176     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+       1 BUTTON               "OK"                                         178     7    50    14  0x50030001 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_DEFPUSHBUTTON
+    1059 STATIC               "Version x.xxA"                               40    23   119     8  0x50020080 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 101 (lang 1033) DLGTEMPLATEEX ---
+  Caption : ""
+  Rect    : x=0 y=0 cx=448 cy=228  (dialog units)
+  Style   : 0x40000040 [DS_SETFONT,WS_CHILD]  ExStyle=0x00040000
+  Font    : MS Sans Serif 8pt
+  Controls: 70
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1038 BUTTON               "Send"                                        75    41    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1020 COMBOBOX                                                          129    41   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1006 EDIT                                                              393    41    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1039 BUTTON               "Send"                                        75    57    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1021 COMBOBOX                                                          129    57   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1007 EDIT                                                              393    57    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1040 BUTTON               "Send"                                        75    74    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1022 COMBOBOX                                                          130    73   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1008 EDIT                                                              394    74    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1041 BUTTON               "Send"                                        75    89    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1023 COMBOBOX                                                          129    89   206   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1009 EDIT                                                              394    90    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1042 BUTTON               "Send"                                        75   105    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1024 COMBOBOX                                                          130   105   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1010 EDIT                                                              394   106    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1043 BUTTON               "Send"                                        75   121    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1025 COMBOBOX                                                          129   121   206   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1011 EDIT                                                              394   122    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1044 BUTTON               "Send"                                        75   137    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1026 COMBOBOX                                                          130   138   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1012 EDIT                                                              394   137    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1045 BUTTON               "Send"                                        75   154    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1027 COMBOBOX                                                          130   155   205   121  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1013 EDIT                                                              394   154    27    12  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1066 COMBOBOX                                                            7   197   142    76  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1067 BUTTON               "Start Polling Loop"                         170   196    64    14  0x58010000 WS_CHILD,WS_VISIBLE,WS_DISABLED,WS_TABSTOP,BS_PUSHBUTTON
+  4294967295 STATIC               "to EGM address"                             340    43    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 BUTTON               "One-Key Polls"                                7    14   434   160  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+  4294967295 STATIC               "to EGM address"                             341    59    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             341    75    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             341    91    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F1"                                          13    44     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F2"                                          13    60     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F3"                                          13    76     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F4"                                          13    92     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             340   106    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             340   123    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             340   140    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "to EGM address"                             340   158    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F5"                                          13   108     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F6"                                          14   124     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F7"                                          14   140     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "F8"                                          14   158     9     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Polling rate (ms):"                           7     4    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Polling loop:"                                7   188    39     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1029 STATIC               "Static"                                      65     4    19     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Regular"                                     11    28    26     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Bad CRC"                                     44    28    30     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F1"                                     45    44    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F2"                                     45    60    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F3"                                     45    77    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F4"                                     45    92    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F5"                                     45   108    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F6"                                     45   124    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F7"                                     45   141    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-F8"                                     46   156    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1189 STATIC                                                            152   196    14    14  0x50021000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Ctrl-Click to view/modify poll"             132    28    89     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Test Number:"                               347   185    44     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1199 COMBOBOX                                                          347   195    90    77  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1212 COMBOBOX                                                          284    25    50    48  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1213 STATIC               "Poll Set:"                                  254    28    27     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1214 BUTTON               "Save"                                       347   209    25    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1215 BUTTON               "Add/Change..."                              382   209    54    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+  4294967295 BUTTON               "Test Configuration Templates"               237   176   203    50  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+    1256 COMBOBOX                                                           81   212    67    48  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+  4294967295 STATIC               "Communication Port:"                          8   215    66     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1261 COMBOBOX                                                          244   195   101    55  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1262 STATIC               "Test Group:"                                244   186    38     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1264 BUTTON               "Enable SAS Pogressive Broadcast"              7   178   127    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+
+--- DIALOG 102 (lang 1033) DLGTEMPLATE ---
+  Caption : "ACK/NACK"
+  Rect    : x=0 y=0 cx=229 cy=154  (dialog units)
+  Style   : 0x48c00040 [DS_SETFONT,WS_CHILD,WS_DISABLED,WS_CAPTION,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 9
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1082 EDIT                                                              172     7    33    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1083 msctls_updown32      "Spin1"                                      197     7    11    14  0x50000036 WS_CHILD,WS_VISIBLE
+    1084 EDIT                                                              171    29    34    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1085 msctls_updown32      "Spin2"                                      197    30    11    14  0x50000036 WS_CHILD,WS_VISIBLE
+    1049 BUTTON               "Treat any response as ACK"                    7    51   102    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1052 BUTTON               "Ignore final NACK response"                   7    67   103    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1053 BUTTON               "Move to next poll after receiving real-time exception"     7    82   177    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   65535 STATIC               "Delay between bad response and resend poll (ms):"     7    10   160     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Number of times to NACK (including final NACK):"     7    33   153     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 103 (lang 1033) DLGTEMPLATE ---
+  Caption : "SAS Comms"
+  Rect    : x=0 y=0 cx=200 cy=154  (dialog units)
+  Style   : 0x48c00040 [DS_SETFONT,WS_CHILD,WS_DISABLED,WS_CAPTION,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 13
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1029 EDIT                                                               57    13    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1030 msctls_updown32      "Spin1"                                       86    14    10    14  0x50000036 WS_CHILD,WS_VISIBLE
+    1032 EDIT                                                              129    29    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1034 msctls_updown32      "Spin1"                                      158    30    11    14  0x50000036 WS_CHILD,WS_VISIBLE
+    1050 BUTTON               "Poll time starts after reply received"        7    54   123    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1051 BUTTON               "Verify data fields (non-BCD data in BCD field, e.g.)"     7    67   173    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1054 BUTTON               "Send RESYNC on startup"                       7    80    97    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1055 BUTTON               "Send RESYNC on comm error"                    7    93   111    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1114 BUTTON               "Use Real-Time Events"                         7   106    87    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1078 BUTTON               "Display exception 1F (no activity, waiting for user input)"     7   119   188    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   65535 STATIC               "Poll rate (ms)"                               7    14    41     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Time from response to next poll (ms)"         7    32   113     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1192 BUTTON               "UART wakeup bit is delayed"                   7   132   106    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+
+--- DIALOG 106 (lang 1033) DLGTEMPLATE ---
+  Caption : "Define Poll"
+  Rect    : x=0 y=0 cx=330 cy=126  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 15
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1028 EDIT                                                               61    15   170    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1031 COMBOBOX                                                           61    39   169   136  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1088 BUTTON               "Multi-Denom Poll"                             7    61    69    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1089 COMBOBOX                                                           79    59    48    73  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1017 BUTTON               "No CRC"                                      94    77    42    10  0x50030009 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_AUTORADIOBUTTON
+    1048 BUTTON               "Valid CRC"                                  144    77    48    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1002 BUTTON               "Invalid CRC"                                202    77    53    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1064 BUTTON               "Interbyte Delays..."                         98    90    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1065 BUTTON               "Wakeup Bits..."                             169    90    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "OK"                                         249     7    50    14  0x58010001 WS_CHILD,WS_VISIBLE,WS_DISABLED,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     249    24    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Poll Template:"                               7    41    48     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Name for poll:"                               7    18    47     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1046 STATIC               "Static"                                       7   110    19     8  0x40000000 WS_CHILD,SS_LEFT
+    1018 STATIC                                                              7    78    82     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 107 (lang 1033) DLGTEMPLATE ---
+  Caption : "Define Raw Poll"
+  Rect    : x=0 y=0 cx=336 cy=122  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 13
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1028 EDIT                                                               61    15   170    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1035 EDIT                                                               61    35    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1036 EDIT                                                               61    55   208    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1017 BUTTON               "No CRC"                                      61    80    42    10  0x50030009 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_AUTORADIOBUTTON
+    1048 BUTTON               "Valid CRC"                                  111    80    48    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1002 BUTTON               "Invalid CRC"                                169    80    53    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+       1 BUTTON               "OK"                                         279     7    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     279    24    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Name for poll:"                               7    18    47     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Poll Number:"                                13    38    41     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Poll Data:"                                  22    58    32     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1064 BUTTON               "Interbyte Delays..."                        101    95    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1065 BUTTON               "Wakeup Bits..."                             172    95    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+
+--- DIALOG 109 (lang 1033) DLGTEMPLATE ---
+  Caption : "Define Polling Loop"
+  Rect    : x=0 y=0 cx=344 cy=223  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 12
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1014 EDIT                                                               38     7   124    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1004 COMBOBOX                                                           17    34   238   114  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1005 EDIT                                                               94    53    24    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1001 BUTTON               "Add to Loop"                                262    32    67    16  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1019 LISTBOX                                                            17    79   248   112  0x50a10101 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_MULTIPLESEL
+    1016 BUTTON               "Move Up ^"                                  277   106    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1037 BUTTON               "Remove"                                     277   128    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1015 BUTTON               "Move Down v"                                277   151    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "OK"                                         115   202    50    14  0x58010001 WS_CHILD,WS_VISIBLE,WS_DISABLED,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     177   202    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Name:"                                        7    10    22     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Send to EGM address"                         17    56    70     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 111 (lang 1033) DLGTEMPLATE ---
+  Caption : "View/Modify Definition of Poll"
+  Rect    : x=0 y=0 cx=330 cy=161  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 20
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1004 COMBOBOX                                                           61    16   169   125  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1076 EDIT                                                               61    32   169    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1003 BUTTON               "Save Changes"                                27    52    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1116 BUTTON               "Copy Poll"                                   98    52    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1068 BUTTON               "Clear Changes"                              169    52    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1069 BUTTON               "Delete"                                     240    52    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1062 EDIT                                                               61    72   170    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1088 BUTTON               "Multi-Denom Poll"                             7    94    69    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1089 COMBOBOX                                                           79    92    48    73  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1017 BUTTON               "No CRC"                                      93   112    42    10  0x50030009 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_AUTORADIOBUTTON
+    1048 BUTTON               "Valid CRC"                                  143   112    48    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1002 BUTTON               "Invalid CRC"                                201   112    53    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1064 BUTTON               "Interbyte Delays..."                         94   127    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1065 BUTTON               "Wakeup Bits..."                             165   127    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "Done"                                       249     7    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+    1063 STATIC               "Poll Template:"                               7    75    48     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Poll name:"                                   7    18    47     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1046 STATIC               "Static"                                       7   144    19     8  0x40000000 WS_CHILD,SS_LEFT
+    1018 STATIC                                                              7   113    76     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "New name:"                                    7    35    37     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 112 (lang 1033) DLGTEMPLATE ---
+  Caption : "View/Modify Definition of Polling Loop"
+  Rect    : x=0 y=0 cx=342 cy=254  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 17
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1033 COMBOBOX                                                           50     7   179    96  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1077 EDIT                                                               50    22   179    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1003 BUTTON               "Save Changes"                                35    43    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1070 BUTTON               "Copy Polling Loop"                          105    43    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1068 BUTTON               "Clear Changes"                              175    43    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1071 BUTTON               "Delete"                                     245    43    62    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1004 COMBOBOX                                                           17    64   238   114  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1005 EDIT                                                               94    83    24    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1001 BUTTON               "Add to Loop"                                262    62    67    16  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1019 LISTBOX                                                            17   109   248   112  0x50a10101 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_MULTIPLESEL
+    1016 BUTTON               "Move Up ^"                                  277   134    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1037 BUTTON               "Remove"                                     277   158    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1015 BUTTON               "Move Down v"                                277   182    53    15  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "Done"                                       145   232    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   65535 STATIC               "Name:"                                        7    10    22     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Send to EGM address"                         17    86    70     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "New name:"                                    7    25    37     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 114 (lang 1033) DLGTEMPLATE ---
+  Caption : "Exception Responses"
+  Rect    : x=0 y=0 cx=282 cy=217  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 11
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+       1 BUTTON               "OK"                                          60   200    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     121   200    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Exception"                                   17    10    32     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1072 EDIT                                                               58     7    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1004 COMBOBOX                                                           18    50   260    57  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+    1073 BUTTON               "Add Response"                                17    67    66    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1074 BUTTON               "Remove Response"                             18    84    66    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1075 LISTBOX                                                             3   100   274    98  0x50a10103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_SORT,LBS_MULTIPLESEL
+    1086 BUTTON               "Ignore exception"                            17    24    69    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+    1087 BUTTON               "Respond with"                                17    39    59    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+   65535 STATIC               "Remove response to get default behavior for an exception"    87    88   184     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 115 (lang 1033) DLGTEMPLATE ---
+  Caption : "Tickets"
+  Rect    : x=0 y=0 cx=235 cy=271  (dialog units)
+  Style   : 0x48c00040 [DS_SETFONT,WS_CHILD,WS_DISABLED,WS_CAPTION,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 29
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1090 COMBOBOX                                                           69     7    95    70  0x50210002 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_HASSTRINGS
+    1106 BUTTON               "Allow ticket printing"                       14    43    77    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1104 BUTTON               "Request cashout information"                 26    57   106    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1107 EDIT                                                              178    55    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1105 BUTTON               "Confirm cashout request"                     26    74    92    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1108 EDIT                                                              178    72    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1109 EDIT                                                              103    92    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1092 EDIT                                                              103   109   110    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1110 BUTTON               "Request ticket information"                  14   152    98    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1111 EDIT                                                              181   149    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1119 BUTTON               "Allow ticket redemption"                     14   195    89    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1113 BUTTON               "Request validation data"                     26   212    91    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1117 EDIT                                                              178   210    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1115 BUTTON               "Send redemption data"                        26   228    85    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1118 EDIT                                                              178   226    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   65535 STATIC               "Validation Type: "                            7     9    54     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1091 STATIC               "Validation Number:"                          35   112    60     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 BUTTON               "Ticket Printing Verification (System validation)"     7    30   221   101  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+   65535 STATIC               "Delay (ms)"                                 140    58    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Delay (ms)"                                 140    75    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Validation System ID:"                       27    95    68     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 BUTTON               "Ticket Printing (All validations)"            7   136   221    38  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+   65535 STATIC               "Delay (ms)"                                 140   153    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 BUTTON               "Ticket Redemption (Secure Enhanced and System validation)"     7   181   221    82  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+   65535 STATIC               "Delay (ms)"                                 140   213    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Delay (ms)"                                 140   229    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1120 BUTTON               "Request completion status"                   26   244    99    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1121 EDIT                                                              178   242    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   65535 STATIC               "Delay (ms)"                                 140   245    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 116 (lang 1033) DLGTEMPLATE ---
+  Caption : "Tickets In System"
+  Rect    : x=0 y=0 cx=243 cy=330  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 18
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1094 LISTBOX                                                            17    15   207   112  0x50a10903 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_SORT,LBS_MULTIPLESEL,LBS_EXTENDEDSEL
+    1112 EDIT                                                               78   138    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1096 EDIT                                                               78   159   117    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1095 EDIT                                                               78   180   117    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1097 COMBOBOX                                                           78   201   108    64  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+    1098 BUTTON               "Redeemed"                                    33   220    51    10  0x50010023 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1101 BUTTON               "Add Ticket"                                  34   282    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1099 BUTTON               "Save Changes"                                95   282    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1103 BUTTON               "Delete Ticket"                              156   282    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "Done"                                        96   307    52    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   65535 STATIC               "Ticket number:"                              24   162    48     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Amount:"                                     45   183    27     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Ticket type:"                                34   203    38     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Ticket System ID:"                           15   141    57     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Expiration:"                                 38   239    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Restricted pool ID:"                         12   260    60     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1190 EDIT                                                               78   236   117    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1191 EDIT                                                               78   257   117    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+
+--- DIALOG 117 (lang 1033) DLGTEMPLATE ---
+  Caption : "Progressives"
+  Rect    : x=0 y=0 cx=298 cy=402  (dialog units)
+  Style   : 0x48c00040 [DS_SETFONT,WS_CHILD,WS_DISABLED,WS_CAPTION,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 109
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1186 BUTTON               "Send multiple progressive updates in a single poll (86)"     8    20   183    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   65535 STATIC               "Progressive group:"                           7    34    60     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1188 EDIT                                                               72    30    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   65535 STATIC               "Delay between progressive updates (ms):"      7    44   130     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1187 EDIT                                                              139    40    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   65535 BUTTON               "Levels (value in cents)"                      7    68   281   330  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+    1122 BUTTON               "Level 1"                                     12    93    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1123 EDIT                                                               56    91    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1124 BUTTON               "Level 2"                                     12   112    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1125 EDIT                                                               56   110    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1126 BUTTON               "Level 3"                                     12   131    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1127 EDIT                                                               56   129    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1128 BUTTON               "Level 4"                                     12   150    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1129 EDIT                                                               56   148    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1130 BUTTON               "Level 5"                                     12   169    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1131 EDIT                                                               56   167    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1132 BUTTON               "Level 6"                                     12   188    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1133 EDIT                                                               56   186    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1134 BUTTON               "Level 7"                                     12   207    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1135 EDIT                                                               56   205    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1136 BUTTON               "Level 8"                                     12   226    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1137 EDIT                                                               56   224    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1138 BUTTON               "Level 9"                                     12   245    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1139 EDIT                                                               56   243    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1140 BUTTON               "Level 10"                                    12   264    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1141 EDIT                                                               56   262    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1142 BUTTON               "Level 11"                                    12   283    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1143 EDIT                                                               56   281    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1144 BUTTON               "Level 12"                                    12   302    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1145 EDIT                                                               56   300    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1146 BUTTON               "Level 13"                                    12   321    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1147 EDIT                                                               56   319    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1148 BUTTON               "Level 14"                                    12   340    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1149 EDIT                                                               56   338    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1150 BUTTON               "Level 15"                                    12   359    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1151 EDIT                                                               56   357    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1152 BUTTON               "Level 16"                                    12   378    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1153 EDIT                                                               56   376    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1154 BUTTON               "Level 17"                                   151    94    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1155 EDIT                                                              195    92    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1156 BUTTON               "Level 18"                                   151   113    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1157 EDIT                                                              195   111    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1158 BUTTON               "Level 19"                                   151   132    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1159 EDIT                                                              195   130    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1160 BUTTON               "Level 20"                                   151   151    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1161 EDIT                                                              195   150    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1162 BUTTON               "Level 21"                                   151   170    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1163 EDIT                                                              195   169    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1164 BUTTON               "Level 22"                                   151   190    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1165 EDIT                                                              195   187    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1166 BUTTON               "Level 23"                                   151   209    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1167 EDIT                                                              195   206    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1168 BUTTON               "Level 24"                                   151   227    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1169 EDIT                                                              195   225    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1170 BUTTON               "Level 25"                                   151   246    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1171 EDIT                                                              195   244    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1172 BUTTON               "Level 26"                                   151   265    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1173 EDIT                                                              195   263    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1174 BUTTON               "Level 27"                                   151   284    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1175 EDIT                                                              195   282    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1176 BUTTON               "Level 28"                                   151   303    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1177 EDIT                                                              195   302    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1178 BUTTON               "Level 29"                                   151   322    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1179 EDIT                                                              195   321    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1180 BUTTON               "Level 30"                                   151   342    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1181 EDIT                                                              195   339    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1182 BUTTON               "Level 31"                                   151   361    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1183 EDIT                                                              195   358    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1184 BUTTON               "Level 32"                                   151   379    39    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+    1185 EDIT                                                              195   377    52    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1216 EDIT                                                              113    91    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1217 EDIT                                                              112   110    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1218 EDIT                                                              113   130    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1219 EDIT                                                              112   149    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1220 EDIT                                                              113   165    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1221 EDIT                                                              112   184    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1222 EDIT                                                              113   204    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1223 EDIT                                                              112   223    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1224 EDIT                                                              111   243    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1225 EDIT                                                              111   262    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1226 EDIT                                                              111   282    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1227 EDIT                                                              111   301    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1228 EDIT                                                              111   318    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1229 EDIT                                                              111   337    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1230 EDIT                                                              111   357    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1231 EDIT                                                              111   376    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1232 EDIT                                                              251    93    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1233 EDIT                                                              251   112    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1234 EDIT                                                              251   132    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1235 EDIT                                                              251   151    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1236 EDIT                                                              251   167    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1237 EDIT                                                              251   186    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1238 EDIT                                                              251   206    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1239 EDIT                                                              251   225    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1240 EDIT                                                              250   245    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1241 EDIT                                                              249   264    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1242 EDIT                                                              250   284    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1243 EDIT                                                              249   303    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1244 EDIT                                                              250   320    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1245 EDIT                                                              249   339    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1246 EDIT                                                              250   359    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1247 EDIT                                                              249   378    26    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   65535 STATIC               "Amount:"                                     69    81    27     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Amount:"                                    207    82    27     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Inc. value:"                                113    81    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Inc. value:"                                246    82    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1248 EDIT                                                               73     6    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   65535 STATIC               "Broadcast address:"                           7     7    62     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1249 BUTTON               "Enable progressive incrementation"            7    55   124    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+
+--- DIALOG 118 (lang 1033) DLGTEMPLATEEX ---
+  Caption : "SAS Trace"
+  Rect    : x=0 y=0 cx=453 cy=246  (dialog units)
+  Style   : 0x80ce0040 [DS_SETFONT,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_THICKFRAME,WS_GROUP,WS_BORDER]  ExStyle=0x00040000
+  Font    : MS Sans Serif 8pt
+  Menu    : ('ord', 118)
+  Controls: 13
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+    1061 COMBOBOX                                                           55     3   146    73  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1056 BUTTON               "Pause Trace"                                221     2    64    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1057 BUTTON               "Clear Window"                               287     2    64    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1079 BUTTON               "Start Logging"                              378     2    64    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1080 EDIT                                                               55    17    30    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+    1081 msctls_updown32      "Spin1"                                       87    17    11    14  0x50000036 WS_CHILD,WS_VISIBLE
+    1047 LISTBOX                                                             0    33   452   213  0x50b10961 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_HSCROLL,WS_BORDER,LBS_NOTIFY,LBS_OWNERDRAWVARIABLE,LBS_HASSTRINGS,LBS_MULTIPLESEL,LBS_EXTENDEDSEL
+  4294967295 STATIC               "Trace filter:"                               11     7    36     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "Show:"                                       28    19    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1100 STATIC                                                            206     2    14    14  0x50021000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1102 STATIC                                                            361     2    14    14  0x50021000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+  4294967295 STATIC               "line(s) before/after filtered line"         101    20    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1279 BUTTON               "Enhanced Trace View"                        206    21   109     9  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+
+--- DIALOG 119 (lang 1033) DLGTEMPLATE ---
+  Caption : "Define Test"
+  Rect    : x=0 y=0 cx=300 cy=106  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 8
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+       1 BUTTON               "E&xit"                                      236     7    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   65535 STATIC               "Name of New Setup:"                          19    41    67     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Setup List:"                                 51    14    34     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+    1193 EDIT                                                               88    39   133    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+    1194 COMBOBOX                                                           88    14   134    82  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+    1196 BUTTON               "&Delete"                                    183    61    40    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1198 BUTTON               "&Add"                                        88    61    40    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+    1260 BUTTON               "Rename"                                     135    61    41    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+
+--- DIALOG 200 (lang 1033) DLGTEMPLATE ---
+  Caption : "Meter Values"
+  Rect    : x=0 y=0 cx=280 cy=375  (dialog units)
+  Style   : 0x80ca00c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_GROUP,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 48
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10080 COMBOBOX                                                           82     3   120    87  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+   10081 BUTTON               "View/Modify"                                 60    19    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10083 BUTTON               "Delete"                                     131    19    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10091 EDIT                                                               90    37    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10092 COMBOBOX                                                          172    38    48    86  0x50210003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_HASSTRINGS
+   10000 STATIC               "Meter 1 Name:"                                7    55   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10020 STATIC               "99999999999999999999"                       148    55    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10001 STATIC               "Meter 2 Name:"                                7    71   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10021 STATIC               "99999999999999999999"                       148    71    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10002 STATIC               "Meter 3 Name:"                                7    87   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10022 STATIC               "99999999999999999999"                       148    87    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10003 STATIC               "Meter 4 Name:"                                7   103   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10023 STATIC               "99999999999999999999"                       148   103    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10004 STATIC               "Meter 5 Name:"                                7   119   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10024 STATIC               "99999999999999999999"                       148   119    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10005 STATIC               "Meter 6 Name:"                                7   135   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10025 STATIC               "99999999999999999999"                       148   135    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10006 STATIC               "Meter 7 Name:"                                7   151   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10026 STATIC               "99999999999999999999"                       148   151    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10007 STATIC               "Meter 8 Name:"                                7   167   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10027 STATIC               "99999999999999999999"                       148   167    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10008 STATIC               "Meter 9 Name:"                                7   183   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10028 STATIC               "99999999999999999999"                       148   183    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10009 STATIC               "Meter 10 Name:"                               7   199   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10029 STATIC               "99999999999999999999"                       148   199    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10010 STATIC               "Meter 11 Name:"                               7   215   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10030 STATIC               "99999999999999999999"                       148   215    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10011 STATIC               "Meter 12 Name:"                               7   231   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10031 STATIC               "99999999999999999999"                       148   231    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10012 STATIC               "Meter 13 Name:"                               7   247   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10032 STATIC               "99999999999999999999"                       148   247    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10013 STATIC               "Meter 14 Name:"                               7   263   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10033 STATIC               "99999999999999999999"                       148   263    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10014 STATIC               "Meter 15 Name:"                               7   279   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10034 STATIC               "99999999999999999999"                       148   279    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10015 STATIC               "Meter 16 Name:"                               7   295   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10035 STATIC               "99999999999999999999"                       148   295    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10016 STATIC               "Meter 17 Name:"                               7   311   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10036 STATIC               "99999999999999999999"                       148   311    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10017 STATIC               "Meter 18 Name:"                               7   327   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10037 STATIC               "99999999999999999999"                       148   327    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10018 STATIC               "Meter 19 Name:"                               7   343   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10038 STATIC               "99999999999999999999"                       148   343    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10019 STATIC               "Meter 20 Name:"                               7   359   134     8  0x50020102 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_RIGHT
+   10039 STATIC               "99999999999999999999"                       148   359    87     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Meter set:"                                  38     5    32     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Game # (0 for EGM)"                          20    40    64     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Denom"                                      145    40    24     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 201 (lang 1033) DLGTEMPLATE ---
+  Caption : "Select Meters to Display"
+  Rect    : x=0 y=0 cx=223 cy=381  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 44
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10082 EDIT                                                               69     7   105    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   65535 STATIC               "Meter set name:"                              7    10    52     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Meter 1"                                      7    31    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10040 COMBOBOX                                                           42    29   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 2"                                      7    47    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10041 COMBOBOX                                                           42    45   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 3"                                      7    63    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10042 COMBOBOX                                                           42    61   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 4"                                      7    79    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10043 COMBOBOX                                                           42    77   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 5"                                      7    95    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10044 COMBOBOX                                                           42    93   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 6"                                      7   111    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10045 COMBOBOX                                                           42   109   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 7"                                      7   127    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10046 COMBOBOX                                                           42   125   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 8"                                      7   143    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10047 COMBOBOX                                                           42   141   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 9"                                      7   159    25     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10048 COMBOBOX                                                           42   157   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 10"                                     7   175    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10049 COMBOBOX                                                           42   173   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 11"                                     7   191    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10050 COMBOBOX                                                           42   189   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 12"                                     7   207    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10051 COMBOBOX                                                           42   205   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 13"                                     7   223    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10052 COMBOBOX                                                           42   221   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 14"                                     7   239    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10053 COMBOBOX                                                           42   237   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 15"                                     7   255    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10054 COMBOBOX                                                           42   253   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 16"                                     7   271    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10055 COMBOBOX                                                           42   269   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 17"                                     7   287    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10056 COMBOBOX                                                           42   285   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 18"                                     7   303    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10057 COMBOBOX                                                           42   301   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 19"                                     7   319    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10058 COMBOBOX                                                           42   317   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Meter 20"                                     7   335    29     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10059 COMBOBOX                                                           42   333   160    92  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+       1 BUTTON               "OK"                                          58   360    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     116   360    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+
+--- DIALOG 202 (lang 1033) DLGTEMPLATE ---
+  Caption : "Inter-byte Delays"
+  Rect    : x=0 y=0 cx=186 cy=233  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 14
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10060 BUTTON               "Add Inter-byte Delays"                        7    15    83    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10061 EDIT                                                               97    32    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10062 EDIT                                                               45    67    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10063 EDIT                                                              122    67    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10066 BUTTON               "Add Delay"                                   34   102    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10064 BUTTON               "Remove Delay"                               101   101    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10065 LISTBOX                                                            22   119   142    78  0x50a10101 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_MULTIPLESEL
+       1 BUTTON               "OK"                                          35   212    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                      99   212    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Default inter-byte delay"                    15    35    73     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 BUTTON               "Byte-specific delays"                        15    52   155   154  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+   65535 STATIC               "Delay"                                       22    70    19     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "after byte"                                  89    70    30     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Address byte is byte 0"                      21    87    70     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 203 (lang 1033) DLGTEMPLATE ---
+  Caption : "Message Filter"
+  Rect    : x=0 y=0 cx=216 cy=258  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 13
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10069 EDIT                                                               43     7   113    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10067 BUTTON               "Show selected polls"                          7    30    79    10  0x50030009 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_AUTORADIOBUTTON
+   10068 BUTTON               "Show all polls EXCEPT selected polls"         7    44   133    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+   10087 COMBOBOX                                                           72    66   124    85  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10074 BUTTON               "Add"                                         14    66    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10071 EDIT                                                              116    85    40    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10072 BUTTON               "Add"                                         14    85    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10073 BUTTON               "Remove"                                      14   106    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10070 LISTBOX                                                            18   132   180    87  0x50a10103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_SORT,LBS_MULTIPLESEL
+       1 BUTTON               "OK"                                          41   237    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     110   237    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Name:"                                        7    10    22     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Poll number"                                 74    87    38     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 204 (lang 1033) DLGTEMPLATE ---
+  Caption : "Set Wakeup Bits"
+  Rect    : x=0 y=0 cx=186 cy=162  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 8
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10075 EDIT                                                               85    10    28    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10078 BUTTON               "Add"                                         63    43    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10076 BUTTON               "Remove"                                      63    64    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10077 LISTBOX                                                           130    10    42   118  0x50a10103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_SORT,LBS_MULTIPLESEL
+       1 BUTTON               "OK"                                          36   139    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+       2 BUTTON               "Cancel"                                     100   139    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   65535 STATIC               "Set wakeup bit on byte"                       7    12    74     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Address byte is byte 0"                       7    27    70     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 205 (lang 1033) DLGTEMPLATE ---
+  Caption : "View/Modify Message Filters"
+  Rect    : x=0 y=0 cx=235 cy=275  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 19
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10088 COMBOBOX                                                           50     7   112    74  0x50210103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWNLIST,CBS_SORT,CBS_HASSTRINGS
+   10156 EDIT                                                               50    22   112    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10089 BUTTON               "Save Changes"                                 5    42    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10163 BUTTON               "Copy Filter"                                 63    42    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10090 BUTTON               "Clear Changes"                              120    42    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10079 BUTTON               "Delete"                                     178    42    52    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10164 BUTTON               "Filtered Poll Selections"                     5    60   225   210  0x50000007 WS_CHILD,WS_VISIBLE,BS_GROUPBOX
+   10067 BUTTON               "Show selected polls"                          7    73    79    10  0x50030009 WS_CHILD,WS_VISIBLE,WS_GROUP,WS_TABSTOP,BS_AUTORADIOBUTTON
+   10068 BUTTON               "Show all polls EXCEPT selected polls"         7    85   133    10  0x50000009 WS_CHILD,WS_VISIBLE,BS_AUTORADIOBUTTON
+   10087 COMBOBOX                                                           20    99   124    85  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10074 BUTTON               "Add"                                        157    98    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10071 EDIT                                                               64   118    79    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10072 BUTTON               "Add"                                        157   118    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10073 BUTTON               "Remove"                                     157   138    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10070 LISTBOX                                                            20   165   189    97  0x50a10103 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_SORT,LBS_MULTIPLESEL
+       1 BUTTON               "Done"                                       168     7    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   65535 STATIC               "Filter name:"                                 7    10    37     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10165 STATIC               "Poll number"                                 22   120    38     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "New name:"                                    7    25    37     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 206 (lang 1033) DLGTEMPLATE ---
+  Caption : "Detailed Timing"
+  Rect    : x=0 y=0 cx=178 cy=209  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 5
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+       1 BUTTON               "Done"                                        64   188    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   10086 LISTBOX                                                            19    23   140   157  0x50a10181 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_BORDER,LBS_NOTIFY,LBS_MULTIPLESEL,LBS_WANTKEYBOARDINPUT
+   65535 STATIC               "Index"                                       20    14    18     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Data"                                        50    14    16     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Time from prev byte (ms)"                    84    14    79     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 207 (lang 1033) DLGTEMPLATE ---
+  Caption : "Log File View"
+  Rect    : x=0 y=0 cx=448 cy=334  (dialog units)
+  Style   : 0x80c800c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 16
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10157 COMBOBOX                                                           72    31   105    66  0x50210002 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_HASSTRINGS
+   10158 COMBOBOX                                                           72    49   105    73  0x50210002 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_HASSTRINGS
+   10088 COMBOBOX                                                          244    31   145    85  0x50210002 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_HASSTRINGS
+   10159 EDIT                                                              251    48    35    14  0x50810080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL
+   10160 msctls_updown32      "Spin1"                                      277    48    10    14  0x50000036 WS_CHILD,WS_VISIBLE
+   10085 LISTBOX                                                             7    74   434   230  0x50b10921 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_HSCROLL,WS_BORDER,LBS_NOTIFY,LBS_OWNERDRAWVARIABLE,LBS_MULTIPLESEL,LBS_EXTENDEDSEL
+   10161 BUTTON               "Save..."                                    125   314    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+   10162 BUTTON               "Print..."                                   198   314    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+       1 BUTTON               "Done"                                       271   314    50    14  0x50010001 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_DEFPUSHBUTTON
+   65535 STATIC               "Logfile:"                                     7    16    24     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10084 STATIC                                                             35    16   243     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Timestamp format:"                            9    33    58     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Data format:"                                27    52    40     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Trace filter:"                              204    33    36     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Show"                                       225    50    19     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "lines before/after filtered lines"          293    51    93     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 208 (lang 1033) DLGTEMPLATE ---
+  Caption : "Meter value for multiple games/denominations"
+  Rect    : x=0 y=0 cx=239 cy=350  (dialog units)
+  Style   : 0x80ca00c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_GROUP,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 86
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   65535 STATIC               "Meter:"                                       7    10    21     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10093 COMBOBOX                                                           35     8   166    84  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   65535 STATIC               "Active:"                                      8    28    50     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Game:"                                       45    28    50     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Denom:"                                      95    28    50     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   65535 STATIC               "Meter Value:"                               160    28    50     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10096 BUTTON                                                             14    40    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10099 BUTTON                                                             14    55    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10102 BUTTON                                                             14    70    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10105 BUTTON                                                             14    85    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10108 BUTTON                                                             14   100    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10111 BUTTON                                                             14   115    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10114 BUTTON                                                             14   130    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10117 BUTTON                                                             14   145    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10120 BUTTON                                                             14   160    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10123 BUTTON                                                             14   175    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10126 BUTTON                                                             14   190    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10129 BUTTON                                                             14   205    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10132 BUTTON                                                             14   220    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10135 BUTTON                                                             14   235    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10138 BUTTON                                                             14   250    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10141 BUTTON                                                             14   264    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10144 BUTTON                                                             14   279    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10147 BUTTON                                                             14   294    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10150 BUTTON                                                             14   309    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10153 BUTTON                                                             14   324    20    10  0x50010003 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_AUTOCHECKBOX
+   10094 EDIT                                                               37    38    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10097 EDIT                                                               37    53    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10100 EDIT                                                               37    68    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10103 EDIT                                                               37    83    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10106 EDIT                                                               37    98    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10109 EDIT                                                               37   113    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10112 EDIT                                                               37   128    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10115 EDIT                                                               37   143    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10118 EDIT                                                               37   158    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10121 EDIT                                                               37   173    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10124 EDIT                                                               37   188    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10127 EDIT                                                               37   203    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10130 EDIT                                                               37   218    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10133 EDIT                                                               37   233    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10136 EDIT                                                               37   248    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10139 EDIT                                                               37   262    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10142 EDIT                                                               37   277    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10145 EDIT                                                               37   292    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10148 EDIT                                                               37   307    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10151 EDIT                                                               37   322    40    14  0x50812080 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_BORDER,ES_AUTOHSCROLL,ES_NUMBER
+   10095 COMBOBOX                                                           88    39    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10098 COMBOBOX                                                           88    54    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10101 COMBOBOX                                                           88    69    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10104 COMBOBOX                                                           88    84    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10107 COMBOBOX                                                           88    99    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10110 COMBOBOX                                                           88   114    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10113 COMBOBOX                                                           88   129    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10116 COMBOBOX                                                           88   144    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10119 COMBOBOX                                                           88   159    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10122 COMBOBOX                                                           88   174    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10125 COMBOBOX                                                           88   189    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10128 COMBOBOX                                                           88   204    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10131 COMBOBOX                                                           88   219    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10134 COMBOBOX                                                           88   234    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10137 COMBOBOX                                                           88   249    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10140 COMBOBOX                                                           88   263    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10143 COMBOBOX                                                           88   278    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10146 COMBOBOX                                                           88   293    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10149 COMBOBOX                                                           88   308    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10152 COMBOBOX                                                           88   323    48    74  0x50210102 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,CBS_DROPDOWN,CBS_SORT,CBS_HASSTRINGS
+   10020 STATIC               "99999999999999999999"                       150    41    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10021 STATIC               "99999999999999999999"                       150    56    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10022 STATIC               "99999999999999999999"                       150    71    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10023 STATIC               "99999999999999999999"                       150    86    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10024 STATIC               "99999999999999999999"                       150   101    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10025 STATIC               "99999999999999999999"                       150   116    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10026 STATIC               "99999999999999999999"                       150   131    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10027 STATIC               "99999999999999999999"                       150   146    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10028 STATIC               "99999999999999999999"                       150   161    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10029 STATIC               "99999999999999999999"                       150   176    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10030 STATIC               "99999999999999999999"                       150   191    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10031 STATIC               "99999999999999999999"                       150   206    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10032 STATIC               "99999999999999999999"                       150   221    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10033 STATIC               "99999999999999999999"                       150   236    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10034 STATIC               "99999999999999999999"                       150   251    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10035 STATIC               "99999999999999999999"                       150   265    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10036 STATIC               "99999999999999999999"                       150   280    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10037 STATIC               "99999999999999999999"                       150   295    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10038 STATIC               "99999999999999999999"                       150   310    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+   10039 STATIC               "99999999999999999999"                       150   325    81     8  0x50020000 WS_CHILD,WS_VISIBLE,WS_GROUP,SS_LEFT
+
+--- DIALOG 209 (lang 1033) DLGTEMPLATE ---
+  Caption : "Exceptions"
+  Rect    : x=0 y=0 cx=316 cy=199  (dialog units)
+  Style   : 0x80ca00c0 [DS_SETFONT,DS_NOIDLEMSG,WS_POPUP,WS_CAPTION,WS_SYSMENU,WS_GROUP,WS_BORDER]  ExStyle=0x00000000
+  Font    : MS Sans Serif 8pt
+  Controls: 2
+      ID CLASS                CAPTION                                        X     Y    CX    CY  STYLES
+   10154 LISTBOX                                                            13    17   290   153  0x50b10181 WS_CHILD,WS_VISIBLE,WS_TABSTOP,WS_VSCROLL,WS_HSCROLL,WS_BORDER,LBS_NOTIFY,LBS_MULTIPLESEL,LBS_WANTKEYBOARDINPUT
+   10155 BUTTON               "Clear List"                                 132   178    50    14  0x50010000 WS_CHILD,WS_VISIBLE,WS_TABSTOP,BS_PUSHBUTTON
+
+
+=== RT_STRING (string table) ===
+     104: 'SASHostSim\n\nSASHos\n\n\nSASHostSim.Document\nSASHos Document'
+   32771: 'Define polls to be sent to EGM'
+   32772: 'View/Modify definitions of polls'
+   32775: 'Specify which polls to view in the trace window'
+   32776: 'Pause the trace (or resume the trace, whatever....)'
+   32777: 'Define a sequence of polls to be sent to the EGM'
+   32779: 'Define arbitrary byte stream to be sent to EGM'
+   32798: 'View/Modify the sequence of polls to be sent to the EGM'
+   32799: 'Specify the poll to be sent in response to an exception'
+   32800: 'View/Modify the polls to view in the trace window'
+   57344: 'SASHostSim'
+   57345: 'Ready'
+   57664: 'Display program information, version number and copyright\nAbout'
+   57665: 'Quit the application; prompts to save documents\nExit'
+   59136: 'EXT'
+   59137: 'CAP'
+   59138: 'NUM'
+   59139: 'SCRL'
+   59140: 'OVR'
+   59141: 'REC'
+   61184: 'Change the window size'
+   61185: 'Change the window position'
+   61186: 'Reduce the window to an icon'
+   61187: 'Enlarge the window to full size'
+   61188: 'Switch to the next document window'
+   61189: 'Switch to the previous document window'
+   61190: 'Close the active window and prompts to save the documents'
+   61202: 'Restore the window to normal size'
+   61203: 'Activate Task List'
+   61204: 'NO CONNECTION'
+   61205: 'Host Simulator Configuration'
+   62000: 'Click here for description of meter'
+   62001: 'Coin In'
+   62002: 'Coin Out'
+   62003: 'Jackpot Credits'
+   62004: 'Hand Paid Cancelled Credits'
+   62005: 'Cancelled Credits'
+   62006: 'Games Played'
+   62007: 'Games Won'
+   62008: 'Games Lost'
+   62009: 'Coin Acceptor Cr'
+   62010: 'Hopper Out Credits'
+   62011: 'Coin Drop Credits'
+   62012: 'Bill Credits'
+   62013: 'Current Credits'
+   62014: 'Ticket In cents'
+   62015: 'Ticket Out cents'
+   62016: 'Restricted Ticket In cents'
+   62017: 'Restricted Ticket Out cents'
+   62018: 'Ticket In count'
+   62019: 'Ticket Out count'
+   62020: 'Restricted Ticket In count'
+   62021: 'Restricted Ticket Out count'
+   62022: 'Ticket In'
+   62023: 'Ticket Out'
+   62024: 'EFT In'
+   62025: 'EFT Out'
+   62026: 'Restricted Play'
+   62027: 'Non-restricted Play'
+   62028: 'Restricted Credits'
+   62029: 'EGM Paid Paytable Win'
+   62030: 'EGM Paid Progressive Win'
+   62031: 'EGM Paid Bonus Win'
+   62032: 'Attendant Paid Paytable Win'
+   62033: 'Attendant Paid Prog Win'
+   62034: 'Attendant Bonus Win'
+   62035: 'Credits Won'
+   62036: 'Hand Paid Credits'
+   62037: 'Total Drop Credits'
+   62038: 'Games Since Power-up'
+   62039: 'Games Since Door Closed'
+   62040: 'External Coin Acceptor Cr'
+   62041: 'Cashable Ticket In'
+   62042: 'Cashable Only Ticket In'
+   62043: 'Restricted Ticket In'
+   62044: 'Non-restricted Ticket In'
+   62045: 'Cashable Ticket Out'
+   62046: 'Restricted Ticket Out'
+   62047: 'Cashable No Debit EFT In'
+   62048: 'Restricted EFT In'
+   62049: 'Non-Restricted EFT In'
+   62050: 'Debit EFT In'
+   62051: 'Cashable EFT Out'
+   62052: 'Restricted EFT Out'
+   62053: 'Non-restricted EFT Out'
+   62054: 'Current Bill Count'
+   62055: 'Current Bill Credits'
+   62056: 'Number of $1'
+   62057: 'Number of $2'
+   62058: 'Number of $5'
+   62059: 'Number of $10'
+   62060: 'Number of $20'
+   62061: 'Number of $25'
+   62062: 'Number of $50'
+   62063: 'Number of $100'
+   62064: 'Number of $200'
+   62065: 'Number of $250'
+   62066: 'Number of $500'
+   62067: 'Number of $1000'
+   62068: 'Number of $2000'
+   62069: 'Number of $2500'
+   62070: 'Number of $5000'
+   62071: 'Number of $10K'
+   62072: 'Number of $20K'
+   62073: 'Number of $25K'
+   62074: 'Number of $50K'
+   62075: 'Number of $100K'
+   62076: 'Number of $200K'
+   62077: 'Number of $250K'
+   62078: 'Number of $500K'
+   62079: 'Number of $1mil'
+   62080: 'Total Bills to Drop'
+   62081: 'Number of $1 to Drop'
+   62082: 'Number of $2 to Drop'
+   62083: 'Number of $5 to Drop'
+   62084: 'Number of $10 to Drop'
+   62085: 'Number of $20 to Drop'
+   62086: 'Number of $50 to Drop'
+   62087: 'Number of $100 to Drop'
+   62088: 'Number of $200 to Drop'
+   62089: 'Number of $500 to Drop'
+   62090: 'Number of $1000 to Drop'
+   62091: 'Total Bills Div. to Hopper'
+   62092: 'Number of $1 Div. to Hopper'
+   62093: 'Number of $2 Div. to Hopper'
+   62094: 'Number of $5 Div. to Hopper'
+   62095: 'Number of $10 Div. to Hopper'
+   62096: 'Number of $20 Div. to Hopper'
+   62097: 'Number of $50 Div. to Hopper'
+   62098: 'Number of $100 Div. to Hopper'
+   62099: 'Number of $200 Div. to Hopper'
+   62100: 'Number of $500 Div. to Hopper'
+   62101: 'Number of $1K Div. to Hopper'
+   62102: 'Total Bills Disp. from Hopper'
+   62103: 'Number of $1 Disp. from Hopper'
+   62104: 'Number of $2 Disp. from Hopper'
+   62105: 'Number of $5 Disp. from Hopper'
+   62106: 'Number of $10 Disp. from Hopper'
+   62107: 'Number of $20 Disp. from Hopper'
+   62108: 'Number of $50 Disp. from Hopper'
+   62109: 'Number of $100 Disp. from Hopper'
+   62110: 'Number of $200 Disp. from Hopper'
+   62111: 'Number of $500 Disp. from Hopper'
+   62112: 'Number of $1K Disp. from Hopper'
+   62113: 'Cash. ticket in cents'
+   62114: 'Cash. ticket in count'
+   62115: 'Res. ticket in cents'
+   62116: 'Res. ticket in count'
+   62117: 'Non-res. ticket in cents'
+   62118: 'Non-res. ticket in count'
+   62119: 'Cash. ticket out cents'
+   62120: 'Cash. ticket out count'
+   62121: 'Res. ticket out cents'
+   62122: 'Res. ticket out count'
+   62123: 'Debit ticket out cents'
+   62124: 'Debit ticket out count'
+   62125: 'Handpay, cashout, rcpt cents'
+   62126: 'Handpay, cashout, rcpt count'
+   62127: 'Handpay, win, rcpt cents'
+   62128: 'Handpay, win, rcpt count'
+   62129: 'Handpay, cashout, no rcpt cents'
+   62130: 'Handpay, cashout, no rcpt count'
+   62131: 'Handpay, win, no rcpt cents'
+   62132: 'Handpay, win, no rcpt count'
+   62133: 'In-house cash. to EGM cents'
+   62134: 'In-house cash. to EGM count'
+   62135: 'In-house res. to EGM cents'
+   62136: 'In-house res. to EGM count'
+   62137: 'In-house non-res. to EGM cents'
+   62138: 'In-house non-res. to EGM count'
+   62139: 'Debit to EGM cents'
+   62140: 'Debit to EGM count'
+   62141: 'In-house cash. to ticket cents'
+   62142: 'In-house cash. to ticket count'
+   62143: 'In-house res. to ticket cents'
+   62144: 'In-house res. to ticket count'
+   62145: 'Debit to ticket cents'
+   62146: 'Debit to ticket count'
+   62147: 'Bonus cash. to EGM cents'
+   62148: 'Bonus cash. to EGM count'
+   62149: 'Bonus non-res. to EGM cents'
+   62150: 'Bonus non-res. to EGM count'
+   62151: 'In-house cash. to host cents'
+   62152: 'In-house cash. to host count'
+   62153: 'In-house res. to host cents'
+   62154: 'In-house res. to host count'
+   62155: 'In-house non-res. to host cents'
+   62156: 'In-house non-res. to host count'
+   62157: 'Real coin in'
+   62158: 'Real coin out'
+   62159: 'Current cash. on EGM cents'
+   62160: 'Current res. on EGM cents'
+   62161: 'Current non-res. on EGM cents'
+   62162: 'Deductible bonus meter credits'
+   62163: 'Non-ded. bonus meter credits'
+   62164: 'Wager match bonus meter credits'
+   62165: 'Current wager credits'
+   62166: 'Slot door opened count'
+   62167: 'Power reset count'
+   62168: 'Hopper level'
+   62169: 'Tournament games played'
+   62170: 'Tournament games won'
+   62171: 'Tournament credits wagered'
+   62172: 'Tournament credits won'
+   62173: 'Bills inserted (dollars)'
+   62174: 'Total regular cash. ticket in count'
+   62175: 'Total res. promo ticket in count'
+   62176: 'Total nonres. promo ticket in count'
+   62177: 'Total cash/debit ticket out count'
+   62178: 'Total res. promo ticket out count'
+   63001: 'Total coin in credits'
+   63002: 'Total coin out credits'
+   63003: 'Total jackpot credits'
+   63004: 'Total hand paid cancelled credits'
+   63005: 'Total cancelled credits'
+   63006: 'Games played'
+   63007: 'Games won'
+   63008: 'Games lost'
+   63009: 'Total credits from coin acceptor'
+   63010: 'Total credits paid from hopper'
+   63011: 'Total credits from coins to drop'
+   63012: 'Total credits from bills accepted'
+   63013: 'Current credits'
+   63014: 'Total cashable ticket in, including nonrestricted tickets (cents)'
+   63015: 'Total cashable ticket out, including debit tickets (cents)'
+   63016: 'Total restricted ticket in (cents)'
+   63017: 'Total restricted ticket out (cents)'
+   63018: 'Total cashable ticket in, including nonrestricted tickets (quantity)'
+   63019: 'Total cashable ticket out, including debit tickets (quantity)'
+   63020: 'Total restricted ticket in (quantity)'
+   63021: 'Total restricted ticket out (quantity)'
+   63022: 'Total ticket in, including cashable, nonrestricted and restricted tickets (credits)'
+   63023: 'Total ticket out, including cashable, nonrestricted, restricted and debit tickets (credits)'
+   63024: 'Total electronic transfers to gaming machine, including cashable, nonrestricted, restricted and debit, whether transfer is to game or to ticket (credits)'
+   63025: 'Total electronic transfers to host, including cashable, nonrestricted, restricted and win amounts (credits)'
+   63026: 'Total restricted amount played (credits)'
+   63027: 'Total nonrestricted amount played (credits)'
+   63028: 'Current restricted credits'
+   63029: 'Total machine paid paytable win, not including pregressive or external bonus amounts (credits)'
+   63030: 'Total machine paid progressive win (credits)'
+   63031: 'Total machine paid external bonus win (credits)'
+   63032: 'Total attendant paid paytable win, not including progressive or external bonus amounts (credits)'
+   63033: 'Total attendant paid progressive win'
+   63034: 'Total attendant paid external bonus win (credits)'
+   63035: 'Total won credits (sum of total coin out and total jackpot)'
+   63036: 'Total hand paid credits (sum of total hand paid cancelled credits and total jackpot)'
+   63037: 'Total drop, including but not limited to coins to drop, bills to drop, tickets to drop and electronic in (credits)'
+   63038: 'Games since last power reset'
+   63039: 'Games since slot door closure'
+   63040: 'Total credits from external coin acceptor'
+   63041: 'Total cashable ticket in, including nonrestricted promotional tickets (credits)'
+   63042: 'Total cashable ticket in, not including nonrestricted promotional tickets (credits)'
+   63043: 'Total restricted promotional ticket in (credits)'
+   63044: 'Total nonrestricted promotional ticket in (credits)'
+   63045: 'Total cashable ticket out, including debit tickets (credits)'
+   63046: 'Total restricted promotional ticket out (credits)'
+   63047: 'Electronic cashable transfer to gaming machine, not including nonrestricted, debit, or external bonus (credits)'
+   63048: 'Electronic restricted promotional transfers to gaming machine, not including external bonus awards (credits)'
+   63049: 'Electronic nonrestricted promotional transfers to gaming machine, not including external bonus awards (credits)'
+   63050: 'Electronic depit transfers to gaming machine (credits)'
+   63051: 'Electronic cashable transfers to host (credits)'
+   63052: 'Electronic restricted promotional transfers to host (credits)'
+   63053: 'Electronic nonrestricted promotional transfers to host (credits)'
+   63054: 'Number of bills currently in the stacker'
+   63055: 'Total value of bills currently in the stacker (credits)'
+   63056: 'Total number of $1.00 bills accepted'
+   63057: 'Total number of $2.00 bills accepted'
+   63058: 'Total number of $5.00 bills accepted'
+   63059: 'Total number of $10.00 bills accepted'
+   63060: 'Total number of $20.00 bills accepted'
+   63061: 'Total number of $25.00 bills accepted'
+   63062: 'Total number of $50.00 bills accepted'
+   63063: 'Total number of $100.00 bills accepted'
+   63064: 'Total number of $200.00 bills accepted'
+   63065: 'Total number of $250.00 bills accepted'
+   63066: 'Total number of $500.00 bills accepted'
+   63067: 'Total number of $1,000.00 bills accepted'
+   63068: 'Total number of $2,000.00 bills accepted'
+   63069: 'Total number of $2,500.00 bills accepted'
+   63070: 'Total number of $5,000.00 bills accepted'
+   63071: 'Total number of $10,000.00 bills accepted'
+   63072: 'Total number of $20,000.00 bills accepted'
+   63073: 'Total number of $25,000.00 bills accepted'
+   63074: 'Total number of $50,000.00 bills accepted'
+   63075: 'Total number of $100,000.00 bills accepted'
+   63076: 'Total number of $200,000.00 bills accepted'
+   63077: 'Total number of $250,000.00 bills accepted'
+   63078: 'Total number of $500,000.00 bills accepted'
+   63079: 'Total number of $1,000,000.00 bills accepted'
+   63080: 'Total credits from bills to drop'
+   63081: 'Total number of $1.00 bills to drop'
+   63082: 'Total number of $2.00 bills to drop'
+   63083: 'Total number of $5.00 bills to drop'
+   63084: 'Total number of $10.00 bills to drop'
+   63085: 'Total number of $20.00 bills to drop'
+   63086: 'Total number of $50.00 bills to drop'
+   63087: 'Total number of $100.00 bills to drop'
+   63088: 'Total number of $200.00 bills to drop'
+   63089: 'Total number of $500.00 bills to drop'
+   63090: 'Total number of $1000.00 bills to drop'
+   63091: 'Total credit from bills bills diverted to hopper'
+   63092: 'Total number of $1.00 bills diverted to hopper'
+   63093: 'Total number of $2.00 bills diverted to hopper'
+   63094: 'Total number of $5.00 bills diverted to hopper'
+   63095: 'Total number of $10.00 bills diverted to hopper'
+   63096: 'Total number of $20.00 bills diverted to hopper'
+   63097: 'Total number of $50.00 bills diverted to hopper'
+   63098: 'Total number of $100.00 bills diverted to hopper'
+   63099: 'Total number of $200.00 bills diverted to hopper'
+   63100: 'Total number of $500.00 bills diverted to hopper'
+   63101: 'Total number of $1000.00 bills diverted to hopper'
+   63102: 'Total credits from bills dispensed from hopper'
+   63103: 'Total number of $1.00 Bills dispensed from hopper'
+   63104: 'Total number of $2.00 Bills dispensed from hopper'
+   63105: 'Total number of $5.00 Bills dispensed from hopper'
+   63106: 'Total number of $10.00 Bills dispensed from hopper'
+   63107: 'Total number of $20.00 Bills dispensed from hopper'
+   63108: 'Total number of $50.00 Bills dispensed from hopper'
+   63109: 'Total number of $100.00 Bills dispensed from hopper'
+   63110: 'Total number of $200.00 Bills dispensed from hopper'
+   63111: 'Total number of $500.00 Bills dispensed from hopper'
+   63112: 'Total number of $1000.00 Bills dispensed from hopper'
+   63113: 'Cashable ticket in (cents)'
+   63114: 'Cashable ticket in (quantity)'
+   63115: 'Restricted ticket in (cents)'
+   63116: 'Restricted ticket in (quantity)'
+   63117: 'Nonrestricted ticket in (cents)'
+   63118: 'Nonrestricted ticket in (quantity)'
+   63119: 'Cashable ticket out (cents)'
+   63120: 'Cashable ticket out (quantity)'
+   63121: 'Restricted ticket out (cents)'
+   63122: 'Restricted ticket out (quantity)'
+   63123: 'Debit ticket out (cents)'
+   63124: 'Debit ticket out (quantity)'
+   63125: 'Validated handpay from cashout, receipt printed (cents)'
+   63126: 'Validated handpay from cashout, receipt printed (quantity)'
+   63127: 'Validated handpay from single win, receipt printed (cents)'
+   63128: 'Validated handpay from single win, receipt printed (quantity)'
+   63129: 'Validated handpay from cashout, no receipt (cents)'
+   63130: 'Validated handpay from cashout, no receipt (quantity)'
+   63131: 'Validated handpay from single win, no receipt (cents)'
+   63132: 'Validated handpay from single win, no receipt (quantity)'
+   63133: 'In-house cashable transfers to gaming machine (cents)'
+   63134: 'In-house cashable transfers to gaming machine (quantity)'
+   63135: 'In-house restricted transfers to gaming machine (cents)'
+   63136: 'In-house restricted transfers to gaming machine (quantity)'
+   63137: 'In-house nonrestricted transfers to gaming machine (cents)'
+   63138: 'In-house nonrestricted transfers to gaming machine (quantity)'
+   63139: 'Debit transfers to gaming machine (cents)'
+   63140: 'Debit transfers to gaming machine (quantity)'
+   63141: 'In-house cashable transfers to ticket (cents)'
+   63142: 'In-house cashable transfers to ticket (quantity)'
+   63143: 'In-house restricted transfers to ticket (cents)'
+   63144: 'In-house restricted transfers to ticket (quantity)'
+   63145: 'Debit transfers to ticket (cents)'
+   63146: 'Debit transfers to ticket (quantity)'
+   63147: 'Bonus cashable transfers to gaming machine (cents)'
+   63148: 'Bonus cashable transfers to gaming machine (quantity)'
+   63149: 'Bonus nonrestricted transfers to gaming machine (cents)'
+   63150: 'Bonus nonrestricted transfers to gaming machine (quantity)'
+   63151: 'In-house cashable transfers to host (cents)'
+   63152: 'In-house cashable transfers to host (quantity)'
+   63153: 'In-house restricted transfers to host (cents)'
+   63154: 'In-house restricted transfers to host (quantity)'
+   63155: 'In-house nonrestricted transfers to host (cents)'
+   63156: 'In-house nonrestricted transfers to host (quantity)'
+   63157: 'Real coin in'
+   63158: 'Real coin out'
+   63159: 'Current cashable credits on gaming machine, not including non-restricted (cents)'
+   63160: 'Current restricted credits on gaming machine (cents)'
+   63161: 'Current nonrestricted credits on gaming machine (cents)'
+   63162: 'Deductible bonus meter (credits)'
+   63163: 'Non-deductible bonus meter (credits)'
+   63164: 'Wager match bonus meter (credits)'
+   63165: 'Current wager (credits)'
+   63166: 'Slot door opened count'
+   63167: 'Power reset count'
+   63168: 'Hopper level'
+   63169: 'Tournament games played'
+   63170: 'Tournament games won'
+   63171: 'Tournament credits wagered'
+   63172: 'Tournament credits won'
+   63173: 'Dollar value of all bills inserted'
+
+
+=== RT_ACCELERATOR ===
+--- ACCEL table 104 ---
+   FVIRTKEY+FNOINVERT             key=VK_F1      cmd=32780
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F1      cmd=32804
+   FVIRTKEY+FNOINVERT             key=VK_F2      cmd=32781
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F2      cmd=32805
+   FVIRTKEY+FNOINVERT             key=VK_F3      cmd=32782
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F3      cmd=32806
+   FVIRTKEY+FNOINVERT             key=VK_F4      cmd=32783
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F4      cmd=32807
+   FVIRTKEY+FNOINVERT             key=VK_F5      cmd=32784
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F5      cmd=32808
+   FVIRTKEY+FNOINVERT             key=VK_F6      cmd=32785
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F6      cmd=32809
+   FVIRTKEY+FNOINVERT             key=VK_F7      cmd=32786
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F7      cmd=32810
+   FVIRTKEY+FNOINVERT             key=VK_F8      cmd=32787
+   FVIRTKEY+FNOINVERT+FCONTROL    key=VK_F8      cmd=32811
+
+
+=== RT_VERSION ===
+--- VERSION 1 size=908 ---
+  FileVersion    = 0.5.9.0
+  ProductVersion = 0.5.9.0
+  FileFlagsMask=0x3f FileFlags=0x0 FileOS=0x4 FileType=0x1 FileSubtype=0x0
+  UTF-16 string runs:
+    'VS_VERSION_INFO'
+    'StringFileInfo'
+    '040904b0'
+    'Comments'
+    'CompanyName'
+    'Gaming Standards Association'
+    'FileDescription'
+    'SAS Host Simulator Application'
+    'FileVersion'
+    '1.1'
+    'InternalName'
+    'SASHostSim'
+    'LegalCopyright'
+    'Copyright '
+    ' 2006'
+    'LegalTrademarks'
+    'OriginalFilename'
+    'SASHostSim.EXE'
+    'PrivateBuild'
+    'ProductName'
+    'SAS 6.01 Host Simulator'
+    'ProductVersion'
+    '1.1'
+    'SpecialBuild'
+    'VarFileInfo'
+    'Translation'
+
+
+=== RT_RCDATA / other named resources (first 400 bytes each) ===
+--- 240 / 101 (lang 1033) size=54 ---
+   ascii: Set1 | Set2 | Set3 | User
+--- 240 / 109 (lang 1033) size=568 ---
+   ascii: 1A - Send Current Credits | 1B - Send Hand Pay Information | 1C - Send Meters | 1E - Send Bill Count Meters | 1F - Send Gaming Machine ID | 20 - Send Bills Meter Amount | 21 - ROM Signature Validation, Seed 0000 | 21 - ROM Signature Validation, Seed 1234 | 21 - ROM Signature Validation, Seed ABCD | 2A - Send True Coin In | 2B - Send True Coin Out | 2C - Send Current Hopper Level | 2D - Send Hand Paid Cancelled Credits | 2E - Delay Game 500mS | 2E - Delay Game 3 seconds
+--- 240 / 112 (lang 1033) size=568 ---
+   ascii: 1A - Send Current Credits | 1B - Send Hand Pay Information | 1C - Send Meters | 1E - Send Bill Count Meters | 1F - Send Gaming Machine ID | 20 - Send Bills Meter Amount | 21 - ROM Signature Validation, Seed 0000 | 21 - ROM Signature Validation, Seed 1234 | 21 - ROM Signature Validation, Seed ABCD | 2A - Send True Coin In | 2B - Send True Coin Out | 2C - Send Current Hopper Level | 2D - Send Hand Paid Cancelled Credits | 2E - Delay Game 500mS | 2E - Delay Game 3 seconds
+
+
+=== IMPORTS ===
+Total DLLs: 10   Total imports: 603
+
+--- VERSION.dll  (3 imports) ---
+   VerQueryValueA                GetFileVersionInfoSizeA       GetFileVersionInfoA           
+
+--- SETUPAPI.dll  (5 imports) ---
+   SetupDiDestroyDeviceInfoList  SetupDiGetDeviceRegistryPropertyASetupDiEnumDeviceInterfaces   SetupDiGetClassDevsA          
+   SetupDiGetDeviceInterfaceDetailA
+
+--- MFC42.DLL  (415 imports) ---
+   #ordinal 793                  #ordinal 768                  #ordinal 489                  #ordinal 2294                 
+   #ordinal 2362                 #ordinal 2301                 #ordinal 2302                 #ordinal 4258                 
+   #ordinal 4710                 #ordinal 6334                 #ordinal 825                  #ordinal 823                  
+   #ordinal 6055                 #ordinal 1776                 #ordinal 5290                 #ordinal 4837                 
+   #ordinal 3402                 #ordinal 4424                 #ordinal 3719                 #ordinal 567                  
+   #ordinal 541                  #ordinal 801                  #ordinal 795                  #ordinal 6880                 
+   #ordinal 2089                 #ordinal 2642                 #ordinal 2080                 #ordinal 2078                 
+   #ordinal 2818                 #ordinal 858                  #ordinal 540                  #ordinal 2116                 
+   #ordinal 800                  #ordinal 536                  #ordinal 535                  #ordinal 2614                 
+   #ordinal 925                  #ordinal 939                  #ordinal 4129                 #ordinal 940                  
+   #ordinal 3874                 #ordinal 6199                 #ordinal 860                  #ordinal 5710                 
+   #ordinal 6223                 #ordinal 4278                 #ordinal 941                  #ordinal 922                  
+   #ordinal 924                  #ordinal 926                  #ordinal 6883                 #ordinal 537                  
+   #ordinal 3089                 #ordinal 2860                 #ordinal 2859                 #ordinal 3721                 
+   #ordinal 6143                 #ordinal 3610                 #ordinal 2379                 #ordinal 6778                 
+   #ordinal 4204                 #ordinal 5572                 #ordinal 2919                 #ordinal 923                  
+   #ordinal 859                  #ordinal 6662                 #ordinal 1105                 #ordinal 521                  
+   #ordinal 6307                 #ordinal 3584                 #ordinal 543                  #ordinal 803                  
+   #ordinal 616                  #ordinal 2411                 #ordinal 2023                 #ordinal 4218                 
+   #ordinal 2578                 #ordinal 4398                 #ordinal 3582                 #ordinal 665                  
+   #ordinal 603                  #ordinal 273                  #ordinal 5186                 #ordinal 6153                 
+   #ordinal 3790                 #ordinal 354                  #ordinal 268                  #ordinal 879                  
+   #ordinal 882                  #ordinal 1567                 #ordinal 5651                 #ordinal 3123                 
+   #ordinal 3568                 #ordinal 350                  #ordinal 3126                 #ordinal 3613                 
+   #ordinal 3663                 #ordinal 2801                 #ordinal 2740                 #ordinal 1908                 
+   #ordinal 1690                 #ordinal 2528                 #ordinal 5288                 #ordinal 4439                 
+   #ordinal 2054                 #ordinal 4431                 #ordinal 771                  #ordinal 1008                 
+   #ordinal 496                  #ordinal 4259                 #ordinal 4715                 #ordinal 6215                 
+   #ordinal 3092                 #ordinal 2646                 #ordinal 1771                 #ordinal 6366                 
+   #ordinal 2413                 #ordinal 2024                 #ordinal 4219                 #ordinal 2581                 
+   #ordinal 4401                 #ordinal 3639                 #ordinal 692                  #ordinal 4275                 
+   #ordinal 6270                 #ordinal 4124                 #ordinal 3797                 #ordinal 4220                 
+   #ordinal 2584                 #ordinal 3654                 #ordinal 2438                 #ordinal 2863                 
+   #ordinal 1644                 #ordinal 1146                 #ordinal 2864                 #ordinal 4376                 
+   #ordinal 5280                 #ordinal 3597                 #ordinal 609                  #ordinal 641                  
+   #ordinal 324                  #ordinal 2370                 #ordinal 2358                 #ordinal 4234                 
+   #ordinal 6197                 #ordinal 6129                 #ordinal 6130                 #ordinal 2634                 
+   #ordinal 5953                 #ordinal 5768                 #ordinal 3754                 #ordinal 4853                 
+   #ordinal 3097                 #ordinal 656                  #ordinal 4055                 #ordinal 5148                 
+   #ordinal 3756                 #ordinal 2575                 #ordinal 4396                 #ordinal 3574                 
+   #ordinal 5951                 #ordinal 4224                 #ordinal 3095                 #ordinal 3317                 
+   #ordinal 3803                 #ordinal 2764                 #ordinal 2142                 #ordinal 2820                 
+   #ordinal 3507                 #ordinal 5442                 #ordinal 3499                 #ordinal 2515                 
+   #ordinal 355                  #ordinal 668                  #ordinal 1980                 #ordinal 4277                 
+   #ordinal 4425                 #ordinal 2781                 #ordinal 2770                 #ordinal 356                  
+   #ordinal 3127                 #ordinal 3616                 #ordinal 1842                 #ordinal 4242                 
+   #ordinal 2723                 #ordinal 2390                 #ordinal 3059                 #ordinal 5100                 
+   #ordinal 5103                 #ordinal 4467                 #ordinal 4303                 #ordinal 3350                 
+   #ordinal 5012                 #ordinal 975                  #ordinal 5472                 #ordinal 3403                 
+   #ordinal 2879                 #ordinal 2878                 #ordinal 4151                 #ordinal 4077                 
+   #ordinal 5237                 #ordinal 5282                 #ordinal 2649                 #ordinal 1665                 
+   #ordinal 4436                 #ordinal 4427                 #ordinal 674                  #ordinal 529                  
+   #ordinal 366                  #ordinal 796                  #ordinal 6000                 #ordinal 2117                 
+   #ordinal 4457                 #ordinal 5252                 #ordinal 4160                 #ordinal 2639                 
+   #ordinal 1168                 #ordinal 5981                 #ordinal 2289                 #ordinal 2365                 
+   #ordinal 4612                 #ordinal 4610                 #ordinal 4274                 #ordinal 6375                 
+   #ordinal 4486                 #ordinal 2554                 #ordinal 2512                 #ordinal 5731                 
+   #ordinal 3922                 #ordinal 1089                 #ordinal 5199                 #ordinal 2396                 
+   #ordinal 3346                 #ordinal 5300                 #ordinal 5302                 #ordinal 4079                 
+   #ordinal 4698                 #ordinal 5307                 #ordinal 5289                 #ordinal 5714                 
+   #ordinal 4622                 #ordinal 3738                 #ordinal 815                  #ordinal 561                  
+   #ordinal 617                  #ordinal 1576                 #ordinal 5214                 #ordinal 296                  
+   #ordinal 986                  #ordinal 520                  #ordinal 4159                 #ordinal 6117                 
+   #ordinal 2621                 #ordinal 1134                 #ordinal 2725                 #ordinal 5683                 
+   #ordinal 1825                 #ordinal 4238                 #ordinal 4696                 #ordinal 3058                 
+   #ordinal 3065                 #ordinal 6336                 #ordinal 2510                 #ordinal 2542                 
+   #ordinal 5243                 #ordinal 5740                 #ordinal 1746                 #ordinal 5577                 
+   #ordinal 3172                 #ordinal 5653                 #ordinal 4420                 #ordinal 4953                 
+   #ordinal 4858                 #ordinal 2399                 #ordinal 4387                 #ordinal 3454                 
+   #ordinal 3198                 #ordinal 6080                 #ordinal 6175                 #ordinal 4623                 
+   #ordinal 4426                 #ordinal 338                  #ordinal 652                  #ordinal 4823                 
+   #ordinal 1841                 #ordinal 4241                 #ordinal 4589                 #ordinal 4588                 
+   #ordinal 4899                 #ordinal 4370                 #ordinal 4892                 #ordinal 4533                 
+   #ordinal 5076                 #ordinal 4340                 #ordinal 4347                 #ordinal 4889                 
+   #ordinal 4531                 #ordinal 4545                 #ordinal 4543                 #ordinal 4526                 
+   #ordinal 4529                 #ordinal 4524                 #ordinal 4963                 #ordinal 4960                 
+   #ordinal 4108                 #ordinal 6054                 #ordinal 5240                 #ordinal 5281                 
+   #ordinal 3748                 #ordinal 1725                 #ordinal 2091                 #ordinal 4432                 
+   #ordinal 364                  #ordinal 784                  #ordinal 5260                 #ordinal 1979                 
+   #ordinal 2763                 #ordinal 5677                 #ordinal 3495                 #ordinal 4720                 
+   #ordinal 5861                 #ordinal 283                  #ordinal 4480                 #ordinal 4508                 
+   #ordinal 3573                 #ordinal 3626                 #ordinal 2414                 #ordinal 5450                 
+   #ordinal 6394                 #ordinal 5440                 #ordinal 6383                 #ordinal 4496                 
+   #ordinal 4476                 #ordinal 2546                 #ordinal 291                  #ordinal 2645                 
+   #ordinal 2363                 #ordinal 2291                 #ordinal 2367                 #ordinal 5856                 
+   #ordinal 4284                 #ordinal 6927                 #ordinal 798                  #ordinal 6407                 
+   #ordinal 5194                 #ordinal 533                  #ordinal 640                  #ordinal 5789                 
+   #ordinal 6021                 #ordinal 1640                 #ordinal 323                  #ordinal 2527                 
+   #ordinal 482                  #ordinal 3619                 #ordinal 1641                 #ordinal 6453                 
+   #ordinal 2737                 #ordinal 1200                 #ordinal 5272                 #ordinal 6874                 
+   #ordinal 1779                 #ordinal 4627                 #ordinal 4080                 #ordinal 3079                 
+   #ordinal 3825                 #ordinal 3831                 #ordinal 3830                 #ordinal 2976                 
+   #ordinal 3081                 #ordinal 2985                 #ordinal 3262                 #ordinal 3136                 
+   #ordinal 4465                 #ordinal 3259                 #ordinal 3147                 #ordinal 2982                 
+   #ordinal 5277                 #ordinal 2124                 #ordinal 2446                 #ordinal 5261                 
+   #ordinal 1727                 #ordinal 5065                 #ordinal 3749                 #ordinal 6376                 
+   #ordinal 2055                 #ordinal 2648                 #ordinal 4441                 #ordinal 4835                 
+   #ordinal 3798                 #ordinal 5287                 #ordinal 4353                 #ordinal 6374                 
+   #ordinal 5163                 #ordinal 2385                 #ordinal 5241                 #ordinal 4407                 
+   #ordinal 1775                 #ordinal 4078                 #ordinal 6052                 #ordinal 2514                 
+   #ordinal 4998                 #ordinal 4854                 #ordinal 4377                 #ordinal 5265                 
+   #ordinal 4358                 #ordinal 4948                 #ordinal 4976                 #ordinal 4742                 
+   #ordinal 4905                 #ordinal 5160                 #ordinal 5162                 #ordinal 5161                 
+   #ordinal 1907                 #ordinal 3181                 #ordinal 5301                 
+
+--- MSVCRT.dll  (57 imports) ---
+   _acmdln                       exit                          _XcptFilter                   _exit                         
+   ??1type_info@@UAE@XZ          ?terminate@@YAXXZ             _except_handler3              _onexit                       
+   __dllonexit                   abs                           strncpy                       ceil                          
+   strtod                        _stat                         atol                          __getmainargs                 
+   strlen                        strcpy                        strtol                        memset                        
+   memmove                       strncmp                       _ftol                         _mbsicmp                      
+   sprintf                       free                          time                          _CxxThrowException            
+   ??0exception@@QAE@ABV0@@Z     strtoul                       _mbscmp                       islower                       
+   _initterm                     __setusermatherr              _adjust_fdiv                  __p__commode                  
+   __p__fmode                    __set_app_type                _mbsrchr                      _controlfp                    
+   _stricmp                      _strdup                       _ltoa                         _setmbcp                      
+   __CxxFrameHandler             fclose                        fprintf                       fopen                         
+   memcpy                        _purecall                     isprint                       atoi                          
+   isdigit                       wcslen                        iscntrl                       isxdigit                      
+   toupper                       
+
+--- KERNEL32.dll  (43 imports) ---
+   GetModuleFileNameA            GlobalFree                    GlobalUnlock                  GlobalLock                    
+   GlobalAlloc                   CreateFileA                   GetLastError                  GetVersionExA                 
+   MulDiv                        ReleaseMutex                  CreateMutexA                  SetUnhandledExceptionFilter   
+   LeaveCriticalSection          FormatMessageA                GetModuleHandleA              VirtualQuery                  
+   IsBadWritePtr                 WriteFile                     SetWaitableTimer              CreateWaitableTimerA          
+   ResetEvent                    SetCommTimeouts               SetCommState                  GetCommState                  
+   GetOverlappedResult           ReadFile                      WaitCommEvent                 SetCommMask                   
+   MultiByteToWideChar           lstrlenA                      GetStartupInfoA               EnterCriticalSection          
+   DeleteCriticalSection         InitializeCriticalSection     WaitForMultipleObjects        SetEvent                      
+   WaitForSingleObject           CloseHandle                   WideCharToMultiByte           LocalFree                     
+   SetFilePointer                InterlockedDecrement          CreateEventA                  
+
+--- USER32.dll  (39 imports) ---
+   wvsprintfA                    GetNextDlgTabItem             GetFocus                      GetDlgCtrlID                  
+   IsWindowVisible               UpdateWindow                  GetDialogBaseUnits            SetCursor                     
+   SetCursorPos                  GetCursorPos                  BringWindowToTop              IsWindow                      
+   GetWindowTextLengthA          GetWindowTextA                SetWindowTextA                GetSystemMetrics              
+   GetParent                     PostMessageA                  GetKeyState                   GetSysColor                   
+   FillRect                      GetMenuItemID                 GetMenuItemCount              TranslateAcceleratorA         
+   LoadIconA                     KillTimer                     SetTimer                      InvalidateRect                
+   GetClientRect                 ScreenToClient                LoadMenuA                     GetSubMenu                    
+   MessageBoxA                   ReleaseDC                     GetDC                         GetWindowRect                 
+   SendMessageA                  EnableWindow                  LoadCursorA                   
+
+--- GDI32.dll  (17 imports) ---
+   StartPage                     GetWindowExtEx                CreateFontA                   SetBkColor                    
+   SetMapMode                    LPtoDP                        EndDoc                        AbortDoc                      
+   EndPage                       SetTextColor                  CreateSolidBrush              DeleteObject                  
+   TextOutA                      GetDeviceCaps                 GetTextMetricsA               GetTextExtentPoint32A         
+   StartDocA                     
+
+--- ole32.dll  (6 imports) ---
+   OleRun                        CoCreateInstance              CLSIDFromProgID               CoUninitialize                
+   CoInitialize                  CLSIDFromString               
+
+--- OLEAUT32.dll  (10 imports) ---
+   #ordinal 7                    #ordinal 149                  #ordinal 150                  #ordinal 10                   
+   #ordinal 12                   #ordinal 8                    #ordinal 2                    #ordinal 9                    
+   #ordinal 6                    #ordinal 200                  
+
+--- MSVCP60.dll  (8 imports) ---
+   ??1_Lockit@std@@QAE@XZ        ??0logic_error@std@@QAE@ABV01@@Z??0out_of_range@std@@QAE@ABV01@@Z??1out_of_range@std@@UAE@XZ   
+   ??1?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@XZ??0out_of_range@std@@QAE@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@1@@Z??0?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@QAE@PBDABV?$allocator@D@1@@Z??0_Lockit@std@@QAE@XZ        
+
+
+=== EXPORTS ===
+  (none)

@@ -1,0 +1,109 @@
+bjbjU
+The SAS tester INI file is the main definition file for SAS commands, messages, scripts, and special functions. Its purpose is to allow existing and new SAS long polls, exceptions, messages and functions to be defined without recompiling the tester. Granted there are certain functions built into the tester that cannot (at this time)be controlled with the INI file, but for the most part any new command can be defined. Also meter messages can be parsed and displayed in English instead of having to look at each byte, counting then decoding to figure out a meter. The INI file allows the user to define what English message will be displayed and how many bytes to display as well as the format of the meter. It also allows scripts to be defined and used verbatim (with the exception of automatically adding a CRC when a poll exceeds 2 bytes).   There is also a section called 
+Message structures
+ that allows the formation of special commands that can be used to easily modify any byte at run time. The quick commands section allows the user to set up any command they desire and by just clicking it will be sent at the next poll cycle.  
+Please note that errors in the INI file may render the tester unusable and cause it to crash. This tool is just that a tool, it is not a full blown system. It is the responsibility of the person testing to insure a game responds correctly to its polls, and this tool will not guarantee that. Also remember that this is run from a Windows environment that has its own agenda, so polls may or may not come out exactly on time. Also the SAS protocol uses something called Wakeup bits, this is not supported in the Windows API. The concept can cause a conflict between the computers hardware and the operating system. Although we have made every attempt to keep these problems hidden from the user computer hardware varies from time to time. 
+The following is a brief explanation of each of the sections in the INI file that are available at the time this document was created. Features may be added in the future. One thing to remember is, the best way to understand and add to the INI entries is to understand the command you are dealing with by using the SAS  protocol document and then comparing a similar command and copying it and make small changes. 
+Each section definition of the INI file is presented here as it seen in the file then described. Some in more detail then others. 
+[SAS Protocol Defaults] 
+This is a new section that allows the user to setup certain defaults when the tester fires up.
+[General Poll]
+This section describes what the tester will display when it gets response from a General Poll. 
+Example:
+$11 = Slot door was just opened.
+The first char is a $ and must be there.
+The next two chars are the actual response in hex.
+There is an = sign with spaces on each side.
+Then the actual English message you want to display.
+[Long Poll Commands]
+This section describes how a Long poll is sent and the definition of necessary input boxes to insert data into those messages.
+SAS Command description:
+;$XX = Command Definition,LENGTH(Y/N),TRANS(Y/N),ACK(Y/N),
+TYPE(Y/N),STATUS(Y/N),CRC(Y/N),# of input Boxes
+;?XX (Associate with command)= Input box message @ # of data bytes
+s examine an entry that requires 2 input boxes.
+$09 = Enable/Disable Game N,n,n,n,n,n,Y,2
+?09 = Enter the Game number@2
+?09 = Enter Enable 01 or Disable 00@1
+The first char is a $ denoting this is a command, not an input box.
+The next two chars are the command in hex.
+An = sign with spaces on each side.
+Then the actual name of the command as you want it to appear in the dropdown, ended by a comma. 
+The there is a comma separated list of parameters switching on/off the various pieces of a SAS command as described above
+ The last char is the number of input boxes this command requires.
+INPUT BOXES:
+The first char is a ? denoting that this is an input box. 
+The next two chars are the command this input box is associated with in hex.
+An = sign with spaces on each side.
+The text you want to display in the input box.
+Then an @
+Then how many bytes that need to be sent with this command.
+[Electronic Funds Transfer]
+This section is exactly the same thing as above. The only difference is these commands will show up in the EFT drop down. 
+[Status Messages]
+These are the messages that will show up when using EFT commands to inform you of the machines status, they work in the same manner as the General Poll.
+[Messages]
+$0F = Cancelled Credit Meter = ,03,%d04
+Messages are how the tester dissects the returned message. 
+The first char is a $.
+The next two chars is the message # in hex.
+An = sign with spaces on each side.
+The English statement you want to display ending in a comma. 
+The next two chars are where the meter starts in the message ending in a comma
+Then a %sign and then a 
+ (denoting a decimal number)or an 
+(denoting ASCII) .
+Then two more chars signifying how many bytes make up the meter. 
+[Denominations]
+This section is used to fill the SAS Denomination Combo box used for multi denom polls.
+[ASDC]
+Not used anymore in most games, same as long poll but has a special header.
+[Bonus Game Data Structures]
+This section is used to build bonus structures that work in the same manner a ASDC commands. 
+Each set gets a individual and unique identifier of your choice preceded by a $.
+Then an = with spaces on both sides.
+Then the text that you want to appear in the drop down, ending in a comma.
+Then the number of input boxes you want.
+If there are input boxes:
+There is a 2 char identifier which associates the input box with the message you want to build preceded by a ?;
+Then an = with spaces on both sides.
+Then the text of the input box.
+Followed by a @ 
+Then the number of bytes that are required to enter. 
+[Message Structures]
+This section is used to build almost any message you wish and allows you to edit the individual bytes during run time. 
+Each set gets an individual and unique identifier of your choice preceded by a $.
+Then an = with spaces on both sides.
+Then the text that you want to appear in the drop down, ending in a comma.
+Then the number of input boxes you want.
+If there are input boxes:
+There is a 2 char identifier which associates the input box with the message you want to build preceded by a ?;
+Then an = with spaces on both sides.
+Then the text of the input box.
+Followed by a @ 
+Then the number of bytes that are required to enter, if the number is 0 you may select from  a data structure. 
+[Data Structures]
+A data structure is probably one of the most versatile pieces here; you can define the defaults and put a name to it for easy recognition. Here is how it works:  Along with a Message structure that takes care of the essentials of a SAS command while the Data Structure fills in the data as described by the user between A BEGIN and END statement. All that is necessary is to put in the data for each described type after an = sign. At run time this data can be changed by selecting the Command Set Structure Editor tab, then selecting from a drop down that will allow the user to select the structure and change the data which will last until the program is exited. 
+[Quick Commands]
+This section allows the user to define any command verbatim and that command will show up on the Quick Command page. All that is required to send that command is to click on it. Note that any command over 2 bytes in length will have a CRC automatically attached to it. 
+[Script]
+This section allows for verbatim scripting, the commands are sent out as entered here and there is an English statement shows up in the Text window. . Note that any command over 2 bytes in length will have a CRC automatically attached to it. Scripting short circuits all automatic polling so what is in the script is the only thing sent. 
+[Ticket Transfer Codes]
+This section describes the codes used by the system during redemption.
+[Ticket Machine Status Codes]
+ This section describes the codes sent back by the machine during redemption. 
+[Validation Type Codes]
+This section describes the codes used by the system during redemption
+Is this what you want SASINI.doc
+Timperley.James.W
+timp
+The SAS tester INI file is the main definition file for SAS commands, messages, scripts, and special functions
+Normal.dot
+tgail
+Microsoft Word 9.0
+International Game Technology
+The SAS tester INI file is the main definition file for SAS commands, messages, scripts, and special functions
+Title
+Microsoft Word Document
+MSWordDoc
+Word.Document.8

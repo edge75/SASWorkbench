@@ -1,0 +1,18 @@
+--- Market scalar keys ---
+'jurisdiction' = 'GLI11'
+'protocol' = 'SAS'
+'audit key in game' = 'refuse'
+'keyed in credits' = True
+'number replay games' = 10
+'inhibit credits in game' = False
+'paper out jurisdiction message' = False
+'bill period reset second door' = 'main'
+'stacker removed self clearing' = False
+'auto rebet enabled' = True
+--- SAS keys (non-description) ---
+'manufacturer id' = "QX"
+'transaction receipts' = false
+'progressive level hit at notification' = false
+'start network' = "immediately"
+'attendant menu reporting' = "on page displayed"
+'accounting denomination' = 1

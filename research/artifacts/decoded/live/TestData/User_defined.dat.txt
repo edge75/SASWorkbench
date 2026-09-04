@@ -1,0 +1,106 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\TestData\User_defined.dat ===
+version=11  configs=13  parsed 5423 of 5423 bytes
+
+  "Current"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, 1, 2, 2)
+     one-key: F1=- F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "Current"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, 1, 2, 2)
+     one-key: F1=- F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.01"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=B5.1@1 F2=55.1@1 F3=B5.7@1 F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.02"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=- F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=A0.1@1 F2=55.1@1 F3=A0.4@1 F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.04"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=14.1@1 F2=55.1@1 F3=14.2@1 F4=2F.27@1 F5=- F6=- F7=- F8=-
+
+  "TEST_25.05"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(33, -3, 2, 2)
+     one-key: F1=- F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.06"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=84.1@1 F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03.01"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=55.1@1 F2=2F.26@1 F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03.02"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=1B.1@1 F2=- F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03.03"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=0E.1@1 F2=0E.2@1 F3=- F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03.04"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=70.1@1 F2=71.1@1 F3=71.2@1 F4=- F5=- F6=- F7=- F8=-
+
+  "TEST_25.03.05"  (403 bytes)
+     pollRate=200ms  respToNextPoll=200ms  nack=3  resendDelay=40ms  port=COM1
+     validation: systemId='50' number='0123456789012345'
+     delays: 1000 3000 3000 1000 ms
+     flagsA=01 00 00 01 01 00 01 00 00  flagsB=00 00 00 00 00 00 00 00 00
+     selections=(1, -3, 2, 2)
+     one-key: F1=70.1@1 F2=71.1@1 F3=71.2@1 F4=- F5=- F6=- F7=- F8=-

@@ -1,0 +1,44 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.3\step7_.trc ===
+started : 2026-07-20 18:00:29
+stamps  : relative to end of previous poll
+events  : 40 (34 messages, 23 HOST, 11 EGM)
+  HOST           WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.5 WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.6 WAKE 80                                     RESYNC
+  HOST      40.1 WAKE 01 51                                  Send total number of games implemented:
+  EGM       25.5      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  -- separator --
+  HOST           WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.6 WAKE 00 86 0D 01 01 00 00 00 00 00 02 00 00 00 00 00 06 6D Receive multiple progressive levels: Group = 1; Level = 1; Amount = 0000000000; Level = 2; Amount = 0000000000;
+  HOST      39.6 WAKE 81                                     General Poll
+  EGM       26.7      3D                                     A cashout ticket has been printed
+  HOST      40.0 WAKE 01 51                                  Send total number of games implemented:
+  EGM       35.3      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  -- separator --
+  HOST           WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.5 WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.6 WAKE 81                                     General Poll
+  EGM       24.8      53                                     No progressive information has been received for 5 seconds
+  HOST      40.0 WAKE 01 51                                  Send total number of games implemented:
+  EGM       32.3      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  -- separator --
+  HOST           WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.5 WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.6 WAKE 81                                     General Poll
+  EGM       21.4      11                                     Slot door was opened
+  HOST      40.0 WAKE 01 51                                  Send total number of games implemented:
+  EGM       29.0      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  -- separator --
+  HOST           WAKE 01 51                                  Send total number of games implemented:
+  EGM       31.8      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  HOST      42.2 WAKE 80                                     RESYNC
+  HOST      40.1 WAKE 00 86 0D 01 01 00 00 00 00 00 02 00 00 00 00 00 06 6D Receive multiple progressive levels: Group = 1; Level = 1; Amount = 0000000000; Level = 2; Amount = 0000000000;
+  HOST      39.6 WAKE 80                                     RESYNC
+  -- separator --
+  HOST           WAKE 01 54                                  Send SAS version ID and EGM serial number:
+  EGM       24.0      01 54 09 36 30 32 31 30 30 30 30 31 5B C9 Send SAS version ID and EGM serial number: SAS Version = "602"; Serial number = "100001";
+  HOST      48.0 WAKE 81                                     General Poll
+  EGM       36.1      12                                     Slot door was closed
+  HOST      41.8 WAKE 01 7E                                  Send current date and time:
+  EGM       25.9      01 7E 07 20 20 26 18 00 37 C2 15       Send current date and time: Date = 07202026; Time = 180037;
+  -- separator --

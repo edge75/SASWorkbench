@@ -1,0 +1,312 @@
+{
+ "Doors description": [
+  "Door intrusion switches, are also monitored when power OFF",
+  "type       - must be one of the following:",
+  "           tamper#1, internal Quixant tamper switch mapped to INTRUSION #0",
+  "           tamper#2, internal Quixant tamper switch mapped to INTRUSION #1",
+  "           main, mapped to INTRUSION #2 - #15,  Mandatory for configuration and diagnostics menu",
+  "           logic, mapped to INTRUSION #2 - #15, optional used for configuration and nvram reset",
+  "           stacker, mapped to INTRUSION #2 - #15, Mandatory with Bill Validator, otherwise optional",
+  "           dropbox, mapped to INTRUSION #2 - #15, Mandatory with Coin acceptor, otherwise optional",
+  "           topbox, mapped to INTRUSION #2 - #15, Optional",
+  "           spare, mapped to INTRUSION #2 - #15, Optional eg. belly panel door",
+  "           opto, mapped to INTRUSION #2 - #15, Optional, used for main door when using opto isolated sensors",
+  "           storage, mapped to INTRUSION #2 - #15, Optional, used for storage media door",
+  "           tamper#3 to tamper#8, mapped to INTRUSION #2 - #15, Optional, used for any custom tamper switch (internal or external)",
+  "           The SAS door exception of each type is fixed, because SAS 6.02 defines only five door codes:",
+  "           main/opto/topbox -> slot door $11/$12, dropbox -> drop door $13/$14, stacker -> cashbox door $19/$1A,",
+  "           logic/tamper#1 to tamper#8 -> card cage $15/$16, spare -> belly door $1D/$1E, storage -> component list changed $8E.",
+  "           Use 'spare' for the door that must be reported to the SAS host as the belly door.",
+  "           A door opened while the machine is powered off always reports $99 power off slot door access,",
+  "           because SAS 6.02 defines no belly door equivalent of that exception",
+  "intrusion  - mapped to Quixant INTRUSION #0 - #15",
+  "contacts   - NO (normally open)",
+  "           - NC (normally closed)",
+  "           - opto (opto isolated)",
+  "text       - optional text description of the door, used for audit and overlay display",
+  "lockup     - optional lockup text to display while condition active (overrides lockup_text if not empty)",
+  "residual   - optional residual text to display when condition cleared (overrides residual_text if not empty)",
+  "external - optional boolean, default false. When true, marks this door as external (user marks it as such since it provides access to the locked logic area or currency compartment). Used to reset the 'games played since external door closed' meter (GLI 5.4.2(a)). Set true for doors like main, logic, stacker, dropbox, topbox, etc.; leave false for internal tamper switches"
+ ],
+ "Doors": [
+  {
+   "type": "tamper#1",
+   "intrusion": 0,
+   "contacts": "NO",
+   "external": false
+  },
+  {
+   "type": "tamper#2",
+   "intrusion": 1,
+   "contacts": "NO",
+   "external": false
+  },
+  {
+   "type": "main",
+   "intrusion": 2,
+   "contacts": "NO",
+   "external": true
+  },
+  {
+   "type": "topbox",
+   "intrusion": 3,
+   "contacts": "NO",
+   "external": true
+  },
+  {
+   "type": "logic",
+   "intrusion": 4,
+   "contacts": "NO",
+   "external": true
+  },
+  {
+   "type": "stacker",
+   "intrusion": 5,
+   "contacts": "NO",
+   "external": true
+  }
+ ],
+ "Keyswitches": {
+  "Keyswitches description": [
+   "DIN# for audit and reset keyswitches",
+   "Keyswitches are wired to Digital Input lines",
+   "audit    - allows access to attendant menu",
+   "reset    - used to clear attendant conditions (eg. handpay)"
+  ],
+  "audit": 5,
+  "reset": 3
+ },
+ "GPIO": {
+  "GPIO description": [
+   "Debouncing -  is the time, measured in milliseconds, that is allowed to pass before confirming",
+   "  the status (open or closed) of a digital input. This process mitigates the impact of contact",
+   "  bounce on signal stability."
+  ],
+  "Debouncing": 10
+ },
+ "Serial Ports": {
+  "Serial Ports description": [
+   "Serial port identifier (OS specific).",
+   "For Windows, use COM#.  eg COM3",
+   "For Linux, use /dev/ttyS# or /dev/ttyUSB#"
+  ],
+  "Bill Validator": "/dev/ttyS3",
+  "Printer": "/dev/ttyS4",
+  "Network 1": "/dev/ttyS5",
+  "Network 2": "/dev/ttyS2"
+ },
+ "Peripherals devices description": [
+  "Peripheral devices can be bill validators and printers",
+  "The first entry in the list is the default entry",
+  "name       - audit name for device",
+  "protocol   - Quixant unique protocol identifier",
+  "available  - true if selectable in audit screen, false if not selectable",
+  "vid        - (optional) USB Vendor ID as hex string (e.g. \"0x16F5\"), required for GDS USB devices",
+  "pid        - (optional) USB Product ID as hex string (e.g. \"0x0803\"), required for GDS USB devices",
+  "           - vid and pid must both be present to enable USB connection for the device"
+ ],
+ "Bill Validators": [
+  {
+   "name": "Mei SC-Advance",
+   "protocol": 2,
+   "available": true
+  },
+  {
+   "name": "JCM UBA",
+   "protocol": 3,
+   "available": true
+  },
+  {
+   "name": "ITL NV200 (ID003)",
+   "protocol": 7,
+   "available": true
+  },
+  {
+   "name": "JCM iVizion",
+   "protocol": 4,
+   "available": true
+  },
+  {
+   "name": "Mei GDS",
+   "protocol": 102,
+   "available": true,
+   "vid": "0x0BED",
+   "pid": "0x0103"
+  }
+ ],
+ "Printers": [
+  {
+   "name": "Epic 950",
+   "protocol": 1,
+   "available": true
+  },
+  {
+   "name": "Nanoptix HSVLA",
+   "protocol": 5,
+   "available": true
+  },
+  {
+   "name": "JCM Gen5",
+   "protocol": 9,
+   "available": true
+  },
+  {
+   "name": "JCM Gen2",
+   "protocol": 10,
+   "available": true
+  },
+  {
+   "name": "JCM Gen5 GDS",
+   "protocol": 101,
+   "available": true,
+   "vid": "0x16F5",
+   "pid": "0x0803"
+  },
+  {
+   "name": "Nanoptix Paycheck GDS",
+   "protocol": 101,
+   "available": true,
+   "vid": "0x0F0F",
+   "pid": "0x1503"
+  }
+ ],
+ "Hash Targets Description": [
+  "List of targets for QSP integrity checking. Maximum 20 entries.",
+  "",
+  "--- REQUIRED fields (every entry must have these) ---",
+  "type   : one of: file | folder | disk | volume",
+  "name   : label shown in the audit screen and in logs.",
+  "         Also used as the target_name argument to qspGenerateHash() and as",
+  "         the key in the Market section rom_signature_targets list.",
+  "         For computed_by_game targets it is also the target_name passed to",
+  "         qspGetHashSeed() / qspHashProgress() / qspHashComplete().",
+  "         Must be unique within the Hash Targets array \u2014 duplicate names are",
+  "         a parse error.",
+  "",
+  "--- path field ---",
+  "  file, folder -> required. Filesystem path, e.g. ./MyApp or ./Resources/",
+  "  disk         -> required. Raw device, e.g. /dev/sda  (Linux) or \\\\.\\PhysicalDrive0 (Windows)",
+  "  volume       -> required. Volume path, e.g. /dev/sda1 (Linux) or \\\\.\\C:  (Windows)",
+  "",
+  "--- OPTIONAL fields (omit to use defaults) ---",
+  "algorithm    : hash algorithm. Default: hmac_sha256. Alternatives: hmac_sha1 | crc16",
+  "max_size     : maximum bytes to hash. Default: 0 (hash the entire target). Useful for large disk/volume targets",
+  "detect_change: Default: false. Set true to raise a fault lockup (eProgramMediaChanged) if the",
+  "               hash changes after an NvramReset.",
+  "computed_by_game: Default: false. Set true to delegate hashing of this target to the game app",
+  "               (app-initiated flow): QSP asks the game to compute the digest and the game",
+  "               answers by target name via qspGetHashSeed/qspHashProgress/qspHashComplete.",
+  "               Several computed_by_game targets can be hashed in parallel (see Example13_Hash).",
+  "               Mutually exclusive with detect_change.",
+  "enabled      : Default: true. Set false to skip this target without removing the entry from the list.",
+  "               Scope is uniform: a disabled target is not registered at all, so its name is",
+  "               unavailable to EVERY name-based consumer - qspGenerateHash(), the app-initiated",
+  "               qspGetHashSeed/qspHashProgress/qspHashComplete(), and Market.rom_signature_targets.",
+  "               Referencing a disabled (or unknown) name in rom_signature_targets is a hard config",
+  "               parse error (fail-fast at startup), never a silent wrong/absent signature."
+ ],
+ "Hash Targets": [
+  {
+   "type": "disk",
+   "name": "Main Storage",
+   "path": "/dev/sda2",
+   "algorithm": "hmac_sha256",
+   "max_size": 1073741824,
+   "detect_change": false,
+   "enabled": true
+  },
+  {
+   "type": "folder",
+   "name": "Game Assets",
+   "path": "./Resources",
+   "algorithm": "hmac_sha256",
+   "computed_by_game": true,
+   "enabled": true
+  },
+  {
+   "type": "file",
+   "name": "Launchpad Library",
+   "path": "qsp.dll",
+   "algorithm": "hmac_sha1",
+   "computed_by_game": true,
+   "enabled": true
+  }
+ ],
+ "Candles Description": [
+  "List the DOUT pins assigned to candles (light towers) #0 and #1",
+  "Candle #0 is the fault candle, it blinks when lockup condition active",
+  "Candle #1 is the attendant payout candle, it blinks for attendant handpay or is solid for attendant service"
+ ],
+ "Candles": [
+  14,
+  15
+ ],
+ "Mechanical Meters Description": [
+  "The mechanical meters (optional) are attached to Dout lines (0-63)",
+  "The 4 mechanical meters are:",
+  "   - Turnover = Credits Bet (dollars)",
+  "   - Total Won = Credits Won (dollars)",
+  "   - Money In = total money in (dollars) physical and cashless",
+  "   - Money Out = total money out (dollars) tickets, handpay and cashless",
+  "an entry must be configured as such:",
+  "{ \"Dout\": 0, \"Meter\": \"Turnover\" }",
+  "CAREFUL: when using mechanical meters, please understand that mechanical meters ticking are entities that MUST complete before leaving QSP. In case of long ticking, this might make shutdown extremely slow",
+  "In case of crash, there is a recovery mechanism using NVRAM to complete ticking next reboot, but it only works on INVOLUNTARY shutdown",
+  "Hence, populate mechanical meters only if mechanical meters are required."
+ ],
+ "Mechanical Meters": [
+  {
+   "Dout": 10,
+   "Meter": "Turnover"
+  },
+  {
+   "Dout": 11,
+   "Meter": "Total Won"
+  },
+  {
+   "Dout": 12,
+   "Meter": "Money In"
+  },
+  {
+   "Dout": 13,
+   "Meter": "Money Out"
+  }
+ ],
+ "Number Displays Description": [
+  "The number of displays required to be connected before a lockup condition is raised",
+  "On Linux, the Platform scans /sys/class/drm/card[0,1]-DP-[1,4]/status",
+  "On Windows, QueryDisplayConfig and GetDisplayConfigBufferSize is used.",
+  "Set Number Displays to 0 if platform doesn't monitor for display disconnected."
+ ],
+ "Number Displays": 0,
+ "Number Touch Screens Description": [
+  "The number of touch screens required to be connected before a lockup condition is raised",
+  "On Linux, the Platform scans for the presence of /sys/class/input/mouse[0-2]",
+  "On Windows, GetSystemMetrics(SM_DIGITIZER) is used.  This can only detect a single touch screen.",
+  "A Vendor condition can be used to identify HID devices where better detection is required.",
+  "Set Number Touch Screens to 0 if platform doesn't monitor for touch screen disconnected."
+ ],
+ "Number Touch Screens": 0,
+ "Audit Fonts Description": [
+  "File system path to audit TTF fonts. The file path is relative to executable path.",
+  "These font files are used for Quixant supplied audit screen (framebuffer).",
+  "3 font files are required - ",
+  "   - Audit Main TAB",
+  "   - Audit submenus",
+  "   - Audit meters (this font requires all currency symbols to be present"
+ ],
+ "Audit Fonts": [
+  {
+   "path": "./Resources/ProximaNova-Regular.ttf",
+   "size": 40
+  },
+  {
+   "path": "./Resources/ProximaNova-Regular.ttf",
+   "size": 30
+  },
+  {
+   "path": "./Resources/DejaVuSerif.ttf",
+   "size": 28
+  }
+ ]
+}

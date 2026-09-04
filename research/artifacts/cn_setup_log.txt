@@ -1,0 +1,225 @@
+===============================================================================
+     GSA SAS Host Simulator v1.1 - 測試環境架設紀錄
+===============================================================================
+
+日期：2026/07/18
+平台：Quixant 博弈平台 (Windows)
+
+
+===============================================================================
+ 1. 硬體環境確認
+===============================================================================
+
+  Quixant 平台 COM Port 配置：
+  
+    COM1 ~ COM4 : 標準 RS-232（Quixant Communications Port）
+    COM5        : SAS 專用 UART（9-bit 硬體，非標準 RS-232）
+    COM6        : 標準 RS-232
+    COM12       : USB 轉 RS-232（ATEN Prolific PL2303GC，外接）
+
+  COM Port 對連測試結果：
+  
+    COM3 <-> COM4 : 雙向正常（外部 null modem 線）
+    COM12 <-> COM6: 雙向正常（外部 null modem 線）
+    COM5 <-> COM6 : 單向異常（COM5 是 SAS 專用硬體，標準 RS-232 不相容）
+    COM1 <-> COM2 : 無內部對連
+    其他組合      : 無內部對連
+
+  關鍵發現：
+    - COM5 的 SAS UART 會對收到的資料做硬體處理（1 byte 變 4 bytes，bit7 被修改）
+    - COM5 送出的資料 COM6 收不到（單向不通）
+    - 但 Quixant SDK 透過 COM5 做 SAS 通訊是正常的
+    - IGT SAS Simulator (sastest.exe) 用 COM6 可以跟 COM5 的 EGM 正常通訊
+
+
+===============================================================================
+ 2. 軟體架構
+===============================================================================
+
+  GSA SAS Host Simulator 由兩個程式組成：
+  
+    SASHostSim.exe : Windows GUI 控制介面
+    gsat.exe       : DOS 引擎程式，實際執行 SAS 通訊
+
+  GUI 與 Engine 之間使用 GEP (GUI-Engine Protocol) 透過 COM Port 通訊。
+  Engine 透過另一個 COM Port 跟 EGM 做 SAS 通訊。
+
+  gsat.exe 在 DOS 環境中的 COM Port 配置：
+    DOS COM1 (0x3F8, IRQ4) = GEP（跟 GUI 通訊）
+    DOS COM2 (0x2F8, IRQ3) = SAS（跟 EGM 通訊）
+
+
+===============================================================================
+ 3. 最終架構
+===============================================================================
+
+  SASHostSim.exe (COM3) <--線--> COM4 (DOSBox serial1 = gsat GEP)
+  gsat.exe SAS   (COM6) <--線--> COM5 (EGM 遊戲程式, Quixant SAS UART)
+
+  ┌─────────────────┐              ┌────────────────────────────┐
+  │  SASHostSim.exe │◄── COM3/4 ──►│  DOSBox-X (gsat.exe)       │
+  │  (Windows GUI)  │   null modem │  GEP: serial1 = COM4       │
+  └─────────────────┘              │  SAS: serial2 = COM6       │
+                                   └──────────────┬─────────────┘
+                                                  │ COM6 (null modem)
+                                                  ▼
+                                   ┌───────────────────────────┐
+                                   │  EGM 遊戲程式              │
+                                   │  (Quixant SDK, COM5)       │
+                                   └───────────────────────────┘
+
+
+===============================================================================
+ 4. DOSBox-X 安裝
+===============================================================================
+
+  下載：https://github.com/joncampbell123/dosbox-x/releases
+  版本：dosbox-x-mingw64-2026.07.02-portable.zip
+  解壓位置：G:\GSA SAS Host Simulator v1.1\DOSBox\dosbox-x\
+
+  配置檔：G:\GSA SAS Host Simulator v1.1\DOSBox\dosbox-x.conf
+
+  重要設定：
+    [cpu]
+    core=auto
+    cputype=pentium        ; gsat.exe 是 DJGPP 編譯的 386 保護模式程式
+                           ; pentium 最接近原始運行環境，不需要更高
+                           ; pentium_mmx 以上搭配 cycles=max 會導致卡住
+    cycles=max             ; 最高速度，讓 polling cycle 跑夠快
+                           ; 如不穩定退回 200000
+
+    [serial]
+    serial1=directserial realport:COM4    ; GEP -> GUI
+    serial2=directserial realport:COM6    ; SAS -> EGM
+
+  CPU 設定說明：
+    cputype = 模擬哪種 CPU 的指令集和行為（不影響速度）
+    cycles  = 每秒執行多少條指令（影響實際速度）
+    
+    gsat.exe 只需要 386 保護模式指令，設 pentium 即可。
+    cycles=max 讓 DOSBox 盡可能跑最快，確保 5 秒內能完成 polling cycle。
+    
+    穩定的組合：cputype=pentium + cycles=32000
+    備選組合：  cputype=pentium + cycles=max（較快但可能不穩定）
+
+
+===============================================================================
+ 5. 啟動與關閉
+===============================================================================
+
+  啟動：雙擊「啟動SAS測試環境.bat」
+  
+    自動執行：
+      1. 關閉舊的 DOSBox 和 SASHostSim
+      2. 啟動 DOSBox + gsat.exe（等 6 秒初始化）
+      3. 啟動 SASHostSim.exe
+    
+    手動操作：
+      4. SASHostSim 中選 COM3，等綠燈亮起
+      5. 啟動 EGM 遊戲程式（COM5）
+      6. 勾選 Enable SAS Progressive Broadcast
+      7. Start Polling Loop
+
+  關閉：雙擊「關閉SAS測試環境.bat」
+
+
+===============================================================================
+ 6. SASHostSim 設定
+===============================================================================
+
+  Communication Port: COM3
+  Polling Loop: Basic_1（或自訂 my_loop）
+  Enable SAS Progressive Broadcast: 勾選
+
+  Progressive 設定 (Configure -> Settings -> Progressives)：
+    Broadcast address: 0
+    Send multiple progressive updates in a single poll (86): 勾選
+    Progressive group: 1
+    Delay between progressive updates (ms): 1000
+    Level 1: 勾選, Amount = 10000015
+    Level 2: 勾選, Amount = 2000015
+    Level 3: 勾選, Amount = 300000
+    Level 4: 勾選, Amount = 40000
+    Level 5: 勾選, Amount = 5000
+    Level 6: 勾選, Amount = 600
+
+  儲存設定：主畫面右下角按 Save（存到 Test Configuration Template）
+
+
+===============================================================================
+ 7. 疑難排解紀錄
+===============================================================================
+
+  問題：SASHostSim 顯示 NO CONNECTION
+  原因：gsat.exe 未啟動，或 COM Port 設定錯誤
+  解法：確認 DOSBox 先啟動，確認 SASHostSim 選 COM3
+
+  問題：DOSBox 啟動後卡住不能操作
+  原因：cycles 設太高，或 cputype 設太高階（pentium_mmx 以上 + cycles=max）
+  解法：用 cputype=pentium + cycles=max，或降低 cycles=200000
+
+  問題：cputype 設 pentium_mmx/pentium_iii 後卡住
+  原因：高階 CPU 模擬邏輯較複雜，serial port 處理來不及
+  解法：gsat.exe 只需 386 指令集，設 cputype=pentium 即可，不需更高
+
+  問題：EGM 報 Link Down
+  原因：gsat.exe 的 polling cycle 太慢，或 serial timing 不準確
+  解法：調高 cycles（200000+），或精簡 Polling Loop
+
+  問題：EGM 報 Progressive Timeout
+  原因：LP 86 未定期送出，或 level 數量/group ID 不匹配
+  解法：
+    - 確認 Enable SAS Progressive Broadcast 有勾選
+    - 確認 Progressive group = 1
+    - 確認設定 6 個 level（跟 EGM 遊戲端一致）
+    - 確認 Send multiple progressive updates (86) 有勾選
+    - 調高 cycles 讓 polling cycle 跑更快
+
+  問題：COM12 (USB-RS232) 做 SAS port 會讓 DOSBox 卡住
+  原因：USB 轉接器在對面沒連接時不提供 CTS 信號，gsat.exe 等待 CTS block
+  解法：不用 COM12 當 SAS port，改用 COM6
+
+  問題：用 Bridge (TCP) 方式時 EGM 不回應
+  原因：Bridge 的 mark/space parity wake-up bit 時機不夠精確
+  解法：去掉 Bridge，直接用 COM6 directserial（實測可用）
+
+
+===============================================================================
+ 8. 曾嘗試但放棄的方案
+===============================================================================
+
+  方案 A：com0com 虛擬序列埠
+    結果：不需要，Quixant 已有足夠的實體 COM Port
+
+  方案 B：SAS Bridge (TCP 中繼 + mark/space parity)
+    結果：可以通但不穩定（增加延遲導致 link down），
+          且直接用 COM6 directserial 即可，不需要 Bridge
+
+  方案 C：COM12 (USB) 當 SAS port
+    結果：DOSBox 會卡住（CTS 等待），放棄
+
+  方案 D：DOSBox serial2 = COM5（直接接 SAS UART）
+    結果：COM5 是 SAS 專用硬體，directserial 不相容
+
+
+===============================================================================
+ 9. 檔案清單
+===============================================================================
+
+  根目錄：
+    啟動SAS測試環境.bat        - 一鍵啟動
+    關閉SAS測試環境.bat        - 一鍵關閉
+    SASHostSim.exe            - GUI 主程式
+    SASHostSim.ico            - 圖示
+
+  DOSBox\：
+    dosbox-x.conf             - DOSBox-X 配置檔
+    dosbox-x\                 - DOSBox-X 程式目錄
+    dosbox-x\dosbox-x.exe     - DOSBox-X 主程式
+    SasBridge\                - SAS Bridge 程式（備用，目前不使用）
+
+  SAS Engine\：
+    gsat.exe                  - SAS Engine（DOS 程式）
+    cwsdpmi.exe               - DOS 保護模式介面
+
+===============================================================================

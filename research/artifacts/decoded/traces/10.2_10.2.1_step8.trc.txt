@@ -1,0 +1,12 @@
+=== C:/igs/GSA SAS Host Simulator v1.1\10.2\10.2.1\step8.trc ===
+started : 2026-07-20 15:13:07
+stamps  : relative to end of previous poll
+events  : 8 (6 messages, 4 HOST, 2 EGM)
+  HOST           WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.5 WAKE 26 1F                                  Send gaming machine ID and information:
+  HOST      39.6 WAKE 01 4C 01 00 10 99 00 00 CE 25          Set secure enhanced validation ID: Machine ID = 0x100001; Sequence number = 0x99;
+  EGM       36.2      01 4C 01 00 10 99 00 00 CE 25          Set secure enhanced validation ID: Machine ID = 0x100001; Sequence number = 0x99;
+  HOST      46.9 WAKE 01 51                                  Send total number of games implemented:
+  EGM       36.7      01 51 00 09 45 58                      Send total number of games implemented: Number of Games = 0009;
+  -- separator --
+  -- pause --

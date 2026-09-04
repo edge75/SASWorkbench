@@ -1,0 +1,5612 @@
+{
+ "PollTemplates.xml": [
+  [
+   "1B",
+   "Send handpay information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1F",
+   "Send gaming machine ID and information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "21",
+   "ROM signature verification",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4F",
+   "Send current hopper status",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "51",
+   "Send total number of games implemented",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "54",
+   "Send SAS version ID and EGM serial number",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7E",
+   "Send current date and time",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7F",
+   "Receive date and time",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "A0",
+   "Send enabled features",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "B3",
+   "Send token denomination",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B4",
+   "Send wager category information",
+   "yes",
+   "no",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "B5",
+   "Send extended game N information",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "B6",
+   "Meter Collection Status",
+   "yes",
+   "yes",
+   "no",
+   1,
+   4
+  ],
+  [
+   "B7",
+   "Set machine numbers",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "48",
+   "Send last accepted bill information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6F",
+   "Send extended meters for game N",
+   "yes",
+   "yes",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "AF",
+   "Send extended meters for game N (alt)",
+   "yes",
+   "yes",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "53",
+   "Send game N configuration",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "55",
+   "Send selected game number",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "56",
+   "Send enabled game numbers",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B1",
+   "Send current player denomination",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B2",
+   "Send enabled player denominations",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "0E",
+   "Enable/disable Real Time Event reporting",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "8E",
+   "Send card information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8F",
+   "Send physical reel stop information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3D",
+   "Send cash-out ticket information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4C",
+   "Set secure enhanced validation ID",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4D",
+   "Send enhanced validation information",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "57",
+   "Send pending cashout information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "58",
+   "Receive validation number",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "70",
+   "Send ticket validation data",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "71",
+   "Redeem ticket",
+   "yes",
+   "yes",
+   "no",
+   2,
+   24
+  ],
+  [
+   "7B",
+   "Extended validation status",
+   "yes",
+   "yes",
+   "no",
+   4,
+   32
+  ],
+  [
+   "7C",
+   "Set extended ticket data",
+   "yes",
+   "yes",
+   "no",
+   5,
+   45
+  ],
+  [
+   "7D",
+   "Set ticket data",
+   "yes",
+   "yes",
+   "no",
+   1,
+   7
+  ],
+  [
+   "80",
+   "Send progressive amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "83",
+   "Send cumulative progressive wins",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "84",
+   "Send progressive win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "85",
+   "Send SAS progressive win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "86",
+   "Receive multiple progressive levels",
+   "yes",
+   "yes",
+   "no",
+   22,
+   60
+  ],
+  [
+   "87",
+   "Send multiple SAS progressive win amounts",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2E",
+   "Game delay",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "72",
+   "AFT transfer funds",
+   "yes",
+   "yes",
+   "no",
+   2,
+   47
+  ],
+  [
+   "73",
+   "AFT register gaming machine",
+   "yes",
+   "yes",
+   "no",
+   2,
+   11
+  ],
+  [
+   "74",
+   "AFT lock and status request",
+   "yes",
+   "no",
+   "no",
+   3,
+   15
+  ],
+  [
+   "75",
+   "Set AFT receipt data",
+   "yes",
+   "yes",
+   "no",
+   11,
+   149
+  ],
+  [
+   "76",
+   "Set custom AFT ticket data",
+   "yes",
+   "yes",
+   "no",
+   6,
+   48
+  ],
+  [
+   "8A",
+   "Initiate legacy bonus",
+   "yes",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "90",
+   "Send legacy bonus win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "9A",
+   "Send legacy bonus meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "2F",
+   "Send selected meters for game N",
+   "yes",
+   "yes",
+   "yes",
+   14,
+   26
+  ],
+  [
+   "8C",
+   "Enter/exit tournament mode",
+   "yes",
+   "no",
+   "yes",
+   5,
+   5
+  ],
+  [
+   "95",
+   "Send tournament games played",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "96",
+   "Send tournament games won",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "97",
+   "Send tournament credits wagered",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "98",
+   "Send tournament credits won",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "99",
+   "Send tournament meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "6E",
+   "Send authentication info",
+   "yes",
+   "yes",
+   "no",
+   3,
+   29
+  ],
+  [
+   "01",
+   "Shutdown",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "02",
+   "Startup",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "06",
+   "Enable bill acceptor",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "07",
+   "Disable bill acceptor",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "08",
+   "Configure bill denominations",
+   "yes",
+   "no",
+   "no",
+   2,
+   52
+  ],
+  [
+   "94",
+   "Remote handpay reset",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "A8",
+   "Enable jackpot handpay reset method",
+   "yes",
+   "no",
+   "no",
+   1,
+   4
+  ],
+  [
+   "AA",
+   "Enable/disable game auto rebet",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "03",
+   "Sound off",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "04",
+   "Sound on",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "05",
+   "Reel spin or game play sounds disabled",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "09",
+   "Enable/disable game N",
+   "yes",
+   "no",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "0A",
+   "Enter maintenance mode",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "0B",
+   "Exit maintenance mode",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8B",
+   "Initiate multiplied jackpot mode",
+   "yes",
+   "no",
+   "no",
+   5,
+   22
+  ],
+  [
+   "A4",
+   "Send cash out limit",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "0F",
+   "Send meters 10 through 15",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "10",
+   "Send total cancelled credit meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "11",
+   "Send total coin in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "12",
+   "Send total coin out meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "13",
+   "Send total drop meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "14",
+   "Send total jackpot meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "15",
+   "Send games played meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "16",
+   "Send games won meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "17",
+   "Send games lost meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "18",
+   "Send games since last power up and slot door closure",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "19",
+   "Send meters 11 through 15",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1A",
+   "Send current credits",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1C",
+   "Send meters",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1E",
+   "Send bill meters (counts)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "20",
+   "Send dollar value of bills meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2A",
+   "Send true coin in",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2B",
+   "Send true coin out",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2C",
+   "Send current hopper level",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2D",
+   "Send total hand paid cancelled credits",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "31",
+   "Send $1.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "32",
+   "Send $2.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "33",
+   "Send $5.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "34",
+   "Send $10.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "35",
+   "Send $20.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "36",
+   "Send $50.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "37",
+   "Send $100.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "38",
+   "Send $500.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "39",
+   "Send $1,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3A",
+   "Send $200.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3B",
+   "Send $25.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3C",
+   "Send $2,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3E",
+   "Send $2,500.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3F",
+   "Send $5,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "40",
+   "Send $10,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "41",
+   "Send $20,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "42",
+   "Send $25,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "43",
+   "Send $50,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "44",
+   "Send $100,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "45",
+   "Send $250.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "46",
+   "Send credit amount of all bills accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "47",
+   "Send coin amount accepted from external coin acceptor",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "49",
+   "Send number of bills currently in stacker",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4A",
+   "Send credit amount of all bills currently in stacker",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "50",
+   "Send validation meters",
+   "yes",
+   "no",
+   "no",
+   1,
+   14
+  ],
+  [
+   "52",
+   "Send game N meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "1D",
+   "Send EFT Cumulative meters",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "27",
+   "Send current promotional credits",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "28",
+   "Send tranfer log",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6A",
+   "Send available EFT Transfers",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "62",
+   "Transfer non-cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "63",
+   "Transfer promotional credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "69",
+   "Transfer cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "64",
+   "Transfer credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "65",
+   "Force cashable credits out of GM",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "6B",
+   "Transfer promotional credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "67",
+   "Transfer win credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "66",
+   "Send last cashout amount",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "22",
+   "Transfer non-cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "23",
+   "Transfer promotional amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "29",
+   "Transfer cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "24",
+   "Transfer dollar amount to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "25",
+   "Transfer cash amount out of GM",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "26",
+   "Host request for cashout out dollar amount",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ]
+ ],
+ "ResponseTemplates.xml": [
+  [
+   "1B",
+   "Send handpay information",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "1F",
+   "Send gaming machine ID and information",
+   "yes",
+   "no",
+   "no",
+   8,
+   36
+  ],
+  [
+   "21",
+   "ROM signature verification",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4F",
+   "Send current hopper status",
+   "yes",
+   "yes",
+   "no",
+   3,
+   14
+  ],
+  [
+   "51",
+   "Send total number of games implemented",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "54",
+   "Send SAS version ID and EGM serial number",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "7E",
+   "Send current date and time",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "A0",
+   "Send enabled features",
+   "yes",
+   "no",
+   "no",
+   5,
+   45
+  ],
+  [
+   "B3",
+   "Send token denomination",
+   "yes",
+   "no",
+   "no",
+   1,
+   29
+  ],
+  [
+   "B4",
+   "Send wager category information",
+   "yes",
+   "yes",
+   "no",
+   4,
+   4
+  ],
+  [
+   "B5",
+   "Send extended game N information",
+   "yes",
+   "yes",
+   "no",
+   8,
+   376
+  ],
+  [
+   "B6",
+   "Meter Collection Status",
+   "yes",
+   "yes",
+   "no",
+   1,
+   4
+  ],
+  [
+   "B7",
+   "Set machine numbers",
+   "yes",
+   "yes",
+   "no",
+   3,
+   7
+  ],
+  [
+   "48",
+   "Send last accepted bill information",
+   "yes",
+   "no",
+   "no",
+   3,
+   69
+  ],
+  [
+   "6F",
+   "Send extended meters for game N",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "AF",
+   "Send extended meters for game N (alt)",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "53",
+   "Send game N configuration",
+   "yes",
+   "no",
+   "no",
+   9,
+   37
+  ],
+  [
+   "55",
+   "Send selected game number",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "56",
+   "Send implemented game numbers",
+   "yes",
+   "yes",
+   "no",
+   11,
+   21
+  ],
+  [
+   "B1",
+   "Send current player denomination",
+   "yes",
+   "no",
+   "no",
+   1,
+   29
+  ],
+  [
+   "B2",
+   "Send enabled player denominations",
+   "yes",
+   "yes",
+   "no",
+   11,
+   301
+  ],
+  [
+   "8E",
+   "Send card information",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "8F",
+   "Send physical reel stop information",
+   "yes",
+   "no",
+   "no",
+   9,
+   9
+  ],
+  [
+   "3D",
+   "Send cash out ticket information",
+   "no",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4C",
+   "Set secure enhanced validation ID",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4D",
+   "Send enhanced validation information",
+   "yes",
+   "no",
+   "no",
+   10,
+   23
+  ],
+  [
+   "57",
+   "Send pending cashout information",
+   "yes",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "58",
+   "Receive validation number",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "70",
+   "Send ticket validation data",
+   "yes",
+   "yes",
+   "no",
+   2,
+   9
+  ],
+  [
+   "71",
+   "Redeem ticket",
+   "yes",
+   "yes",
+   "no",
+   2,
+   26
+  ],
+  [
+   "7B",
+   "Extended validation status",
+   "yes",
+   "yes",
+   "no",
+   4,
+   18
+  ],
+  [
+   "7C",
+   "Set extended ticket data",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "7D",
+   "Set ticket data",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "83",
+   "Send cumulative progressive wins",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "84",
+   "Send progressive win amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "85",
+   "Send SAS progressive win amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "87",
+   "Send multiple SAS progressive win amounts",
+   "yes",
+   "yes",
+   "no",
+   12,
+   32
+  ],
+  [
+   "72",
+   "AFT transfer funds",
+   "yes",
+   "yes",
+   "no",
+   3,
+   80
+  ],
+  [
+   "73",
+   "AFT register gaming machine",
+   "yes",
+   "yes",
+   "no",
+   4,
+   9
+  ],
+  [
+   "74",
+   " AFT lock and status request",
+   "yes",
+   "yes",
+   "no",
+   12,
+   50
+  ],
+  [
+   "76",
+   "Set custom AFT ticket data",
+   "yes",
+   "yes",
+   "no",
+   5,
+   40
+  ],
+  [
+   "90",
+   "Send legacy bonus win amount",
+   "yes",
+   "no",
+   "no",
+   4,
+   8
+  ],
+  [
+   "9A",
+   "Send legacy bonus meters",
+   "yes",
+   "no",
+   "no",
+   4,
+   4
+  ],
+  [
+   "95",
+   "Send tournament games played",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "96",
+   "Send tournament games won",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "97",
+   "Send tournament credits wagered",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "98",
+   "Send tournament credits won",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "99",
+   "Send meters 95 through 98",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "6E",
+   "Send authentication info",
+   "yes",
+   "yes",
+   "no",
+   4,
+   48
+  ],
+  [
+   "94",
+   "Remote handpay reset",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "A8",
+   "Enable jackpot handpay reset method",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "A4",
+   "Send cash out limit",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "0F",
+   "Send meters 10 through 15",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "10",
+   "Send total cancelled credit meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "11",
+   "Send total coin in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "12",
+   "Send total coin out meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "13",
+   "Send total drop meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "14",
+   "Send total jackpot meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "15",
+   "Send games played meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "16",
+   "Send games won meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "17",
+   "Send games lost meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "18",
+   "Send games since last power up and slot door closure",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "19",
+   "Send meters 11 through 15",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "1A",
+   "Send current credits",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "1C",
+   "Send meters",
+   "yes",
+   "no",
+   "no",
+   8,
+   8
+  ],
+  [
+   "1E",
+   "Send bill meters (counts)",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "20",
+   "Send dollar value of bills meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2A",
+   "Send true coin in",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2B",
+   "Send true coin out",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2C",
+   "Send current hopper level",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2D",
+   "Send total hand paid cancelled credits",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "2F",
+   "Send selected meters for game N",
+   "yes",
+   "yes",
+   "no",
+   11,
+   20
+  ],
+  [
+   "31",
+   "Send $1.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "32",
+   "Send $2.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "33",
+   "Send $5.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "34",
+   "Send $10.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "35",
+   "Send $20.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "36",
+   "Send $50.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "37",
+   "Send $100.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "38",
+   "Send $500.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "39",
+   "Send $1,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3A",
+   "Send $200.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3B",
+   "Send $25.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3C",
+   "Send $2,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3E",
+   "Send $2,500.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3F",
+   "Send $5,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "40",
+   "Send $10,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "41",
+   "Send $20,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "42",
+   "Send $25,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "43",
+   "Send $50,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "44",
+   "Send $100,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "45",
+   "Send $250.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "46",
+   "Send credit amount of all bills accepted",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "47",
+   "Send coin amount accepted from external coin acceptor",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "49",
+   "Send number of bills currently in stacker",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4A",
+   "Send credit amount of all bills currently in stacker",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "50",
+   "Send validation meters",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "52",
+   "Send game N meters",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "1D",
+   "Send EFT Cumulative meters",
+   "yes",
+   "no",
+   "no",
+   4,
+   4
+  ],
+  [
+   "27",
+   "Send current promotional credits",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "28",
+   "Send tranfer log",
+   "yes",
+   "yes",
+   "no",
+   5,
+   160
+  ],
+  [
+   "6A",
+   "Send available EFT meters",
+   "no",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "62",
+   "Transfer non-cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "63",
+   "Transfer promotional credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "69",
+   "Transfer cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "64",
+   "Transfer credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "67",
+   "Transfer win credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "65",
+   "Force cash credits out of GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "6B",
+   "Transfer promotional credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "66",
+   "Send last cashout amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "22",
+   "Transfer non-cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "23",
+   "Transfer promotional amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "29",
+   "Transfer cash amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "24",
+   "Transfer cash amount to host",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "25",
+   "Force cash out of GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "26",
+   "Host request for cashout out dollar amount",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ]
+ ],
+ "EventTemplates.xml": [
+  [
+   "4F",
+   "Bill Accepted",
+   "no",
+   "no",
+   "no",
+   3,
+   69
+  ],
+  [
+   "7C",
+   "Legacy Bonus Awarded",
+   "no",
+   "no",
+   "no",
+   4,
+   4
+  ],
+  [
+   "7E",
+   "Game Start",
+   "no",
+   "no",
+   "no",
+   4,
+   38
+  ],
+  [
+   "7F",
+   "Game End",
+   "no",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "88",
+   "Reel N Stopped",
+   "no",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "8A",
+   "Game Recall Entry Displayed",
+   "no",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "8B",
+   "Card Held/Not Held",
+   "no",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "8C",
+   "Game Selected",
+   "no",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "A0",
+   "Meter change pending",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "A1",
+   "Meter change cancelled",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "A2",
+   "Enabled games/denoms changed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "0",
+   "No Activity",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "11",
+   "Slot door was opened",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "12",
+   "Slot door was closed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "13",
+   "Drop door was opened",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "14",
+   "Drop door was closed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "15",
+   "Card cage was opened",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "16",
+   "Card cage was closed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "17",
+   "AC power was applied to EGM",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "18",
+   "AC power was lost from EGM",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "19",
+   "Cashbox door was opened",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1A",
+   "Cashbox door was closed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1B",
+   "Cashbox was removed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1C",
+   "Cashbox was installed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1D",
+   "Belly door was opened",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1E",
+   "Belly door was closed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1F",
+   "No activity, waiting for user input",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "20",
+   "General tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "21",
+   "Coin in tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "22",
+   "Coin out tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "23",
+   "Hopper empty detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "24",
+   "Extra coin paid",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "25",
+   "Diverter malfunction",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "27",
+   "Cashbox full detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "28",
+   "Bill jam",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "29",
+   "Bill acceptor hardware failure",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2A",
+   "Reverse bill detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2B",
+   "Bill rejected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2C",
+   "Counterfeit bill detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2D",
+   "Reverse coin in detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "31",
+   "CMOS RAM error (data recovered from EEPROM)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "32",
+   "CMOS RAM error (no data recovered from EEPROM)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "33",
+   "CMOS RAM error (bad device)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "34",
+   "EEPROM error (data error)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "35",
+   "EEPROM error (bad device)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "36",
+   "EEPROM error (different checksum - version changed)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "37",
+   "EEPROM error (bad checksum compare)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "38",
+   "Partitioned EEPROM error (checksum - version changed)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "39",
+   "Partitioned EEPROM error (bad checksum compare)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3A",
+   "Memory error reset",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3B",
+   "Low backup battery detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3C",
+   "Operator changed options",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3D",
+   "A cashout ticket has been printed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3E",
+   "A handpay has been validated",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3F",
+   "Validation ID not configured",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "40",
+   "Reel Tilt (which reel not specified)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "41",
+   "Reel 1 tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "42",
+   "Reel 2 tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "43",
+   "Reel 3 tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "44",
+   "Reel 4 tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "45",
+   "Reel 5 tilt",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "46",
+   "Reel mechanism disconnected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "47",
+   "$1.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "48",
+   "$5.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "49",
+   "$10.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4A",
+   "$20.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4B",
+   "$50.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4C",
+   "$100.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4D",
+   "$2.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4E",
+   "$500.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "50",
+   "$200.00 bill accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "51",
+   "Handpay is pending",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "52",
+   "Handpay was reset",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "53",
+   "No progressive information has been received for 5 seconds",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "54",
+   "Progressive win",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "55",
+   "Player has cancelled the handpay request",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "56",
+   "SAS progressive level hit",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "57",
+   "System validation request",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "60",
+   "Printer communication error",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "61",
+   "Printer paper out error",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "66",
+   "Cash out button pressed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "67",
+   "Ticket has been inserted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "68",
+   "Ticket transfer complete",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "69",
+   "AFT transfer complete",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6A",
+   "AFT request for host cashout",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6B",
+   "AFT request for host to cash out win",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6C",
+   "AFT request to register",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6D",
+   "AFT registration acknowledged",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6E",
+   "AFT registration cancelled",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6F",
+   "Game locked",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "70",
+   "Exception buffer overflow",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "71",
+   "Change lamp on",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "72",
+   "Change lamp off",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "74",
+   "Printer paper low",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "75",
+   "Printer power off",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "76",
+   "Printer power on",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "77",
+   "Replace printer ribbon",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "78",
+   "Printer carriage jammed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "79",
+   "Coin in lockout malfunction",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7A",
+   "Gaming machine soft meters reset to zero",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7B",
+   "Bill validator (period) total have been reset by an attendant/operator",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "80",
+   "Hopper full detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "81",
+   "Hopper level low detected",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "82",
+   "Display meters or attendant menu has been entered",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "83",
+   "Display meters or attendant menu has been exited",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "84",
+   "Self test or operator menu has been entered",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "85",
+   "Self test or operator menu has been exited",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "86",
+   "Gaming machine is out of service",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "87",
+   "Player has requested draw cards",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "89",
+   "Coin/credit wagered",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8E",
+   "Component list changed",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8F",
+   "Authentication complete",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "98",
+   "Power off card cage access",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "99",
+   "Power off slot door access",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "9A",
+   "Power off cashbox door access",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "9B",
+   "Power off drop door access",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ]
+ ],
+ "UserPollTemplates.xml": [],
+ "UserResponseTemplates.xml": [],
+ "Defaults\\PollTemplates.xml": [
+  [
+   "1B",
+   "Send handpay information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1F",
+   "Send gaming machine ID and information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "21",
+   "ROM signature verification",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4F",
+   "Send current hopper status",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "51",
+   "Send total number of games implemented",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "54",
+   "Send SAS version ID and EGM serial number",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7E",
+   "Send current date and time",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "7F",
+   "Receive date and time",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "A0",
+   "Send enabled features",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "B3",
+   "Send token denomination",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B4",
+   "Send wager category information",
+   "yes",
+   "no",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "B5",
+   "Send extended game N information",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "B6",
+   "Meter Collection Status",
+   "yes",
+   "yes",
+   "no",
+   1,
+   4
+  ],
+  [
+   "B7",
+   "Set machine numbers",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "48",
+   "Send last accepted bill information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6F",
+   "Send extended meters for game N",
+   "yes",
+   "yes",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "AF",
+   "Send extended meters for game N (alt)",
+   "yes",
+   "yes",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "53",
+   "Send game N configuration",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "55",
+   "Send selected game number",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "56",
+   "Send enabled game numbers",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B1",
+   "Send current player denomination",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "B2",
+   "Send enabled player denominations",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "0E",
+   "Enable/disable Real Time Event reporting",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "8E",
+   "Send card information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8F",
+   "Send physical reel stop information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3D",
+   "Send cash-out ticket information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4C",
+   "Set secure enhanced validation ID",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4D",
+   "Send enhanced validation information",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "57",
+   "Send pending cashout information",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "58",
+   "Receive validation number",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "70",
+   "Send ticket validation data",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "71",
+   "Redeem ticket",
+   "yes",
+   "yes",
+   "no",
+   2,
+   23
+  ],
+  [
+   "7B",
+   "Extended validation status",
+   "yes",
+   "yes",
+   "no",
+   4,
+   32
+  ],
+  [
+   "7C",
+   "Set extended ticket data",
+   "yes",
+   "yes",
+   "no",
+   5,
+   45
+  ],
+  [
+   "7D",
+   "Set ticket data",
+   "yes",
+   "yes",
+   "no",
+   1,
+   7
+  ],
+  [
+   "80",
+   "Send progressive amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "83",
+   "Send cumulative progressive wins",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "84",
+   "Send progressive win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "85",
+   "Send SAS progressive win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "86",
+   "Receive multiple progressive levels",
+   "yes",
+   "yes",
+   "no",
+   22,
+   60
+  ],
+  [
+   "87",
+   "Send multiple SAS progressive win amounts",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2E",
+   "Game delay",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "72",
+   "AFT transfer funds",
+   "yes",
+   "yes",
+   "no",
+   2,
+   47
+  ],
+  [
+   "73",
+   "AFT register gaming machine",
+   "yes",
+   "yes",
+   "no",
+   2,
+   11
+  ],
+  [
+   "74",
+   "AFT lock and status request",
+   "yes",
+   "no",
+   "no",
+   3,
+   15
+  ],
+  [
+   "75",
+   "Set AFT receipt data",
+   "yes",
+   "yes",
+   "no",
+   11,
+   149
+  ],
+  [
+   "76",
+   "Set custom AFT ticket data",
+   "yes",
+   "yes",
+   "no",
+   6,
+   48
+  ],
+  [
+   "8A",
+   "Initiate legacy bonus",
+   "yes",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "90",
+   "Send legacy bonus win amount",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "9A",
+   "Send legacy bonus meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "2F",
+   "Send selected meters for game N",
+   "yes",
+   "yes",
+   "yes",
+   14,
+   26
+  ],
+  [
+   "8C",
+   "Enter/exit tournament mode",
+   "yes",
+   "no",
+   "yes",
+   5,
+   5
+  ],
+  [
+   "95",
+   "Send tournament games played",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "96",
+   "Send tournament games won",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "97",
+   "Send tournament credits wagered",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "98",
+   "Send tournament credits won",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "99",
+   "Send tournament meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "6E",
+   "Send authentication info",
+   "yes",
+   "yes",
+   "no",
+   3,
+   29
+  ],
+  [
+   "01",
+   "Shutdown",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "02",
+   "Startup",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "06",
+   "Enable bill acceptor",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "07",
+   "Disable bill acceptor",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "08",
+   "Configure bill denominations",
+   "yes",
+   "no",
+   "no",
+   2,
+   52
+  ],
+  [
+   "94",
+   "Remote handpay reset",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "A8",
+   "Enable jackpot handpay reset method",
+   "yes",
+   "no",
+   "no",
+   1,
+   4
+  ],
+  [
+   "AA",
+   "Enable/disable game auto rebet",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "03",
+   "Sound off",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "04",
+   "Sound on",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "05",
+   "Reel spin or game play sounds disabled",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "09",
+   "Enable/disable game N",
+   "yes",
+   "no",
+   "yes",
+   2,
+   2
+  ],
+  [
+   "0A",
+   "Enter maintenance mode",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "0B",
+   "Exit maintenance mode",
+   "yes",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "8B",
+   "Initiate multiplied jackpot mode",
+   "yes",
+   "no",
+   "no",
+   5,
+   22
+  ],
+  [
+   "A4",
+   "Send cash out limit",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "0F",
+   "Send meters 10 through 15",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "10",
+   "Send total cancelled credit meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "11",
+   "Send total coin in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "12",
+   "Send total coin out meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "13",
+   "Send total drop meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "14",
+   "Send total jackpot meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "15",
+   "Send games played meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "16",
+   "Send games won meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "17",
+   "Send games lost meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "18",
+   "Send games since last power up and slot door closure",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "19",
+   "Send meters 11 through 15",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1A",
+   "Send current credits",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1C",
+   "Send meters",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "1E",
+   "Send bill meters (counts)",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "20",
+   "Send dollar value of bills meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2A",
+   "Send true coin in",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2B",
+   "Send true coin out",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2C",
+   "Send current hopper level",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "2D",
+   "Send total hand paid cancelled credits",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "31",
+   "Send $1.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "32",
+   "Send $2.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "33",
+   "Send $5.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "34",
+   "Send $10.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "35",
+   "Send $20.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "36",
+   "Send $50.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "37",
+   "Send $100.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "38",
+   "Send $500.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "39",
+   "Send $1,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3A",
+   "Send $200.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3B",
+   "Send $25.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3C",
+   "Send $2,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3E",
+   "Send $2,500.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "3F",
+   "Send $5,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "40",
+   "Send $10,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "41",
+   "Send $20,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "42",
+   "Send $25,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "43",
+   "Send $50,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "44",
+   "Send $100,000.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "45",
+   "Send $250.00 bills in meter",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "46",
+   "Send credit amount of all bills accepted",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "47",
+   "Send coin amount accepted from external coin acceptor",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "49",
+   "Send number of bills currently in stacker",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "4A",
+   "Send credit amount of all bills currently in stacker",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "50",
+   "Send validation meters",
+   "yes",
+   "no",
+   "no",
+   1,
+   14
+  ],
+  [
+   "52",
+   "Send game N meters",
+   "yes",
+   "no",
+   "yes",
+   1,
+   1
+  ],
+  [
+   "1D",
+   "Send EFT Cumulative meters",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "27",
+   "Send current promotional credits",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "28",
+   "Send tranfer log",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "6A",
+   "Send available EFT Transfers",
+   "no",
+   "no",
+   "no",
+   0,
+   0
+  ],
+  [
+   "62",
+   "Transfer non-cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "63",
+   "Transfer promotional credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "69",
+   "Transfer cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "64",
+   "Transfer credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "65",
+   "Force cashable credits out of GM",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "6B",
+   "Transfer promotional credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "67",
+   "Transfer win credits to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "66",
+   "Send last cashout amount",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "22",
+   "Transfer non-cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "23",
+   "Transfer promotional amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "29",
+   "Transfer cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "24",
+   "Transfer dollar amount to host",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "25",
+   "Transfer cash amount out of GM",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "26",
+   "Host request for cashout out dollar amount",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ]
+ ],
+ "Defaults\\ResponseTemplates.xml": [
+  [
+   "1B",
+   "Send handpay information",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "1F",
+   "Send gaming machine ID and information",
+   "yes",
+   "no",
+   "no",
+   8,
+   36
+  ],
+  [
+   "21",
+   "ROM signature verification",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4F",
+   "Send current hopper status",
+   "yes",
+   "yes",
+   "no",
+   3,
+   14
+  ],
+  [
+   "51",
+   "Send total number of games implemented",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "54",
+   "Send SAS version ID and EGM serial number",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "7E",
+   "Send current date and time",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "A0",
+   "Send enabled features",
+   "yes",
+   "no",
+   "no",
+   5,
+   45
+  ],
+  [
+   "B3",
+   "Send token denomination",
+   "yes",
+   "no",
+   "no",
+   1,
+   29
+  ],
+  [
+   "B4",
+   "Send wager category information",
+   "yes",
+   "yes",
+   "no",
+   4,
+   4
+  ],
+  [
+   "B5",
+   "Send extended game N information",
+   "yes",
+   "yes",
+   "no",
+   8,
+   376
+  ],
+  [
+   "B6",
+   "Meter Collection Status",
+   "yes",
+   "yes",
+   "no",
+   1,
+   4
+  ],
+  [
+   "B7",
+   "Set machine numbers",
+   "yes",
+   "yes",
+   "no",
+   3,
+   7
+  ],
+  [
+   "48",
+   "Send last accepted bill information",
+   "yes",
+   "no",
+   "no",
+   3,
+   69
+  ],
+  [
+   "6F",
+   "Send extended meters for game N",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "AF",
+   "Send extended meters for game N (alt)",
+   "yes",
+   "yes",
+   "no",
+   2,
+   2
+  ],
+  [
+   "53",
+   "Send game N configuration",
+   "yes",
+   "no",
+   "no",
+   9,
+   37
+  ],
+  [
+   "55",
+   "Send selected game number",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "56",
+   "Send implemented game numbers",
+   "yes",
+   "yes",
+   "no",
+   11,
+   21
+  ],
+  [
+   "B1",
+   "Send current player denomination",
+   "yes",
+   "no",
+   "no",
+   1,
+   29
+  ],
+  [
+   "B2",
+   "Send enabled player denominations",
+   "yes",
+   "yes",
+   "no",
+   11,
+   301
+  ],
+  [
+   "8E",
+   "Send card information",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "8F",
+   "Send physical reel stop information",
+   "yes",
+   "no",
+   "no",
+   9,
+   9
+  ],
+  [
+   "3D",
+   "Send cash out ticket information",
+   "no",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4C",
+   "Set secure enhanced validation ID",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "4D",
+   "Send enhanced validation information",
+   "yes",
+   "no",
+   "no",
+   10,
+   23
+  ],
+  [
+   "57",
+   "Send pending cashout information",
+   "yes",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "58",
+   "Receive validation number",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "70",
+   "Send ticket validation data",
+   "yes",
+   "yes",
+   "no",
+   2,
+   9
+  ],
+  [
+   "71",
+   "Redeem ticket",
+   "yes",
+   "yes",
+   "no",
+   2,
+   26
+  ],
+  [
+   "7B",
+   "Extended validation status",
+   "yes",
+   "yes",
+   "no",
+   4,
+   18
+  ],
+  [
+   "7C",
+   "Set extended ticket data",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "7D",
+   "Set ticket data",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "83",
+   "Send cumulative progressive wins",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "84",
+   "Send progressive win amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "85",
+   "Send SAS progressive win amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   3
+  ],
+  [
+   "87",
+   "Send multiple SAS progressive win amounts",
+   "yes",
+   "yes",
+   "no",
+   12,
+   32
+  ],
+  [
+   "72",
+   "AFT transfer funds",
+   "yes",
+   "yes",
+   "no",
+   3,
+   80
+  ],
+  [
+   "73",
+   "AFT register gaming machine",
+   "yes",
+   "yes",
+   "no",
+   4,
+   9
+  ],
+  [
+   "74",
+   " AFT lock and status request",
+   "yes",
+   "yes",
+   "no",
+   12,
+   50
+  ],
+  [
+   "76",
+   "Set custom AFT ticket data",
+   "yes",
+   "yes",
+   "no",
+   5,
+   40
+  ],
+  [
+   "90",
+   "Send legacy bonus win amount",
+   "yes",
+   "no",
+   "no",
+   4,
+   8
+  ],
+  [
+   "9A",
+   "Send legacy bonus meters",
+   "yes",
+   "no",
+   "no",
+   4,
+   4
+  ],
+  [
+   "95",
+   "Send tournament games played",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "96",
+   "Send tournament games won",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "97",
+   "Send tournament credits wagered",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "98",
+   "Send tournament credits won",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "99",
+   "Send meters 95 through 98",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "6E",
+   "Send authentication info",
+   "yes",
+   "yes",
+   "no",
+   4,
+   48
+  ],
+  [
+   "94",
+   "Remote handpay reset",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "A8",
+   "Enable jackpot handpay reset method",
+   "yes",
+   "no",
+   "no",
+   1,
+   5
+  ],
+  [
+   "A4",
+   "Send cash out limit",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "0F",
+   "Send meters 10 through 15",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "10",
+   "Send total cancelled credit meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "11",
+   "Send total coin in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "12",
+   "Send total coin out meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "13",
+   "Send total drop meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "14",
+   "Send total jackpot meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "15",
+   "Send games played meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "16",
+   "Send games won meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "17",
+   "Send games lost meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "18",
+   "Send games since last power up and slot door closure",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "19",
+   "Send meters 11 through 15",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "1A",
+   "Send current credits",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "1C",
+   "Send meters",
+   "yes",
+   "no",
+   "no",
+   8,
+   8
+  ],
+  [
+   "1E",
+   "Send bill meters (counts)",
+   "yes",
+   "no",
+   "no",
+   6,
+   6
+  ],
+  [
+   "20",
+   "Send dollar value of bills meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2A",
+   "Send true coin in",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2B",
+   "Send true coin out",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2C",
+   "Send current hopper level",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "2D",
+   "Send total hand paid cancelled credits",
+   "yes",
+   "no",
+   "no",
+   2,
+   2
+  ],
+  [
+   "2F",
+   "Send selected meters for game N",
+   "yes",
+   "yes",
+   "no",
+   11,
+   20
+  ],
+  [
+   "31",
+   "Send $1.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "32",
+   "Send $2.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "33",
+   "Send $5.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "34",
+   "Send $10.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "35",
+   "Send $20.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "36",
+   "Send $50.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "37",
+   "Send $100.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "38",
+   "Send $500.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "39",
+   "Send $1,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3A",
+   "Send $200.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3B",
+   "Send $25.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3C",
+   "Send $2,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3E",
+   "Send $2,500.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "3F",
+   "Send $5,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "40",
+   "Send $10,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "41",
+   "Send $20,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "42",
+   "Send $25,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "43",
+   "Send $50,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "44",
+   "Send $100,000.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "45",
+   "Send $250.00 bills in meter",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "46",
+   "Send credit amount of all bills accepted",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "47",
+   "Send coin amount accepted from external coin acceptor",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "49",
+   "Send number of bills currently in stacker",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "4A",
+   "Send credit amount of all bills currently in stacker",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "50",
+   "Send validation meters",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "52",
+   "Send game N meters",
+   "yes",
+   "no",
+   "no",
+   5,
+   5
+  ],
+  [
+   "1D",
+   "Send EFT Cumulative meters",
+   "yes",
+   "no",
+   "no",
+   4,
+   4
+  ],
+  [
+   "27",
+   "Send current promotional credits",
+   "yes",
+   "no",
+   "no",
+   1,
+   1
+  ],
+  [
+   "28",
+   "Send tranfer log",
+   "yes",
+   "yes",
+   "no",
+   5,
+   160
+  ],
+  [
+   "6A",
+   "Send available EFT meters",
+   "no",
+   "no",
+   "no",
+   2,
+   6
+  ],
+  [
+   "62",
+   "Transfer non-cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "63",
+   "Transfer promotional credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "69",
+   "Transfer cashable credits to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "64",
+   "Transfer credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "67",
+   "Transfer win credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "65",
+   "Force cash credits out of GM",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "6B",
+   "Transfer promotional credits to host",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "66",
+   "Send last cashout amount",
+   "yes",
+   "no",
+   "no",
+   3,
+   16
+  ],
+  [
+   "22",
+   "Transfer non-cashable amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "23",
+   "Transfer promotional amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "29",
+   "Transfer cash amount to GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "24",
+   "Transfer cash amount to host",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "25",
+   "Force cash out of GM",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ],
+  [
+   "26",
+   "Host request for cashout out dollar amount",
+   "yes",
+   "no",
+   "no",
+   4,
+   17
+  ]
+ ]
+}

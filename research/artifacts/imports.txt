@@ -1,0 +1,475 @@
+Machine 0x014c  Sections 8  TimeDateStamp 0x43a35394  Characteristics 0x010e
+Link date: 2005-12-16 23:53:56
+Optional magic 0x010b (PE32)
+ImageBase 0x00400000
+Subsystem 2
+SECTION .text      VA=0x00001000 VSize=0x0b0000 RawPtr=0x000600 RawSz=0x0afe00
+SECTION .data      VA=0x000b1000 VSize=0x014000 RawPtr=0x0b0400 RawSz=0x00e600
+SECTION .tls       VA=0x000c5000 VSize=0x001000 RawPtr=0x0bea00 RawSz=0x000200
+SECTION .rdata     VA=0x000c6000 VSize=0x001000 RawPtr=0x0bec00 RawSz=0x000200
+SECTION .idata     VA=0x000c7000 VSize=0x003000 RawPtr=0x0bee00 RawSz=0x002a00
+SECTION .edata     VA=0x000ca000 VSize=0x001000 RawPtr=0x0c1800 RawSz=0x000400
+SECTION .rsrc      VA=0x000cb000 VSize=0x022000 RawPtr=0x0c1c00 RawSz=0x022000
+SECTION .reloc     VA=0x000ed000 VSize=0x00d000 RawPtr=0x0e3c00 RawSz=0x00cc00
+
+===== IMPORT TABLE =====
+
+--- ADVAPI32.DLL ---
+    RegCloseKey 
+    RegOpenKeyExA 
+    RegQueryValueExA 
+
+--- KERNEL32.DLL ---
+    BuildCommDCBA    <<<<
+    ClearCommError    <<<<
+    CloseHandle    <<<<
+    CompareStringA 
+    CopyFileA 
+    CreateEventA    <<<<
+    CreateFileA    <<<<
+    CreateThread    <<<<
+    DeleteCriticalSection 
+    DeleteFileA 
+    EnterCriticalSection 
+    EnumCalendarInfoA 
+    ExitProcess 
+    ExitThread 
+    FileTimeToDosDateTime 
+    FileTimeToLocalFileTime 
+    FindClose 
+    FindFirstFileA 
+    FindResourceA 
+    FormatMessageA 
+    FreeLibrary 
+    FreeResource 
+    GetACP 
+    GetCPInfo 
+    GetCommandLineA 
+    GetCurrentDirectoryA 
+    GetCurrentProcess 
+    GetCurrentProcessId 
+    GetCurrentThread 
+    GetCurrentThreadId 
+    GetDateFormatA 
+    GetDiskFreeSpaceA 
+    GetEnvironmentStrings 
+    GetExitCodeThread 
+    GetFileAttributesA 
+    GetFileSize 
+    GetFileType 
+    GetLastError 
+    GetLocalTime 
+    GetLocaleInfoA 
+    GetModuleFileNameA 
+    GetModuleHandleA 
+    GetOEMCP 
+    GetOverlappedResult 
+    GetPrivateProfileStringA 
+    GetProcAddress 
+    GetProcessHeap 
+    GetStartupInfoA 
+    GetStdHandle 
+    GetStringTypeExA 
+    GetStringTypeW 
+    GetSystemInfo 
+    GetThreadLocale 
+    GetTickCount    <<<<
+    GetTimeZoneInformation 
+    GetVersion 
+    GetVersionExA 
+    GlobalAddAtomA 
+    GlobalAlloc 
+    GlobalDeleteAtom 
+    GlobalFindAtomA 
+    GlobalFree 
+    GlobalHandle 
+    GlobalLock 
+    GlobalReAlloc 
+    GlobalUnlock 
+    HeapAlloc 
+    HeapFree 
+    InitializeCriticalSection 
+    InterlockedDecrement 
+    InterlockedIncrement 
+    LCMapStringA 
+    LeaveCriticalSection 
+    LoadLibraryA 
+    LoadLibraryExA 
+    LoadResource 
+    LocalAlloc 
+    LocalFree 
+    LockResource 
+    MulDiv 
+    MultiByteToWideChar 
+    PurgeComm    <<<<
+    RaiseException 
+    ReadFile    <<<<
+    ResetEvent 
+    ResumeThread 
+    RtlUnwind 
+    SetCommMask    <<<<
+    SetCommState    <<<<
+    SetCommTimeouts    <<<<
+    SetConsoleCtrlHandler 
+    SetCurrentDirectoryA 
+    SetEndOfFile 
+    SetErrorMode 
+    SetEvent 
+    SetFilePointer 
+    SetHandleCount 
+    SetLastError 
+    SetPriorityClass    <<<<
+    SetThreadLocale 
+    SetThreadPriority    <<<<
+    SetupComm    <<<<
+    SizeofResource 
+    Sleep    <<<<
+    TlsAlloc 
+    TlsFree 
+    TlsGetValue 
+    TlsSetValue 
+    UnhandledExceptionFilter 
+    VirtualAlloc 
+    VirtualFree 
+    VirtualQuery 
+    WaitCommEvent    <<<<
+    WaitForSingleObject    <<<<
+    WideCharToMultiByte 
+    WriteFile    <<<<
+    WritePrivateProfileStringA 
+    lstrcmpA 
+    lstrcpyA 
+    lstrcpynA 
+    lstrlenA 
+
+--- VERSION.DLL ---
+    GetFileVersionInfoA 
+    GetFileVersionInfoSizeA 
+    VerQueryValueA 
+
+--- COMCTL32.DLL ---
+    #17(ordinal) 
+    ImageList_Add 
+    ImageList_BeginDrag 
+    ImageList_Create 
+    ImageList_Destroy 
+    ImageList_DragEnter 
+    ImageList_DragLeave 
+    ImageList_DragMove 
+    ImageList_DragShowNolock 
+    ImageList_Draw 
+    ImageList_DrawEx 
+    ImageList_EndDrag 
+    ImageList_GetBkColor 
+    ImageList_GetDragImage 
+    ImageList_GetIconSize 
+    ImageList_GetImageCount 
+    ImageList_Read 
+    ImageList_Remove 
+    ImageList_ReplaceIcon 
+    ImageList_SetBkColor 
+    ImageList_SetDragCursorImage 
+    ImageList_SetIconSize 
+    ImageList_Write 
+
+--- COMDLG32.DLL ---
+    GetOpenFileNameA 
+    GetSaveFileNameA 
+
+--- GDI32.DLL ---
+    BitBlt 
+    CombineRgn 
+    CopyEnhMetaFileA 
+    CreateBitmap 
+    CreateBrushIndirect 
+    CreateCompatibleBitmap 
+    CreateCompatibleDC 
+    CreateDIBSection 
+    CreateDIBitmap 
+    CreateFontIndirectA 
+    CreateHalftonePalette 
+    CreatePalette 
+    CreatePenIndirect 
+    CreateRectRgn 
+    CreateSolidBrush 
+    DeleteDC 
+    DeleteEnhMetaFile 
+    DeleteObject 
+    ExcludeClipRect 
+    ExtTextOutA 
+    GetBitmapBits 
+    GetBrushOrgEx 
+    GetClipBox 
+    GetClipRgn 
+    GetCurrentPositionEx 
+    GetDCOrgEx 
+    GetDIBColorTable 
+    GetDIBits 
+    GetDeviceCaps 
+    GetEnhMetaFileBits 
+    GetEnhMetaFileHeader 
+    GetEnhMetaFilePaletteEntries 
+    GetObjectA 
+    GetPaletteEntries 
+    GetPixel 
+    GetRgnBox 
+    GetStockObject 
+    GetSystemPaletteEntries 
+    GetTextExtentPoint32A 
+    GetTextMetricsA 
+    GetWinMetaFileBits 
+    GetWindowOrgEx 
+    IntersectClipRect 
+    LineTo 
+    MaskBlt 
+    MoveToEx 
+    PatBlt 
+    PlayEnhMetaFile 
+    Polyline 
+    RealizePalette 
+    RectVisible 
+    Rectangle 
+    RestoreDC 
+    SaveDC 
+    SelectClipRgn 
+    SelectObject 
+    SelectPalette 
+    SetBkColor 
+    SetBkMode 
+    SetBrushOrgEx 
+    SetDIBColorTable 
+    SetEnhMetaFileBits 
+    SetPixel 
+    SetROP2 
+    SetStretchBltMode 
+    SetTextColor 
+    SetViewportOrgEx 
+    SetWinMetaFileBits 
+    SetWindowOrgEx 
+    StretchBlt 
+    UnrealizeObject 
+
+--- USER32.DLL ---
+    ActivateKeyboardLayout 
+    AdjustWindowRectEx 
+    BeginDeferWindowPos 
+    BeginPaint 
+    CallNextHookEx 
+    CallWindowProcA 
+    CharLowerA 
+    CharLowerBuffA 
+    CharNextA 
+    CheckMenuItem 
+    ChildWindowFromPoint 
+    ClientToScreen 
+    CreateIcon 
+    CreateMenu 
+    CreatePopupMenu 
+    CreateWindowExA 
+    DefFrameProcA 
+    DefMDIChildProcA 
+    DefWindowProcA 
+    DeferWindowPos 
+    DeleteMenu 
+    DestroyCursor 
+    DestroyIcon 
+    DestroyMenu 
+    DestroyWindow 
+    DispatchMessageA 
+    DrawEdge 
+    DrawFocusRect 
+    DrawFrameControl 
+    DrawIcon 
+    DrawIconEx 
+    DrawMenuBar 
+    DrawTextA 
+    EnableMenuItem 
+    EnableScrollBar 
+    EnableWindow 
+    EndDeferWindowPos 
+    EndPaint 
+    EnumThreadWindows 
+    EnumWindows 
+    EqualRect 
+    FillRect 
+    FindWindowA 
+    FrameRect 
+    GetActiveWindow 
+    GetCapture 
+    GetClassInfoA 
+    GetClassNameA 
+    GetClientRect 
+    GetClipboardData 
+    GetCursor 
+    GetCursorPos 
+    GetDC 
+    GetDCEx 
+    GetDesktopWindow 
+    GetDlgItem 
+    GetFocus 
+    GetForegroundWindow 
+    GetIconInfo 
+    GetKeyNameTextA 
+    GetKeyState 
+    GetKeyboardLayout 
+    GetKeyboardLayoutList 
+    GetKeyboardState 
+    GetKeyboardType 
+    GetLastActivePopup 
+    GetMenu 
+    GetMenuItemCount 
+    GetMenuItemID 
+    GetMenuItemInfoA 
+    GetMenuState 
+    GetMenuStringA 
+    GetMessagePos 
+    GetParent 
+    GetPropA 
+    GetScrollInfo 
+    GetScrollPos 
+    GetScrollRange 
+    GetSubMenu 
+    GetSysColor 
+    GetSystemMenu 
+    GetSystemMetrics 
+    GetTopWindow 
+    GetWindow 
+    GetWindowDC 
+    GetWindowLongA 
+    GetWindowPlacement 
+    GetWindowRect 
+    GetWindowTextA 
+    GetWindowThreadProcessId 
+    InflateRect 
+    InsertMenuA 
+    InsertMenuItemA 
+    IntersectRect 
+    InvalidateRect 
+    IsChild 
+    IsDialogMessageA 
+    IsIconic 
+    IsRectEmpty 
+    IsWindow 
+    IsWindowEnabled 
+    IsWindowVisible 
+    IsZoomed 
+    KillTimer 
+    LoadBitmapA 
+    LoadCursorA 
+    LoadIconA 
+    LoadKeyboardLayoutA 
+    LoadStringA 
+    MapVirtualKeyA 
+    MapWindowPoints 
+    MessageBoxA 
+    MsgWaitForMultipleObjects 
+    OemToCharA 
+    OffsetRect 
+    PeekMessageA 
+    PostMessageA 
+    PostQuitMessage 
+    PtInRect 
+    RedrawWindow 
+    RegisterClassA 
+    RegisterClipboardFormatA 
+    RegisterWindowMessageA 
+    ReleaseCapture 
+    ReleaseDC 
+    RemoveMenu 
+    RemovePropA 
+    ScreenToClient 
+    ScrollWindow 
+    SendMessageA 
+    SetActiveWindow 
+    SetCapture 
+    SetClassLongA 
+    SetCursor 
+    SetFocus 
+    SetForegroundWindow 
+    SetMenu 
+    SetMenuItemInfoA 
+    SetPropA 
+    SetRect 
+    SetScrollInfo 
+    SetScrollPos 
+    SetScrollRange 
+    SetTimer 
+    SetWindowLongA 
+    SetWindowPlacement 
+    SetWindowPos 
+    SetWindowTextA 
+    SetWindowsHookExA 
+    ShowCursor 
+    ShowOwnedPopups 
+    ShowScrollBar 
+    ShowWindow 
+    SystemParametersInfoA 
+    TrackPopupMenu 
+    TranslateMDISysAccel 
+    TranslateMessage 
+    UnhookWindowsHookEx 
+    UnregisterClassA 
+    UpdateWindow 
+    WaitMessage 
+    WinHelpA 
+    WindowFromPoint 
+    wsprintfA 
+
+--- WINMM.DLL ---
+    timeBeginPeriod    <<<<
+    timeEndPeriod    <<<<
+    timeKillEvent    <<<<
+    timeSetEvent    <<<<
+
+--- OLEAUT32.DLL ---
+    #10(ordinal) 
+    #11(ordinal) 
+    #12(ordinal) 
+    #148(ordinal) 
+    #15(ordinal) 
+    #19(ordinal) 
+    #20(ordinal) 
+    #25(ordinal) 
+    #26(ordinal) 
+    #4(ordinal) 
+    #40(ordinal) 
+    #5(ordinal) 
+    #6(ordinal) 
+    #8(ordinal) 
+    #9(ordinal) 
+
+===== TARGET API HITS =====
+  KERNEL32.DLL     BuildCommDCBA
+  KERNEL32.DLL     ClearCommError
+  KERNEL32.DLL     CloseHandle
+  KERNEL32.DLL     CreateEventA
+  KERNEL32.DLL     CreateFileA
+  KERNEL32.DLL     CreateThread
+  KERNEL32.DLL     GetTickCount
+  KERNEL32.DLL     PurgeComm
+  KERNEL32.DLL     ReadFile
+  KERNEL32.DLL     SetCommMask
+  KERNEL32.DLL     SetCommState
+  KERNEL32.DLL     SetCommTimeouts
+  KERNEL32.DLL     SetPriorityClass
+  KERNEL32.DLL     SetThreadPriority
+  KERNEL32.DLL     SetupComm
+  KERNEL32.DLL     Sleep
+  KERNEL32.DLL     WaitCommEvent
+  KERNEL32.DLL     WaitForSingleObject
+  KERNEL32.DLL     WriteFile
+  WINMM.DLL        timeBeginPeriod
+  WINMM.DLL        timeEndPeriod
+  WINMM.DLL        timeKillEvent
+  WINMM.DLL        timeSetEvent
+
+===== raw-IO driver name search =====
+b'inpout32' 0
+b'dlportio' 0
+b'giveio' 0
+b'ntport' 0
+b'winio' 0
+b'WinIo' 0
+b'porttalk' 0
+b'IOPerm' 0
+b'\\.\\PhysicalDrive' 0

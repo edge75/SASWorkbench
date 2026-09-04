@@ -1,0 +1,102 @@
+internalReadSasDataFromNvram: sizeof NVRAM 0x0000C4F0
+============================================================
+|                                                          |
+| +----------------+----------------+----------------+     |
+| +                |                |                +     |
+| + meters and     |                |   Sas Library  +     |
+| + legacy meters  |                |   Data         +     |
+| +                |                |                +     |
+| +                |                | Ver:0x01030700 +     |
+| +----------------+----------------+----------------+     |
+|                                                          |
+============================================================
+sasInit:303: Channel Link Down and syncSAS=3
+sasSetImmediateModeMeter: meterModeValue = 4, meterMode = 4
+sasSetEnableDenomination: game:1 - denom:0x2 - set to:1
+sasSetEnableDenomination: game:2 - denom:0x3 - set to:1
+sasSetEnableDenomination: game:3 - denom:0x5 - set to:1
+sasSetEnableDenomination: game:4 - denom:0x6 - set to:1
+SAS_ConfigureGame: update ptrConf (internalSetGameConfiguration)
+
+internalWriteException: code = 0X18
+internalQueueException:3853: exception 0x18 on channel 0 count : 3
+
+internalWriteException: code = 0X98
+internalQueueException:3853: exception 0x98 on channel 0 count : 4
+
+internalWriteException: code = 0X99
+internalQueueException:3853: exception 0x99 on channel 0 count : 5
+
+internalWriteException: code = 0X17
+internalQueueException:3853: exception 0x17 on channel 0 count : 6
+
+internalWriteException: code = 0X15
+internalQueueException:3853: exception 0x15 on channel 0 count : 7
+
+internalWriteException: code = 0X11
+internalQueueException:3853: exception 0x11 on channel 0 count : 8
+threadTimers:2451: Channel Link Up  sc[i].linkState=3 isLinkDownReset[i]=1  sc[i].timerCountNoImpliedAck=0xFFFFFFFF   sc[i].syncSas=0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x15  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:15 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x11  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:11 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x18  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:18 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x98  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:98 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x99  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:99 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x17  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:17 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x15  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:15 on channel:0
+threadDecode:3341:call internalDequeueException return exception.isSent=0 exception 0x11  sc.impliedNackOngoing=0
+threadDecode:3408: sendHostPacket with exceptioncode:11 on channel:0
+setEventImpliedAckNack:1101 lastReceivedPacketType == GLOBAL_POLL_ADDRESS -> RX LONG_POLL
+
+>> Sent package {0x01, 0x1F, 0x51, 0x58, 0x30, 0x30, 0x31, 0x02, 0xFF, 0x00, 0x00, 0x00, 0x30, 0x30, 0x31, 0x00, 0x00, 0x00, 0x39, 0x32, 0x31, 0x30, 0x86, 0x3F, }
+ianChirp:121: reset lastReceive LP 
+threadTimers:2400: Channel LoopBreak sc[i].timerCountLoopBreak=26 and sc[i].linkState=1
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error fai[SlotGame #1] Constructor()
+[SlotGame #2] Constructor()
+[SlotGame #1] Destructor()
+[SlotGame #2] Destructor()
+led to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+writeSasSerial: error failed to write to the device. Write function returned 0X8D00B007
+sasShutdown:376:  sasShutdown
+sasShutdown:377:  sasContext.sasHandle ok
+threadRx: debug - exiting from interrupt thread...
+threadDecode: debug - exiting from packet decoding thread...
+closeSasSerialPort: about to shutdown the COM port...
+closeSasSerialPort: close the device
+sasShutdown:417:  closeSasSerialPort ok
+sasShutdown:421:  WaitForSingleObject for channel ok
+threadTimers: debug - exiting from timers thread...
+threadUser: debug - exiting from user thread...
+sasShutdown:431:  WaitForSingleObject ok
+sasShutdown:440: no internalFclose 
+sasShutdown:445:  internalShutdownContext ok
+sasShutdown:454:  free item ok
+sasShutdown:457:  internalMemoryClose ok
+sasShutdown:462:  Exit
+[OpenAL Available Device]   Generic Software
+[GL Error]  GL_INVALID_ENUM
+[OpenGL Version]           4.2.0 - Build 32.0.101.8826
+[OpenGL Renderer]          Intel(R) Graphics
+[OpenGL Vendor]            Intel
+[OpenGL Version]           4.2.0 - Build 32.0.101.8826
+[OpenGL Profile]           Core
+[OpenGL Shading Language]  4.20 - Build 32.0.101.8826
+[GLEW Version]             1.11.0
+
