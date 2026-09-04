@@ -1,0 +1,241 @@
+using SasWorkbench.Core.Polling;
+using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Wire;
+
+namespace SasWorkbench.Core.Scripting;
+
+/// <summary>Where a step came from, so a failure can name the line a person wrote.</summary>
+/// <param name="File">The script file.</param>
+/// <param name="Line">One-based line number.</param>
+public sealed record SourceLocation(string File, int Line)
+{
+    /// <summary>A location for something not read from a file.</summary>
+    public static SourceLocation None { get; } = new("<none>", 0);
+
+    public override string ToString() => $"{File}:{Line}";
+}
+
+/// <summary>What a test, or one assertion in it, came to.</summary>
+public enum Verdict
+{
+    /// <summary>The assertion held.</summary>
+    Pass,
+
+    /// <summary>The assertion did not hold. Something under test is wrong.</summary>
+    Fail,
+
+    /// <summary>
+    /// The environment could not run it. Never a pass and never a failure: failing a test for an
+    /// environmental reason trains people to ignore red.
+    /// </summary>
+    Skip,
+
+    /// <summary>The test itself, or the runner, broke.</summary>
+    Error,
+}
+
+/// <summary>Which link a test asks for.</summary>
+public enum ScriptTransport
+{
+    Loopback,
+    Tcp,
+    Serial,
+}
+
+/// <summary>How a meter assertion compares.</summary>
+public enum MeterComparison
+{
+    /// <summary>Risen by exactly this much since the baseline.</summary>
+    IncreasedBy,
+
+    /// <summary>Risen by at least this much since the baseline.</summary>
+    IncreasedByAtLeast,
+
+    /// <summary>Unchanged since the baseline.</summary>
+    Unchanged,
+
+    /// <summary>Exactly this value.</summary>
+    Equals,
+
+    AtLeast,
+
+    AtMost,
+}
+
+/// <summary>Where stimulus for the gaming machine comes from.</summary>
+public enum StimulusBackend
+{
+    /// <summary>
+    /// Nothing drives the machine. Steps that need stimulus are skipped with a reason; they are
+    /// never quietly treated as satisfied.
+    /// </summary>
+    None,
+
+    /// <summary>A person is asked to do it and to confirm when it is done.</summary>
+    Manual,
+
+    /// <summary>The peripheral simulator is driven directly, unattended.</summary>
+    Qpm,
+
+    /// <summary>The software gaming machine peer in this repository.</summary>
+    Software,
+}
+
+/// <summary>One step of a test.</summary>
+public abstract record ScriptStep(SourceLocation Location)
+{
+    /// <summary>One line describing what this step does, for a report.</summary>
+    public abstract string Describe();
+}
+
+/// <summary>Opens the link to the machine under test.</summary>
+public sealed record ConnectStep(
+    SourceLocation Location,
+    ScriptTransport Transport,
+    string Target,
+    SasAddress Address,
+    SasChannel Channel) : ScriptStep(Location)
+{
+    public override string Describe() =>
+        $"connect {Transport.ToString().ToLowerInvariant()} {Target} address {Address} "
+        + $"channel {(int)Channel}";
+}
+
+/// <summary>Sets how often the host polls.</summary>
+public sealed record PollEveryStep(SourceLocation Location, TimeSpan Interval) : ScriptStep(Location)
+{
+    public override string Describe() => $"poll every {Interval.TotalMilliseconds:F0}ms";
+}
+
+/// <summary>Waits, doing nothing but keeping the poll loop running.</summary>
+public sealed record WaitStep(SourceLocation Location, TimeSpan Duration) : ScriptStep(Location)
+{
+    public override string Describe() => $"wait {Duration.TotalMilliseconds:F0}ms";
+}
+
+/// <summary>Records a remark in the report. Never affects the verdict.</summary>
+public sealed record NoteStep(SourceLocation Location, string Text) : ScriptStep(Location)
+{
+    public override string Describe() => $"note {Text}";
+}
+
+/// <summary>Sends one long poll.</summary>
+public sealed record SendLongPollStep(SourceLocation Location, byte Command, byte[] Data)
+    : ScriptStep(Location)
+{
+    public override string Describe() => Data.Length == 0
+        ? $"send lp {Command:X2}"
+        : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
+}
+
+/// <summary>Expects an exception to arrive, or expects it not to.</summary>
+public sealed record ExpectExceptionStep(
+    SourceLocation Location,
+    byte Code,
+    string Name,
+    TimeSpan Within,
+    bool Negated) : ScriptStep(Location)
+{
+    public override string Describe() => Negated
+        ? $"expect no exception {Name} within {Within.TotalMilliseconds:F0}ms"
+        : $"expect exception {Name} within {Within.TotalMilliseconds:F0}ms";
+}
+
+/// <summary>Expects a meter to have moved, or not moved.</summary>
+/// <remarks>
+/// A relative comparison is measured against the value read the last time a baseline was taken:
+/// at the start of the test, and again immediately before each stimulus step. That is what makes
+/// <c>+= 2000</c> mean what a reader expects it to mean after a note has been inserted.
+/// </remarks>
+public sealed record ExpectMeterStep(
+    SourceLocation Location,
+    string Meter,
+    MeterComparison Comparison,
+    long Value,
+    TimeSpan Within) : ScriptStep(Location)
+{
+    public override string Describe()
+    {
+        string operation = Comparison switch
+        {
+            MeterComparison.IncreasedBy => $"+= {Value}",
+            MeterComparison.IncreasedByAtLeast => $"+>= {Value}",
+            MeterComparison.Unchanged => "unchanged",
+            MeterComparison.Equals => $"== {Value}",
+            MeterComparison.AtLeast => $">= {Value}",
+            MeterComparison.AtMost => $"<= {Value}",
+            _ => Comparison.ToString(),
+        };
+
+        return $"expect meter {Meter} {operation}";
+    }
+}
+
+/// <summary>Expects a field of a long poll reply to hold a particular value.</summary>
+public sealed record ExpectFieldStep(
+    SourceLocation Location,
+    byte Command,
+    string Field,
+    SasComparison Comparison,
+    long? ExpectedNumber,
+    string? ExpectedText) : ScriptStep(Location)
+{
+    public override string Describe()
+    {
+        string expected = ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
+        return $"expect field {Field} of lp {Command:X2} {Comparison} {expected}";
+    }
+}
+
+/// <summary>Expects the link to be in a given state.</summary>
+public sealed record ExpectLinkStep(SourceLocation Location, LinkState Expected, TimeSpan Within)
+    : ScriptStep(Location)
+{
+    public override string Describe() =>
+        $"expect link {Expected.ToString().ToLowerInvariant()} within {Within.TotalMilliseconds:F0}ms";
+}
+
+/// <summary>A step that needs something to drive the gaming machine.</summary>
+public abstract record StimulusStep(SourceLocation Location) : ScriptStep(Location)
+{
+    /// <summary>The capability this step needs, so an unmet one can be named in a skip.</summary>
+    public abstract string RequiredCapability { get; }
+}
+
+/// <summary>Inserts a note.</summary>
+public sealed record InsertBillStep(SourceLocation Location, int Cents) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.bill";
+
+    public override string Describe() => $"bill insert {Cents}";
+}
+
+/// <summary>Plays games.</summary>
+public sealed record PlayGamesStep(
+    SourceLocation Location,
+    int Games,
+    long BetCredits,
+    long WinCredits) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.play";
+
+    public override string Describe() => WinCredits > 0
+        ? $"play games={Games} bet={BetCredits} win={WinCredits}"
+        : $"play games={Games} bet={BetCredits}";
+}
+
+/// <summary>Presses a button.</summary>
+public sealed record PressButtonStep(SourceLocation Location, string Button) : StimulusStep(Location)
+{
+    public override string RequiredCapability => $"stimulus.button.{Button}";
+
+    public override string Describe() => $"press {Button}";
+}
+
+/// <summary>Opens or closes a door.</summary>
+public sealed record DoorStep(SourceLocation Location, string Door, bool Open) : StimulusStep(Location)
+{
+    public override string RequiredCapability => $"stimulus.door.{Door}";
+
+    public override string Describe() => $"door {Door} {(Open ? "open" : "close")}";
+}
