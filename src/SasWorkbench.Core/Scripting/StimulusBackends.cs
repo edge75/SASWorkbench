@@ -60,3 +60,19 @@ public sealed class ManualStimulusBackend(Func<string, bool> ask) : IStimulusBac
                 $"a person declined or could not carry out '{step.Describe()}'");
     }
 }
+
+/// <summary>A backend that refuses everything, for one stated reason.</summary>
+/// <remarks>
+/// Used when a stimulus backend was asked for but cannot apply here. The reason travels with the
+/// refusal so the skip line explains itself instead of reading as "nothing was connected".
+/// </remarks>
+public sealed class RefusingStimulusBackend(string reason) : IStimulusBackend
+{
+    public StimulusBackend Kind => StimulusBackend.None;
+
+    public IReadOnlyDictionary<string, string?> Capabilities =>
+        new Dictionary<string, string?> { ["stimulus"] = "refused" };
+
+    public void Apply(StimulusStep step) => throw new StimulusUnavailableException(
+        $"'{step.Describe()}' cannot happen: {reason}");
+}

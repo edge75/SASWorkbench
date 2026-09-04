@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/SasWorkbench.Cli/SasWorkbench.Cli.csproj" />
     <Project Path="src/SasWorkbench.Core/SasWorkbench.Core.csproj" />
     <Project Path="src/SasWorkbench.Egm/SasWorkbench.Egm.csproj" />
   </Folder>

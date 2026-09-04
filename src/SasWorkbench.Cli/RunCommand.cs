@@ -1,0 +1,296 @@
+using SasWorkbench.Core.Reporting;
+using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Transport;
+using SasWorkbench.Core.Wire;
+using SasWorkbench.Egm;
+
+namespace SasWorkbench.Cli;
+
+/// <summary>Runs scripts and writes the reports.</summary>
+internal static class RunCommand
+{
+    public static int Execute(CommandLine line)
+    {
+        if (line.Arguments.Count == 0)
+        {
+            Console.Error.WriteLine("error: 'run' needs a script or a directory of scripts.");
+            return 2;
+        }
+
+        IReadOnlyList<ScriptDocument> documents = line.Arguments
+            .SelectMany(ScriptLoader.Load)
+            .ToList();
+
+        if (!TryOverrideConnection(line, documents, out documents!, out string? connectionError))
+        {
+            Console.Error.WriteLine($"error: {connectionError}");
+            return 2;
+        }
+
+        documents = Filter(line, documents);
+
+        int tests = documents.Sum(d => d.Tests.Count);
+        if (tests == 0)
+        {
+            Console.Error.WriteLine("error: no tests matched. Nothing was run, which is not a pass.");
+            return 3;
+        }
+
+        if (line.Flag("list"))
+        {
+            foreach (ScriptDocument document in documents)
+            {
+                Console.WriteLine(document.Path);
+                foreach (ScriptTest test in document.Tests)
+                {
+                    string tags = test.Tags.Count == 0
+                        ? string.Empty
+                        : "  " + string.Join(' ', test.Tags.Select(t => "@" + t));
+                    Console.WriteLine($"  {test.Name}{tags}");
+                    foreach (Requirement requirement in test.Requirements)
+                        Console.WriteLine($"      requires {requirement}");
+                }
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"{tests} test(s) in {documents.Count} file(s)");
+            return 0;
+        }
+
+        if (!TryBuildOptions(line, out ScriptRunnerOptions options, out string? optionError))
+        {
+            Console.Error.WriteLine($"error: {optionError}");
+            return 2;
+        }
+
+        bool quiet = line.Flag("quiet");
+        var runner = new ScriptRunner(options with
+        {
+            OnTestFinished = quiet ? null : Print,
+        });
+
+        RunReport report = runner.RunAll(documents);
+
+        if (!Reports.TryParse(line.Value("report"), out ReportFormat[] formats, out string? unknown))
+        {
+            Console.Error.WriteLine($"error: '{unknown}' is not a report format. Expected {Reports.Names}.");
+            return 2;
+        }
+
+        Console.WriteLine();
+        foreach (RunProvenance provenance in report.Provenance)
+            Console.WriteLine($"  over {provenance}");
+
+        Console.WriteLine($"  {report.Verdict.ToString().ToUpperInvariant()}  {report.Summary()}");
+
+        if (formats.Length > 0)
+        {
+            string directory = line.Value("out")
+                               ?? Path.Combine("runs", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
+            IReadOnlyList<string> written = Reports.Write(report, directory, formats);
+
+            Console.WriteLine();
+            foreach (string path in written)
+                Console.WriteLine($"  wrote {path}");
+        }
+
+        return report.ExitCode;
+    }
+
+    private static void Print(TestOutcome test)
+    {
+        Console.WriteLine(test.ToString());
+
+        foreach (StepResult step in test.Steps.Where(s => s.Verdict is Verdict.Fail or Verdict.Error))
+        {
+            Console.WriteLine($"        {step.Location}  {step.Description}");
+            if (step.Expected is not null)
+                Console.WriteLine($"          expected  {step.Expected}");
+            if (step.Actual is not null)
+                Console.WriteLine($"          actual    {step.Actual}");
+            if (step.Reason is not null)
+                Console.WriteLine($"          {step.Reason}");
+        }
+
+        foreach (StepResult step in test.Steps.Where(s => s.Verdict == Verdict.Skip))
+        {
+            if (step.Reason is not null && test.SkipReason != step.Reason)
+                Console.WriteLine($"        {step.Location}  skipped: {step.Reason}");
+        }
+    }
+
+    private static bool TryBuildOptions(
+        CommandLine line, out ScriptRunnerOptions options, out string? error)
+    {
+        error = null;
+        options = new ScriptRunnerOptions();
+
+        string backendName = line.Value("stimulus") ?? "none";
+        if (!Enum.TryParse(backendName, ignoreCase: true, out StimulusBackend backend))
+        {
+            error = $"'{backendName}' is not a stimulus backend. Expected none, manual, software "
+                    + "or qpm.";
+            return false;
+        }
+
+        TimeSpan interval = TimeSpan.FromMilliseconds(200);
+        string? poll = line.Value("poll");
+        if (poll is not null)
+        {
+            try
+            {
+                interval = ScriptParser.ParseDuration(poll, SourceLocation.None);
+            }
+            catch (ScriptParseException parse)
+            {
+                error = parse.Reason;
+                return false;
+            }
+        }
+
+        options = new ScriptRunnerOptions
+        {
+            Stimulus = backend,
+            PollInterval = interval,
+            AskPerson = backend == StimulusBackend.Manual ? AskAtTheConsole : null,
+
+            // The software machine is only wired in when it was asked for. A run that quietly
+            // substituted a fixture for the machine under test would be worthless.
+            Environment = backend == StimulusBackend.Software
+                ? SoftwareMachineEnvironment.For()
+                : DefaultEnvironment.Create,
+        };
+
+        return true;
+    }
+
+    private static bool AskAtTheConsole(string prompt)
+    {
+        Console.WriteLine();
+        Console.WriteLine($"  {prompt}");
+        Console.Write("  done? [y/N] ");
+        string? answer = Console.ReadLine();
+        return answer?.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    /// <summary>
+    /// Applies <c>--tcp</c>, <c>--serial</c>, <c>--loopback</c>, <c>--address</c> and
+    /// <c>--channel</c> to every connect step, so one suite can be pointed at a different machine
+    /// without editing it.
+    /// </summary>
+    private static bool TryOverrideConnection(
+        CommandLine line,
+        IReadOnlyList<ScriptDocument> documents,
+        out IReadOnlyList<ScriptDocument>? rewritten,
+        out string? error)
+    {
+        error = null;
+        rewritten = documents;
+
+        string? tcp = line.Value("tcp");
+        string? serial = line.Value("serial");
+        bool loopback = line.Flag("loopback");
+        string? address = line.Value("address");
+        string? channel = line.Value("channel");
+
+        int chosen = (tcp is null ? 0 : 1) + (serial is null ? 0 : 1) + (loopback ? 1 : 0);
+        if (chosen > 1)
+        {
+            error = "choose one of --tcp, --serial or --loopback, not several.";
+            return false;
+        }
+
+        if (chosen == 0 && address is null && channel is null)
+            return true;
+
+        ScriptTransport? transport = null;
+        string target = string.Empty;
+
+        if (tcp is not null)
+        {
+            if (!TcpTransportOptions.TryParseEndpoint(tcp, out _))
+            {
+                error = $"'{tcp}' is not an endpoint. Expected something like 127.0.0.1:7200.";
+                return false;
+            }
+
+            transport = ScriptTransport.Tcp;
+            target = tcp;
+        }
+        else if (serial is not null)
+        {
+            transport = ScriptTransport.Serial;
+            target = serial;
+        }
+        else if (loopback)
+        {
+            transport = ScriptTransport.Loopback;
+        }
+
+        SasAddress? overrideAddress = null;
+        if (address is not null)
+        {
+            if (!SasAddress.TryParse(address, out SasAddress parsed))
+            {
+                error = $"'{address}' is not a poll address. Expected 00 to 7F.";
+                return false;
+            }
+
+            overrideAddress = parsed;
+        }
+
+        SasChannel? overrideChannel = null;
+        if (channel is not null)
+        {
+            if (!SasChannels.TryParse(channel, out SasChannel parsed))
+            {
+                error = $"'{channel}' is not a channel. Expected 1 to {SasChannels.Count}.";
+                return false;
+            }
+
+            overrideChannel = parsed;
+        }
+
+        rewritten = documents.Select(document => document with
+        {
+            Tests = document.Tests.Select(test => test with
+            {
+                Steps = test.Steps.Select(step => step is ConnectStep connect
+                    ? connect with
+                    {
+                        Transport = transport ?? connect.Transport,
+                        Target = transport is null ? connect.Target : target,
+                        Address = overrideAddress ?? connect.Address,
+                        Channel = overrideChannel ?? connect.Channel,
+                    }
+                    : step).ToList(),
+            }).ToList(),
+        }).ToList();
+
+        return true;
+    }
+
+    private static IReadOnlyList<ScriptDocument> Filter(
+        CommandLine line, IReadOnlyList<ScriptDocument> documents)
+    {
+        string? only = line.Value("tag");
+        string? without = line.Value("skip-tag");
+        if (only is null && without is null)
+            return documents;
+
+        string? wanted = only?.TrimStart('@');
+        string? unwanted = without?.TrimStart('@');
+
+        return documents
+            .Select(document => document with
+            {
+                Tests = document.Tests.Where(test =>
+                    (wanted is null || test.Tags.Contains(wanted, StringComparer.OrdinalIgnoreCase))
+                    && (unwanted is null
+                        || !test.Tags.Contains(unwanted, StringComparer.OrdinalIgnoreCase)))
+                    .ToList(),
+            })
+            .Where(document => document.Tests.Count > 0)
+            .ToList();
+    }
+}

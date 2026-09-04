@@ -48,6 +48,15 @@ public static class DefaultEnvironment
         {
             StimulusBackend.Manual when options.AskPerson is not null =>
                 new ManualStimulusBackend(options.AskPerson),
+
+            // Asking for the software machine on a link this environment did not build is a
+            // contradiction, and saying so beats handing back a backend that does nothing: the
+            // assertions after each stimulus step would then be checking the machine's earlier
+            // state and passing for the wrong reason.
+            StimulusBackend.Software => new RefusingStimulusBackend(
+                "the software gaming machine is reached over a loopback link, so it cannot drive "
+                + $"a machine on {step.Transport.ToString().ToLowerInvariant()}"),
+
             _ => new NoStimulusBackend(),
         };
 
