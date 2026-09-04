@@ -55,17 +55,39 @@ public sealed class HostSession : IDisposable
 {
     private readonly PollEngine _engine;
     private readonly IDisposable? _owned;
+    private readonly ClockBase _base;
 
-    private HostSession(PollEngine engine, IDisposable? owned)
+    private HostSession(PollEngine engine, IDisposable? owned, SessionLog log)
     {
         _engine = engine;
         _owned = owned;
+        Log = log;
+
+        // The engine measures from its own start, so its zero is marked on the session clock here
+        // and every record it produces is converted before it joins the stream.
+        _base = log.Clock.Mark();
 
         _engine.Wire += (direction, channel, symbols, elapsed, note) =>
+        {
+            Log.Wire(direction, channel, symbols, elapsed, _base, note);
             Wire?.Invoke(direction, channel, symbols, elapsed, note);
-        _engine.ExceptionReported += report => ExceptionReported?.Invoke(report);
-        _engine.LinkStateChanged += state => LinkStateChanged?.Invoke(state);
+        };
+
+        _engine.ExceptionReported += report =>
+        {
+            Log.Exception(report, _base, SasNames.ExceptionName(report.Code));
+            ExceptionReported?.Invoke(report);
+        };
+
+        _engine.LinkStateChanged += state =>
+        {
+            Log.Link(state, _engine.Channel, _base, _engine.Elapsed);
+            LinkStateChanged?.Invoke(state);
+        };
     }
+
+    /// <summary>Everything this session did, in order, on one clock.</summary>
+    public SessionLog Log { get; }
 
     /// <summary>Every message, as it happens. Handlers run on the poll thread.</summary>
     public event WireObserver? Wire;
@@ -106,9 +128,14 @@ public sealed class HostSession : IDisposable
     /// refused: there would be nothing on the other end of it.
     /// </param>
     /// <exception cref="TransportRefusedException">The link cannot be opened or cannot carry SAS.</exception>
+    /// <param name="log">
+    /// The stream to record into. Supplying one lets several links share a session, which is how
+    /// two channels end up interleaved in a single log rather than in two that must be aligned.
+    /// </param>
     public static HostSession Open(
         HostSessionSpec spec,
-        Func<HostSessionSpec, (ISasTransport Host, IDisposable Owned)>? peer = null)
+        Func<HostSessionSpec, (ISasTransport Host, IDisposable Owned)>? peer = null,
+        SessionLog? log = null)
     {
         ArgumentNullException.ThrowIfNull(spec);
 
@@ -148,7 +175,7 @@ public sealed class HostSession : IDisposable
             PollInterval = spec.Interval,
         });
 
-        var session = new HostSession(engine, owned);
+        var session = new HostSession(engine, owned, log ?? new SessionLog());
         try
         {
             engine.Start();

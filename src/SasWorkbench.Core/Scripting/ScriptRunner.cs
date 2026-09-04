@@ -2,7 +2,9 @@ using System.Diagnostics;
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Transport;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Core.Scripting;
 
@@ -35,6 +37,12 @@ public sealed record ScriptRunnerOptions
 
     /// <summary>Called as each test finishes, so a caller can print progress.</summary>
     public Action<TestOutcome>? OnTestFinished { get; init; }
+
+    /// <summary>
+    /// Where to record the run as one ordered stream. Supplying one lets a caller watch a run
+    /// live, and puts the run's steps on the same clock as the wire it produced.
+    /// </summary>
+    public SessionLog? Log { get; init; }
 }
 
 /// <summary>
@@ -53,9 +61,18 @@ public sealed record ScriptRunnerOptions
 /// that mentioned a door.
 /// </para>
 /// </remarks>
-public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
+public sealed class ScriptRunner
 {
-    private readonly ScriptRunnerOptions _options = options ?? new ScriptRunnerOptions();
+    private readonly ScriptRunnerOptions _options;
+
+    public ScriptRunner(ScriptRunnerOptions? options = null)
+    {
+        _options = options ?? new ScriptRunnerOptions();
+        Log = _options.Log ?? new SessionLog();
+    }
+
+    /// <summary>Everything this runner did, in order, on one clock.</summary>
+    public SessionLog Log { get; }
 
     /// <summary>Runs every test in every document.</summary>
     public RunReport RunAll(IEnumerable<ScriptDocument> documents, CancellationToken cancel = default)
@@ -96,12 +113,17 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
     private TestOutcome Run(ScriptTest test, CapabilitySet baseline, out RunProvenance? provenance)
     {
         provenance = null;
-        var stopwatch = Stopwatch.StartNew();
 
+        // A test measures from its own start; the session outlives every test in the run. The base
+        // is taken with the stopwatch so the two zeroes are the same instant.
         ConnectStep? connect = test.Steps.OfType<ConnectStep>().FirstOrDefault();
+        ClockBase testBase = Log.Clock.Mark();
+        var stopwatch = Stopwatch.StartNew();
+        Log.TestStarted(test.Name, test.Location, connect?.Channel ?? SasChannel.One);
+
         if (connect is null)
         {
-            return new TestOutcome
+            var broken = new TestOutcome
             {
                 Name = test.Name,
                 Location = test.Location,
@@ -115,6 +137,9 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
                         Reason: "no 'host connect' step"),
                 ],
             };
+
+            Log.TestFinished(broken, SasChannel.One);
+            return broken;
         }
 
         ScriptEnvironment environment;
@@ -124,7 +149,7 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
         }
         catch (TransportRefusedException refused)
         {
-            return Skipped(test, stopwatch, refused.Message);
+            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
         }
 
         using (environment)
@@ -142,9 +167,9 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
 
             (Requirement Requirement, string Reason)? unmet = capabilities.FirstUnmet(test.Requirements);
             if (unmet is { } gap)
-                return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}");
+                return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}", connect.Channel, testBase);
 
-            return Execute(test, connect, environment, stopwatch);
+            return Execute(test, connect, environment, stopwatch, testBase);
         }
     }
 
@@ -152,7 +177,8 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
         ScriptTest test,
         ConnectStep connect,
         ScriptEnvironment environment,
-        Stopwatch stopwatch)
+        Stopwatch stopwatch,
+        ClockBase testBase)
     {
         TimeSpan interval = test.Steps.OfType<PollEveryStep>().FirstOrDefault()?.Interval
                             ?? _options.PollInterval;
@@ -173,13 +199,22 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
         }
         catch (TransportRefusedException refused)
         {
-            return Skipped(test, stopwatch, refused.Message);
+            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
         }
+
+        // The engine keeps its own clock, so its zero is marked on the session clock before it
+        // starts and every record it produces is converted before joining the stream.
+        ClockBase engineBase = Log.Clock.Mark();
+        engine.Wire += (direction, channel, symbols, elapsed, note) =>
+            Log.Wire(direction, channel, symbols, elapsed, engineBase, note);
+        engine.LinkStateChanged += state =>
+            Log.Link(state, connect.Channel, engineBase, engine.Elapsed);
 
         var exceptions = new List<ExceptionReport>();
         var consumed = new HashSet<long>();
         engine.ExceptionReported += report =>
         {
+            Log.Exception(report, engineBase, SasNames.ExceptionName(report.Code));
             lock (exceptions)
                 exceptions.Add(report);
         };
@@ -195,14 +230,15 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
             }
             catch (TransportRefusedException refused)
             {
-                return Skipped(test, stopwatch, refused.Message);
+                return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
             }
 
             if (environment.HostTransport is TcpTransport tcp && !tcp.WaitForPeer(_options.PeerTimeout))
             {
                 return Skipped(test, stopwatch,
                     $"no gaming machine connected to {tcp.Description} within "
-                    + $"{_options.PeerTimeout.TotalSeconds:F0}s");
+                    + $"{_options.PeerTimeout.TotalSeconds:F0}s",
+                    connect.Channel, testBase);
             }
 
             RefreshBaselines(engine, test.WatchedMeters, baselines);
@@ -212,6 +248,7 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
                 StepResult result = RunStep(step, engine, environment, exceptions, consumed,
                     test, baselines, stopwatch.Elapsed);
                 steps.Add(result);
+                Log.Step(result, connect.Channel, testBase);
 
                 if (result.Verdict == Verdict.Error)
                     break;
@@ -220,7 +257,7 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
             IReadOnlyList<WireRecord> wire = engine.WireLog.Snapshot();
             engine.Stop();
 
-            return new TestOutcome
+            var outcome = new TestOutcome
             {
                 Name = test.Name,
                 Location = test.Location,
@@ -233,6 +270,9 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
                     ? steps.FirstOrDefault(s => s.Verdict == Verdict.Skip)?.Reason
                     : null,
             };
+
+            Log.TestFinished(outcome, connect.Channel);
+            return outcome;
         }
     }
 
@@ -599,14 +639,25 @@ public sealed class ScriptRunner(ScriptRunnerOptions? options = null)
         return steps.Any(s => s.Verdict == Verdict.Skip) ? Verdict.Skip : Verdict.Pass;
     }
 
-    private static TestOutcome Skipped(ScriptTest test, Stopwatch stopwatch, string reason) => new()
+    /// <summary>
+    /// A test that could not run. The verdict still joins the stream, because a test that started
+    /// and never finished would leave the log looking as though it were still going.
+    /// </summary>
+    private TestOutcome Skipped(
+        ScriptTest test, Stopwatch stopwatch, string reason, SasChannel channel, ClockBase testBase)
     {
-        Name = test.Name,
-        Location = test.Location,
-        Verdict = Verdict.Skip,
-        Tags = test.Tags,
-        Duration = stopwatch.Elapsed,
-        SkipReason = reason,
-        Steps = [new StepResult(test.Location, test.Name, Verdict.Skip, Reason: reason)],
-    };
+        var outcome = new TestOutcome
+        {
+            Name = test.Name,
+            Location = test.Location,
+            Verdict = Verdict.Skip,
+            Tags = test.Tags,
+            Duration = stopwatch.Elapsed,
+            SkipReason = reason,
+            Steps = [new StepResult(test.Location, test.Name, Verdict.Skip, Reason: reason)],
+        };
+
+        Log.TestFinished(outcome, channel);
+        return outcome;
+    }
 }
