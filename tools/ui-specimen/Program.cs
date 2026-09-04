@@ -102,16 +102,18 @@ internal static class Program
     private static void Capture(
         ThemeVariant variant, int width, int height, int instrument, string path)
     {
+        WorkbenchViewModel model = Specimen();
+        model.SelectedInstrument = model.Instruments[instrument];
+
         var window = new MainWindow
         {
-            DataContext = Specimen(),
+            DataContext = model,
             RequestedThemeVariant = variant,
             Width = width,
             Height = height,
         };
 
         window.Show();
-        window.FindControl<TabControl>("Instruments")!.SelectedIndex = instrument;
         Dispatcher.UIThread.RunJobs();
 
         using WriteableBitmap frame = window.CaptureRenderedFrame()
@@ -135,6 +137,7 @@ internal static class Program
             IsLinkProven = true,
             LinkClaim = "over tcp 127.0.0.1:9760 (listen) · stimulus none",
             Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
+            LogBound = "log 9/2000",
             Status = "connected to tcp 127.0.0.1:9760 (listen)",
             LastReply = "answered in 30.7 ms, 24 symbols",
             RunSummary = "PASS — 1 passed, 1 skipped in 7.0s",

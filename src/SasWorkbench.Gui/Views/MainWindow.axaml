@@ -10,51 +10,100 @@
         Width="1180" Height="760"
         MinWidth="900" MinHeight="600">
 
-  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="12">
+  <DockPanel LastChildFill="True">
 
-    <Border Grid.Row="0" Classes="panel" Padding="10"
+    <!-- Band 0 — the instrument header. It never wraps; the endpoint is the elastic field. -->
+    <Border DockPanel.Dock="Top" Classes="raised" Padding="10,6"
             AutomationProperties.Name="Link">
-      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="10">
-        <StackPanel Grid.Column="0">
-          <TextBlock Classes="field" Text="LINK" />
-          <ComboBox ItemsSource="{Binding Transports}"
-                    SelectedItem="{Binding SelectedTransport}"
-                    MinWidth="110" />
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+
+        <TextBlock Grid.Column="0" Classes="mark" Text="SASWORKBENCH"
+                   VerticalAlignment="Center" Margin="0,0,8,0" />
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+          <TextBlock Classes="field" Text="LINK" VerticalAlignment="Center" Margin="0" />
+          <ComboBox ItemsSource="{Binding Transports}" SelectedItem="{Binding SelectedTransport}"
+                    MinWidth="104" />
         </StackPanel>
-        <StackPanel Grid.Column="1">
-          <TextBlock Classes="field" Text="ENDPOINT OR PORT" />
-          <TextBox Text="{Binding Target}" MinWidth="180" />
+
+        <TextBox Grid.Column="2" Text="{Binding Target}" MinWidth="150"
+                 FontFamily="{StaticResource FontMono}"
+                 AutomationProperties.Name="Endpoint or port" />
+
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+          <TextBlock Classes="field" Text="ADDR" VerticalAlignment="Center" Margin="0" />
+          <TextBox Text="{Binding Address}" Width="52" FontFamily="{StaticResource FontMono}"
+                   AutomationProperties.Name="Poll address" />
         </StackPanel>
-        <StackPanel Grid.Column="2">
-          <TextBlock Classes="field" Text="ADDR" />
-          <TextBox Text="{Binding Address}" Width="66" />
+
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+          <TextBlock Classes="field" Text="CH" VerticalAlignment="Center" Margin="0" />
+          <ComboBox ItemsSource="{Binding Channels}" SelectedItem="{Binding SelectedChannel}"
+                    Width="64" AutomationProperties.Name="Channel" />
         </StackPanel>
-        <StackPanel Grid.Column="3">
-          <TextBlock Classes="field" Text="CH" />
-          <ComboBox ItemsSource="{Binding Channels}"
-                    SelectedItem="{Binding SelectedChannel}" Width="72" />
+
+        <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="4">
+          <TextBlock Classes="field" Text="POLL" VerticalAlignment="Center" Margin="0" />
+          <TextBox Text="{Binding PollInterval}" Width="72"
+                   FontFamily="{StaticResource FontMono}"
+                   AutomationProperties.Name="Poll interval" />
         </StackPanel>
-        <StackPanel Grid.Column="4">
-          <TextBlock Classes="field" Text="POLL" />
-          <TextBox Text="{Binding PollInterval}" Width="86" />
-        </StackPanel>
-        <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom" Spacing="6">
+
+        <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="6">
           <Button Content="Connect" Command="{Binding ConnectCommand}"
                   IsEnabled="{Binding !IsConnected}" />
           <Button Content="Disconnect" Command="{Binding DisconnectCommand}"
                   IsEnabled="{Binding IsConnected}" />
         </StackPanel>
-        <TextBlock Grid.Column="7" Classes="mark" Text="SASWORKBENCH"
-                   VerticalAlignment="Bottom" HorizontalAlignment="Right" />
+
       </Grid>
     </Border>
 
-    <v:ProvenanceRail Grid.Row="1" Margin="0,8" />
+    <!-- Band 1 — provenance. -->
+    <v:ProvenanceRail DockPanel.Dock="Top" />
 
-    <Grid Grid.Row="2" ColumnDefinitions="*,8,1.15*">
+    <!-- Band 3 — the footer readout, carrying provenance again so a crop still has it. -->
+    <Border DockPanel.Dock="Bottom" Classes="raised" Padding="10,4"
+            BorderThickness="0,1,0,0" AutomationProperties.Name="Readout">
+      <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="14">
+        <TextBlock Grid.Column="0" Classes="readout" Text="{Binding Counters}" />
+        <TextBlock Grid.Column="1" Classes="prose" Text="{Binding Status}"
+                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="readout" Text="{Binding LogBound}" />
+        <TextBlock Grid.Column="3" Classes="readout" Text="{Binding LinkClaim}"
+                   TextTrimming="CharacterEllipsis" MaxWidth="300" />
+      </Grid>
+    </Border>
 
-      <Border Grid.Column="0" Classes="panel" Padding="10"
-              AutomationProperties.Name="Trace">
+    <!-- Band 2 — the body: rail, spine, instrument. -->
+    <Grid ColumnDefinitions="Auto,1.15*,4,*" Margin="10,8">
+
+      <ListBox Grid.Column="0" Classes="rail" Width="132" Margin="0,0,10,0"
+               ItemsSource="{Binding Instruments}"
+               SelectedItem="{Binding SelectedInstrument}"
+               AutomationProperties.Name="Instruments">
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem" x:DataType="vm:RailItem">
+            <Setter Property="IsEnabled" Value="{Binding IsAvailable}" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding Automation}" />
+            <Setter Property="MinHeight" Value="24" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="vm:RailItem">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+              <TextBlock Grid.Column="0" Classes="caption" Text="{Binding Name}"
+                         VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Classes="at" Text="{Binding Milestone}"
+                         VerticalAlignment="Center" />
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <!-- The spine. It can be scoped, but no view replaces it. -->
+      <Border Grid.Column="1" Classes="panel" Padding="10" MinWidth="380"
+              AutomationProperties.Name="Session stream">
         <Grid RowDefinitions="Auto,*">
           <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,6">
             <TextBlock Grid.Column="0" Classes="caption" Text="TRACE" VerticalAlignment="Center" />
@@ -64,18 +113,17 @@
           </Grid>
 
           <Border Grid.Row="1" Classes="well">
-            <ListBox ItemsSource="{Binding Wire}" Background="Transparent">
+            <ListBox ItemsSource="{Binding Wire}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:WireLine">
-                  <Grid ColumnDefinitions="72,30,26,*,Auto" ColumnSpacing="8">
+                  <Grid ColumnDefinitions="66,26,*,Auto" ColumnSpacing="8">
                     <TextBlock Grid.Column="0" Classes="at" Text="{Binding At}"
                                HorizontalAlignment="Right" />
                     <TextBlock Grid.Column="1" Classes="hex" Text="{Binding Direction}"
                                FontWeight="Bold" />
-                    <TextBlock Grid.Column="2" Classes="at" Text="{Binding Channel}" />
-                    <SelectableTextBlock Grid.Column="3" Classes="hex" Text="{Binding Symbols}"
+                    <SelectableTextBlock Grid.Column="2" Classes="hex" Text="{Binding Symbols}"
                                          TextWrapping="Wrap" />
-                    <TextBlock Grid.Column="4" Classes="prose" Text="{Binding Note}"
+                    <TextBlock Grid.Column="3" Classes="prose" Text="{Binding Note}"
                                HorizontalAlignment="Right" VerticalAlignment="Center" />
                   </Grid>
                 </DataTemplate>
@@ -85,135 +133,138 @@
         </Grid>
       </Border>
 
-      <TabControl Grid.Column="2" Name="Instruments">
+      <GridSplitter Grid.Column="2" Background="Transparent" ResizeDirection="Columns" />
 
-        <TabItem Header="Long poll">
-          <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="4,10,4,4" RowSpacing="8">
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-              <StackPanel Grid.Column="0">
-                <TextBlock Classes="field" Text="COMMAND" />
-                <ComboBox ItemsSource="{Binding LongPolls}"
-                          SelectedItem="{Binding SelectedLongPoll}"
-                          HorizontalAlignment="Stretch" />
+      <Border Grid.Column="3" Classes="panel" Padding="10" MinWidth="330"
+              AutomationProperties.Name="Instrument">
+        <TabControl Name="Instruments" Classes="host"
+                    SelectedIndex="{Binding InstrumentIndex}">
+
+          <TabItem Header="Long poll">
+            <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="0,8,0,0" RowSpacing="8">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="field" Text="COMMAND" />
+                  <ComboBox ItemsSource="{Binding LongPolls}"
+                            SelectedItem="{Binding SelectedLongPoll}"
+                            HorizontalAlignment="Stretch" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                  <Button Content="Send" Command="{Binding SendLongPollCommand}"
+                          IsEnabled="{Binding IsConnected}" />
+                </StackPanel>
+              </Grid>
+
+              <StackPanel Grid.Row="1">
+                <TextBlock Classes="field" Text="DATA, AS HEX (LEAVE EMPTY FOR NONE)" />
+                <TextBox Text="{Binding LongPollData}" FontFamily="{StaticResource FontMono}" />
               </StackPanel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
-                <Button Content="Send" Command="{Binding SendLongPollCommand}"
-                        IsEnabled="{Binding IsConnected}" />
-              </StackPanel>
+
+              <SelectableTextBlock Grid.Row="2" Classes="hex" Text="{Binding LastReply}"
+                                   TextWrapping="Wrap" />
+
+              <ListBox Grid.Row="3" ItemsSource="{Binding Fields}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:FieldLine">
+                    <Grid ColumnDefinitions="1.2*,*,Auto" ColumnSpacing="10">
+                      <TextBlock Grid.Column="0" Classes="name" Text="{Binding Name}"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+                      <SelectableTextBlock Grid.Column="1" Classes="value" Text="{Binding Value}"
+                                           TextWrapping="Wrap" HorizontalAlignment="Left"
+                                           VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="prose" Text="{Binding Note}"
+                                 HorizontalAlignment="Right" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
             </Grid>
+          </TabItem>
 
-            <StackPanel Grid.Row="1">
-              <TextBlock Classes="field" Text="DATA, AS HEX (LEAVE EMPTY FOR NONE)" />
-              <TextBox Text="{Binding LongPollData}" FontFamily="{StaticResource FontMono}" />
-            </StackPanel>
-
-            <SelectableTextBlock Grid.Row="2" Classes="hex" Text="{Binding LastReply}"
-                                 TextWrapping="Wrap" />
-
-            <ListBox Grid.Row="3" ItemsSource="{Binding Fields}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:FieldLine">
-                  <Grid ColumnDefinitions="1.2*,*,Auto" ColumnSpacing="10">
-                    <TextBlock Grid.Column="0" Classes="name" Text="{Binding Name}"
-                               HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <SelectableTextBlock Grid.Column="1" Classes="value" Text="{Binding Value}"
-                                         TextWrapping="Wrap" HorizontalAlignment="Left"
-                                         VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="2" Classes="prose" Text="{Binding Note}"
-                               HorizontalAlignment="Right" VerticalAlignment="Center" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Grid>
-        </TabItem>
-
-        <TabItem Header="Meters">
-          <Grid RowDefinitions="Auto,*" Margin="4,10,4,4" RowSpacing="8">
-            <Button Grid.Row="0" Content="Read every meter this build can read"
-                    Command="{Binding RefreshMetersCommand}" IsEnabled="{Binding IsConnected}"
-                    HorizontalAlignment="Left" />
-            <ListBox Grid.Row="1" ItemsSource="{Binding Meters}">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:MeterLine">
-                  <Grid ColumnDefinitions="1.4*,Auto,90,*" ColumnSpacing="10">
-                    <TextBlock Grid.Column="0" Classes="name" Text="{Binding Name}"
-                               HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="1" Classes="at" Text="{Binding From}"
-                               HorizontalAlignment="Left" VerticalAlignment="Center" />
-                    <SelectableTextBlock Grid.Column="2" Classes="value" Text="{Binding Value}"
-                                         TextAlignment="Right" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Classes="prose" Text="{Binding Note}"
-                               TextWrapping="Wrap" HorizontalAlignment="Left"
-                               VerticalAlignment="Center" />
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </Grid>
-        </TabItem>
-
-        <TabItem Header="Exceptions">
-          <ListBox ItemsSource="{Binding Exceptions}" Margin="4,10,4,4">
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="vm:ExceptionLine">
-                <Grid ColumnDefinitions="Auto,1.1*,2*,Auto" ColumnSpacing="10">
-                  <SelectableTextBlock Grid.Column="0" Classes="value" Text="{Binding Code}"
-                                       VerticalAlignment="Top" />
-                  <TextBlock Grid.Column="1" Classes="name" Text="{Binding Name}"
-                             HorizontalAlignment="Left" VerticalAlignment="Top" />
-                  <TextBlock Grid.Column="2" Classes="prose" Text="{Binding Meaning}"
-                             TextWrapping="Wrap" HorizontalAlignment="Left" />
-                  <TextBlock Grid.Column="3" Classes="at" Text="{Binding At}"
-                             HorizontalAlignment="Right" VerticalAlignment="Top" />
-                </Grid>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-        </TabItem>
-
-        <TabItem Header="Run">
-          <Grid RowDefinitions="Auto,Auto,*" Margin="4,10,4,4" RowSpacing="8">
-            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-              <StackPanel Grid.Column="0">
-                <TextBlock Classes="field" Text="SCRIPT OR DIRECTORY" />
-                <TextBox Text="{Binding ScriptPath}" FontFamily="{StaticResource FontMono}" />
-              </StackPanel>
-              <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
-                <Button Content="Run" Command="{Binding RunScriptCommand}"
-                        IsEnabled="{Binding !IsBusy}" />
-              </StackPanel>
+          <TabItem Header="Meters">
+            <Grid RowDefinitions="Auto,*" Margin="0,8,0,0" RowSpacing="8">
+              <Button Grid.Row="0" Content="Read every meter this build can read"
+                      Command="{Binding RefreshMetersCommand}" IsEnabled="{Binding IsConnected}"
+                      HorizontalAlignment="Left" />
+              <ListBox Grid.Row="1" ItemsSource="{Binding Meters}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:MeterLine">
+                    <Grid ColumnDefinitions="1.4*,Auto,90,*" ColumnSpacing="10">
+                      <TextBlock Grid.Column="0" Classes="name" Text="{Binding Name}"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="1" Classes="at" Text="{Binding From}"
+                                 HorizontalAlignment="Left" VerticalAlignment="Center" />
+                      <SelectableTextBlock Grid.Column="2" Classes="value" Text="{Binding Value}"
+                                           TextAlignment="Right" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="3" Classes="prose" Text="{Binding Note}"
+                                 TextWrapping="Wrap" HorizontalAlignment="Left"
+                                 VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
             </Grid>
+          </TabItem>
 
-            <TextBlock Grid.Row="1" Classes="strong" Text="{Binding RunSummary}"
-                       TextWrapping="Wrap" />
-
-            <ListBox Grid.Row="2" ItemsSource="{Binding Steps}">
+          <TabItem Header="Exceptions">
+            <ListBox ItemsSource="{Binding Exceptions}" Margin="0,8,0,0">
               <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="vm:StepLine">
-                  <Grid ColumnDefinitions="Auto,1.4*,*" ColumnSpacing="10">
-                    <c:StatusChip Grid.Column="0" Status="{Binding Verdict}"
-                                  Reason="{Binding Detail}" VerticalAlignment="Top" />
-                    <TextBlock Grid.Column="1" Classes="name" Text="{Binding What}"
+                <DataTemplate x:DataType="vm:ExceptionLine">
+                  <Grid ColumnDefinitions="Auto,1.1*,2*,Auto" ColumnSpacing="10">
+                    <SelectableTextBlock Grid.Column="0" Classes="value" Text="{Binding Code}"
+                                         VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Classes="name" Text="{Binding Name}"
+                               HorizontalAlignment="Left" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="2" Classes="prose" Text="{Binding Meaning}"
                                TextWrapping="Wrap" HorizontalAlignment="Left" />
-                    <StackPanel Grid.Column="2">
-                      <TextBlock Classes="prose" Text="{Binding Detail}" TextWrapping="Wrap" />
-                      <TextBlock Classes="where" Text="{Binding Where}" TextWrapping="Wrap" />
-                    </StackPanel>
+                    <TextBlock Grid.Column="3" Classes="at" Text="{Binding At}"
+                               HorizontalAlignment="Right" VerticalAlignment="Top" />
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
             </ListBox>
-          </Grid>
-        </TabItem>
+          </TabItem>
 
-      </TabControl>
+          <TabItem Header="Suite">
+            <Grid RowDefinitions="Auto,Auto,*" Margin="0,8,0,0" RowSpacing="8">
+              <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <StackPanel Grid.Column="0">
+                  <TextBlock Classes="field" Text="SCRIPT OR DIRECTORY" />
+                  <TextBox Text="{Binding ScriptPath}" FontFamily="{StaticResource FontMono}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Bottom">
+                  <Button Content="Run" Command="{Binding RunScriptCommand}"
+                          IsEnabled="{Binding !IsBusy}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Grid.Row="1" Classes="strong" Text="{Binding RunSummary}"
+                         TextWrapping="Wrap" />
+
+              <ListBox Grid.Row="2" ItemsSource="{Binding Steps}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:StepLine">
+                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*"
+                          ColumnSpacing="10">
+                      <c:StatusChip Grid.Row="0" Grid.Column="0" Status="{Binding Verdict}"
+                                    Reason="{Binding Detail}" VerticalAlignment="Top" />
+                      <TextBlock Grid.Row="0" Grid.Column="1" Classes="name"
+                                 Text="{Binding What}" TextWrapping="Wrap" />
+                      <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,1,0,3">
+                        <TextBlock Classes="prose" Text="{Binding Detail}" TextWrapping="Wrap" />
+                        <TextBlock Classes="where" Text="{Binding Where}"
+                                   TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+
+        </TabControl>
+      </Border>
+
     </Grid>
-
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="2,8,2,0">
-      <TextBlock Grid.Column="0" Classes="prose" Text="{Binding Status}" TextWrapping="Wrap" />
-      <TextBlock Grid.Column="1" Classes="readout" Text="{Binding Counters}" />
-    </Grid>
-
-  </Grid>
+  </DockPanel>
 </Window>

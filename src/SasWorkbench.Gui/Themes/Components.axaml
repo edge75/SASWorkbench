@@ -160,6 +160,31 @@
     <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
   </Style>
 
+  <!-- The instrument rail. Selection is a leading bar, not a colour wash. -->
+
+  <Style Selector="ListBox.rail">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBox.rail ListBoxItem">
+    <Setter Property="Padding" Value="8,3" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+  </Style>
+
+  <Style Selector="ListBox.rail ListBoxItem:selected">
+    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+  </Style>
+
+  <!-- The rail drives the instrument host, so the host's own strip would be a second control. -->
+  <Style Selector="TabControl.host /template/ ItemsPresenter#PART_ItemsPresenter">
+    <Setter Property="IsVisible" Value="False" />
+  </Style>
+
+  <Style Selector="TabControl.host">
+    <Setter Property="Padding" Value="0" />
+  </Style>
+
   <!-- The provenance band. Its whole ground changes with the strength of the claim. -->
 
   <Style Selector="Border.rail">

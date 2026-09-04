@@ -36,6 +36,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         SerialPorts = SerialTransport.AvailablePorts();
         LongPolls = SasCatalogue.LongPolls.Values.OrderBy(l => l.Code).ToList();
         SelectedLongPoll = LongPolls.FirstOrDefault(l => l.Code == 0x1F) ?? LongPolls[0];
+        SelectedInstrument = Instruments[0];
     }
 
     // ---- connection ----------------------------------------------------------------------
@@ -94,7 +95,43 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string Counters { get; set; } = string.Empty;
 
+    /// <summary>How full the log is, so a reader knows when it has started overwriting.</summary>
+    [ObservableProperty]
+    public partial string LogBound { get; set; } = $"log 0/{WireLimit}";
+
     public IReadOnlyList<int> Channels { get; } = [1, 2, 3, 4];
+
+    // ---- instruments ---------------------------------------------------------------------
+
+    /// <summary>
+    /// The rail. Instruments a later milestone brings are listed but not offered, because a
+    /// surface that is coming and a surface that is missing are different things to a reader.
+    /// </summary>
+    public IReadOnlyList<RailItem> Instruments { get; } =
+    [
+        new RailItem("POLL", 0),
+        new RailItem("METERS", 1),
+        new RailItem("EXCEPTIONS", 2),
+        new RailItem("SUITE", 3),
+        new RailItem("CATALOGUE", -1, "M4"),
+        new RailItem("SESSION", -1, "M4"),
+        new RailItem("STIMULUS", -1, "M2"),
+        new RailItem("TICKETS", -1, "M3"),
+        new RailItem("TRACES", -1, "M4"),
+    ];
+
+    [ObservableProperty]
+    public partial RailItem? SelectedInstrument { get; set; }
+
+    /// <summary>Which instrument body is showing.</summary>
+    [ObservableProperty]
+    public partial int InstrumentIndex { get; set; }
+
+    partial void OnSelectedInstrumentChanged(RailItem? value)
+    {
+        if (value is { Index: >= 0 })
+            InstrumentIndex = value.Index;
+    }
 
     // ---- live views ----------------------------------------------------------------------
 
@@ -489,7 +526,23 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         PollStatistics stats = _session?.Statistics ?? PollStatistics.Empty;
         Counters = $"{stats.SyncPolls} sync · {stats.GeneralPolls} general · {stats.LongPolls} long · "
                    + $"{stats.Exceptions} exceptions · {stats.Silences} silences";
+        LogBound = $"log {Wire.Count}/{WireLimit}";
     }
+}
+
+/// <summary>One instrument on the rail.</summary>
+/// <param name="Name">What it is called.</param>
+/// <param name="Index">Which body it shows, or -1 when a later milestone brings it.</param>
+/// <param name="Milestone">The milestone that brings it, when it is not here yet.</param>
+public sealed record RailItem(string Name, int Index, string? Milestone = null)
+{
+    /// <summary>Whether this instrument can be selected at all.</summary>
+    public bool IsAvailable => Index >= 0;
+
+    /// <summary>What a screen reader is told about an instrument that is not here yet.</summary>
+    public string Automation => IsAvailable
+        ? Name
+        : $"{Name} — not in this build; {Milestone} brings it";
 }
 
 /// <summary>One message in the log.</summary>
