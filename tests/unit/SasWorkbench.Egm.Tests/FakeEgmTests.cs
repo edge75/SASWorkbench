@@ -28,9 +28,14 @@ public class FakeEgmTests
             {
                 Address = Address,
                 PollInterval = TimeSpan.FromMilliseconds(20),
-                ResponseTimeout = responseTimeout ?? TimeSpan.FromMilliseconds(200),
+                // Generous on purpose. Nothing in this class is a measurement of latency except
+                // the one test that says so, and everything else was a race against the clock:
+                // four test assemblies running at once can starve the machine's thread for longer
+                // than a tight timeout allows, which failed a different test most runs. A test
+                // that expects silence asks for a short timeout of its own.
+                ResponseTimeout = responseTimeout ?? TimeSpan.FromSeconds(5),
                 QuietGap = TimeSpan.FromMilliseconds(15),
-                LinkDownAfter = TimeSpan.FromMilliseconds(500),
+                LinkDownAfter = TimeSpan.FromSeconds(30),
             });
             Host.Start();
         }
@@ -286,7 +291,12 @@ public class FakeEgmTests
     [Fact]
     public void A_machine_at_another_address_ignores_polls_meant_for_someone_else()
     {
-        using var rig = new Rig(new FakeEgmOptions { Address = SasAddress.Of(9) });
+        // Silence is the expected answer, so this one waits briefly rather than the full default.
+        // A loaded machine can only make silence more likely, never less, so a short wait here is
+        // safe in a way it is not anywhere else in this class.
+        using var rig = new Rig(
+            new FakeEgmOptions { Address = SasAddress.Of(9) },
+            responseTimeout: TimeSpan.FromMilliseconds(200));
 
         LongPollResult result = rig.Host.Execute(0x1F);
 
@@ -307,9 +317,7 @@ public class FakeEgmTests
     [Fact]
     public void A_slow_machine_is_still_answered_within_the_timeout()
     {
-        using var rig = new Rig(
-            new FakeEgmOptions { ResponseDelay = TimeSpan.FromMilliseconds(40) },
-            responseTimeout: TimeSpan.FromSeconds(5));
+        using var rig = new Rig(new FakeEgmOptions { ResponseDelay = TimeSpan.FromMilliseconds(40) });
 
         LongPollResult result = rig.Host.Execute(0x1F);
 

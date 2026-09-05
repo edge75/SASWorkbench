@@ -22,6 +22,11 @@
       <SolidColorBrush x:Key="TextData"               Color="#14202A" />
       <SolidColorBrush x:Key="Accent"                 Color="#22303A" />
       <SolidColorBrush x:Key="AccentGround"           Color="#E0E2E3" />
+
+      <!-- A search hit. Its own pair rather than a borrowed status colour: chroma on this screen
+           means something, and "you were looking for this" is not a verdict. -->
+      <SolidColorBrush x:Key="FindEdge"               Color="#3C6493" />
+      <SolidColorBrush x:Key="FindGround"             Color="#DAE4F0" />
       <SolidColorBrush x:Key="TextOnAccent"           Color="#FFFFFF" />
       <SolidColorBrush x:Key="WireTx"                 Color="#8A5300" />
       <SolidColorBrush x:Key="WireTxGround"           Color="#EFE7DB" />
@@ -73,6 +78,9 @@
       <SolidColorBrush x:Key="TextData"               Color="#DCE7EF" />
       <SolidColorBrush x:Key="Accent"                 Color="#C7D2DA" />
       <SolidColorBrush x:Key="AccentGround"           Color="#2D3338" />
+
+      <SolidColorBrush x:Key="FindEdge"               Color="#7FA9DC" />
+      <SolidColorBrush x:Key="FindGround"             Color="#1F2A38" />
       <SolidColorBrush x:Key="TextOnAccent"           Color="#0D1013" />
       <SolidColorBrush x:Key="WireTx"                 Color="#F0A93C" />
       <SolidColorBrush x:Key="WireTxGround"           Color="#332D22" />

@@ -14,7 +14,10 @@ public class ScriptRunnerTests
         Stimulus = StimulusBackend.Software,
         Environment = SoftwareMachineEnvironment.For(machine),
         PollInterval = TimeSpan.FromMilliseconds(20),
-        ResponseTimeout = TimeSpan.FromMilliseconds(200),
+
+        // Generous on purpose: these tests are about what a script does, not about how fast a
+        // machine answers, and a tight timeout turned a loaded build agent into a failing one.
+        ResponseTimeout = TimeSpan.FromSeconds(5),
         QuietGap = TimeSpan.FromMilliseconds(15),
     });
 

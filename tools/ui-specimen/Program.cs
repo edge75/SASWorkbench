@@ -62,6 +62,23 @@ internal static class Program
             }
         }
 
+        // A search, highlighted and then filtered, so the two behaviours can be compared rather
+        // than described.
+        foreach ((string themeName, ThemeVariant variant) in
+                 new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
+        {
+            foreach ((string what, string query, bool only) in new[]
+                     {
+                         ("highlight", "lp 1F", false),
+                         ("filter", "lp 1F", true),
+                     })
+            {
+                string found = Path.Combine(directory, $"find-{themeName}-{what}.png");
+                Capture(variant, 1180, 760, 0, allLanes: true, found, query, only);
+                Console.WriteLine(found);
+            }
+        }
+
         foreach ((string themeName, ThemeVariant variant) in
                  new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
         {
@@ -115,7 +132,14 @@ internal static class Program
     }
 
     private static void Capture(
-        ThemeVariant variant, int width, int height, int instrument, bool allLanes, string path)
+        ThemeVariant variant,
+        int width,
+        int height,
+        int instrument,
+        bool allLanes,
+        string path,
+        string? find = null,
+        bool onlyMatches = false)
     {
         WorkbenchViewModel model = Specimen();
         model.SelectedInstrument = model.Instruments[instrument];
@@ -124,6 +148,12 @@ internal static class Program
         {
             foreach (LaneFilter lane in model.Stream.Lanes)
                 lane.IsShown = true;
+        }
+
+        if (find is not null)
+        {
+            model.Stream.Find = find;
+            model.Stream.HideOthers = onlyMatches;
         }
 
         var window = new MainWindow

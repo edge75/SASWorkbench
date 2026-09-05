@@ -3,6 +3,7 @@ using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Gui.Controls;
@@ -103,12 +104,41 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
     [ObservableProperty]
     public partial string? Scope { get; set; }
 
+    /// <summary>
+    /// What to look for, written as one line: <c>lp 2F</c>, <c>exception 4A</c> or its name,
+    /// <c>general</c>, <c>sync</c>, or any text to find in the symbols or the note.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? Find { get; set; }
+
+    /// <summary>Whose messages the search looks at.</summary>
+    [ObservableProperty]
+    public partial TraceSide Side { get; set; } = TraceSide.Both;
+
+    /// <summary>
+    /// Whether the stream shows only what matched, or shows everything with the matches marked.
+    /// </summary>
+    /// <remarks>
+    /// Highlighting is the default because a filtered stream loses what a message sat between,
+    /// and in a protocol log the neighbours are usually the point.
+    /// </remarks>
+    [ObservableProperty]
+    public partial bool HideOthers { get; set; }
+
+    /// <summary>How many rows matched, so a search that found nothing says so.</summary>
+    [ObservableProperty]
+    public partial string? Matches { get; set; }
+
     private TimeSpan? _from;
     private TimeSpan? _to;
+    private TraceQuery _query = new();
 
     public IReadOnlyList<TimestampMode> TimestampModes { get; } = Enum.GetValues<TimestampMode>();
 
     public IReadOnlyList<WakeupDisplay> WakeupDisplays { get; } = Enum.GetValues<WakeupDisplay>();
+
+    /// <summary>Whose messages a search may be narrowed to.</summary>
+    public IReadOnlyList<TraceSide> Sides { get; } = Enum.GetValues<TraceSide>();
 
     /// <summary>
     /// Points the spine at a log. The stream outlives any one link, so a run that tears the
@@ -185,6 +215,19 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
         _flush.Stop();
         if (_log is not null)
             _log.Appended -= OnAppended;
+    }
+
+    partial void OnFindChanged(string? value) => Research();
+
+    partial void OnSideChanged(TraceSide value) => Research();
+
+    partial void OnHideOthersChanged(bool value) => Rebuild();
+
+    /// <summary>Re-reads the search and applies it.</summary>
+    private void Research()
+    {
+        _query = TraceQuery.Parse(Find, Side);
+        Rebuild();
     }
 
     partial void OnTimestampsChanged(TimestampMode value) => Rebuild();
@@ -270,12 +313,46 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
             if (IsShowing(record))
                 Rows.Add(Row(record, offset));
         }
+
+        CountMatches();
     }
 
     private bool IsShowing(SessionEvent record) =>
         Lanes.First(l => l.Lane == record.Lane).IsShown
         && (_from is null || record.At >= _from)
-        && (_to is null || record.At <= _to);
+        && (_to is null || record.At <= _to)
+        && (!HideOthers || _query.IsEmpty || IsMatch(record));
+
+    /// <summary>
+    /// Whether the search found this event. Only the two wire lanes carry symbols to search, so a
+    /// search never matches a verdict or a prompt - and a search for text still reads their note.
+    /// </summary>
+    private bool IsMatch(SessionEvent record)
+    {
+        if (_query.IsEmpty)
+            return false;
+
+        WireDirection direction = record.Lane == SessionLane.Transmit
+            ? WireDirection.Transmit
+            : WireDirection.Receive;
+
+        return _query.Matches(direction, [.. record.Symbols], record.Note ?? record.Detail);
+    }
+
+    /// <summary>Says how the search went, including when it went badly.</summary>
+    private void CountMatches()
+    {
+        if (_query.IsEmpty)
+        {
+            Matches = null;
+            return;
+        }
+
+        int found = Rows.Count(r => r.IsMatch);
+        Matches = found == 0
+            ? $"nothing matched {_query}"
+            : $"{found} matched {_query}";
+    }
 
     private void Trim()
     {
@@ -301,7 +378,8 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
         record.Symbols.Count > 0 ? string.Empty : record.Text,
         record.Note ?? record.Detail ?? string.Empty,
         record.Verdict is { } verdict ? Chip(verdict) : null,
-        record.Where?.ToString() ?? string.Empty);
+        record.Where?.ToString() ?? string.Empty,
+        IsMatch(record));
 
     private static WireSymbol Symbol(SasSymbol symbol, WakeupDisplay display) => new(
         display == WakeupDisplay.FlagDigit ? symbol.ToString() : $"{symbol.Data:X2}",
@@ -358,7 +436,8 @@ public sealed record SessionRow(
     string Text,
     string Note,
     ChipStatus? Verdict,
-    string Where)
+    string Where,
+    bool IsMatch = false)
 {
     /// <summary>True for a message this host sent, which the row styling leans on.</summary>
     public bool IsTransmit => Event.Lane == SessionLane.Transmit;

@@ -214,6 +214,28 @@
     <Setter Property="Foreground" Value="{DynamicResource WireTx}" />
   </Style>
 
+  <!--
+    A search hit. Declared after the transmit row so a hit on one is still marked, and carrying a
+    heavier lane label as well as a ground, so a match is not separated from its neighbours by
+    colour alone. This is transient view state rather than a verdict, so it does not need the
+    three-cue treatment a status chip does.
+  -->
+  <Style Selector="ListBoxItem.found">
+    <Setter Property="Background" Value="{DynamicResource FindGround}" />
+    <Setter Property="BorderThickness" Value="0,0,3,0" />
+    <Setter Property="BorderBrush" Value="{DynamicResource FindEdge}" />
+  </Style>
+
+  <!-- A transmit row that matched keeps its own leading bar as well as the trailing one, so the
+       search does not cost the row the cue that says which way it went. -->
+  <Style Selector="ListBoxItem.tx.found">
+    <Setter Property="BorderThickness" Value="2,0,3,0" />
+  </Style>
+
+  <Style Selector="ListBoxItem.found TextBlock.hex">
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+
   <!-- A lane toggle: a compact filter, not a command. -->
   <Style Selector="ToggleButton.lane">
     <Setter Property="FontFamily" Value="{StaticResource FontMono}" />

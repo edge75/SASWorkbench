@@ -24,6 +24,7 @@ internal static class Help
               sasctl egm [options]               run the software gaming machine as a peer
               sasctl qpm <action> [options]      drive a running machine's peripherals by hand
               sasctl nvram <action> [options]    save or restore a machine's configured memory
+              sasctl find <file> [options]       find messages in a recorded run, by line number
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -84,6 +85,19 @@ internal static class Help
               Takes --egm-resources and --qpm-shm, as 'run' does. The machine must be running:
               nothing written here is seen by a machine that is not reading it, so a machine
               whose heartbeat has stopped is refused rather than written to.
+
+            FIND
+              --lp <hh>               a long poll, in either direction: the command and its reply
+              --exception <hh>        an exception the machine reported, by code or by name
+              --poll sync|general|long   polls of one kind
+              --side host|egm|both    whose messages to look at  (default: both)
+              --text <text>           a message whose symbols or note contain this
+              --address <hh>          the machine's address, which tells an acknowledgement from
+                                      an exception of the same value
+
+              Reads a run written with --report jsonl and prints every match with the line it is
+              on, so the file already open in an editor can be jumped into rather than replaced by
+              a filtered copy of itself.
 
             NVRAM
               status                  what the machine holds, and what has been saved

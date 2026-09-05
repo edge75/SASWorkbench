@@ -6,7 +6,7 @@
              x:DataType="vm:SessionStreamViewModel"
              AutomationProperties.Name="Session stream">
 
-  <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="6">
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="6">
 
     <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
       <TextBlock Grid.Column="0" Classes="caption" Text="STREAM" VerticalAlignment="Center" />
@@ -57,15 +57,38 @@
       </Button>
     </Grid>
 
-    <Border Grid.Row="1" Classes="fault" IsVisible="{Binding Gap, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+    <!-- Finding one message among thousands. Highlighting rather than filtering by default: in a
+         protocol log what a message sat between is usually the point of looking for it. -->
+    <Grid Grid.Row="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="8">
+      <TextBlock Grid.Column="0" Classes="caption" Text="FIND" VerticalAlignment="Center" />
+
+      <TextBox Grid.Column="1" Text="{Binding Find}"
+               Watermark="lp 2F · exception 4A · general · or any text"
+               AutomationProperties.Name="Find in the stream" />
+
+      <ComboBox Grid.Column="2" ItemsSource="{Binding Sides}" SelectedItem="{Binding Side}"
+                AutomationProperties.Name="Which end of the link to search"
+                VerticalAlignment="Center" />
+
+      <CheckBox Grid.Column="3" Content="Only matches" IsChecked="{Binding HideOthers}"
+                VerticalAlignment="Center"
+                AutomationProperties.Name="Show only what matched" />
+
+      <TextBlock Grid.Column="4" Classes="prose" Text="{Binding Matches}"
+                 VerticalAlignment="Center" MinWidth="140"
+                 IsVisible="{Binding Matches, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </Grid>
+
+    <Border Grid.Row="2" Classes="fault" IsVisible="{Binding Gap, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
       <TextBlock Classes="prose" Text="{Binding Gap}" TextWrapping="Wrap" />
     </Border>
 
-    <Border Grid.Row="2" Classes="well">
+    <Border Grid.Row="3" Classes="well">
       <ListBox ItemsSource="{Binding Rows}" AutomationProperties.Name="Events">
         <ListBox.Styles>
           <Style Selector="ListBoxItem" x:DataType="vm:SessionRow">
             <Setter Property="Classes.tx" Value="{Binding IsTransmit}" />
+            <Setter Property="Classes.found" Value="{Binding IsMatch}" />
           </Style>
         </ListBox.Styles>
         <ListBox.ItemTemplate>
