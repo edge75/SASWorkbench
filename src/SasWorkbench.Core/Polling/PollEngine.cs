@@ -30,6 +30,7 @@ public sealed class PollEngine : IDisposable
     private readonly SasSymbol[] _outbound = new SasSymbol[HostMessage.MaxSymbols];
     private readonly byte[] _inbound = new byte[HostMessage.MaxSymbols];
     private readonly byte[] _pendingData = new byte[255];
+    private readonly SasSymbol[] _discardScratch = new SasSymbol[HostMessage.MaxSymbols];
     private readonly SemaphoreSlim _executeGate = new(1, 1);
     private readonly ManualResetEventSlim _pendingDone = new(false);
     private readonly Lock _stateGate = new();
@@ -49,6 +50,7 @@ public sealed class PollEngine : IDisposable
     private long _badCrcs;
     private long _rejections;
     private long _wakeupsFromMachine;
+    private long _symbolsDiscarded;
     private long _pollsSinceSync;
     private TimeSpan _lastHeard = TimeSpan.MinValue;
     private LinkState _state = LinkState.Down;
@@ -109,7 +111,8 @@ public sealed class PollEngine : IDisposable
         Interlocked.Read(ref _silences),
         Interlocked.Read(ref _badCrcs),
         Interlocked.Read(ref _rejections),
-        Interlocked.Read(ref _wakeupsFromMachine));
+        Interlocked.Read(ref _wakeupsFromMachine),
+        Interlocked.Read(ref _symbolsDiscarded));
 
     /// <summary>Every message, as it happens. Handlers run on the poll thread; keep them quick.</summary>
     public event WireObserver? Wire;
@@ -245,6 +248,8 @@ public sealed class PollEngine : IDisposable
 
     private void RunPollCycle()
     {
+        Resynchronise();
+
         if (_options.SyncPollEvery > 0 && _pollsSinceSync % _options.SyncPollEvery == 0)
         {
             int length = HostMessage.WriteSyncPoll(_outbound);
@@ -291,6 +296,8 @@ public sealed class PollEngine : IDisposable
         byte command = _pendingCommand;
         int dataLength = _pendingDataLength;
         _pendingReady = false;
+
+        Resynchronise();
 
         // A machine that has not been resynchronised ignores an addressed poll, so keep sending
         // the synchronisation poll ahead of long polls too.
@@ -395,6 +402,28 @@ public sealed class PollEngine : IDisposable
         ReadOnlySpan<SasSymbol> message = _outbound.AsSpan(0, length);
         WireLog.Record(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
         Wire?.Invoke(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
+    }
+
+    /// <summary>
+    /// Drops anything already on the line before a poll goes out. SAS ends a message with silence
+    /// and nothing else, so a reply that arrives after the host gave up waiting cannot be told
+    /// apart from the next one by looking at it; without this the engine reads every later reply
+    /// one transaction behind for the rest of the session. What is dropped is counted and
+    /// recorded, never swallowed quietly.
+    /// </summary>
+    private void Resynchronise()
+    {
+        int discarded = _link.Drain(_discardScratch, TimeSpan.Zero);
+        if (discarded == 0)
+            return;
+
+        Interlocked.Add(ref _symbolsDiscarded, discarded);
+
+        ReadOnlySpan<SasSymbol> kept = _discardScratch.AsSpan(0, Math.Min(discarded, _discardScratch.Length));
+        string note = $"discarded {discarded} symbol{(discarded == 1 ? string.Empty : "s")} "
+                      + "left on the line by an answer that came too late";
+        WireLog.Record(WireDirection.Receive, _options.Channel, kept, _clock.Elapsed, note);
+        Wire?.Invoke(WireDirection.Receive, _options.Channel, kept, _clock.Elapsed, note);
     }
 
     private void MarkHeard()

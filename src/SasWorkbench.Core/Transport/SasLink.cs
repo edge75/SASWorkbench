@@ -68,7 +68,10 @@ public sealed class SasLink(ISasTransport transport, int maxMessageBytes = HostM
     }
 
     /// <summary>Reads and discards anything still on the line, so a fresh poll starts clean.</summary>
-    public int Drain(TimeSpan window)
+    /// <param name="kept">Receives as much of what was discarded as fits, so it can be recorded.</param>
+    /// <param name="window">How long to wait for something to appear. Zero does not block.</param>
+    /// <returns>How many symbols were discarded, counting any that did not fit in <paramref name="kept"/>.</returns>
+    public int Drain(Span<SasSymbol> kept, TimeSpan window)
     {
         int discarded = 0;
         while (true)
@@ -76,6 +79,10 @@ public sealed class SasLink(ISasTransport transport, int maxMessageBytes = HostM
             int read = Transport.Read(_scratch, window);
             if (read == 0)
                 return discarded;
+
+            for (int i = 0; i < read && discarded + i < kept.Length; i++)
+                kept[discarded + i] = _scratch[i];
+
             discarded += read;
             window = TimeSpan.Zero;
         }

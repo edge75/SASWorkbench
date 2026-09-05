@@ -55,6 +55,12 @@ internal sealed class ScriptedMachine : IDisposable
     /// <summary>Commands answered with the wakeup bit set, which no machine may ever do.</summary>
     public HashSet<byte> WithWakeupBit { get; } = new();
 
+    /// <summary>
+    /// How long to think before answering a command. A machine that answers after the host has
+    /// given up waiting is slow, not broken, and the host has to cope with it.
+    /// </summary>
+    public Dictionary<byte, TimeSpan> SlowToAnswer { get; } = new();
+
     /// <summary>Every long poll command that arrived, in order.</summary>
     public List<byte> CommandsSeen { get; } = new();
 
@@ -177,6 +183,9 @@ internal sealed class ScriptedMachine : IDisposable
 
     private void HandleLongPoll(byte command)
     {
+        if (SlowToAnswer.TryGetValue(command, out TimeSpan delay))
+            Thread.Sleep(delay);
+
         if (Silent.Contains(command))
             return;
 

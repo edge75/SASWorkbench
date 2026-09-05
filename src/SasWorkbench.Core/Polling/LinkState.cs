@@ -26,7 +26,8 @@ public sealed record PollStatistics(
     long Silences,
     long BadCheckSequences,
     long Rejections,
-    long WakeupBitsFromMachine)
+    long WakeupBitsFromMachine,
+    long SymbolsDiscarded)
 {
-    public static PollStatistics Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0);
+    public static PollStatistics Empty { get; } = new(0, 0, 0, 0, 0, 0, 0, 0, 0);
 }
