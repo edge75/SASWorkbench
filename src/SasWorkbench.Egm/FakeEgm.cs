@@ -56,10 +56,61 @@ public sealed class FakeEgm : IDisposable
 
         _transport = transport;
         _options = options ?? new FakeEgmOptions();
+        (DenominationCode, AccountingCents, DenominationRefusal) = ResolveDenomination(_options);
     }
 
     /// <summary>The meters this machine keeps.</summary>
     public MeterStore Meters { get; } = new();
+
+    /// <summary>The Table C-4 code this machine publishes as its accounting denomination.</summary>
+    public byte DenominationCode { get; }
+
+    /// <summary>What one accounting unit is worth, in cents.</summary>
+    public int AccountingCents { get; }
+
+    /// <summary>
+    /// Why a configured accounting denomination was refused, or null when none was.
+    /// </summary>
+    /// <remarks>
+    /// A machine that quietly used a denomination it should have refused would report every credit
+    /// meter in the wrong unit and look healthy doing it, so the refusal is readable rather than
+    /// only traced.
+    /// </remarks>
+    public string? DenominationRefusal { get; }
+
+    /// <summary>
+    /// Works out the accounting denomination actually in force.
+    /// </summary>
+    /// <remarks>
+    /// Unset, the machine keeps the behaviour it has always had: it publishes the identification
+    /// byte it was given and counts money in whole credits. Set, section 16's two rules apply -
+    /// the value has to be one the protocol can express, and every denomination a player may
+    /// choose has to divide evenly by it. A value failing either is refused in favour of one cent,
+    /// which is what a real machine does, rather than used and quietly wrong.
+    /// </remarks>
+    private static (byte Code, int Cents, string? Refusal) ResolveDenomination(FakeEgmOptions options)
+    {
+        if (options.AccountingDenomination is not { } configured)
+            return (options.Denomination, Math.Max(1, options.CentsPerCredit), null);
+
+        int? cents = SasDenomination.CentsOf(configured);
+        if (cents is null)
+        {
+            return (0x01, 1,
+                $"${configured:X2} is not a denomination the protocol can express as an accounting "
+                + "unit, so the machine reports in cents.");
+        }
+
+        if (options.PlayerDenominationsInCents.Count > 0
+            && !SasDenomination.DividesEvenly(cents.Value, options.PlayerDenominationsInCents))
+        {
+            return (0x01, 1,
+                $"{cents} cents does not divide every denomination offered to the player, so the "
+                + "machine reports in cents.");
+        }
+
+        return (configured, cents.Value, null);
+    }
 
     /// <summary>The address this machine answers to.</summary>
     public SasAddress Address => _options.Address;
@@ -171,7 +222,7 @@ public sealed class FakeEgm : IDisposable
                     $"The host has disabled {cents}-cent notes, so this machine returns it.");
         }
 
-        long credits = cents / Math.Max(1, _options.CentsPerCredit);
+        long credits = cents / AccountingCents;
         Meters.Increment(countMeter, 1);
         Meters.Increment(SasMeterCode.TotalCreditsFromBillsAccepted, credits);
         Meters.Increment(SasMeterCode.TotalDropIn_Crd, credits);
@@ -192,11 +243,13 @@ public sealed class FakeEgm : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(betCredits);
         ArgumentOutOfRangeException.ThrowIfNegative(winCredits);
 
-        long wagered = games * betCredits;
+        // A wager is a number of game credits; the meter it feeds is in accounting units. The two
+        // are the same size only when a game credit happens to be worth one accounting unit.
+        long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
-                $"The machine holds {credits} credit(s) and cannot wager {wagered}.");
+                $"The machine holds {credits} accounting unit(s) and cannot wager {wagered}.");
 
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
@@ -376,7 +429,7 @@ public sealed class FakeEgm : IDisposable
                 return;
 
             case SasResponseShape.Data:
-                SendData(layout);
+                SendData(layout, frame);
                 return;
 
             default:
@@ -423,9 +476,9 @@ public sealed class FakeEgm : IDisposable
         }
     }
 
-    private void SendData(SasMessageLayout layout)
+    private void SendData(SasMessageLayout layout, ReadOnlySpan<byte> request)
     {
-        Dictionary<string, object>? values = ValuesFor(layout);
+        Dictionary<string, object>? values = ValuesFor(layout, request);
         if (values is null)
         {
             Reject();
@@ -451,7 +504,7 @@ public sealed class FakeEgm : IDisposable
         Send(_outbound.AsSpan(0, length));
     }
 
-    private Dictionary<string, object>? ValuesFor(SasMessageLayout layout) => layout.Command switch
+    private Dictionary<string, object>? ValuesFor(SasMessageLayout layout, ReadOnlySpan<byte> request) => layout.Command switch
     {
         0x0F => new Dictionary<string, object>
         {
@@ -484,7 +537,7 @@ public sealed class FakeEgm : IDisposable
         {
             ["game_id"] = _options.GameId,
             ["additional_id"] = _options.AdditionalId,
-            ["denomination"] = _options.Denomination,
+            ["denomination"] = DenominationCode,
             ["max_bet"] = _options.MaxBet,
             ["progressive_group"] = _options.ProgressiveGroup,
             ["game_options"] = _options.GameOptions,
@@ -500,11 +553,87 @@ public sealed class FakeEgm : IDisposable
             ["serial_number"] = _options.SerialNumber,
         },
         0x7E => DateAndTime(),
-        0xB1 => new Dictionary<string, object> { ["denomination"] = _options.Denomination },
+        0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
+        0x6F or 0xAF => SelectedMeters(request),
 
         // Everything else has a layout but no source of values here.
         _ => null,
     };
+
+    /// <summary>
+    /// Answers a selected-meter poll, in the shape a machine answers it: one entry per meter it
+    /// supports, each stating its own width, and nothing at all for one it does not.
+    /// </summary>
+    /// <remarks>
+    /// Meters are answered in the order they were asked for, and an unsupported code is left out
+    /// entirely rather than answered with zero - a host that assumed a fixed number of entries
+    /// would read the next meter's code as this one's value. The door and power counts are refused
+    /// here on purpose and are read with the legacy meters command instead.
+    /// </remarks>
+    private Dictionary<string, object>? SelectedMeters(ReadOnlySpan<byte> request)
+    {
+        // Address, command, length, and two bytes of game number at the very least.
+        if (request.Length < 5)
+            return null;
+
+        int declared = request[2];
+        int codes = (declared - 2) / 2;
+        int firstCode = 5;
+        if (codes < 0 || firstCode + (codes * 2) > request.Length)
+            return null;
+
+        long game = ((request[3] >> 4) * 1000) + ((request[3] & 0x0F) * 100)
+                    + ((request[4] >> 4) * 10) + (request[4] & 0x0F);
+
+        var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        int entries = 0;
+        int payload = 2;
+
+        for (int i = 0; i < codes; i++)
+        {
+            // Binary, least significant byte first.
+            ushort code = (ushort)(request[firstCode + (i * 2)]
+                                   | (request[firstCode + (i * 2) + 1] << 8));
+
+            if (!IsReportableMeter(code))
+                continue;
+
+            long value = Meters.Read(code);
+            int size = WidthOf(code, value);
+
+            values[$"meters[{entries}].code"] = code;
+            values[$"meters[{entries}].size"] = size;
+            values[$"meters[{entries}].value"] = value;
+            entries++;
+            payload += 3 + size;
+        }
+
+        values["length"] = payload;
+        values["game_number"] = game;
+        values["meters.count"] = entries;
+        return values;
+    }
+
+    /// <summary>
+    /// Whether a selected-meter poll may answer about this meter at all. The slot door and power
+    /// reset counts are excluded by the machine rather than merely absent from it.
+    /// </summary>
+    private static bool IsReportableMeter(ushort code) =>
+        code != (ushort)SasMeterCode.NumberSlotDoorOpened
+        && code != (ushort)SasMeterCode.NumberACPowerLost
+        && SasCatalogue.Meters.ContainsKey(code);
+
+    /// <summary>
+    /// How many bytes this meter's value takes. Four is the floor, five for a meter counted in
+    /// cents, and the field widens as the value grows so that it never rolls over silently the
+    /// way the fixed-width polls do.
+    /// </summary>
+    private static int WidthOf(ushort code, long value)
+    {
+        int floor = SasMeterUnits.UnitOf(code) == SasMeterUnit.Cents ? 5 : 4;
+        int digits = value <= 0 ? 1 : (int)Math.Floor(Math.Log10(value)) + 1;
+        return Math.Max(floor, (digits + 1) / 2);
+    }
 
     private Dictionary<string, object> Single(string field, SasMeterCode meter) =>
         new() { [field] = Meters.Read(meter) };

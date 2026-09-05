@@ -58,6 +58,40 @@ public sealed record FakeEgmOptions
     public int CentsPerCredit { get; init; } = 100;
 
     /// <summary>
+    /// The accounting denomination this machine is configured with, as a Table C-4 code.
+    /// </summary>
+    /// <remarks>
+    /// Left unset, the machine behaves as it always has and reports whatever
+    /// <see cref="Denomination"/> says, which keeps every test written before this option existed
+    /// meaning what it meant. Set, it becomes the unit every credit value on the wire is counted
+    /// in, it is what the identification reply publishes, and a value that section 16 does not
+    /// allow is refused in favour of one cent rather than used.
+    /// </remarks>
+    public byte? AccountingDenomination { get; init; }
+
+    /// <summary>
+    /// The denominations a player may choose, in cents.
+    /// </summary>
+    /// <remarks>
+    /// Section 16 requires every one of them to divide evenly by the accounting denomination, and
+    /// a machine configured otherwise must refuse the accounting denomination rather than report
+    /// meters in a unit none of its denominations is a whole number of. Empty means the rule has
+    /// nothing to check against and any expressible denomination is accepted.
+    /// </remarks>
+    public IReadOnlyList<int> PlayerDenominationsInCents { get; init; } = [];
+
+    /// <summary>
+    /// What one game credit is worth in cents, which is what a wager is counted in.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from the accounting denomination on purpose. A wager is a number of game credits
+    /// and does not move when the accounting denomination does, while the coin in meter it feeds
+    /// is in accounting units - and the two being confused is exactly the defect this machine
+    /// exists to let a test catch.
+    /// </remarks>
+    public int CentsPerGameCredit { get; init; } = 100;
+
+    /// <summary>
     /// How many coins are in the hopper. Machine state rather than a meter, because the library
     /// keeps no meter code for it.
     /// </summary>

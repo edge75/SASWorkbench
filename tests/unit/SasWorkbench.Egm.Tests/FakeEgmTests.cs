@@ -318,6 +318,135 @@ public class FakeEgmTests
             $"latency was {result.Latency.TotalMilliseconds:F1}ms");
     }
 
+    /// <summary>
+    /// A request for two meters, answered as a machine answers one: each meter with its own code,
+    /// its own width, and its value. Read back through the same decoder a script uses.
+    /// </summary>
+    [Fact]
+    public void A_selected_meter_sweep_is_answered_and_reads_back()
+    {
+        using var rig = new Rig();
+        rig.Machine.InsertBill(2000);
+        rig.Machine.PlayGames(games: 2, betCredits: 5);
+
+        // Length, game zero, then total coin in and total credits from bills, least significant
+        // byte of each code first.
+        LongPollResult result = rig.Host.Execute(0x6F, [0x06, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x00]);
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, result.Frame);
+
+        Assert.Equal(LongPollOutcome.Answered, result.Outcome);
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(2, decoded.Number("meters.count"));
+        Assert.Equal(0x0000, decoded.Number("meters[0].code"));
+        Assert.Equal(10, decoded.Number("meters[0].value"));
+        Assert.Equal(0x000B, decoded.Number("meters[1].code"));
+        Assert.Equal(20, decoded.Number("meters[1].value"));
+    }
+
+    /// <summary>
+    /// The door and power counts are excluded from the selected-meter polls by the machine, so a
+    /// request for one comes back with the other meters and no entry for it - not with a zero,
+    /// which a host would read as a door that has never opened.
+    /// </summary>
+    [Fact]
+    public void A_meter_the_selected_polls_exclude_is_left_out_of_the_answer()
+    {
+        using var rig = new Rig();
+
+        // Total coin in, the slot door opened count, total credits from bills.
+        LongPollResult result = rig.Host.Execute(
+            0x6F, [0x08, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x00, 0x0B, 0x00]);
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, result.Frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(2, decoded.Number("meters.count"));
+        Assert.Equal(0x0000, decoded.Number("meters[0].code"));
+        Assert.Equal(0x000B, decoded.Number("meters[1].code"));
+    }
+
+    /// <summary>
+    /// The worked example from the machine-validation plan. At ten centavos a note of one thousand
+    /// centavos is a hundred accounting units, and the identification reply publishes the code for
+    /// the denomination actually in force.
+    /// </summary>
+    [Fact]
+    public void At_ten_centavos_a_note_is_counted_in_accounting_units()
+    {
+        using var rig = new Rig(new FakeEgmOptions
+        {
+            AccountingDenomination = 0x03,
+            PlayerDenominationsInCents = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000],
+        });
+
+        rig.Machine.InsertBill(1000);
+
+        LongPollResult result = rig.Host.Execute(0x6F, [0x04, 0x00, 0x00, 0x0B, 0x00]);
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, result.Frame);
+
+        Assert.Equal(3, rig.Machine.DenominationCode);
+        Assert.Equal(10, rig.Machine.AccountingCents);
+        Assert.Null(rig.Machine.DenominationRefusal);
+        Assert.Equal(100, decoded.Number("meters[0].value"));
+        Assert.Equal(3, Number(0x1F, rig.Host.Execute(0x1F), "denomination"));
+    }
+
+    /// <summary>
+    /// Twenty-five centavos does not divide twenty, so section 16 forbids it. The machine reports
+    /// in cents instead of using it, and says why - a machine that used it would report every
+    /// credit meter in a unit none of its own denominations is a whole number of.
+    /// </summary>
+    [Fact]
+    public void An_indivisible_accounting_denomination_is_refused_in_favour_of_cents()
+    {
+        using var rig = new Rig(new FakeEgmOptions
+        {
+            AccountingDenomination = 0x04,
+            PlayerDenominationsInCents = [20, 50, 100],
+        });
+
+        Assert.Equal(1, rig.Machine.DenominationCode);
+        Assert.Equal(1, rig.Machine.AccountingCents);
+        Assert.NotNull(rig.Machine.DenominationRefusal);
+        Assert.Equal(1, Number(0x1F, rig.Host.Execute(0x1F), "denomination"));
+    }
+
+    /// <summary>
+    /// A sub-cent code cannot be an accounting denomination: the protocol's own table gives it no
+    /// value, and a build that accepted one would divide by zero rather than refuse.
+    /// </summary>
+    [Fact]
+    public void A_sub_cent_accounting_denomination_is_refused()
+    {
+        using var rig = new Rig(new FakeEgmOptions { AccountingDenomination = 0x1C });
+
+        Assert.Equal(1, rig.Machine.DenominationCode);
+        Assert.NotNull(rig.Machine.DenominationRefusal);
+    }
+
+    /// <summary>
+    /// A wager is a number of game credits and does not move when the accounting denomination
+    /// does, but the coin in meter it feeds is in accounting units. Twenty-five centavos of coin
+    /// in at ten centavos is two units, and the remaining five centavos are dropped rather than
+    /// rounded up into money the machine never took.
+    /// </summary>
+    [Fact]
+    public void Coin_in_is_truncated_into_accounting_units_and_never_rounded_up()
+    {
+        using var rig = new Rig(new FakeEgmOptions
+        {
+            AccountingDenomination = 0x03,
+            CentsPerGameCredit = 25,
+        });
+
+        rig.Machine.InsertBill(1000);
+        rig.Machine.PlayGames(games: 1, betCredits: 1);
+
+        LongPollResult result = rig.Host.Execute(0x6F, [0x04, 0x00, 0x00, 0x00, 0x00]);
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, result.Frame);
+
+        Assert.Equal(2, decoded.Number("meters[0].value"));
+    }
+
     private static long Number(byte command, LongPollResult result, string field)
     {
         SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(command)!, result.Frame);
