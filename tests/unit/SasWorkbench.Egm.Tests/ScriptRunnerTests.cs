@@ -106,6 +106,47 @@ public class ScriptRunnerTests
         Assert.Equal(Verdict.Pass, result.Verdict);
     }
 
+    /// <summary>
+    /// A long poll that carries data is answered once, and the assertions that follow read that
+    /// answer. Asking again without the data is a different question - the machine rejects it -
+    /// so a runner that re-polled would make every selected-meter case unassertable.
+    /// </summary>
+    [Fact]
+    public void A_field_assertion_reads_the_reply_its_send_obtained()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+
+            host send lp 6F data 0400000B00
+            host expect field meters[0].code == 11
+            """);
+
+        Assert.True(result.Verdict == Verdict.Pass, Explain(result));
+    }
+
+    /// <summary>
+    /// And it stops reading it once the machine has been acted on: a reply captured before a note
+    /// went in describes the machine as it was, so asserting on it afterwards would pass or fail
+    /// for a reason that has nothing to do with the note.
+    /// </summary>
+    [Fact]
+    public void A_captured_reply_is_not_reused_after_the_machine_is_stimulated()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+
+            host send lp 6F data 0400000B00
+            egm bill insert 2000
+            host expect field meters[0].code == 11
+            """);
+
+        Assert.NotEqual(Verdict.Pass, result.Verdict);
+    }
+
     [Fact]
     public void A_meter_that_did_not_move_the_expected_amount_fails_and_says_both_numbers()
     {

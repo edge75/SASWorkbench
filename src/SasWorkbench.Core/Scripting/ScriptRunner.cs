@@ -244,6 +244,7 @@ public sealed class ScriptRunner
         var steps = new List<StepResult>();
         var baselines = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         var window = new LastStimulus();
+        var answered = new AnsweredPolls();
 
         using (engine)
         {
@@ -269,7 +270,7 @@ public sealed class ScriptRunner
             foreach (ScriptStep step in test.Steps)
             {
                 StepResult result = RunStep(step, engine, environment, exceptions, consumed,
-                    test, baselines, window, stopwatch.Elapsed);
+                    test, baselines, window, answered, stopwatch.Elapsed);
                 steps.Add(result);
                 Log.Step(result, connect.Channel, testBase);
 
@@ -309,6 +310,7 @@ public sealed class ScriptRunner
         ScriptTest test,
         Dictionary<string, long> baselines,
         LastStimulus window,
+        AnsweredPolls answered,
         TimeSpan at)
     {
         try
@@ -323,19 +325,19 @@ public sealed class ScriptRunner
 
                 WaitStep wait => Wait(wait, at),
 
-                SendLongPollStep send => Send(send, engine, at),
+                SendLongPollStep send => Send(send, engine, answered, at),
 
                 ForgetExceptionsStep forget => Forget(forget, engine, exceptions, consumed, at),
 
                 StimulusStep stimulus => ApplyStimulus(
-                    stimulus, engine, environment, test, baselines, window, at),
+                    stimulus, engine, environment, test, baselines, window, answered, at),
 
                 ExpectExceptionStep expect => CheckException(
                     expect, exceptions, consumed, window, at),
 
                 ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
 
-                ExpectFieldStep expect => CheckField(expect, engine, at),
+                ExpectFieldStep expect => CheckField(expect, engine, answered, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
@@ -348,6 +350,28 @@ public sealed class ScriptRunner
             return new StepResult(step.Location, step.Describe(), Verdict.Error,
                 Reason: $"{ex.GetType().Name}: {ex.Message}", At: at);
         }
+    }
+
+    /// <summary>
+    /// The replies this test has already been given, one per long poll.
+    /// </summary>
+    /// <remarks>
+    /// A long poll carrying data is a question with an argument, and the answer belongs to that
+    /// argument. Re-sending the command without it asks something else - a machine rejects a
+    /// selected-meter poll with no meters in it - so an assertion made after a send reads what
+    /// that send was told. Acting on the machine clears the lot, because a reply describes the
+    /// machine at the moment it was given.
+    /// </remarks>
+    private sealed class AnsweredPolls
+    {
+        private readonly Dictionary<byte, LongPollResult> _replies = [];
+
+        public void Remember(LongPollResult reply) => _replies[reply.Command] = reply;
+
+        public LongPollResult? Recall(byte command) =>
+            _replies.GetValueOrDefault(command);
+
+        public void Forget() => _replies.Clear();
     }
 
     /// <summary>
@@ -448,10 +472,14 @@ public sealed class ScriptRunner
         return new StepResult(step.Location, step.Describe(), Verdict.Pass, At: at);
     }
 
-    private static StepResult Send(SendLongPollStep step, PollEngine engine, TimeSpan at)
+    private static StepResult Send(
+        SendLongPollStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
     {
         LongPollResult result = engine.Execute(step.Command, step.Data);
         Verdict verdict = result.Succeeded ? Verdict.Pass : Verdict.Fail;
+
+        if (result.Succeeded)
+            answered.Remember(result);
 
         return new StepResult(
             step.Location,
@@ -473,11 +501,16 @@ public sealed class ScriptRunner
         ScriptTest test,
         Dictionary<string, long> baselines,
         LastStimulus window,
+        AnsweredPolls answered,
         TimeSpan at)
     {
         // Take the baseline before acting, so a relative assertion afterwards measures the effect
         // of this step and not of everything since the test began.
         RefreshBaselines(engine, test.WatchedMeters, baselines);
+
+        // Every reply captured so far describes the machine as it was before this step, so none of
+        // them may answer an assertion made after it.
+        answered.Forget();
         window.At = at;
         window.Description = step.Describe();
 
@@ -618,7 +651,8 @@ public sealed class ScriptRunner
         };
     }
 
-    private static StepResult CheckField(ExpectFieldStep step, PollEngine engine, TimeSpan at)
+    private static StepResult CheckField(
+        ExpectFieldStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
     {
         SasMessageLayout? layout = SasLayouts.For(step.Command);
         if (layout is null)
@@ -627,7 +661,9 @@ public sealed class ScriptRunner
                 Reason: $"this build cannot decode the reply to long poll ${step.Command:X2}", At: at);
         }
 
-        LongPollResult reply = engine.Execute(step.Command);
+        // The reply this test already has, when it has one. Asking again would ask a different
+        // question for any long poll that carries data, because the second ask carries none.
+        LongPollResult reply = answered.Recall(step.Command) ?? engine.Execute(step.Command);
         if (!reply.Succeeded)
         {
             return new StepResult(step.Location, step.Describe(), Verdict.Fail,
