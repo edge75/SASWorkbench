@@ -131,13 +131,37 @@ unconditionally rewrites all four stimulus masks from its own local booleans
 (`Main.cpp:139-172,196`). **A third party's writes are erased within ~16 ms.** The C#
 orchestrator must *replace* the GUI, or `qpm_simulator` needs an external-control mode.
 
-### Trap B — a real race that fabricates SAS events
-`ProcessSharedMemory` writes `state->intrusion_mask = 0` **into shared memory** and only
-then ORs the set bits back (`Main.cpp:141-146`, and the same pattern for dio/bna/printer).
-If the EGM's 125 ms poll lands in that window it sees every door close and reopen →
-**a spurious `$12`/`$11` pair on the SAS wire.** This is a genuine `qpm_simulator` bug,
-independent of this project, and it would cause unexplainable flaky tests.
-Fix: build the mask locally, write once.
+### Trap B — a real race that fabricates SAS events  ✅ fixed 2026-09-05
+
+**Fixed on `qpm_simulator` branch `ticket-printer-and-mask-race` (D38), commit `4103b51`,
+version 2.0.0.5.** Each mask is now built in a local and published in a single aligned store.
+Not yet merged to that repository's `main`, and not yet measured on the wire — see below.
+
+What the defect was, corrected against the source rather than the original note:
+
+* **The exposure was larger than "a zero window".** `ProcessSharedMemory` did not clear once and
+  restore once. `state->intrusion_mask |= (1 << i)` is a read-modify-write **to shared memory per
+  set bit**, so the machine's 125 ms poll could observe zero *or any prefix* of the mask — up to
+  17 distinct values per frame for intrusion, at 60 Hz. Doors closing and reopening together was
+  the worst case, not the only one.
+* **`dio_mask` was published twice per frame.** The heartbeat-clocked buttons were ORed in after
+  the loop had already stored a mask, leaving a second window in which a queued press was missing.
+  Buttons are the one stimulus that is already edge-sensitive, so this site dropped presses rather
+  than inventing events.
+* **The heartbeat was read twice**, and the drain decision was taken on the first read while
+  `sLastHeartbeat` was set from the second — a beat arriving between them consumed the edge that
+  would have delivered the pending buttons. Same class, outside the original note; fixed in the
+  same pass at the user's direction.
+* Line numbers in the original note (`Main.cpp:141-146`) were stale; the code was at `150-195`.
+
+**Still to do:** an observational check on the wire. It needs a person to tick one door in the
+simulator window while a session samples the mask, because the masks are all zero until somebody
+does — which is also why this cannot be a regression test today. `qpm_simulator` has **no test
+harness at all**: `CMakeLists.txt:158` leaves `include(test/test.cmake)` commented out and the
+`test/test.cpp` that file names does not exist, though GoogleTest is fetched and built.
+
+Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatile.Write` and
+`QpmMachine` builds each mask in a field before writing it.
 
 ### Trap C — two label/meaning mismatches
 * **Denominations.** The GUI labels BNA bits from `qpm_simulator_config.json` `"Bills"`

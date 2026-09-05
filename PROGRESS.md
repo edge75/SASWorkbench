@@ -32,3 +32,4 @@ PHASE:M3 WAVE:W0-selected-meters STATUS:complete TS:2026-09-05T13:30:00Z
 PHASE:M3 WAVE:W0-accounting-denomination-suite STATUS:complete TS:2026-09-05T14:05:00Z
 PHASE:M3 WAVE:W0-trace-search STATUS:complete TS:2026-09-05T15:10:00Z
 PHASE:M3 WAVE:W0-unit-defects STATUS:complete TS:2026-09-05T14:35:00Z
+PHASE:M3 WAVE:W1-mask-race STATUS:complete TS:2026-09-05T18:07:14Z
