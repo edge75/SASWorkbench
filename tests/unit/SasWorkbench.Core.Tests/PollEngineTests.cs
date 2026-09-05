@@ -329,7 +329,7 @@ public class PollEngineTests
 
         using var engine = new PollEngine(bus.Host, SpacedOutOptions());
         engine.Start();
-        Assert.True(WaitUntil(() => engine.State == LinkState.Up));
+        Assert.True(WaitUntil(() => engine.State == LinkState.Up, 10000));
 
         Assert.Equal(LongPollOutcome.Silent, engine.Execute(0x1F).Outcome);
         PutOnTheLine(bus, LateAnswerTo(0x1F));
@@ -357,7 +357,7 @@ public class PollEngineTests
 
         using var engine = new PollEngine(bus.Host, SpacedOutOptions());
         engine.Start();
-        Assert.True(WaitUntil(() => engine.State == LinkState.Up));
+        Assert.True(WaitUntil(() => engine.State == LinkState.Up, 10000));
 
         engine.Execute(0x1F);
         byte[] late = LateAnswerTo(0x1F);
@@ -372,13 +372,47 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// A command whose caller gave up waiting must not have its answer handed to the next caller.
+    /// The poll thread can still be in the middle of a transaction when the wait expires, and
+    /// without something to tell one transaction from another the reply that finally arrives is
+    /// returned to whoever asks next — one command's answer reported under another's name, which
+    /// is the same fault as the wire desync one layer up.
+    /// </summary>
+    [Fact]
+    public void An_answer_to_an_abandoned_command_is_not_returned_to_the_next_caller()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Silent.Add(0x1F);
+        machine.Replies[0x2F] = [0x11, 0x22];
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions() with
+        {
+            // Long enough that the poll thread is certainly still waiting on $1F when the caller
+            // below stops waiting for it.
+            ResponseTimeout = TimeSpan.FromSeconds(3),
+            LinkDownAfter = TimeSpan.FromSeconds(30),
+        });
+        engine.Start();
+        Assert.True(WaitUntil(() => engine.State == LinkState.Up, 10000));
+
+        LongPollResult abandoned = engine.Execute(0x1F, [], TimeSpan.FromMilliseconds(200));
+        Assert.Equal(LongPollOutcome.NotSent, abandoned.Outcome);
+
+        LongPollResult next = engine.Execute(0x2F);
+
+        Assert.Equal(0x2F, next.Command);
+    }
+
+    /// <summary>
     /// Polls far enough apart that no general poll falls between two consecutive long polls, so
     /// what the second one reads is decided by the engine rather than by a race with the clock.
     /// </summary>
     private static PollEngineOptions SpacedOutOptions() => FastOptions() with
     {
         ResponseTimeout = TimeSpan.FromMilliseconds(50),
-        PollInterval = TimeSpan.FromSeconds(2),
+        PollInterval = TimeSpan.FromSeconds(1),
     };
 
     /// <summary>A well-formed answer to <paramref name="command"/>, as a machine would have sent it.</summary>

@@ -35,12 +35,18 @@ public sealed class PollEngine : IDisposable
     private readonly ManualResetEventSlim _pendingDone = new(false);
     private readonly Lock _stateGate = new();
 
+    // Guards the handoff of one long poll from the caller to the poll thread and of its result
+    // back again. Only taken when a long poll is submitted or dispatched, so the general poll
+    // cycle never touches it.
+    private readonly Lock _submitGate = new();
+
     private Thread? _thread;
     private volatile bool _running;
     private volatile bool _pendingReady;
     private byte _pendingCommand;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
+    private long _pendingTicket;
 
     private long _syncPolls;
     private long _generalPolls;
@@ -176,22 +182,37 @@ public sealed class PollEngine : IDisposable
         _executeGate.Wait();
         try
         {
-            data.CopyTo(_pendingData);
-            _pendingDataLength = data.Length;
-            _pendingCommand = command;
-            _pendingResult = null;
-            _pendingDone.Reset();
-            _pendingReady = true;
+            lock (_submitGate)
+            {
+                data.CopyTo(_pendingData);
+                _pendingDataLength = data.Length;
+                _pendingCommand = command;
+                _pendingResult = null;
+                _pendingTicket++;
+                _pendingDone.Reset();
+                _pendingReady = true;
+            }
 
             if (!_pendingDone.Wait(wait))
             {
-                _pendingReady = false;
+                // The transaction is abandoned, not cancelled: the poll thread may still be in the
+                // middle of it. Retiring the ticket is what stops its answer being handed to
+                // whoever asks next, which would report one command's reply under another's name.
+                lock (_submitGate)
+                {
+                    _pendingTicket++;
+                    _pendingReady = false;
+                }
+
                 return new LongPollResult(command, _options.Channel, LongPollOutcome.NotSent,
                     [], wait, "The poll engine did not reach this command in time.");
             }
 
-            return _pendingResult ?? new LongPollResult(command, _options.Channel,
-                LongPollOutcome.NotSent, [], TimeSpan.Zero, "No result was recorded.");
+            lock (_submitGate)
+            {
+                return _pendingResult ?? new LongPollResult(command, _options.Channel,
+                    LongPollOutcome.NotSent, [], TimeSpan.Zero, "No result was recorded.");
+            }
         }
         finally
         {
@@ -293,9 +314,16 @@ public sealed class PollEngine : IDisposable
 
     private void RunPendingLongPoll()
     {
-        byte command = _pendingCommand;
-        int dataLength = _pendingDataLength;
-        _pendingReady = false;
+        byte command;
+        int dataLength;
+        long ticket;
+        lock (_submitGate)
+        {
+            command = _pendingCommand;
+            dataLength = _pendingDataLength;
+            ticket = _pendingTicket;
+            _pendingReady = false;
+        }
 
         Resynchronise();
 
@@ -319,15 +347,25 @@ public sealed class PollEngine : IDisposable
         int received = _link.Receive(_inbound, _options.ResponseTimeout, _options.QuietGap, out bool wakeup);
         var latency = TimeSpan.FromTicks(_clock.ElapsedTicks - sentAt);
 
-        _pendingResult = Interpret(command, received, wakeup, latency);
+        LongPollResult result = Interpret(command, received, wakeup, latency);
         if (received > 0)
         {
-            RecordReceive(received, wakeup, _pendingResult.Outcome.ToString());
+            RecordReceive(received, wakeup, result.Outcome.ToString());
             MarkHeard();
         }
         else
         {
             Interlocked.Increment(ref _silences);
+        }
+
+        lock (_submitGate)
+        {
+            // Whoever asked for this has already given up and may have asked for something else,
+            // so the answer belongs to nobody. It stays on the wire log either way.
+            if (_pendingTicket != ticket)
+                return;
+
+            _pendingResult = result;
         }
 
         _pendingDone.Set();

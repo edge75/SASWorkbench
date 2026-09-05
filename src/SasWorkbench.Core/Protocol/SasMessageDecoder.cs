@@ -109,7 +109,23 @@ public static class SasMessageDecoder
                 continue;
             }
 
-            int length = field.Length == SasField.Remaining ? payload.Length - cursor : field.Length;
+            int length;
+            if (field.LengthFromField is { } lengthField)
+            {
+                // The most recent match, not the first: inside a repeating group every element has
+                // its own size byte, and the one that governs this field is the one just decoded.
+                SasValue? source = values.LastOrDefault(v =>
+                    v.Path == lengthField || v.Path.EndsWith('.' + lengthField, StringComparison.Ordinal));
+                if (source?.Number is null)
+                    return $"Field '{path}' takes its length from '{lengthField}', but that field "
+                           + "was not decoded as a number.";
+                length = (int)source.Number.Value;
+            }
+            else
+            {
+                length = field.Length == SasField.Remaining ? payload.Length - cursor : field.Length;
+            }
+
             if (length < 0 || cursor + length > payload.Length)
                 return $"Field '{path}' needs {length} byte(s) at offset "
                        + $"{startOffset + cursor} but the reply holds only "
@@ -154,10 +170,16 @@ public static class SasMessageDecoder
         else
         {
             int elementLength = FixedLengthOf(group.Fields);
-            if (elementLength <= 0)
-                return $"Group '{path}' repeats to the end of the reply, which needs every member "
-                       + "to have a fixed length.";
-            count = (payload.Length - cursor) / elementLength;
+            if (elementLength > 0)
+            {
+                count = (payload.Length - cursor) / elementLength;
+            }
+            else
+            {
+                // Elements of differing sizes, so how many there are is only known by walking
+                // them. A selected-meter reply is exactly this: each meter states its own width.
+                return ReadUntilExhausted(group, payload, ref cursor, startOffset, path, values);
+            }
         }
 
         for (int index = 0; index < count; index++)
@@ -167,6 +189,40 @@ public static class SasMessageDecoder
                 group.Fields, payload, ref cursor, startOffset, elementPath, values);
             if (failure is not null)
                 return failure;
+        }
+
+        values.Add(new SasValue($"{path}.count", group, startOffset + cursor, [], count));
+        return null;
+    }
+
+    /// <summary>
+    /// Reads elements of a repeating group one at a time until the reply runs out. Used where the
+    /// elements are not all the same size, so their number cannot be worked out by division.
+    /// </summary>
+    private static string? ReadUntilExhausted(
+        SasField group,
+        ReadOnlySpan<byte> payload,
+        ref int cursor,
+        int startOffset,
+        string path,
+        List<SasValue> values)
+    {
+        int count = 0;
+        while (cursor < payload.Length)
+        {
+            int before = cursor;
+            string? failure = ReadFields(
+                group.Fields, payload, ref cursor, startOffset, $"{path}[{count}]", values);
+            if (failure is not null)
+                return failure;
+
+            // A element that consumed nothing would repeat for ever. Stopping with a reason beats
+            // hanging, and beats reporting a count that says nothing about the bytes.
+            if (cursor == before)
+                return $"Group '{path}' made no progress at offset {startOffset + cursor}, so the "
+                       + "reply cannot be walked to its end.";
+
+            count++;
         }
 
         values.Add(new SasValue($"{path}.count", group, startOffset + cursor, [], count));

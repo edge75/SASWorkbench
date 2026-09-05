@@ -70,7 +70,8 @@ public sealed record SasMessageLayout
             int total = 2;
             foreach (SasField part in Response)
             {
-                if (part.Length == SasField.Remaining || part.IsGroup || part.PresentWhen is not null)
+                if (part.Length == SasField.Remaining || part.IsGroup
+                    || part.PresentWhen is not null || part.LengthFromField is not null)
                     return null;
                 total += part.Length;
             }

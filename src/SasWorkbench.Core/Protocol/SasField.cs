@@ -150,6 +150,18 @@ public sealed record SasField
     /// <summary>How many bytes it occupies, or <see cref="Remaining"/>.</summary>
     public required int Length { get; init; }
 
+    /// <summary>
+    /// Name of an earlier field holding this one's byte length, which overrides <see cref="Length"/>.
+    /// </summary>
+    /// <remarks>
+    /// The counterpart of <see cref="SasRepeat.CountedBy"/> one level down: that says how many
+    /// times a group repeats, this says how long a single field is. Selected-meter replies need it
+    /// — each meter carries its own size byte, and the machine widens the field as the value grows
+    /// — and without it such a reply can only be described by a decoder written by hand for that
+    /// one command, which is the trap a general model exists to avoid.
+    /// </remarks>
+    public string? LengthFromField { get; init; }
+
     public SasFieldEncoding Encoding { get; init; } = SasFieldEncoding.Binary;
 
     public SasByteOrder ByteOrder { get; init; } = SasByteOrder.BigEndian;
