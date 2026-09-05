@@ -174,6 +174,14 @@ being changed anyway.
 * **The fourth timestamp mode, wall-clock time** (D28), outstanding from M1.5. Small, and it
   belongs with any work that touches the session stream: it needs no new field, because the
   session already records a clock base and every record already carries its elapsed time.
+* **The ticket surface in `qpm_simulator`** (D35), which is an ImGui application: a popup showing
+  printed tickets, buttons to export one as JSON, and buttons to load a JSON ticket so an insertion
+  can be simulated by hand. The by-hand path and the scripted one must be the same path.
+* **The extended log** (D34) — a description of each test case before it runs and of every packet
+  with its meaning, asked for before a run or produced afterwards from a log that already exists.
+  It is a rendering of the record, never a second capture, so it can be regenerated and corrected
+  without re-running anything. A packet this build cannot decode is named and marked undecoded, so
+  the extended log doubles as the coverage measurement M4 is trying to move.
 
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
 
@@ -196,6 +204,10 @@ being changed anyway.
 ---
 
 ## M4 · Breadth
+
+**The extended log of D34 is the measurement this milestone moves.** Every packet it can only name
+rather than explain is a layout M4 has not established yet, so the honest place to start is
+whatever the extended log of a real run leaves undecoded.
 
 Full long-poll catalogue · `sastest.ini` and GSA XML imported as overlays and **diffed**
 against the header-derived catalogue (the diff is itself a finding: 22 long polls in the

@@ -353,3 +353,53 @@ It was worth doing. What looked like flakiness was two real defects, both of whi
 returned one message's answer under another message's name — see
 `docs/one-behind.md`.
 
+---
+
+# Decisions 34–35
+
+Taken with the user on 2026-09-05, after M2 was merged.
+
+## D34 — An extended log, asked for before a run or produced from one afterwards
+
+The user wants a log that explains itself: **a description of each test case before it runs, and a
+description of every single SAS packet with its complete meaning.** Available from the command line
+and from the window, and — this is the load-bearing half — obtainable **both** by asking for it
+before a run *and* by producing it from a log that already exists.
+
+The second half decides the design. It means the extended log is a **rendering of the recorded
+session, never a second thing captured alongside it**. Nothing may go into it that was not already
+in the record, which is the same rule D28 applied to timestamp modes and for the same reason: the
+raw log stays the only artefact that has to be right, and anything derived from it can be
+regenerated, corrected and re-rendered without re-running anything.
+
+Consequences, so they are not re-argued:
+
+* **Every packet gets a line, and a packet this build cannot decode says so.** "Complete meaning"
+  is a promise, and the honest form of it on an undecoded reply is `known but not decoded` with the
+  command named — never a plausible guess. This is principle 1 and 2 restated for prose.
+* **The extended log is therefore also a coverage measurement.** How many packets were explained in
+  full, how many only named, is the same number M4 is trying to move. A run that could explain a
+  third of its packets must not read like one that explained all of them.
+* **Breadth is the ceiling.** The full long-poll catalogue and its layouts are M4, so an extended
+  log written today explains what this build decodes and names the rest. That is worth having now
+  rather than after M4, because it is what shows where M4 should go first.
+* **The test-case description comes from the script**, which already carries a name, tags,
+  `requires` and per-step locations. A case whose script says nothing about itself produces a thin
+  description, which is a prompt to write a better script rather than a reason to invent prose.
+
+## D35 — The simulator's ticket surface: a popup, and JSON in both directions by hand
+
+Elaborates D12, which already approved the printer panel, the wallet and JSON in both directions.
+What the user added is the shape of it in `qpm_simulator`, which is an ImGui application:
+
+* a **popup showing printed tickets**, so a person can see what came out;
+* **buttons to export a ticket as JSON**, alongside the per-ticket JSON tests already assert on;
+* **buttons to load a JSON ticket**, which is how ticket insertion gets simulated by hand.
+
+The by-hand path and the automated one are the same path: a ticket a person loads through a button
+and a ticket a script injects are the same JSON going to the same place. If they diverge, the thing
+a person demonstrates is not the thing the suite tests.
+
+`qpm_simulator` is approved for change (D15) and needs no version bump in the platform repository —
+see the note in `PLAN.md` M3.
+
