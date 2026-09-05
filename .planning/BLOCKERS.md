@@ -135,7 +135,7 @@ orchestrator must *replace* the GUI, or `qpm_simulator` needs an external-contro
 
 **Fixed on `qpm_simulator` branch `ticket-printer-and-mask-race` (D38), commit `4103b51`,
 version 2.0.0.5.** Each mask is now built in a local and published in a single aligned store.
-Not yet merged to that repository's `main`, and not yet measured on the wire — see below.
+Not yet merged to that repository's `main`. Measured before and after — see below.
 
 What the defect was, corrected against the source rather than the original note:
 
@@ -154,11 +154,42 @@ What the defect was, corrected against the source rather than the original note:
   same pass at the user's direction.
 * Line numbers in the original note (`Main.cpp:141-146`) were stale; the code was at `150-195`.
 
-**Still to do:** an observational check on the wire. It needs a person to tick one door in the
-simulator window while a session samples the mask, because the masks are all zero until somebody
-does — which is also why this cannot be a regression test today. `qpm_simulator` has **no test
-harness at all**: `CMakeLists.txt:158` leaves `include(test/test.cmake)` commented out and the
-`test/test.cpp` that file names does not exist, though GoogleTest is fetched and built.
+### Trap B, measured — 2026-09-06
+
+Both binaries were built from the same preset and sampled with four doors ticked and the window
+left alone. The probe proves a writer is present before and after each run by writing a sentinel
+into the mask and waiting for the simulator's own 60 Hz rewrite to erase it — without that, a
+**closed** simulator is indistinguishable from a well-behaved one, because `persist=true` leaves
+the last value in the file. One run was discarded for exactly that reason before the check existed.
+
+| | pre-fix `4db296b` | fixed `4103b51` |
+|---|---|---|
+| duration, steady state | 10 s | 20 s |
+| samples | 15,584,692,000 | 50,313,778,000 |
+| transitions observed | **10** | **0** |
+| distinct values | **3** | **1** |
+| excursions from `0x000F` | `0x0000` ×3, `0x0007` ×2 | none |
+
+**`0x0007` is the finding.** Bits 0–2 set with bit 3 not yet written is a *partial* mask, not the
+zero window — the "any prefix" correction above, observed rather than argued. A machine reading
+that byte sees one door still open and three shut, which is not a state any door was ever in.
+
+Telling a glitch from a fingertip needs no judgement call: a person holds a checkbox value for
+hundreds of milliseconds, and these intermediate values were held for well under a microsecond —
+six orders of magnitude apart.
+
+**What this does not establish is a rate.** The probe under-observes badly: the writer holds the
+cache line while it makes its seventeen stores, so most of the reader's loads are serviced only
+after the burst, and it caught a bad value in about 5 of ~600 frames. The true exposure is at
+least the 4 ppm measured and plausibly far higher. The measurement establishes that the
+intermediate states are real and observable from another process, which is what the fix removes;
+it does not support a claim of "one spurious door event every N hours".
+
+**There is still no regression test, and there cannot be an unattended one today.** The masks are
+all zero until a person ticks a checkbox — nothing else drives `sIntrusion[]` — so this check needs
+a human. `qpm_simulator` also has **no test harness at all**: `CMakeLists.txt:158` leaves
+`include(test/test.cmake)` commented out and the `test/test.cpp` that file names does not exist,
+though GoogleTest is fetched and built.
 
 Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatile.Write` and
 `QpmMachine` builds each mask in a field before writing it.
