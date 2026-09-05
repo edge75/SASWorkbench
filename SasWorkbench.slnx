@@ -4,9 +4,7 @@
     <Project Path="src/SasWorkbench.Core/SasWorkbench.Core.csproj" />
     <Project Path="src/SasWorkbench.Egm/SasWorkbench.Egm.csproj" />
     <Project Path="src/SasWorkbench.Gui/SasWorkbench.Gui.csproj" />
-    <Project Path="src/SasWorkbench.Qpm/SasWorkbench.Qpm.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
+    <Project Path="src/SasWorkbench.Qpm/SasWorkbench.Qpm.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/ui-specimen/UiSpecimen.csproj" />
@@ -16,8 +14,6 @@
     <Project Path="tests/unit/SasWorkbench.Core.Tests/SasWorkbench.Core.Tests.csproj" />
     <Project Path="tests/unit/SasWorkbench.Egm.Tests/SasWorkbench.Egm.Tests.csproj" />
     <Project Path="tests/unit/SasWorkbench.Gui.Tests/SasWorkbench.Gui.Tests.csproj" />
-    <Project Path="tests/unit/SasWorkbench.Qpm.Tests/SasWorkbench.Qpm.Tests.csproj">
-      <Build Solution="Debug|*" Project="false" />
-    </Project>
+    <Project Path="tests/unit/SasWorkbench.Qpm.Tests/SasWorkbench.Qpm.Tests.csproj" />
   </Folder>
 </Solution>
