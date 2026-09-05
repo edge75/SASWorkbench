@@ -183,6 +183,11 @@ being changed anyway.
   without re-running anything. A packet this build cannot decode is named and marked undecoded, so
   the extended log doubles as the coverage measurement M4 is trying to move.
 
+* **The accounting denomination in a script** (D36), after the ticket path: a declaration of the
+  configuration a case assumes, which builds the software machine and is a precondition check on a
+  real one, and a step that changes it, which refuses with a reason on a machine that cannot be
+  reconfigured mid-session.
+
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
 
 ### Done ahead of M3, on 2026-09-05
@@ -200,6 +205,12 @@ being changed anyway.
   the third tree D18 was extended with.
 * **A session can be searched** from the window and from the command line, by long poll, exception
   or kind of poll, at either end of the link.
+* **Three unit defects, found by measuring the machine rather than reasoning about it.** A field
+  assertion after a long poll carrying data was answering a second, dataless poll rather than the
+  reply that poll obtained. The bill-value meter was modelled in credits where the specification
+  fixes it in whole currency units. And the software machine published one accounting denomination
+  while counting in another, so every credit meter disagreed with the real machine by a factor of
+  twenty — a disagreement between peers that says nothing, which is the only kind D7 cannot use.
 
 ---
 

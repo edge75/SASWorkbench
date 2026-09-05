@@ -403,3 +403,34 @@ a person demonstrates is not the thing the suite tests.
 `qpm_simulator` is approved for change (D15) and needs no version bump in the platform repository —
 see the note in `PLAN.md` M3.
 
+---
+
+# Decision 36
+
+Taken with the user on 2026-09-05, after three unit defects were found by measuring the machine.
+
+## D36 — A script says what accounting denomination the machine is in, and can also change it
+
+Two forms, both wanted, **both after the ticket path of M3**.
+
+* **The declaration** — a case states the configuration it assumes, before the link opens. Against
+  the software machine it builds one in that configuration and runs. Against a real machine it
+  configures nothing: it reads the identification reply and either matches, and runs, or skips
+  naming what the machine is actually in force at. Never a silent reconfigure and never a failure
+  for an environmental reason, which is D19 applied to a unit rather than a capability.
+* **The setter** — a step that changes the denomination during a run.
+
+**The recommendation was the declaration alone**, on the grounds that section 16 makes the unit a
+property of the machine that a memory clear establishes, so no real machine can honour a change
+mid-session and a script written against one could not be run against the machine it describes.
+The user asked for both anyway. The way that is kept honest: the setter is a stimulus like any
+other, so on a machine that cannot be reconfigured it refuses with a reason and the case skips —
+the same treatment a door nobody has wired gets.
+
+**What it is worth, counted rather than claimed:** the declaration unblocks 7 of the 44 cases in
+`tests/validation/accounting-denomination/` — the pure wire-semantics ones — and only against the
+software peer, because six of them need games played, which a real machine refuses. The other 37
+need a memory clear, a power cycle, the configuration file, the audit pages, a handpay, tickets,
+transfers, progressives, a bonus, or a second game. The suite does not go green because of this;
+it starts measuring something.
+
