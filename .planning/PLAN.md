@@ -116,8 +116,9 @@ Also in this milestone, because all three touch the wire row that step 4 rewrite
 * **The wakeup-bit display setting** (D27) — flag digit, or colour only, which is the default. This
   needs the handoff change a wire row already requires: its symbols become a list carrying a
   per-symbol wakeup flag, because a joined string cannot highlight bit 8.
-* **Three timestamp modes** (D28) — since test start, since previous poll, since previous message.
+* **Timestamp modes** (D28) — since test start, since previous poll, since previous message.
   Selectable per view, and *not* baked into the record, so the raw log is unaffected.
+  **A fourth, wall-clock time, was added to D28 on 2026-09-05 and is outstanding** — see M3.
 * **Channels 2–4 stop being offered as ordinary choices** — the probe advertises one, so the other
   three render as `⟨unknown⟩` with the reason. This is a "never silently degrade" violation
   currently shipping in the window.
@@ -129,7 +130,18 @@ deadline, which hangs an unattended run forever and produces no verdict.
 
 ---
 
-## M2 · EGM stimulus — the two-ended test
+## M2 · EGM stimulus — the two-ended test  ✅ done 2026-09-05
+
+A single script inserts a twenty-dollar note into a real gaming machine and asserts both
+exception `$4A` and the bill meters over the wire, unattended, with no person and no
+peripheral simulator window. Doors and buttons are driven from the machine's own declared
+configuration, never from the simulator's labels. See `docs/M2-egm-stimulus.md`, which also
+records two corrections the machine forced: money meters are in credits rather than cents,
+and long poll `$08` is not what a note acceptor was waiting for.
+
+The simulator's window is **replaced** for unattended runs rather than changed, so
+`qpm_simulator` is untouched; its external-control mode moves to M3, where that repository is
+being changed anyway.
 
 * C# QPM shared-memory driver: memory-map the **file** (`C:\ProgramData\shared_memory\
   lsm_QpmSharedMemory.shm`; Linux `/dev/shm/QpmSharedMemory`), heartbeat-clocked buttons,
@@ -151,6 +163,9 @@ deadline, which hangs an unattended run forever and produces no verdict.
   for negative cases (D12). Tagged release + QSP bump (it is pinned by `GIT_TAG`).
 * Fix the mask-zeroing race (Trap B) — it fabricates door events on the SAS wire.
 * Ticket-in path so redemption can be stimulated at all.
+* **The fourth timestamp mode, wall-clock time** (D28), outstanding from M1.5. Small, and it
+  belongs with any work that touches the session stream: it needs no new field, because the
+  session already records a clock base and every record already carries its elapsed time.
 
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
 
@@ -213,6 +228,46 @@ Both platforms are cross-published from one Linux job, which is what makes the l
 workflow that decides whether the code works; this one only decides what ships.
 
 See `docs/releasing.md`.
+
+---
+
+## M7 · Whole-EGM conformance from the test-case documents
+
+**The milestone the rest of the plan is for.** Everything before it proves that one feature can
+be tested; this one turns that into a suite that validates an entire gaming machine across
+**every** SAS feature, from the test-case documents the user holds.
+
+**The documents arrive when this milestone starts, not before.** The user has several PDFs
+enumerating the cases. Writing scripts against a guess at them and reconciling later costs more
+than waiting, and a case list invented here would quietly become the definition of "complete".
+So the first task is to read them, and the second is to say plainly which cases this build can
+run, which need something that does not exist yet, and which cannot be automated at all.
+
+**What has to exist first**
+
+* **The full long-poll catalogue and the layouts to assert on it** — M4. A case whose reply this
+  build cannot decode is a `SKIP`, not a pass, so breadth of decoding is the ceiling on breadth
+  of testing.
+* **Tickets** — M3. A large part of any machine-validation document is the money path.
+* **Whatever the documents need that M2's stimulus cannot do.** Expect gaps: handpay and
+  jackpot reset, AFT transfers, progressives, component authentication. Each gap is either a new
+  stimulus, a new host command, or an honest `SKIP` with a reason — and never a silent pass.
+
+**How it is built**
+
+* One directory per document section, named as the document names it, so "we pass section 4.3"
+  is a sentence somebody can say — the same argument as D18.
+* Every case declares its `requires`, so a machine or a build that cannot run one skips it by
+  name rather than failing it.
+* Coverage is reported as a measurement, not a claim: how many cases exist, how many ran, how
+  many were skipped and why. A suite that skips half its cases must not look like one that
+  passed them.
+
+**Done when** the suite runs end to end against a real machine unattended, and its report
+accounts for every case in the documents — passed, failed, or skipped with a reason.
+
+**D4 applies to those documents as it applies to the spec.** Their content decides what we test;
+every word this product ships is our own.
 
 ---
 

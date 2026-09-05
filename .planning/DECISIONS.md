@@ -94,9 +94,14 @@ for tests that declare it, and baseline-diff to catch side effects nobody assert
 Approved: `QSP_DemoOpenGL` build wiring · `qpm_simulator` (printer, wallet, external-control
 mode, race fix) · a golden `nvram.bin` fixture · a deterministic-RNG option.
 
-**Constraint from the user:** changes to `QSP_DemoOpenGL` live on a **branch** and in a
-**dev-only preset** — no customer ever builds them. And: *"I don't want to change the QSP
-repo at all."*
+**Superseded in part by D30**, which withdraws the branch permission entirely: nothing in
+`QSP`, `libsas` or `QSP_DemoOpenGL` is edited at all. The rest of D15 stands —
+`qpm_simulator` changes, the golden fixture and the deterministic-RNG option are still
+approved.
+
+**Constraint from the user, as it stood:** changes to `QSP_DemoOpenGL` live on a **branch**
+and in a **dev-only preset** — no customer ever builds them. And: *"I don't want to change
+the QSP repo at all."*
 
 **How that is satisfied** — see `BLOCKERS.md`. Short version: the missing `libqxcom`
 implementation lives in *this* repo; `CMakeUserPresets.json` is already gitignored
@@ -249,21 +254,61 @@ This does not weaken the refusals in D2 or the principle behind them: a transpor
 carry the bit is still refused, and a received symbol carrying it still fails the poll. What
 changes is only how a symbol is drawn.
 
-## D28 — Three timestamp modes
+## D28 — Four timestamp modes
 
-As in GSA's tool, selectable per view and recorded per record so the raw log is unaffected:
+Selectable per view and *not* baked into the record, so the raw log is unaffected:
 
 | Mode | Zero is | What it shows |
 |---|---|---|
 | **since test start** | the start of the test (today's behaviour) | where in the test something happened |
 | **since previous poll** | the previous host poll on that channel | the poll period — 200 ms, and every stall in it |
 | **since previous message** | the previous record of any kind | turnaround latency — the 30.7 ms a reply took |
+| **wall-clock time** | midnight | when it happened in the world, for matching a run against another tool's log, a machine's own log, or somebody's account of what they were doing |
 
-The distinction is the point: in a general-poll loop, *since previous poll* reads ~200 ms while
-*since previous message* reads ~30 ms, and the two answer different questions.
+The distinction between the middle two is the point: in a general-poll loop, *since previous
+poll* reads ~200 ms while *since previous message* reads ~30 ms, and the two answer different
+questions.
+
+**The fourth was added on 2026-09-05 and is not yet built.** It needs no change to a record:
+the session already carries a clock base (D26), so wall-clock is that base plus the elapsed
+time a record already holds. Every other mode stays derived the same way, which is what keeps
+the raw log the only thing that has to be right.
 
 ## D29 — Casino simulation, as the last milestone
 
 100 software EGMs against one or two hosts, with the hosts partitioned by category per D23 — for
 example Advanced Funds Transfer and Legacy Bonus on one, Validation and Information on the other.
 Scheduled as M5, after breadth. See `PLAN.md`.
+
+---
+
+# Decisions 30–31
+
+Taken with the user on 2026-09-05, at the end of M2. Same standing as the rest.
+
+## D30 — Nothing in QSP, libsas or QSP_DemoOpenGL is edited, branch or not
+
+Taken 2026-09-05. Tightens D15, which had allowed changes to `QSP_DemoOpenGL` on a branch in a
+dev-only preset. The user's words: *"I don't want to change QSP / libsas / QSP_DemoOpenGL repos.
+The CMakeUserPreset is ok because it is gitignored and it remains only on my PC."*
+
+So the only file this project may add to any of those three repositories is
+`QSP_DemoOpenGL/CMakeUserPresets.json`, and only because it is gitignored and never leaves the
+user's machine. Everything a build needs is injected from *this* repository through CMake's own
+`CMAKE_PROJECT_<name>_INCLUDE` hooks, which is what M0 established.
+
+The branch `qsp-new-callbacks` that M0 created in `QSP_DemoOpenGL` carries no tracked change and
+exists only to hold that ignored file's working directory. Nothing further goes near it.
+
+**If something cannot be done within that, stop and say so.** A change made to their source
+because it was the easy path is the one outcome this decision exists to prevent.
+
+## D31 — A milestone for whole-EGM conformance, driven by the user's test-case documents
+
+Taken 2026-09-05. The user holds several PDFs enumerating the test cases that validate an entire
+gaming machine across every SAS feature, and will supply them when that milestone starts — not
+before, so the scripts are written against the real documents rather than against a guess at
+them. Scheduled as M7 in `PLAN.md`, after the breadth work that gives it a full catalogue.
+
+The same rule as D4 applies to those documents: their content informs what we test, and every
+word we ship is our own.

@@ -11,9 +11,11 @@
 #
 #   sasctl nvram restore                       a note acceptor configured through the machine's
 #                                              own menu, saved once and put back
-#   sasctl qpm audit open, then audit close    once per boot, to clear the condition that
-#                                              inhibits the acceptor. Measured: without this the
-#                                              note is refused; with it, accepted.
+#   sasctl qpm audit open, then audit close    once per boot, on a machine running a developer
+#                                              licence — which a Debug build must install. The
+#                                              licence raises a condition that inhibits the
+#                                              acceptor until the menu has been entered and left.
+#                                              A production licence needs none of this.
 
 test "a twenty raises its exception and moves its meters" {
   tag @needs-stimulus

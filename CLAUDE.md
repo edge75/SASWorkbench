@@ -18,11 +18,14 @@ Then `.planning/BLOCKERS.md` (verified facts, traps, and the unblocking strategy
 1. **Never read, cite, or take design inspiration from `C:\Progetti\libsas\utils\sashost`**,
    nor `utils/poller` or `utils/hwconformance`. The user ruled these out explicitly, twice.
    Reading `libsas/src`, `libsas/include` and `libsas/test` is expected and fine.
-2. **Do not edit tracked source in `C:\Progetti\QSP`.** The user: *"I don't want to change
-   the QSP repo at all."* The strategy that satisfies this is in `BLOCKERS.md §2`.
-3. **Changes to `C:\Progetti\QSP_DemoOpenGL` go on a branch and in a dev-only preset.**
-   No customer build may include them. `CMakeUserPresets.json` is already gitignored
-   (`.gitignore:131`) — prefer it to any tracked file.
+2. **Change nothing in `C:\Progetti\QSP`, `C:\Progetti\libsas` or
+   `C:\Progetti\QSP_DemoOpenGL` — not on a branch either.** Restated and tightened by the
+   user on 2026-09-05 (D30): *"I don't want to change QSP / libsas / QSP_DemoOpenGL repos."*
+   Reading them is expected; editing them, in any branch, is not.
+3. **The one exception is `QSP_DemoOpenGL/CMakeUserPresets.json`**, because it is gitignored
+   (`.gitignore:131`) and so never leaves the user's machine. Everything the build needs is
+   injected from *this* repository through it — see `docs/M0-prove-the-wire.md`. If something
+   cannot be done that way, **stop and say so** rather than editing their source.
 4. **Do not redistribute third-party spec content.** The SAS 6.02 PDF is IGT
    confidential/"Distributed to Quixant LTD"; GSA's XML and `gsat.exe` symbols are GSA's.
    All descriptive text in this product is authored by us, with the protocol model derived

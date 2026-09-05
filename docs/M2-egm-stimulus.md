@@ -118,19 +118,25 @@ nothing on the wire to say so — which is the least debuggable failure there is
 which notes it takes, live in NVRAM and are set through the machine's menu by hand. That was
 done once and saved to `fixtures/nvram/golden.nvram.gz`; `sasctl nvram restore` puts it back.
 
-**The audit menu opened and closed once per boot.** This one was a correction. The reasoning
-said a host must enable denominations with long poll `$08`, because that is what writes the
-machine's network side of the enabled-notes mask. Measured against the machine, that was
-wrong:
+**On a developer-licensed machine, the audit menu opened and closed once per boot.** This is
+not a property of the protocol or of a production machine: a developer licence is what a
+Debug build is obliged to install, and it raises a condition that inhibits the note acceptor
+until the menu has been entered and left once. A machine running a production licence needs
+none of this. It is recorded because every machine this project drives on a laptop is a Debug
+build, so in practice it is always needed here.
+
+Finding it also corrected a wrong theory. The reasoning said a host must enable denominations
+with long poll `$08`, because that is what writes the machine's network side of the
+enabled-notes mask. Measured against the machine, that was wrong:
 
 | | audit menu cycled | `$08` sent | note accepted |
 |---|---|---|---|
 | | yes | no | **yes** |
 | | no | yes | no |
 
-So cycling the menu is what matters and `$08` is neither necessary nor sufficient here. The
-long poll is still in the catalogue, because it is a real command worth being able to send
-and decode — it is simply not the reason a note is refused.
+So clearing the licence condition is what matters, and `$08` is neither necessary nor
+sufficient here. The long poll is still in the catalogue, because it is a real command worth
+being able to send and decode — it is simply not the reason a note is refused.
 
 ## One more thing the machine corrected
 
