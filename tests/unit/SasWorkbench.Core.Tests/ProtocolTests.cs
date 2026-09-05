@@ -559,3 +559,86 @@ public class SelectedMeterTests
         Assert.Equal(5000, decoded.Number("meters[0].value"));
     }
 }
+
+/// <summary>
+/// Which unit each meter is counted in, which is what decides whether the accounting denomination
+/// applies to it. The expectations are the meter codes the machine-validation test plan names,
+/// checked against a map derived from the library's own meter table — so the two have to agree.
+/// </summary>
+public class MeterUnitTests
+{
+    [Theory]
+    // The credits meters the plan requires to scale: coin in and out, current credits, ticket in
+    // and out, machine paid paytable win, won credits, hand paid credits.
+    [InlineData(0x0000)]
+    [InlineData(0x0001)]
+    [InlineData(0x000C)]
+    [InlineData(0x0015)]
+    [InlineData(0x0016)]
+    [InlineData(0x001C)]
+    [InlineData(0x0022)]
+    [InlineData(0x0023)]
+    public void A_credits_meter_is_reported_in_the_accounting_denomination(int code)
+    {
+        Assert.Equal(SasMeterUnit.Accounting, SasMeterUnits.UnitOf((ushort)code));
+    }
+
+    [Theory]
+    // Ticket and transfer amounts. A value wrongly divided here under-reports money to the host,
+    // which is why the plan treats these as being as important as the ones that do scale.
+    [InlineData(0x000D)]
+    [InlineData(0x000E)]
+    [InlineData(0x000F)]
+    [InlineData(0x0010)]
+    [InlineData(0x00A0)]
+    [InlineData(0x00A2)]
+    [InlineData(0x00B8)]
+    public void A_cents_meter_is_not_touched_by_the_accounting_denomination(int code)
+    {
+        Assert.Equal(SasMeterUnit.Cents, SasMeterUnits.UnitOf((ushort)code));
+    }
+
+    [Theory]
+    // Ticket quantities and the transfer counts. B9 in particular is a quantity rather than an
+    // amount, which the plan calls out because it looks like one.
+    [InlineData(0x0011)]
+    [InlineData(0x0012)]
+    [InlineData(0x0013)]
+    [InlineData(0x00B9)]
+    [InlineData(0x00BB)]
+    [InlineData(0x00BD)]
+    public void A_quantity_is_a_tally_and_scales_with_nothing(int code)
+    {
+        Assert.Equal(SasMeterUnit.Count, SasMeterUnits.UnitOf((ushort)code));
+    }
+
+    /// <summary>
+    /// Games played and games won are tallies, but the library's table does not say so in a form
+    /// this build can read: their names carry no unit at all. They are therefore unknown rather
+    /// than assumed, and what matters for money is the guarantee below - an unknown meter is never
+    /// scaled by the accounting denomination, so a tally cannot be quietly divided.
+    /// </summary>
+    [Theory]
+    [InlineData(0x0005)]
+    [InlineData(0x0006)]
+    public void A_meter_whose_unit_the_table_does_not_state_is_never_scaled(int code)
+    {
+        Assert.False(SasMeterUnits.ScalesWithDenomination((ushort)code));
+    }
+
+    /// <summary>
+    /// The map is derived, so it is worth knowing how much of the table it actually covers. A
+    /// meter whose name carries no unit is reported as unknown rather than assumed to be a count.
+    /// </summary>
+    [Fact]
+    public void Every_meter_is_either_classified_or_honestly_unknown()
+    {
+        IReadOnlyDictionary<SasMeterUnit, int> counts = SasMeterUnits.Counts;
+
+        Assert.True(counts[SasMeterUnit.Accounting] > 0);
+        Assert.True(counts[SasMeterUnit.Cents] > 0);
+        Assert.True(counts[SasMeterUnit.Count] > 0);
+        Assert.All(SasCatalogue.Meters.Keys, code =>
+            Assert.True(Enum.IsDefined(SasMeterUnits.UnitOf(code))));
+    }
+}

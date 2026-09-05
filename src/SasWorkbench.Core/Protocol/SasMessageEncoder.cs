@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using SasWorkbench.Core.Wire;
 
@@ -40,8 +41,10 @@ public static class SasMessageEncoder
         foreach (SasField field in layout.Response)
         {
             if (field.IsGroup)
-                throw new InvalidOperationException(
-                    $"Encoding the repeating group '{field.Name}' is not implemented.");
+            {
+                cursor += WriteGroup(layout, field, field.Name, values, destination[cursor..]);
+                continue;
+            }
 
             if (field.PresentWhen is not null && !values.ContainsKey(field.Name))
                 continue;
@@ -54,6 +57,57 @@ public static class SasMessageEncoder
         }
 
         return SasCrc.Append(destination, cursor);
+    }
+
+    /// <summary>
+    /// Writes a repeating group. Elements are named the way the decoder names them when it reads
+    /// one back — <c>meters[0].value</c> — so a message can be built and read with one vocabulary
+    /// rather than two that have to be kept in step.
+    /// </summary>
+    private static int WriteGroup(
+        SasMessageLayout layout,
+        SasField group,
+        string path,
+        IReadOnlyDictionary<string, object> values,
+        Span<byte> destination)
+    {
+        if (!values.TryGetValue($"{path}.count", out object? countValue))
+            throw new InvalidOperationException(
+                $"Long poll ${layout.Command:X2} needs '{path}.count' to say how many "
+                + $"'{group.Name}' entries to write.");
+
+        int count = Convert.ToInt32(countValue, CultureInfo.InvariantCulture);
+        int cursor = 0;
+
+        for (int index = 0; index < count; index++)
+        {
+            string elementPath = $"{path}[{index}]";
+            foreach (SasField member in group.Fields)
+            {
+                string memberPath = $"{elementPath}.{member.Name}";
+                if (!values.TryGetValue(memberPath, out object? value))
+                    throw new InvalidOperationException(
+                        $"Long poll ${layout.Command:X2} needs a value for '{memberPath}'.");
+
+                SasField toWrite = member;
+                if (member.LengthFromField is { } lengthField)
+                {
+                    string lengthPath = $"{elementPath}.{lengthField}";
+                    if (!values.TryGetValue(lengthPath, out object? lengthValue))
+                        throw new InvalidOperationException(
+                            $"'{memberPath}' takes its length from '{lengthPath}', which has no value.");
+
+                    toWrite = member with
+                    {
+                        Length = Convert.ToInt32(lengthValue, CultureInfo.InvariantCulture),
+                    };
+                }
+
+                cursor += WriteField(toWrite, value, destination[cursor..]);
+            }
+        }
+
+        return cursor;
     }
 
     private static int WriteField(SasField field, object value, Span<byte> destination)

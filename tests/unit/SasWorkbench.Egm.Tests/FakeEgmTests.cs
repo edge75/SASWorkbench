@@ -19,7 +19,7 @@ public class FakeEgmTests
     {
         private readonly LoopbackBus _bus = new();
 
-        public Rig(FakeEgmOptions? options = null)
+        public Rig(FakeEgmOptions? options = null, TimeSpan? responseTimeout = null)
         {
             Machine = new FakeEgm(_bus.Egm, options);
             Machine.Start();
@@ -28,7 +28,7 @@ public class FakeEgmTests
             {
                 Address = Address,
                 PollInterval = TimeSpan.FromMilliseconds(20),
-                ResponseTimeout = TimeSpan.FromMilliseconds(200),
+                ResponseTimeout = responseTimeout ?? TimeSpan.FromMilliseconds(200),
                 QuietGap = TimeSpan.FromMilliseconds(15),
                 LinkDownAfter = TimeSpan.FromMilliseconds(500),
             });
@@ -294,13 +294,22 @@ public class FakeEgmTests
         Assert.Equal(0, rig.Machine.GeneralPolls);
     }
 
+    /// <summary>
+    /// A machine slower than the host expects is still answered, and the wait is reported as the
+    /// latency rather than hidden.
+    /// </summary>
+    /// <remarks>
+    /// The timeout is set far above the delay on purpose. What this test is about is the ratio
+    /// between the two, not either number: with the default two hundred milliseconds it failed
+    /// roughly twice in twelve whole-suite runs, because four test assemblies running at once can
+    /// starve the machine's thread for longer than a delay of forty milliseconds allows for.
+    /// </remarks>
     [Fact]
     public void A_slow_machine_is_still_answered_within_the_timeout()
     {
-        using var rig = new Rig(new FakeEgmOptions
-        {
-            ResponseDelay = TimeSpan.FromMilliseconds(40),
-        });
+        using var rig = new Rig(
+            new FakeEgmOptions { ResponseDelay = TimeSpan.FromMilliseconds(40) },
+            responseTimeout: TimeSpan.FromSeconds(5));
 
         LongPollResult result = rig.Host.Execute(0x1F);
 

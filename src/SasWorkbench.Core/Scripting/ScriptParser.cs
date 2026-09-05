@@ -291,6 +291,54 @@ public static class ScriptParser
         return new ConnectStep(location, transport, target, address, channel);
     }
 
+    /// <summary>
+    /// Whether a layout has a field at this path. A path may reach inside a repeating group, as
+    /// <c>meters[0].value</c> does, because a reply whose shape is a walk rather than a table has
+    /// nothing else a test could name.
+    /// </summary>
+    private static bool HasField(IReadOnlyList<SasField> fields, string path)
+    {
+        IReadOnlyList<SasField> level = fields;
+
+        foreach (string step in path.Split('.'))
+        {
+            string name = TrimIndex(step);
+            SasField? match = level.FirstOrDefault(f =>
+                string.Equals(f.Name, name, StringComparison.OrdinalIgnoreCase));
+            if (match is null)
+                return false;
+
+            level = match.Fields;
+        }
+
+        return true;
+    }
+
+    /// <summary>Every path a test could name, groups written as the member paths inside them.</summary>
+    private static IEnumerable<string> NamesOf(IReadOnlyList<SasField> fields, string? prefix = null)
+    {
+        foreach (SasField field in fields)
+        {
+            string path = prefix is null ? field.Name : $"{prefix}.{field.Name}";
+            if (field.IsGroup)
+            {
+                foreach (string inner in NamesOf(field.Fields, $"{path}[n]"))
+                    yield return inner;
+            }
+            else
+            {
+                yield return path;
+            }
+        }
+    }
+
+    /// <summary>Strips a <c>[3]</c> subscript, leaving the field name.</summary>
+    private static string TrimIndex(string step)
+    {
+        int bracket = step.IndexOf('[', StringComparison.Ordinal);
+        return bracket < 0 ? step : step[..bracket];
+    }
+
     private static SendLongPollStep ReadSend(string[] words, SourceLocation location)
     {
         // host send lp 1F [data 0102]
@@ -448,12 +496,11 @@ public static class ScriptParser
                 $"long poll ${command:X2} is not one the gaming machine library implements");
         }
 
-        if (layout is not null && !layout.Response.Any(f =>
-                string.Equals(f.Name, fieldName, StringComparison.OrdinalIgnoreCase)))
+        if (layout is not null && !HasField(layout.Response, fieldName))
         {
             throw new ScriptParseException(location,
                 $"long poll ${command:X2} has no field '{fieldName}'. Its fields are: "
-                + string.Join(", ", layout.Response.Select(f => f.Name)));
+                + string.Join(", ", NamesOf(layout.Response)));
         }
 
         if (cursor >= words.Length)
