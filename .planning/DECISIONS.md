@@ -124,6 +124,13 @@ libsas *is* the real EGM under test.
 sentence you can say) and `tests/regression/<feature>/` for our own. Tags cut across:
 `@wire-only @needs-stimulus @destructive @slow @channel2 @requires-ram-clear`.
 
+**Extended on 2026-09-05 with a third tree**, `tests/validation/<document>/`, for suites written
+from a machine-validation document. It exists because the regression tree carries an invariant the
+other two cannot: everything under it runs green against the software machine with **no skips at
+all**. A document-driven suite is mostly cases no build can run yet, so putting one there would
+either destroy that invariant or force the suite to be trimmed to the convenient cases. The two
+original trees are unchanged. This is the shape M7 needs.
+
 ## D19 — Capability requirements
 **Each test declares what it needs; the runner probes the environment and skips-with-reason
 when unmet.** Never fail a test for an environmental reason — that trains people to ignore
@@ -312,3 +319,37 @@ them. Scheduled as M7 in `PLAN.md`, after the breadth work that gives it a full 
 
 The same rule as D4 applies to those documents: their content informs what we test, and every
 word we ship is our own.
+
+---
+
+# Decisions 32–33
+
+Taken with the user on 2026-09-05, before starting M3.
+
+## D32 — QPM2 is substituted, never edited
+
+The ticket-in path needs the HAL peripheral manager to raise a ticket-pending event, and that code
+lives in the QPM2 checkout. QPM2 is not one of the three repositories D30 protects, but it was not
+on D15's approved list either, so it was put to the user.
+
+**Chosen: substitute, do not edit.** QPM2's tracked files stay as they are; its HAL source is
+swapped for our own copy at configure time, the same injection M0 established for the serial
+transport and for libsas's platform check, with the wiring in the gitignored preset. The cost is a
+maintenance seam if QPM2 moves, and that is accepted in exchange for a fourth repository staying
+untouched.
+
+Rejected: editing QPM2 on a local checkout reached through `FETCHCONTENT_SOURCE_DIR_QPM`, which
+QSP's own CMake documents at `QSP/CMakeLists.txt:70`. Cleaner code, but it would make QPM2 a fourth
+repository this project changes.
+
+## D33 — A flaky suite is fixed before more is built on it
+
+The intermittent failure that only appeared when all four test projects ran at once was chased
+before M3 rather than alongside it or after it. The reasoning the user endorsed: a suite that fails
+one run in ten cannot tell you whether the next milestone works, and the bug gets harder to isolate
+as the suite grows.
+
+It was worth doing. What looked like flakiness was two real defects, both of which silently
+returned one message's answer under another message's name — see
+`docs/one-behind.md`.
+

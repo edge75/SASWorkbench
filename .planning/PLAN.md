@@ -160,7 +160,15 @@ being changed anyway.
 ## M3 · Tickets — the first genuinely impossible test
 
 * `qpm_simulator`: printer panel with a real barcode, wallet, JSON per ticket, JSON import
-  for negative cases (D12). Tagged release + QSP bump (it is pinned by `GIT_TAG`).
+  for negative cases (D12). **No QSP bump is needed after all** — the `GIT_TAG` pin at
+  `QSP/CMakeLists.txt:92` sits inside `if(HAL)`, and the SasWorkbench preset builds with `HAL` off
+  and turns it on for QPM2's scope only, so the simulator is never fetched by this build. It is run
+  as its own executable against the shared region. If a local checkout ever does need to be in the
+  build, CMake's own `FETCHCONTENT_SOURCE_DIR_<name>` override goes in the gitignored preset —
+  QSP's CMake documents exactly that at line 70. Either way nothing in QSP is edited (D30).
+* Ticket-in needs the HAL peripheral manager to raise a ticket-pending event, which lives in QPM2.
+  **QPM2 is substituted, never edited** (D32): its HAL source is swapped at configure time the way
+  M0 swapped the serial transport and libsas's platform check.
 * Fix the mask-zeroing race (Trap B) — it fabricates door events on the SAS wire.
 * Ticket-in path so redemption can be stimulated at all.
 * **The fourth timestamp mode, wall-clock time** (D28), outstanding from M1.5. Small, and it
@@ -168,6 +176,22 @@ being changed anyway.
   session already records a clock base and every record already carries its elapsed time.
 
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
+
+### Done ahead of M3, on 2026-09-05
+
+* **Two one-behind defects fixed** — a late reply being read as the next reply, and an abandoned
+  command's answer being returned to the next caller. Both reported success while returning the
+  wrong message. See `docs/one-behind.md`. This is D33.
+* **Long polls 6F and AF decode**, which needed two general additions rather than a decoder written
+  by hand for one command: a field whose length comes from an earlier field, and a group that
+  repeats to the end of a reply whose elements are not all the same size.
+* **The accounting denomination is modelled** — the Table C-4 values, the divisibility rule and the
+  refusals, and a per-meter unit derived from the library's own meter table. The software machine
+  counts credit values in a configured denomination and answers the selected-meter polls.
+* **`tests/validation/accounting-denomination/`** — forty-four cases from the user's test plan, in
+  the third tree D18 was extended with.
+* **A session can be searched** from the window and from the command line, by long poll, exception
+  or kind of poll, at either end of the link.
 
 ---
 
