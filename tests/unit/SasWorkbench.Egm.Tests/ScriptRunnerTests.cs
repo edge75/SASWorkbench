@@ -107,6 +107,27 @@ public class ScriptRunnerTests
     }
 
     /// <summary>
+    /// The bill-value meter is counted in whole currency units, so it reads the same on a machine
+    /// accounting in ten cents as on one accounting in one. The credit meter beside it does move,
+    /// which is what makes the pair worth asserting together: one unit is fixed and one is not.
+    /// </summary>
+    [Fact]
+    public void The_bill_value_meter_does_not_move_with_the_accounting_denomination()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+
+            egm bill insert 2000
+            host expect meter total_bill_in += 20 within 2s
+            host expect meter credits += 200 within 2s
+            """, new FakeEgmOptions { AccountingDenomination = 0x03 });
+
+        Assert.True(result.Verdict == Verdict.Pass, Explain(result));
+    }
+
+    /// <summary>
     /// A long poll that carries data is answered once, and the assertions that follow read that
     /// answer. Asking again without the data is a different question - the machine rejects it -
     /// so a runner that re-polled would make every selected-meter case unassertable.

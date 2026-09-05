@@ -45,6 +45,10 @@ public sealed class FakeEgm : IDisposable
     private long _longPolls;
     private long _rejections;
 
+    // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
+    // currency units and does not move when the accounting denomination does.
+    private long _billValueInDollars;
+
     public FakeEgm(ISasTransport transport, FakeEgmOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
@@ -223,6 +227,7 @@ public sealed class FakeEgm : IDisposable
         }
 
         long credits = cents / AccountingCents;
+        Interlocked.Add(ref _billValueInDollars, cents / 100);
         Meters.Increment(countMeter, 1);
         Meters.Increment(SasMeterCode.TotalCreditsFromBillsAccepted, credits);
         Meters.Increment(SasMeterCode.TotalDropIn_Crd, credits);
@@ -544,7 +549,10 @@ public sealed class FakeEgm : IDisposable
             ["paytable_id"] = _options.PaytableId,
             ["base_percentage"] = _options.BasePercentage,
         },
-        0x20 => Single("total_bill_value", SasMeterCode.TotalCreditsFromBillsAccepted),
+        0x20 => new Dictionary<string, object>
+        {
+            ["total_bill_value"] = Interlocked.Read(ref _billValueInDollars),
+        },
         0x2C => new Dictionary<string, object> { ["hopper_level"] = (long)_options.HopperLevel },
         0x54 => new Dictionary<string, object>
         {

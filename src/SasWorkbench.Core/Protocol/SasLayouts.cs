@@ -337,8 +337,11 @@ public static class SasLayouts
             // an implied negative acknowledgement, so a host sweeping more meters than one command
             // holds has to alternate between the two - which is the whole reason both codes exist.
             SelectedMeters(0xAF, "selected_meters_alternate"),
-            MeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Credits,
-                "Total value of bills accepted.", "lp20_SendTotalDollarValueOfBills"),
+            // Whole currency units, not credits: this is the one bill meter the specification
+            // fixes in dollars, so it does not scale with the accounting denomination.
+            MeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Dollars,
+                "Total value of bills accepted, in whole currency units.",
+                "lp20_SendTotalDollarValueOfBills"),
             new()
             {
                 Command = 0x2C,

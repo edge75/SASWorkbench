@@ -52,6 +52,12 @@ public enum SasUnit
     /// <summary>Cents, or the smallest unit of the machine's currency.</summary>
     Cents,
 
+    /// <summary>
+    /// Whole units of currency, fixed by the specification whatever the accounting denomination
+    /// is. The bill-value meter is counted this way and does not scale with the denomination.
+    /// </summary>
+    Dollars,
+
     /// <summary>A plain count of events.</summary>
     Count,
 

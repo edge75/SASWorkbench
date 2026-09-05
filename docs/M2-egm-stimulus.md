@@ -140,12 +140,17 @@ being able to send and decode — it is simply not the reason a note is refused.
 
 ## One more thing the machine corrected
 
-The money meters of this protocol are in **credits**, not cents: a twenty-dollar note moves
-`total_bill_in` by twenty. The software machine had been counting one credit per cent, so it
-read a hundred times high and happily passed a test that the real machine failed. Both are
-now on a one-dollar credit, and the assertions say twenty. This is the disagreement-between-
-peers that `D7` exists to surface, and it only surfaced because the same script was run
-against both.
+A twenty-dollar note moves `total_bill_in` by twenty, not by two thousand. The software
+machine had been counting one unit per cent, so it read a hundred times high and happily
+passed a test that the real machine failed. This is the disagreement-between-peers that `D7`
+exists to surface, and it only surfaced because the same script was run against both.
+
+**Corrected on 2026-09-05, after the machine was measured again.** The reason given here was
+wrong even though the number was right: that meter is the bill-value meter, which the
+specification fixes in whole currency units, so twenty is twenty dollars and has nothing to do
+with what a credit is worth. The credit meters beside it *are* in the machine's accounting
+denomination — measured at four hundred for the same note, on a machine accounting in five
+cents — and the fixture was reporting twenty for them too.
 
 ---
 

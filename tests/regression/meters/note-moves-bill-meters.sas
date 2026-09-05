@@ -1,9 +1,9 @@
 # A test that drives both ends: the note goes in at the machine, and the assertions are
 # made over the wire. Either half alone can be right while the machine is wrong.
 #
-# The money meter is in credits, not cents: a twenty-dollar note moves it by twenty at a
-# one-dollar credit. The note itself is still named in cents, because that is what is put
-# into the acceptor.
+# The bill-value meter is in whole currency units, which the specification fixes whatever the
+# machine's accounting denomination is: a twenty-dollar note moves it by twenty. The note
+# itself is still named in cents, because that is what is put into the acceptor.
 #
 # Against a real machine two things have to be true first, and neither is in this repository.
 # Without them the note is dropped inside the machine and the first assertion fails with
