@@ -3,7 +3,7 @@
 Append one line per completed wave:
 `PHASE:<id> WAVE:<id> STATUS:<complete|failed> TS:<ISO-8601-UTC>`
 
-M0, M1, M1.5 and M6 are complete — see `docs/`. Next: M2.
+M0, M1, M1.5, M2 and M6 are complete — see `docs/`. Next: M3.
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -21,3 +21,9 @@ PHASE:M1.5 WAVE:W3-session-model STATUS:complete TS:2026-09-04T15:16:16Z
 PHASE:M1.5 WAVE:W4-session-stream STATUS:complete TS:2026-09-04T15:29:58Z
 PHASE:M1.5 WAVE:W5-suite-instrument STATUS:complete TS:2026-09-04T15:45:12Z
 PHASE:M1.5 WAVE:W6-report-and-controls STATUS:complete TS:2026-09-04T16:13:09Z
+PHASE:M2 WAVE:W1-qpm-driver STATUS:complete TS:2026-09-05T05:24:02Z
+PHASE:M2 WAVE:W2-egm-config-and-doors STATUS:complete TS:2026-09-05T05:37:52Z
+PHASE:M2 WAVE:W3-operator-commands STATUS:complete TS:2026-09-05T05:48:42Z
+PHASE:M2 WAVE:W4-window-and-forget STATUS:complete TS:2026-09-05T06:05:51Z
+PHASE:M2 WAVE:W5-docs STATUS:complete TS:2026-09-05T06:08:34Z
+PHASE:M2 WAVE:W6-note-and-fixture STATUS:complete TS:2026-09-05T06:54:38Z
