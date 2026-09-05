@@ -3,6 +3,7 @@ using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Egm;
+using SasWorkbench.Qpm;
 
 namespace SasWorkbench.Cli;
 
@@ -170,6 +171,18 @@ internal static class RunCommand
             }
         }
 
+        // Read whether or not the peripheral driver was asked for, so that naming one of these
+        // with the wrong backend is reported as the mistake it is rather than silently ignored.
+        var peripherals = new QpmOptions(
+            line.Value("qpm-shm"), line.Value("egm-resources"));
+
+        if (backend != StimulusBackend.Qpm
+            && (peripherals.RegionPath is not null || peripherals.ResourcesDirectory is not null))
+        {
+            error = "--qpm-shm and --egm-resources only mean something with --stimulus qpm.";
+            return false;
+        }
+
         options = new ScriptRunnerOptions
         {
             Stimulus = backend,
@@ -179,9 +192,12 @@ internal static class RunCommand
 
             // The software machine is only wired in when it was asked for. A run that quietly
             // substituted a fixture for the machine under test would be worthless.
-            Environment = backend == StimulusBackend.Software
-                ? SoftwareMachineEnvironment.For()
-                : DefaultEnvironment.Create,
+            Environment = backend switch
+            {
+                StimulusBackend.Software => SoftwareMachineEnvironment.For(),
+                StimulusBackend.Qpm => QpmEnvironment.For(peripherals),
+                _ => DefaultEnvironment.Create,
+            },
         };
 
         return true;

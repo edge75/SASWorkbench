@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SasWorkbench.Core\SasWorkbench.Core.csproj" />
     <ProjectReference Include="..\SasWorkbench.Egm\SasWorkbench.Egm.csproj" />
+    <ProjectReference Include="..\SasWorkbench.Qpm\SasWorkbench.Qpm.csproj" />
   </ItemGroup>
 
 </Project>

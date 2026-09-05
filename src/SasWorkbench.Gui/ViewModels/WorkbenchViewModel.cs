@@ -11,6 +11,7 @@ using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Egm;
+using SasWorkbench.Qpm;
 using SasWorkbench.Gui.Controls;
 
 namespace SasWorkbench.Gui.ViewModels;
@@ -254,6 +255,21 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     /// <summary>Whether the deadline field is worth showing at all.</summary>
     public bool IsManualStimulus => RunStimulus == StimulusBackend.Manual;
 
+    /// <summary>Whether the machine's own resource directory is worth asking for.</summary>
+    public bool IsPeripheralStimulus => RunStimulus == StimulusBackend.Qpm;
+
+    /// <summary>
+    /// Where the machine under test declares its doors and buttons.
+    /// </summary>
+    /// <remarks>
+    /// Without it the peripheral driver knows the shared region but not which bit is which door,
+    /// so it offers no door and no button at all and the tests needing one skip by name. That is
+    /// the honest outcome: an index guessed from the peripheral simulator's labels would open a
+    /// different door from the one the test asked for.
+    /// </remarks>
+    [ObservableProperty]
+    public partial string EgmResources { get; set; } = string.Empty;
+
     /// <summary>
     /// Which link a run should use, or "as written" to leave each test's own connect step alone.
     /// </summary>
@@ -262,8 +278,11 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     public partial string RunLink { get; set; } = "as written";
 
-    partial void OnRunStimulusChanged(StimulusBackend value) =>
+    partial void OnRunStimulusChanged(StimulusBackend value)
+    {
         OnPropertyChanged(nameof(IsManualStimulus));
+        OnPropertyChanged(nameof(IsPeripheralStimulus));
+    }
 
     // ---- commands ------------------------------------------------------------------------
 
@@ -471,6 +490,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
             _run = new CancellationTokenSource();
             CancellationToken cancel = _run.Token;
             StimulusBackend stimulus = RunStimulus;
+            string? resources = string.IsNullOrWhiteSpace(EgmResources) ? null : EgmResources;
             TimeSpan promptDeadline = ScriptParser.ParseDuration(
                 Prompt.Deadline, SourceLocation.None);
 
@@ -491,9 +511,13 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
                     // The software machine is wired in only when it was asked for: a run that
                     // quietly substituted a fixture for the machine under test would be worthless.
-                    Environment = stimulus == StimulusBackend.Software
-                        ? SoftwareMachineEnvironment.For()
-                        : DefaultEnvironment.Create,
+                    Environment = stimulus switch
+                    {
+                        StimulusBackend.Software => SoftwareMachineEnvironment.For(),
+                        StimulusBackend.Qpm => QpmEnvironment.For(
+                            new QpmOptions(ResourcesDirectory: resources)),
+                        _ => DefaultEnvironment.Create,
+                    },
                     Log = _log,
                 });
 

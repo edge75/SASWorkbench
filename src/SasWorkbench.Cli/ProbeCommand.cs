@@ -1,6 +1,7 @@
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
+using SasWorkbench.Qpm;
 
 namespace SasWorkbench.Cli;
 
@@ -13,6 +14,8 @@ internal static class ProbeCommand
     public static int Execute(CommandLine line)
     {
         CapabilitySet capabilities = CapabilityProbe.Baseline();
+        var peripherals = new QpmOptions(line.Value("qpm-shm"), line.Value("egm-resources"));
+        string? refusal = null;
 
         string? stimulus = line.Value("stimulus");
         if (stimulus is not null)
@@ -25,7 +28,30 @@ internal static class ProbeCommand
                 return 2;
             }
 
-            capabilities = capabilities.With(CapabilityProbe.ForStimulus(backend));
+            // The peripheral driver is asked the real machine rather than answered from a table:
+            // which doors and buttons exist is something only the machine on the other end knows,
+            // and a probe that guessed would be the thing this command exists to prevent.
+            if (backend == StimulusBackend.Qpm)
+            {
+                IStimulusBackend live = QpmEnvironment.Attach(peripherals);
+                try
+                {
+                    capabilities = capabilities.With(live.Capabilities);
+
+                    if (live is QpmStimulusBackend attached)
+                        Describe(attached);
+                    else
+                        refusal = Refused(live);
+                }
+                finally
+                {
+                    (live as IDisposable)?.Dispose();
+                }
+            }
+            else
+            {
+                capabilities = capabilities.With(CapabilityProbe.ForStimulus(backend));
+            }
         }
 
         Console.WriteLine("Protocol this build knows");
@@ -65,10 +91,42 @@ internal static class ProbeCommand
         Console.WriteLine();
         Console.WriteLine("Not available yet, and why");
         Console.WriteLine("  printer            the ticket printer arrives with the ticket work");
-        Console.WriteLine("  stimulus.qpm       the peripheral simulator is not driven yet");
+        if (refusal is not null)
+            Console.WriteLine($"  stimulus.qpm       {refusal}");
         Console.WriteLine("  egm.validation     nothing here reads the machine's validation setting");
         Console.WriteLine("  channel.2-4        carried through the model, but no second link is wired");
 
         return 0;
+    }
+
+    private static void Describe(QpmStimulusBackend backend)
+    {
+        EgmHardwareProfile profile = backend.Machine.Profile;
+
+        Console.WriteLine("Peripherals of the machine now running");
+        Console.WriteLine($"  shared region      {backend.Machine.RegionPath}");
+        Console.WriteLine($"  configuration      {profile.Source}");
+        Console.WriteLine($"  doors              {Join(profile.Doors.Select(d => d.Type))}");
+        Console.WriteLine($"  buttons            {Join(profile.Buttons.Select(b => b.Label))}");
+        Console.WriteLine();
+    }
+
+    private static string Join(IEnumerable<string> names)
+    {
+        string joined = string.Join(", ", names);
+        return joined.Length == 0 ? "none declared" : joined;
+    }
+
+    private static string Refused(IStimulusBackend backend)
+    {
+        try
+        {
+            backend.Apply(new SettleStep(SourceLocation.None));
+            return "refused, for a reason it would not state";
+        }
+        catch (StimulusUnavailableException unavailable)
+        {
+            return unavailable.Reason;
+        }
     }
 }

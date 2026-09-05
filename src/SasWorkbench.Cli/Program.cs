@@ -23,6 +23,8 @@ try
         "probe" => ProbeCommand.Execute(line),
         "catalogue" or "catalog" => CatalogueCommand.Execute(line),
         "egm" => EgmCommand.Execute(line),
+        "qpm" => QpmCommand.Execute(line),
+        "nvram" => NvramCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

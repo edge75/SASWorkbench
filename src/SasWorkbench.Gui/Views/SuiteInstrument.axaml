@@ -44,6 +44,18 @@
         </StackPanel>
       </Grid>
 
+      <!-- Without this the driver knows the shared region but not which bit is which door, so it
+           offers none and the tests that need one skip by name. -->
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6"
+            IsVisible="{Binding IsPeripheralStimulus}">
+        <TextBlock Grid.Column="0" Classes="field" Text="MACHINE FILES"
+                   VerticalAlignment="Center" Margin="0" />
+        <TextBox Grid.Column="1" Text="{Binding EgmResources}"
+                 Watermark="the machine's Resources directory, where it declares its doors"
+                 FontFamily="{StaticResource FontMono}"
+                 AutomationProperties.Name="Gaming machine resource directory" />
+      </Grid>
+
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBlock Grid.Column="0" Classes="strong" Text="{Binding RunSummary}"
                    TextWrapping="Wrap" VerticalAlignment="Center" />

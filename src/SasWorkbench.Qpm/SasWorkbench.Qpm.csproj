@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>SasWorkbench.Qpm</RootNamespace>
+    <AssemblyName>SasWorkbench.Qpm</AssemblyName>
+
+    <!-- The shared region is read and written by another process, so every access has to be
+         ordered explicitly rather than left to the compiler. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SasWorkbench.Core\SasWorkbench.Core.csproj" />
+  </ItemGroup>
+
+</Project>

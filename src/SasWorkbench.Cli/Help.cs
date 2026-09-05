@@ -22,6 +22,8 @@ internal static class Help
               sasctl probe [options]             report what this environment can and cannot do
               sasctl catalogue [what]            list the protocol this build knows
               sasctl egm [options]               run the software gaming machine as a peer
+              sasctl qpm <action> [options]      drive a running machine's peripherals by hand
+              sasctl nvram <action> [options]    save or restore a machine's configured memory
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -33,6 +35,10 @@ internal static class Help
               --stimulus <backend>    none, manual, software or qpm  (default: none)
               --ask-for <duration>    how long a manual step waits for a person before it
                                       is skipped  (default: 2m)
+              --egm-resources <dir>   the machine's own resource directory, which is where it
+                                      declares its doors and buttons  (--stimulus qpm)
+              --qpm-shm <file>        the peripheral shared region, if it is not in the usual
+                                      place for this platform  (--stimulus qpm)
               --report <formats>      {Reports.Names}  (comma-separated)
               --out <directory>       where to write reports  (default: runs/<timestamp>)
               --tag <name>            run only tests carrying this label
@@ -64,11 +70,42 @@ internal static class Help
               Both ends of a run against this peer are our own code, so a pass says the two agree
               and nothing more. It is a fixture for fast tests, not the thing under test.
 
+            QPM
+              status                  what the machine is, and which lamps it has lit
+              settle                  shut every door and reconnect the note acceptor
+              audit open|close        open the machine's configuration menu, or close it. The
+                                      machine needs its main and logic doors open before it will
+                                      let anything be configured, so this does those too.
+              door <name> open|close  open or shut one door
+              press <button>          press a button and let go of it
+              hold <button> on|off    turn a keyswitch, and leave it turned
+              bill <cents>            offer a note to the acceptor
+
+              Takes --egm-resources and --qpm-shm, as 'run' does. The machine must be running:
+              nothing written here is seen by a machine that is not reading it, so a machine
+              whose heartbeat has stopped is refused rather than written to.
+
+            NVRAM
+              status                  what the machine holds, and what has been saved
+              save                    save the machine's memory as a fixture
+              restore                 write a saved fixture back over it, keeping what was there
+
+              --fixture <file>        which saved memory  (default: fixtures/nvram/golden.nvram.gz)
+              --nvram <file>          the machine's memory, if it is not in the usual place
+
+              A machine's note acceptor, its printer and which notes it takes live in this memory
+              and are set through its own menu, by hand. Both actions refuse while a machine is
+              running, because a copy taken or written under one is a configuration nobody had.
+
             EXAMPLES
               sasctl run tests/regression --loopback --stimulus software
               sasctl run tests/conformance/10.1 --tcp 127.0.0.1:7200 --report html,junit
               sasctl probe --serial COM12
+              sasctl probe --stimulus qpm --egm-resources <demo>/Resources
               sasctl egm --tcp 127.0.0.1:7200
+              sasctl qpm status --egm-resources <demo>/Resources
+              sasctl qpm audit open --egm-resources <demo>/Resources
+              sasctl nvram save
             """);
     }
 }
