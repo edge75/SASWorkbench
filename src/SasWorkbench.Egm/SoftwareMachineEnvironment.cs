@@ -10,6 +10,8 @@ namespace SasWorkbench.Egm;
 /// Only the stimuli the peer actually implements are offered. A button press, for instance, needs
 /// the peripheral simulator, so asking for one here produces a skip naming the missing
 /// capability rather than a quiet no-op followed by an assertion that passes for the wrong reason.
+/// Doors are modelled by the protocol door rather than by a physical switch, which is what lets
+/// one script run against both this peer and a real machine.
 /// </remarks>
 public sealed class SoftwareMachineStimulus(FakeEgm machine) : IStimulusBackend
 {
@@ -47,11 +49,25 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine) : IStimulusBackend
 
                 return;
 
-            case DoorStep { Door: "slot" } door:
-                if (door.Open)
-                    machine.OpenSlotDoor();
-                else
-                    machine.CloseSlotDoor();
+            // Nothing on this machine can be disconnected, so settling it means shutting whatever
+            // it has open. On a machine that starts shut this does nothing at all, which is the
+            // honest outcome rather than a reason to leave the step unsupported.
+            case SettleStep:
+                machine.Settle();
+                return;
+
+            case DoorStep door:
+                try
+                {
+                    machine.SetDoor(door.Door, door.Open);
+                }
+                catch (ArgumentOutOfRangeException unknown)
+                {
+                    throw new StimulusUnavailableException(
+                        $"the software machine has no door called '{door.Door}'. "
+                        + unknown.Message.Split('(')[0].Trim());
+                }
+
                 return;
 
             default:

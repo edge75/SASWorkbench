@@ -140,7 +140,15 @@ public static class CapabilityProbe
                 ["stimulus"] = "software",
                 ["stimulus.bill"] = "yes",
                 ["stimulus.play"] = "yes",
+                ["stimulus.settle"] = "yes",
                 ["stimulus.door.slot"] = "yes",
+                ["stimulus.door.main"] = "yes",
+                ["stimulus.door.card_cage"] = "yes",
+                ["stimulus.door.logic"] = "yes",
+                ["stimulus.door.cashbox"] = "yes",
+                ["stimulus.door.stacker"] = "yes",
+                ["stimulus.door.drop"] = "yes",
+                ["stimulus.door.belly"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -148,13 +156,20 @@ public static class CapabilityProbe
                 ["stimulus"] = "manual",
                 ["stimulus.bill"] = "yes",
                 ["stimulus.play"] = "yes",
+                ["stimulus.settle"] = "yes",
                 ["stimulus.door.slot"] = "yes",
                 ["stimulus.button.collect"] = "yes",
             },
 
-            // The peripheral simulator is not driven yet, so it provides nothing. Reporting it as
-            // present and then failing to act would be the silent degradation this project refuses.
-            StimulusBackend.Qpm => new Dictionary<string, string?> { ["stimulus"] = "qpm" },
+            // What the peripheral driver can do is decided by the machine on the other end, which
+            // declares its own doors and buttons, so the real answer is only knowable once one is
+            // attached and the live backend replaces this. Claiming a door here would be claiming
+            // it about a machine nobody has looked at.
+            StimulusBackend.Qpm => new Dictionary<string, string?>
+            {
+                ["stimulus"] = "qpm",
+                ["stimulus.settle"] = "yes",
+            },
 
             _ => new Dictionary<string, string?> { ["stimulus"] = "none" },
         };

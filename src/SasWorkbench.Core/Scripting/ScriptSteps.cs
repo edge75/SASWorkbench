@@ -187,6 +187,22 @@ public sealed record ExpectFieldStep(
     }
 }
 
+/// <summary>
+/// Leaves every exception reported so far out of the assertions that follow.
+/// </summary>
+/// <remarks>
+/// A machine reports one exception per poll, so a step that causes ten leaves nine of them
+/// arriving over the following seconds, still unclaimed when the next assertion runs. This says
+/// that everything up to here belongs to the setting-up and is not what the test is about. The
+/// wire log keeps all of them: what changes is only what an assertion may match.
+/// </remarks>
+public sealed record ForgetExceptionsStep(SourceLocation Location, TimeSpan Within)
+    : ScriptStep(Location)
+{
+    public override string Describe() =>
+        $"forget exceptions, waiting up to {Within.TotalMilliseconds:F0}ms for quiet";
+}
+
 /// <summary>Expects the link to be in a given state.</summary>
 public sealed record ExpectLinkStep(SourceLocation Location, LinkState Expected, TimeSpan Within)
     : ScriptStep(Location)
@@ -238,4 +254,18 @@ public sealed record DoorStep(SourceLocation Location, string Door, bool Open) :
     public override string RequiredCapability => $"stimulus.door.{Door}";
 
     public override string Describe() => $"door {Door} {(Open ? "open" : "close")}";
+}
+
+/// <summary>Brings the machine to a known state: every door shut, every peripheral connected.</summary>
+/// <remarks>
+/// A step rather than something the runner does quietly, because settling a machine puts real
+/// door exceptions on the wire. A machine that believes a door is open at power-up — and one
+/// fresh from a cold start usually does — can only be told otherwise by opening and shutting it,
+/// so the exceptions are unavoidable. What is avoidable is a test being surprised by them.
+/// </remarks>
+public sealed record SettleStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.settle";
+
+    public override string Describe() => "settle to a known state";
 }

@@ -46,8 +46,16 @@ public sealed record FakeEgmOptions
     /// <summary>Machine serial number.</summary>
     public string SerialNumber { get; init; } = "QXFAKE0001";
 
-    /// <summary>Cents per credit, used to turn an inserted note into credits.</summary>
-    public int CentsPerCredit { get; init; } = 1;
+    /// <summary>
+    /// Cents per credit, used to turn an inserted note into credits.
+    /// </summary>
+    /// <remarks>
+    /// A one-dollar credit, so a twenty-dollar note is twenty credits — which is what a real
+    /// machine reports, and the protocol's money meters are in credits rather than cents. A
+    /// fixture counting one credit per cent reads a hundred times high and makes a test written
+    /// against it fail against the machine it was meant to describe.
+    /// </remarks>
+    public int CentsPerCredit { get; init; } = 100;
 
     /// <summary>
     /// How many coins are in the hopper. Machine state rather than a meter, because the library

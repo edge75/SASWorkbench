@@ -110,6 +110,31 @@ public static class SasLayouts
             },
             new()
             {
+                Command = 0x08,
+                Name = "configure_bill_denominations",
+                Description = "Which notes the machine may accept, and what to do after each one.",
+                Request =
+                [
+                    new()
+                    {
+                        Name = "denominations",
+                        Length = 4,
+                        Encoding = SasFieldEncoding.Bits,
+
+                        // Least significant byte first, unlike almost every other multi-byte
+                        // field in this protocol. One bit per denomination in the protocol's
+                        // own order: $1, $2, $5, $10, $20, $25, $50, $100, and upwards.
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Description = "One bit per note denomination the machine may take.",
+                    },
+                    Byte("action", SasUnit.Code,
+                        "What the machine does after accepting a note."),
+                ],
+                Shape = SasResponseShape.Acknowledgement,
+                DerivedFrom = "lp08_ConfigureBillDenominations",
+            },
+            new()
+            {
                 Command = 0x0E,
                 Name = "real_time_event_reporting",
                 Description = "Switches exception reporting between its plain and timestamped forms.",

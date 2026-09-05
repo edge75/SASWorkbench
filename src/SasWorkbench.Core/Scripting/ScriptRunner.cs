@@ -228,6 +228,7 @@ public sealed class ScriptRunner
 
         var steps = new List<StepResult>();
         var baselines = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        var window = new LastStimulus();
 
         using (engine)
         {
@@ -253,7 +254,7 @@ public sealed class ScriptRunner
             foreach (ScriptStep step in test.Steps)
             {
                 StepResult result = RunStep(step, engine, environment, exceptions, consumed,
-                    test, baselines, stopwatch.Elapsed);
+                    test, baselines, window, stopwatch.Elapsed);
                 steps.Add(result);
                 Log.Step(result, connect.Channel, testBase);
 
@@ -292,6 +293,7 @@ public sealed class ScriptRunner
         HashSet<long> consumed,
         ScriptTest test,
         Dictionary<string, long> baselines,
+        LastStimulus window,
         TimeSpan at)
     {
         try
@@ -308,10 +310,13 @@ public sealed class ScriptRunner
 
                 SendLongPollStep send => Send(send, engine, at),
 
-                StimulusStep stimulus => ApplyStimulus(
-                    stimulus, engine, environment, test, baselines, at),
+                ForgetExceptionsStep forget => Forget(forget, engine, exceptions, consumed, at),
 
-                ExpectExceptionStep expect => CheckException(expect, exceptions, consumed, at),
+                StimulusStep stimulus => ApplyStimulus(
+                    stimulus, engine, environment, test, baselines, window, at),
+
+                ExpectExceptionStep expect => CheckException(
+                    expect, exceptions, consumed, window, at),
 
                 ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
 
@@ -328,6 +333,98 @@ public sealed class ScriptRunner
             return new StepResult(step.Location, step.Describe(), Verdict.Error,
                 Reason: $"{ex.GetType().Name}: {ex.Message}", At: at);
         }
+    }
+
+    /// <summary>
+    /// When the machine was last acted on, and what was done to it.
+    /// </summary>
+    /// <remarks>
+    /// Used only to explain a failure, never to decide one. An exception's timestamp is when the
+    /// host read it off the wire, not when the machine raised it, and the two can be a whole poll
+    /// cycle apart — so filtering assertions by that time would quietly change what a test means
+    /// depending on how fast the link is. It is still the most useful thing to say to somebody
+    /// looking at a negated expectation that failed on an exception an earlier step caused.
+    /// </remarks>
+    private sealed class LastStimulus
+    {
+        public TimeSpan At { get; set; } = TimeSpan.Zero;
+
+        public string? Description { get; set; }
+    }
+
+    /// <summary>
+    /// Says when a negated expectation has probably caught an earlier step's exception.
+    /// </summary>
+    /// <remarks>
+    /// A machine reports exceptions one per poll, so a step that raises ten leaves nine of them
+    /// arriving over the next two seconds — long after the step that caused them has finished.
+    /// Somebody reading the failure needs to be told that, and told what to write instead.
+    /// </remarks>
+    private static string? Blame(ExceptionReport match, LastStimulus window)
+    {
+        if (window.Description is null || match.Elapsed >= window.At)
+            return null;
+
+        return $"it arrived before '{window.Description}' began, so an earlier step raised it. "
+            + "Put 'host forget exceptions' after that step to leave its exceptions out of what "
+            + "follows.";
+    }
+
+    /// <summary>
+    /// Waits for the machine to run out of things to say, then leaves all of it out.
+    /// </summary>
+    /// <remarks>
+    /// The waiting is the point. A machine reports one exception per poll, so at the moment this
+    /// step runs, most of what the setting-up caused is still queued inside the machine and has
+    /// not been read yet — forgetting only what has arrived would leave the rest to fail an
+    /// assertion a second later. Quiet for three poll cycles is taken as the queue being empty,
+    /// which is what the machine reporting nothing on three consecutive polls means.
+    /// </remarks>
+    private static StepResult Forget(
+        ForgetExceptionsStep step,
+        PollEngine engine,
+        List<ExceptionReport> exceptions,
+        HashSet<long> consumed,
+        TimeSpan at)
+    {
+        TimeSpan quiet = engine.PollInterval * 3;
+        long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
+        int seen = Count(exceptions);
+        long lastChange = Environment.TickCount64;
+
+        while (Environment.TickCount64 < deadline)
+        {
+            Thread.Sleep(5);
+            int now = Count(exceptions);
+            if (now != seen)
+            {
+                seen = now;
+                lastChange = Environment.TickCount64;
+                continue;
+            }
+
+            if (Environment.TickCount64 - lastChange >= (long)quiet.TotalMilliseconds)
+                break;
+        }
+
+        int forgotten = 0;
+        lock (exceptions)
+        {
+            foreach (ExceptionReport report in exceptions)
+            {
+                if (consumed.Add(report.Sequence))
+                    forgotten++;
+            }
+        }
+
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+            Actual: $"{forgotten} exception(s) left out of what follows", At: at);
+    }
+
+    private static int Count(List<ExceptionReport> exceptions)
+    {
+        lock (exceptions)
+            return exceptions.Count;
     }
 
     private static StepResult Wait(WaitStep step, TimeSpan at)
@@ -360,11 +457,14 @@ public sealed class ScriptRunner
         ScriptEnvironment environment,
         ScriptTest test,
         Dictionary<string, long> baselines,
+        LastStimulus window,
         TimeSpan at)
     {
         // Take the baseline before acting, so a relative assertion afterwards measures the effect
         // of this step and not of everything since the test began.
         RefreshBaselines(engine, test.WatchedMeters, baselines);
+        window.At = at;
+        window.Description = step.Describe();
 
         try
         {
@@ -382,6 +482,7 @@ public sealed class ScriptRunner
         ExpectExceptionStep step,
         List<ExceptionReport> exceptions,
         HashSet<long> consumed,
+        LastStimulus window,
         TimeSpan at)
     {
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
@@ -409,6 +510,7 @@ public sealed class ScriptRunner
                 : new StepResult(step.Location, step.Describe(), Verdict.Fail,
                     Expected: $"no {step.Name}",
                     Actual: $"{step.Name} arrived at {match.Elapsed.TotalMilliseconds:F0}ms",
+                    Reason: Blame(match, window),
                     At: at) { IsAssertion = true };
         }
 

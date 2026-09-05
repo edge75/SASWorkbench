@@ -81,6 +81,9 @@ public sealed class PollEngine : IDisposable
     /// <summary>The machine being polled.</summary>
     public SasAddress Address => _options.Address;
 
+    /// <summary>How often the machine is polled.</summary>
+    public TimeSpan PollInterval => _options.PollInterval;
+
     /// <summary>True while the poll thread is running.</summary>
     public bool IsRunning => _running;
 

@@ -57,7 +57,7 @@ public class ScriptRunnerTests
 
             egm bill insert 2000
             host expect exception bill_accepted_20 within 5s
-            host expect meter total_bill_in += 2000 within 2s
+            host expect meter total_bill_in += 20 within 2s
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
@@ -73,9 +73,9 @@ public class ScriptRunnerTests
             host expect link up within 2s
 
             egm bill insert 2000
-            egm play games=2 bet=100
+            egm play games=2 bet=5
             host expect meter games_played += 2 within 2s
-            host expect meter current_credits == 1800 within 2s
+            host expect meter current_credits == 10 within 2s
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
@@ -94,10 +94,10 @@ public class ScriptRunnerTests
             host expect link up within 2s
 
             egm bill insert 2000
-            host expect meter total_bill_in += 2000 within 2s
+            host expect meter total_bill_in += 20 within 2s
 
             egm bill insert 500
-            host expect meter total_bill_in += 500 within 2s
+            host expect meter total_bill_in += 5 within 2s
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
@@ -118,7 +118,10 @@ public class ScriptRunnerTests
         Assert.Equal(Verdict.Fail, result.Verdict);
         StepResult failed = result.Steps.Single(s => s.Verdict == Verdict.Fail);
         Assert.Contains("2000", failed.Expected!);
-        Assert.Contains("500", failed.Actual!);
+
+        // A five-dollar note is five credits, and the point of the message is that it says so
+        // rather than only saying that the assertion did not hold.
+        Assert.Contains("5", failed.Actual!);
     }
 
     [Fact]
@@ -160,6 +163,52 @@ public class ScriptRunnerTests
             """);
 
         Assert.Equal(Verdict.Fail, result.Verdict);
+    }
+
+    /// <summary>
+    /// Setting a machine up raises exceptions the test is not about — shutting a machine's doors
+    /// raises a pair for each one — and they are still unclaimed when the assertions begin. This
+    /// is how a script says which part of the traffic it is asserting on.
+    /// </summary>
+    [Fact]
+    public void Forgetting_leaves_earlier_exceptions_out_of_what_follows()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            egm door slot open
+            host wait 200ms
+            host forget exceptions
+            egm door cashbox open
+            host expect exception cashbox_door_opened within 1s
+            host expect no exception slot_door_opened within 300ms
+            """);
+
+        Assert.Equal(Verdict.Pass, result.Verdict);
+    }
+
+    /// <summary>
+    /// Without the forgetting, the same script fails — and the failure has to say why, because
+    /// "the slot door opened" is true and unhelpful on its own.
+    /// </summary>
+    [Fact]
+    public void A_negated_expectation_caught_by_an_earlier_step_says_where_it_came_from()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            egm door slot open
+            host wait 200ms
+            egm door cashbox open
+            host expect exception cashbox_door_opened within 1s
+            host expect no exception slot_door_opened within 300ms
+            """);
+
+        Assert.Equal(Verdict.Fail, result.Verdict);
+        StepResult failed = result.Steps.Single(s => s.Verdict == Verdict.Fail);
+        Assert.Contains("forget exceptions", failed.Reason ?? string.Empty, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -455,7 +504,7 @@ public class YamlScriptTests
             host expect link up within 2s
             egm bill insert 2000
             host expect exception bill_accepted_20 within 5s
-            host expect meter total_bill_in += 2000 within 2s
+            host expect meter total_bill_in += 20 within 2s
             """;
 
         const string yaml = """
@@ -468,7 +517,7 @@ public class YamlScriptTests
               - host expect link up within 2s
               - egm bill insert 2000
               - host expect exception bill_accepted_20 within 5s
-              - host expect meter total_bill_in += 2000 within 2s
+              - host expect meter total_bill_in += 20 within 2s
             """;
 
         var runner = new ScriptRunner(new ScriptRunnerOptions

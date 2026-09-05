@@ -29,11 +29,18 @@ public sealed class FakeEgm : IDisposable
     private readonly SasSymbol[] _outbound = new SasSymbol[HostMessage.MaxSymbols];
     private readonly byte[] _frame = new byte[HostMessage.MaxSymbols];
     private readonly Queue<byte> _exceptions = new();
+    private readonly HashSet<string> _openDoors = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _gate = new();
 
     private Thread? _thread;
     private volatile bool _running;
     private bool _enabled = true;
+
+    // Every denomination, until a host narrows it with long poll $08. Permissive to begin with
+    // because the machine this fixture stands in for was measured accepting a note without ever
+    // being sent that long poll — what it needs first is its own configuration, not the host's.
+    private uint _enabledNotes = uint.MaxValue;
+
     private long _generalPolls;
     private long _longPolls;
     private long _rejections;
@@ -141,20 +148,28 @@ public sealed class FakeEgm : IDisposable
     /// </summary>
     /// <param name="cents">Face value of the note, in cents.</param>
     /// <exception cref="ArgumentOutOfRangeException">No exception code exists for that value.</exception>
+    /// <exception cref="InvalidOperationException">The host has disabled that denomination.</exception>
     public void InsertBill(int cents)
     {
-        (SasExceptionCode exception, SasMeterCode countMeter) = cents switch
+        (SasExceptionCode exception, SasMeterCode countMeter, int denomination) = cents switch
         {
-            100 => (SasExceptionCode.USD1BillAccepted, SasMeterCode.TotalNumberOfUSD1BillsAccepted),
-            200 => (SasExceptionCode.USD2BillAccepted, SasMeterCode.TotalNumberOfUSD2BillsAccepted),
-            500 => (SasExceptionCode.USD5BillAccepted, SasMeterCode.TotalNumberOfUSD5BillsAccepted),
-            1000 => (SasExceptionCode.USD10BillAccepted, SasMeterCode.TotalNumberOfUSD10BillsAccepted),
-            2000 => (SasExceptionCode.USD20BillAccepted, SasMeterCode.TotalNumberOfUSD20BillsAccepted),
-            5000 => (SasExceptionCode.USD50BillAccepted, SasMeterCode.TotalNumberOfUSD50BillsAccepted),
-            10000 => (SasExceptionCode.USD100BillAccepted, SasMeterCode.TotalNumberOfUSD100BillsAccepted),
+            100 => (SasExceptionCode.USD1BillAccepted, SasMeterCode.TotalNumberOfUSD1BillsAccepted, 0),
+            200 => (SasExceptionCode.USD2BillAccepted, SasMeterCode.TotalNumberOfUSD2BillsAccepted, 1),
+            500 => (SasExceptionCode.USD5BillAccepted, SasMeterCode.TotalNumberOfUSD5BillsAccepted, 2),
+            1000 => (SasExceptionCode.USD10BillAccepted, SasMeterCode.TotalNumberOfUSD10BillsAccepted, 3),
+            2000 => (SasExceptionCode.USD20BillAccepted, SasMeterCode.TotalNumberOfUSD20BillsAccepted, 4),
+            5000 => (SasExceptionCode.USD50BillAccepted, SasMeterCode.TotalNumberOfUSD50BillsAccepted, 6),
+            10000 => (SasExceptionCode.USD100BillAccepted, SasMeterCode.TotalNumberOfUSD100BillsAccepted, 7),
             _ => throw new ArgumentOutOfRangeException(nameof(cents), cents,
                 "The protocol has no bill-accepted exception for that value."),
         };
+
+        lock (_gate)
+        {
+            if ((_enabledNotes & (1u << denomination)) == 0)
+                throw new InvalidOperationException(
+                    $"The host has disabled {cents}-cent notes, so this machine returns it.");
+        }
 
         long credits = cents / Math.Max(1, _options.CentsPerCredit);
         Meters.Increment(countMeter, 1);
@@ -200,10 +215,51 @@ public sealed class FakeEgm : IDisposable
     }
 
     /// <summary>Opens the slot door, raising the exception a real machine raises.</summary>
-    public void OpenSlotDoor() => RaiseException(SasExceptionCode.SlotDoorOpened);
+    public void OpenSlotDoor() => SetDoor("slot", open: true);
 
     /// <summary>Closes the slot door.</summary>
-    public void CloseSlotDoor() => RaiseException(SasExceptionCode.SlotDoorClosed);
+    public void CloseSlotDoor() => SetDoor("slot", open: false);
+
+    /// <summary>
+    /// Opens or closes a door, reporting it only when it actually moved.
+    /// </summary>
+    /// <remarks>
+    /// A machine reports the change, not the state, so shutting a door that is already shut says
+    /// nothing on the wire. Modelling that is what makes a test written against this fixture mean
+    /// the same thing when it is run against a real machine.
+    /// </remarks>
+    /// <returns>True when the door moved and an exception was raised.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">No door goes by that name.</exception>
+    public bool SetDoor(string name, bool open)
+    {
+        if (!MachineDoors.TryFind(name, out MachineDoor door))
+        {
+            throw new ArgumentOutOfRangeException(nameof(name), name,
+                $"The protocol reports these doors: {string.Join(", ", MachineDoors.Names)}.");
+        }
+
+        lock (_openDoors)
+        {
+            if (open ? !_openDoors.Add(door.Name) : !_openDoors.Remove(door.Name))
+                return false;
+        }
+
+        RaiseException(open ? door.Opened : door.Closed);
+        return true;
+    }
+
+    /// <summary>Shuts every door that is open, and says which ones those were.</summary>
+    public IReadOnlyList<string> Settle()
+    {
+        string[] open;
+        lock (_openDoors)
+            open = [.. _openDoors];
+
+        foreach (string door in open)
+            SetDoor(door, open: false);
+
+        return open;
+    }
 
     // ---- The wire ------------------------------------------------------------------------
 
@@ -341,6 +397,21 @@ public sealed class FakeEgm : IDisposable
             case 0x02:
                 lock (_gate)
                     _enabled = true;
+                return true;
+
+            case 0x08:
+                // Four bytes of denomination bits, least significant first, then an action byte.
+                // A real machine keeps this beside what its own menu allows and takes a note only
+                // when both agree, so a host that never sends this gets no notes at all.
+                if (frame.Length < 7)
+                    return false;
+
+                lock (_gate)
+                {
+                    _enabledNotes = (uint)(frame[2] | (frame[3] << 8) | (frame[4] << 16)
+                                           | (frame[5] << 24));
+                }
+
                 return true;
 
             case 0x0E:

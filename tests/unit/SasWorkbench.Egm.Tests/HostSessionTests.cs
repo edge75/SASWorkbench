@@ -115,7 +115,7 @@ public class HostSessionTests
         MeterReading value = session.ReadMeters(["total_bill_in"]).Single();
 
         Assert.Equal("total_bill_value", value.Name);
-        Assert.Equal(2000, value.Value);
+        Assert.Equal(20, value.Value);
     }
 
     [Fact]

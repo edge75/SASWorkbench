@@ -149,7 +149,10 @@ public class FakeEgmTests
             .Number("total_bill_value") ?? -1;
 
         Assert.Equal(0, before);
-        Assert.Equal(2000, value);
+
+        // Twenty, not two thousand: the money meters of this protocol are in credits, and a
+        // twenty-dollar note is twenty of them at a one-dollar credit.
+        Assert.Equal(20, value);
     }
 
     [Fact]
@@ -158,7 +161,7 @@ public class FakeEgmTests
         using var rig = new Rig();
         rig.Machine.InsertBill(2000);
 
-        rig.Machine.PlayGames(games: 2, betCredits: 100);
+        rig.Machine.PlayGames(games: 2, betCredits: 5);
 
         LongPollResult played = rig.Host.Execute(0x15);
         LongPollResult lost = rig.Host.Execute(0x17);
@@ -166,7 +169,7 @@ public class FakeEgmTests
 
         Assert.Equal(2, Number(0x15, played, "games_played"));
         Assert.Equal(2, Number(0x17, lost, "games_lost"));
-        Assert.Equal(1800, Number(0x1A, credits, "current_credits"));
+        Assert.Equal(10, Number(0x1A, credits, "current_credits"));
     }
 
     [Fact]
@@ -174,16 +177,16 @@ public class FakeEgmTests
     {
         using var rig = new Rig();
         rig.Machine.InsertBill(1000);
-        rig.Machine.PlayGames(games: 3, betCredits: 10, winCredits: 5);
+        rig.Machine.PlayGames(games: 3, betCredits: 2, winCredits: 5);
 
         LongPollResult result = rig.Host.Execute(0x0F);
         SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x0F)!, result.Frame);
 
         Assert.True(decoded.Succeeded, decoded.Failure);
-        Assert.Equal(30, decoded.Number("total_coin_in"));
+        Assert.Equal(6, decoded.Number("total_coin_in"));
         Assert.Equal(5, decoded.Number("total_coin_out"));
         Assert.Equal(3, decoded.Number("games_played"));
-        Assert.Equal(1000, decoded.Number("total_drop"));
+        Assert.Equal(10, decoded.Number("total_drop"));
     }
 
     [Fact]

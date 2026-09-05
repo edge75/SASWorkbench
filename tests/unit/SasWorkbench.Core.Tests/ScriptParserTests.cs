@@ -137,6 +137,29 @@ public class ScriptParserTests
     }
 
     [Fact]
+    public void Settling_the_machine_is_a_step_of_its_own()
+    {
+        ScriptTest test = ParseOne("""
+            host connect loopback address 01
+            egm settle
+            """);
+
+        var step = Assert.IsType<SettleStep>(test.Steps[1]);
+        Assert.Equal("stimulus.settle", step.RequiredCapability);
+    }
+
+    [Fact]
+    public void A_machine_action_nobody_implements_names_the_ones_that_exist()
+    {
+        ScriptParseException refused = Assert.Throws<ScriptParseException>(() => ParseOne("""
+            host connect loopback address 01
+            egm levitate
+            """));
+
+        Assert.Contains("settle", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Meter_comparisons_are_read_including_the_relative_ones()
     {
         ScriptTest test = ParseOne("""

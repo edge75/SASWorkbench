@@ -175,7 +175,7 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: host connect|poll|send|wait|expect ...");
+                "expected: host connect|poll|send|wait|forget|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -199,14 +199,26 @@ public static class ScriptParser
                 test.Steps.Add(ReadSend(words, location));
                 return;
 
+            case "forget":
+                if (words.Length < 3 || !words[2].Equals("exceptions",
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ScriptParseException(location,
+                        "expected: host forget exceptions [within <duration>]");
+                }
+
+                test.Steps.Add(new ForgetExceptionsStep(
+                    location, ReadWithin(words, 3, location)));
+                return;
+
             case "expect":
                 test.Steps.Add(ReadExpect(test, words, location));
                 return;
 
             default:
                 throw new ScriptParseException(location,
-                    $"'host {words[1]}' is not a host action. Expected connect, poll, wait, send "
-                    + "or expect");
+                    $"'host {words[1]}' is not a host action. Expected connect, poll, wait, "
+                    + "send, forget or expect");
         }
     }
 
@@ -507,10 +519,17 @@ public static class ScriptParser
     private static void ReadEgm(TestBuilder test, string[] words, SourceLocation location)
     {
         if (words.Length < 2)
-            throw new ScriptParseException(location, "expected: egm bill|play|press|door ...");
+            throw new ScriptParseException(location,
+                "expected: egm bill|play|press|door|settle ...");
 
         switch (words[1].ToLowerInvariant())
         {
+            case "settle":
+                if (words.Length != 2)
+                    throw new ScriptParseException(location, "expected: egm settle");
+                test.Steps.Add(new SettleStep(location));
+                return;
+
             case "bill":
                 if (words.Length != 4 || !words[2].Equals("insert", StringComparison.OrdinalIgnoreCase))
                     throw new ScriptParseException(location, "expected: egm bill insert <cents>");
@@ -542,7 +561,8 @@ public static class ScriptParser
 
             default:
                 throw new ScriptParseException(location,
-                    $"'egm {words[1]}' is not a machine action. Expected bill, play, press or door");
+                    $"'egm {words[1]}' is not a machine action. Expected bill, play, press, door "
+                    + "or settle");
         }
     }
 
