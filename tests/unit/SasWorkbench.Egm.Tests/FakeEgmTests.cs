@@ -174,7 +174,7 @@ public class FakeEgmTests
 
         Assert.Equal(2, Number(0x15, played, "games_played"));
         Assert.Equal(2, Number(0x17, lost, "games_lost"));
-        Assert.Equal(10, Number(0x1A, credits, "current_credits"));
+        Assert.Equal(200, Number(0x1A, credits, "current_credits"));
     }
 
     [Fact]
@@ -188,10 +188,12 @@ public class FakeEgmTests
         SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x0F)!, result.Frame);
 
         Assert.True(decoded.Succeeded, decoded.Failure);
-        Assert.Equal(6, decoded.Number("total_coin_in"));
-        Assert.Equal(5, decoded.Number("total_coin_out"));
+        // Five cents to the accounting unit, so a ten-dollar note is two hundred units, a
+        // two-credit wager on a one-dollar credit is forty, and a five-credit win is one hundred.
+        Assert.Equal(120, decoded.Number("total_coin_in"));
+        Assert.Equal(100, decoded.Number("total_coin_out"));
         Assert.Equal(3, decoded.Number("games_played"));
-        Assert.Equal(10, decoded.Number("total_drop"));
+        Assert.Equal(200, decoded.Number("total_drop"));
     }
 
     [Fact]
@@ -346,9 +348,9 @@ public class FakeEgmTests
         Assert.True(decoded.Succeeded, decoded.Failure);
         Assert.Equal(2, decoded.Number("meters.count"));
         Assert.Equal(0x0000, decoded.Number("meters[0].code"));
-        Assert.Equal(10, decoded.Number("meters[0].value"));
+        Assert.Equal(200, decoded.Number("meters[0].value"));
         Assert.Equal(0x000B, decoded.Number("meters[1].code"));
-        Assert.Equal(20, decoded.Number("meters[1].value"));
+        Assert.Equal(400, decoded.Number("meters[1].value"));
     }
 
     /// <summary>

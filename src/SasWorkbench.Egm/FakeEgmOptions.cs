@@ -22,7 +22,15 @@ public sealed record FakeEgmOptions
     /// <summary>Three-character machine identifier.</summary>
     public string AdditionalId { get; init; } = "001";
 
-    /// <summary>Accounting denomination code.</summary>
+    /// <summary>
+    /// Accounting denomination code, which is also the unit every credit value is counted in.
+    /// </summary>
+    /// <remarks>
+    /// The default is what a real machine published over a real link: code 02, five cents. A
+    /// fixture that published one unit and counted in another would disagree with that machine on
+    /// every credit meter while looking healthy, which is the one disagreement between the two
+    /// peers that means nothing.
+    /// </remarks>
     public byte Denomination { get; init; } = 0x02;
 
     /// <summary>Largest bet the machine accepts, in credits.</summary>
@@ -45,17 +53,6 @@ public sealed record FakeEgmOptions
 
     /// <summary>Machine serial number.</summary>
     public string SerialNumber { get; init; } = "QXFAKE0001";
-
-    /// <summary>
-    /// Cents per credit, used to turn an inserted note into credits.
-    /// </summary>
-    /// <remarks>
-    /// A one-dollar credit, so a twenty-dollar note is twenty credits — which is what a real
-    /// machine reports, and the protocol's money meters are in credits rather than cents. A
-    /// fixture counting one credit per cent reads a hundred times high and makes a test written
-    /// against it fail against the machine it was meant to describe.
-    /// </remarks>
-    public int CentsPerCredit { get; init; } = 100;
 
     /// <summary>
     /// The accounting denomination this machine is configured with, as a Table C-4 code.

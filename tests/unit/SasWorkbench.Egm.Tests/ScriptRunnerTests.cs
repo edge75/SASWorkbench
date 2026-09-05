@@ -78,7 +78,7 @@ public class ScriptRunnerTests
             egm bill insert 2000
             egm play games=2 bet=5
             host expect meter games_played += 2 within 2s
-            host expect meter current_credits == 10 within 2s
+            host expect meter current_credits == 200 within 2s
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
@@ -104,6 +104,30 @@ public class ScriptRunnerTests
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
+    }
+
+    /// <summary>
+    /// The unit the machine publishes is the unit it counts in. A twenty-dollar note on a machine
+    /// accounting in five cents is four hundred accounting units, which is what the real machine
+    /// was measured reporting; a fixture that published five cents and counted in dollars would
+    /// disagree with it by a factor of twenty while every reply still looked well formed.
+    /// </summary>
+    [Fact]
+    public void The_machine_counts_money_in_the_denomination_it_publishes()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+
+            host send lp 1F
+            host expect field denomination == 2
+
+            egm bill insert 2000
+            host expect meter credits += 400 within 2s
+            """);
+
+        Assert.True(result.Verdict == Verdict.Pass, Explain(result));
     }
 
     /// <summary>

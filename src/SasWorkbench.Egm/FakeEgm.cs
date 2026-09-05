@@ -94,8 +94,18 @@ public sealed class FakeEgm : IDisposable
     /// </remarks>
     private static (byte Code, int Cents, string? Refusal) ResolveDenomination(FakeEgmOptions options)
     {
+        // Unset, the machine counts in the unit it publishes. That is not a convenience: the two
+        // disagreeing is a defect a test cannot see, because every credit meter is then wrong by
+        // the same factor and nothing on the wire says so.
         if (options.AccountingDenomination is not { } configured)
-            return (options.Denomination, Math.Max(1, options.CentsPerCredit), null);
+        {
+            int? published = SasDenomination.CentsOf(options.Denomination);
+            return published is null
+                ? ((byte)0x01, 1,
+                    $"${options.Denomination:X2} is not a denomination the protocol can express as "
+                    + "an accounting unit, so the machine reports in cents.")
+                : (options.Denomination, published.Value, null);
+        }
 
         int? cents = SasDenomination.CentsOf(configured);
         if (cents is null)
@@ -248,9 +258,11 @@ public sealed class FakeEgm : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(betCredits);
         ArgumentOutOfRangeException.ThrowIfNegative(winCredits);
 
-        // A wager is a number of game credits; the meter it feeds is in accounting units. The two
-        // are the same size only when a game credit happens to be worth one accounting unit.
+        // A wager and a win are both numbers of game credits; the meters they feed are in
+        // accounting units. The two are the same size only when a game credit happens to be worth
+        // one accounting unit.
         long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
+        long won = winCredits * _options.CentsPerGameCredit / AccountingCents;
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
@@ -262,14 +274,14 @@ public sealed class FakeEgm : IDisposable
         {
             Meters.Increment(SasMeterCode.GamesWon, 1);
             Meters.Increment(SasMeterCode.GamesLost, games - 1);
-            Meters.Increment(SasMeterCode.TotalCoinOutCredits, winCredits);
+            Meters.Increment(SasMeterCode.TotalCoinOutCredits, won);
         }
         else
         {
             Meters.Increment(SasMeterCode.GamesLost, games);
         }
 
-        Meters.SetCurrentCredits(credits - wagered + winCredits);
+        Meters.SetCurrentCredits(credits - wagered + won);
     }
 
     /// <summary>Opens the slot door, raising the exception a real machine raises.</summary>
