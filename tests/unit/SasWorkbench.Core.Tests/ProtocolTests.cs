@@ -435,3 +435,127 @@ public class ConditionalFieldTests
         Assert.Equal(0xFF, decoded.Number("status"));
     }
 }
+
+/// <summary>
+/// The selected-meter replies, which are the first messages in this build whose shape cannot be
+/// written down as a table of offsets: each meter states its own width, and one the machine does
+/// not support is left out of the reply entirely.
+/// </summary>
+public class SelectedMeterTests
+{
+    private static byte[] Reply(params byte[] payload)
+    {
+        Span<byte> frame = stackalloc byte[SasWorkbench.Core.Wire.HostMessage.MaxSymbols];
+        frame[0] = 0x01;
+        frame[1] = 0x6F;
+        payload.CopyTo(frame[2..]);
+        return frame[..SasWorkbench.Core.Wire.SasCrc.Append(frame, 2 + payload.Length)].ToArray();
+    }
+
+    /// <summary>
+    /// The worked example from the specification: five hundred pesos of coin in, at an accounting
+    /// denomination of ten centavos, reports 5000 rather than 50000.
+    /// </summary>
+    [Fact]
+    public void A_meter_is_read_from_the_width_the_machine_chose_for_it()
+    {
+        byte[] frame = Reply(
+            0x10,                                     // bytes following, check sequence excluded
+            0x00, 0x00,                               // game number - the machine as a whole
+            0x00, 0x00, 0x04, 0x00, 0x00, 0x50, 0x00, // meter 0000, four bytes, 5000
+            0x0C, 0x00, 0x04, 0x00, 0x00, 0x01, 0x23);// meter 000C, four bytes, 123
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(2, decoded.Number("meters.count"));
+        Assert.Equal(0x0000, decoded.Number("meters[0].code"));
+        Assert.Equal(5000, decoded.Number("meters[0].value"));
+        Assert.Equal(0x000C, decoded.Number("meters[1].code"));
+        Assert.Equal(123, decoded.Number("meters[1].value"));
+    }
+
+    /// <summary>
+    /// A meter code is binary and least significant byte first, so <c>A0 00</c> is meter 00A0.
+    /// Reading the two bytes the other way round names meter A000 and decodes just as cleanly,
+    /// which is why this is asserted rather than assumed.
+    /// </summary>
+    [Fact]
+    public void A_meter_code_is_read_least_significant_byte_first()
+    {
+        byte[] frame = Reply(
+            0x0A,
+            0x00, 0x00,
+            0xA0, 0x00, 0x05, 0x00, 0x00, 0x00, 0x20, 0x00);
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(0x00A0, decoded.Number("meters[0].code"));
+        Assert.Equal(2000, decoded.Number("meters[0].value"));
+    }
+
+    /// <summary>
+    /// The machine widens a meter as its value grows rather than letting it roll over, so two
+    /// meters in one reply need not be the same size. A reader that assumed a fixed width would
+    /// take the next meter's code as this one's last digits.
+    /// </summary>
+    [Fact]
+    public void Meters_of_different_widths_in_one_reply_are_each_read_whole()
+    {
+        byte[] frame = Reply(
+            0x11,
+            0x00, 0x00,
+            0x00, 0x00, 0x06, 0x12, 0x34, 0x56, 0x78, 0x90, 0x12, // six bytes
+            0x01, 0x00, 0x04, 0x00, 0x00, 0x00, 0x99);            // four bytes
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(123456789012, decoded.Number("meters[0].value"));
+        Assert.Equal(0x0001, decoded.Number("meters[1].code"));
+        Assert.Equal(99, decoded.Number("meters[1].value"));
+    }
+
+    /// <summary>
+    /// A meter the machine does not support is absent from the reply, code and all. That must read
+    /// as "not supported" and must not shift every later meter onto the wrong code - which is what
+    /// makes walking the reply mandatory and indexing it by position wrong.
+    /// </summary>
+    [Fact]
+    public void A_meter_the_machine_does_not_support_is_absent_rather_than_zero()
+    {
+        // Three meters were asked for; the machine answers about the first and the third.
+        byte[] frame = Reply(
+            0x0E,
+            0x00, 0x00,
+            0x00, 0x00, 0x04, 0x00, 0x00, 0x11, 0x11,
+            0x02, 0x00, 0x04, 0x00, 0x00, 0x22, 0x22);
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x6F)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(2, decoded.Number("meters.count"));
+        Assert.Equal(0x0000, decoded.Number("meters[0].code"));
+        Assert.Equal(0x0002, decoded.Number("meters[1].code"));
+        Assert.Null(decoded["meters[2].code"]);
+    }
+
+    /// <summary>Both commands answer with the same shape, which is why a sweep may alternate.</summary>
+    [Fact]
+    public void The_alternate_command_answers_with_the_same_shape()
+    {
+        Span<byte> frame = stackalloc byte[16];
+        frame[0] = 0x01;
+        frame[1] = 0xAF;
+        byte[] payload = [0x07, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x50, 0x00];
+        payload.CopyTo(frame[2..]);
+        byte[] complete = frame[..SasWorkbench.Core.Wire.SasCrc.Append(frame, 2 + payload.Length)]
+            .ToArray();
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0xAF)!, complete);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(5000, decoded.Number("meters[0].value"));
+    }
+}

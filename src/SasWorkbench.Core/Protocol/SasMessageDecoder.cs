@@ -234,8 +234,12 @@ public static class SasMessageDecoder
         int total = 0;
         foreach (SasField field in fields)
         {
-            if (field.IsGroup || field.PresentWhen is not null || field.Length == SasField.Remaining)
+            if (field.IsGroup || field.PresentWhen is not null
+                || field.Length == SasField.Remaining || field.LengthFromField is not null)
+            {
                 return -1;
+            }
+
             total += field.Length;
         }
 

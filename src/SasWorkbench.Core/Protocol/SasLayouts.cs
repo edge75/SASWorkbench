@@ -32,6 +32,84 @@ public static class SasLayouts
         Description = description,
     };
 
+    /// <summary>Which meter, least significant byte first.</summary>
+    /// <remarks>
+    /// Binary rather than BCD, and little-endian: meter <c>00A0</c> goes on the wire as
+    /// <c>A0 00</c>. The machine copies these two bytes back into its reply untouched, so reading
+    /// them the other way round names a different meter and still decodes.
+    /// </remarks>
+    private static SasField MeterCode() => new()
+    {
+        Name = "code",
+        Length = 2,
+        Encoding = SasFieldEncoding.Binary,
+        ByteOrder = SasByteOrder.LittleEndian,
+        Unit = SasUnit.Code,
+        Description = "Which meter, least significant byte first.",
+    };
+
+    /// <summary>
+    /// The selected-meter reply, whose shape no fixed layout can describe.
+    /// </summary>
+    /// <remarks>
+    /// Two things stop this being a table of offsets. Each meter states its own width, because the
+    /// machine widens the field as the value grows rather than letting it roll over; and a meter
+    /// the machine does not support is left out of the reply altogether, code included, so the
+    /// entry that follows moves up. A reader must therefore walk the reply, and an absent code
+    /// means "not supported" rather than "zero". Meter codes C0 and C1 are always absent here by
+    /// design and are read with the legacy meters command instead.
+    /// </remarks>
+    private static SasMessageLayout SelectedMeters(byte command, string name) => new()
+    {
+        Command = command,
+        Name = name,
+        Description = "Meters chosen by the host, each answered with its own width.",
+        Request =
+        [
+            Byte("length", SasUnit.Count, "Bytes of game number and meter codes that follow."),
+            Bcd("game_number", 2, SasUnit.Index,
+                "Which game the meters are for; zero means the machine as a whole."),
+            new()
+            {
+                Name = "requested",
+                Length = 0,
+                Repeat = SasRepeat.ToEndOfMessage,
+                Description = "The meter codes the host is asking for.",
+                Fields = [MeterCode()],
+            },
+        ],
+        Response =
+        [
+            Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+            Bcd("game_number", 2, SasUnit.Index,
+                "Which game the meters are for; zero means the machine as a whole."),
+            new()
+            {
+                Name = "meters",
+                Length = 0,
+                Repeat = SasRepeat.ToEndOfMessage,
+                Description = "One entry per meter the machine supports, in the order asked for.",
+                Fields =
+                [
+                    MeterCode(),
+                    Byte("size", SasUnit.Count, "How many bytes this meter's value occupies."),
+                    new()
+                    {
+                        Name = "value",
+                        Length = 0,
+                        LengthFromField = "size",
+                        Encoding = SasFieldEncoding.Bcd,
+                        ByteOrder = SasByteOrder.BigEndian,
+                        Unit = SasUnit.None,
+                        Description = "The meter itself, as many bytes wide as the size byte says.",
+                        IsMeter = true,
+                    },
+                ],
+            },
+        ],
+        DerivedFrom = "lp6F_SendExtendedMetersForGameN",
+    };
+
     /// <summary>An accumulating meter a test may read by name.</summary>
     private static SasField Meter(string name, int bytes, SasUnit unit, string description) =>
         Bcd(name, bytes, unit, description) with { IsMeter = true };
@@ -253,6 +331,12 @@ public static class SasLayouts
                 DerivedFrom = "lp1F_SendGamingMachineIdAndInformation",
                 ConfirmedByCapture = true,
             },
+            SelectedMeters(0x6F, "selected_meters"),
+
+            // The same reply under a second command. SAS makes two identical consecutive long polls
+            // an implied negative acknowledgement, so a host sweeping more meters than one command
+            // holds has to alternate between the two - which is the whole reason both codes exist.
+            SelectedMeters(0xAF, "selected_meters_alternate"),
             MeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Credits,
                 "Total value of bills accepted.", "lp20_SendTotalDollarValueOfBills"),
             new()

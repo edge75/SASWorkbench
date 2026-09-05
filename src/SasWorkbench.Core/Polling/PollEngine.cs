@@ -269,8 +269,6 @@ public sealed class PollEngine : IDisposable
 
     private void RunPollCycle()
     {
-        Resynchronise();
-
         if (_options.SyncPollEvery > 0 && _pollsSinceSync % _options.SyncPollEvery == 0)
         {
             int length = HostMessage.WriteSyncPoll(_outbound);
@@ -285,6 +283,7 @@ public sealed class PollEngine : IDisposable
         _pollsSinceSync++;
 
         int pollLength = HostMessage.WriteGeneralPoll(_outbound, _options.Address);
+        Resynchronise();
         SendAndRecord(pollLength, "general poll");
         Interlocked.Increment(ref _generalPolls);
 
@@ -325,8 +324,6 @@ public sealed class PollEngine : IDisposable
             _pendingReady = false;
         }
 
-        Resynchronise();
-
         // A machine that has not been resynchronised ignores an addressed poll, so keep sending
         // the synchronisation poll ahead of long polls too.
         if (_options.SyncPollEvery > 0)
@@ -341,6 +338,7 @@ public sealed class PollEngine : IDisposable
             _outbound, _options.Address, command, _pendingData.AsSpan(0, dataLength));
 
         long sentAt = _clock.ElapsedTicks;
+        Resynchronise();
         SendAndRecord(length, $"long poll ${command:X2}");
         Interlocked.Increment(ref _longPolls);
 
@@ -443,12 +441,19 @@ public sealed class PollEngine : IDisposable
     }
 
     /// <summary>
-    /// Drops anything already on the line before a poll goes out. SAS ends a message with silence
+    /// Drops anything already on the line in the instant before a poll goes out. SAS ends a message
+    /// with silence
     /// and nothing else, so a reply that arrives after the host gave up waiting cannot be told
     /// apart from the next one by looking at it; without this the engine reads every later reply
     /// one transaction behind for the rest of the session. What is dropped is counted and
     /// recorded, never swallowed quietly.
     /// </summary>
+    /// <remarks>
+    /// Called immediately before the transmission whose answer is about to be read, and not at the
+    /// top of the cycle: a synchronisation poll and the quiet gap after it sit between the two, and
+    /// a late answer landing in that gap is exactly the one that would otherwise be read as the
+    /// reply to the poll that follows it.
+    /// </remarks>
     private void Resynchronise()
     {
         int discarded = _link.Drain(_discardScratch, TimeSpan.Zero);
