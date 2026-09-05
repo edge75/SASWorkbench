@@ -69,6 +69,34 @@ public class CommittedScriptTests
     }
 
     /// <summary>
+    /// The machine-validation suites are written from a document in full, including the cases this
+    /// build cannot yet run, so most of them skip. What must hold is that every one of them skips
+    /// for a reason that names what is missing: a case that errored, or that passed without the
+    /// machine ever being configured, would both be lies about coverage.
+    /// </summary>
+    [Fact]
+    public void Every_validation_case_either_runs_or_says_what_it_needs()
+    {
+        IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(Suite("validation"));
+        Assert.NotEmpty(documents);
+
+        var runner = new ScriptRunner(new ScriptRunnerOptions
+        {
+            Stimulus = StimulusBackend.Software,
+            Environment = SoftwareMachineEnvironment.For(),
+            PollInterval = TimeSpan.FromMilliseconds(20),
+            QuietGap = TimeSpan.FromMilliseconds(15),
+        });
+
+        RunReport report = runner.RunAll(documents, TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, report.Errored);
+        Assert.All(report.Tests, test => Assert.True(
+            test.Verdict != Verdict.Skip || !string.IsNullOrWhiteSpace(test.SkipReason),
+            $"{test.Name} was skipped without saying why"));
+    }
+
+    /// <summary>
     /// This is the honesty check for the milestone. The conformance test asks for the validation
     /// configuration, which nothing here can provide yet, so it must report as skipped with that
     /// reason — not pass, not fail, and not quietly be missing from the suite.

@@ -126,6 +126,13 @@ public sealed class ScriptRunner
 
         if (connect is null)
         {
+            // A case written from a specification, long before the machine can be driven far
+            // enough to run it, has neither a link nor the capability it needs. What it needs is
+            // the more useful of the two answers, and it is a skip rather than a broken test.
+            if (baseline.FirstUnmet(test.Requirements) is { } missing)
+                return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
+                    SasChannel.One, testBase);
+
             var broken = new TestOutcome
             {
                 Name = test.Name,
@@ -152,10 +159,18 @@ public sealed class ScriptRunner
         }
         catch (TransportRefusedException refused)
         {
+            // No environment came up, so nothing beyond the baseline can be offered. If the test
+            // was going to be skipped for a missing capability anyway, that is the reason worth
+            // reporting - "no peer on the link" would send somebody looking for the wrong thing.
+            if (baseline.FirstUnmet(test.Requirements) is { } missing)
+                return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
+                    connect.Channel, testBase);
+
             return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
         }
 
         using (environment)
+
         {
             CapabilitySet capabilities = baseline
                 .With(environment.ExtraCapabilities)

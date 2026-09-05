@@ -1,0 +1,56 @@
+# Section 6 of the plan: multi-denomination behaviour.
+#
+# The accounting denomination is a property of the machine, not of whatever game the player has
+# most recently touched. IGS reported the fixed behaviour here as a bug; per section 16 it is
+# correct, and this section is the evidence for that answer.
+
+test "AD-33 the machine reply does not track the player's selection" {
+  tag @accounting-denomination @needs-stimulus
+  requires decoder.lp1F
+  requires machine.accounting_denomination
+  requires machine.multiple_denominations
+  requires stimulus.select_game
+
+  note "Enable several player denominations. Select each game in turn, reading the machine identification reply after each selection."
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  # The same value every time, whichever game is selected. Section 16: the unit must not change
+  # dynamically due to player activity.
+  host expect field denomination of lp 1F == 3
+  host wait 2s
+  host expect field denomination of lp 1F == 3
+  host wait 2s
+  host expect field denomination of lp 1F == 3
+}
+
+test "AD-34 the per-game reply answers the same as the machine reply" {
+  tag @accounting-denomination @needs-configuration
+  requires decoder.lp53
+  requires machine.accounting_denomination
+  requires machine.multiple_games
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  note "The accounting denomination byte is identical for every game number, even though this is a per-game poll."
+}
+
+test "AD-35 per-denomination data comes from the multi-denom preamble" {
+  tag @accounting-denomination @needs-configuration
+  requires decoder.lpB0
+  requires machine.multiple_denominations
+
+  note "The preamble is how a host obtains data for one player denomination. This is the answer to send in place of the machine identification behaviour a host might have expected."
+}
+
+test "AD-36 the machine reports itself as multi-denomination" {
+  tag @accounting-denomination @needs-configuration
+  requires decoder.lpA0
+  requires machine.multiple_denominations
+
+  note "The multi-denom extension bit is set on any machine whose accounting denomination is, or could be, different from a player denomination."
+}
