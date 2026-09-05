@@ -159,8 +159,9 @@ being changed anyway.
 
 ## M3 · Tickets — the first genuinely impossible test
 
-* `qpm_simulator`: printer panel with a real barcode, wallet, JSON per ticket, JSON import
-  for negative cases (D12). **No QSP bump is needed after all** — the `GIT_TAG` pin at
+* `qpm_simulator`, **on a branch** (D38): printer panel with a real barcode, wallet, one ticket per
+  file, and import for negative cases (D12). A ticket is written and read in two encodings from one
+  model — a key/value text file or JSON, chosen by extension on read and by a flag on write (D37). **No QSP bump is needed after all** — the `GIT_TAG` pin at
   `QSP/CMakeLists.txt:92` sits inside `if(HAL)`, and the SasWorkbench preset builds with `HAL` off
   and turns it on for QPM2's scope only, so the simulator is never fetched by this build. It is run
   as its own executable against the shared region. If a local checkout ever does need to be in the

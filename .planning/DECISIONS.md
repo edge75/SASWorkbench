@@ -434,3 +434,31 @@ need a memory clear, a power cycle, the configuration file, the audit pages, a h
 transfers, progressives, a bonus, or a second game. The suite does not go green because of this;
 it starts measuring something.
 
+---
+
+# Decisions 37–38
+
+Taken with the user on 2026-09-05, before the ticket work started.
+
+## D37 — A ticket has one model and two encodings
+
+Revises D12 and D25, which said JSON. A ticket is written and read as **either** a key/value text
+file in the shape of a classic `.ini` **or** JSON: the encoding is chosen by file extension when
+reading and by a flag when writing, and either is accepted anywhere a ticket is accepted.
+
+The user's reason for wanting the text form is the one that matters: a person hand-authoring the
+negative cases — expired, wrong check digits, foreign machine, already redeemed — edits a
+key/value list far more comfortably than JSON, and those cases are the whole point of importing a
+ticket at all.
+
+What this must not become is two ticket models. **There is one model**; the encodings are two
+renderings of it, and a ticket converted from one to the other and back is the same ticket. That
+is D35's rule — the by-hand path and the scripted path are the same path — restated for a format
+choice, and it is the thing to check first if the two ever start to drift.
+
+## D38 — `qpm_simulator` changes go on a branch
+
+The simulator is approved for change (D15), but its work belongs on a branch rather than on
+`main`, which is where it sits today. The printer panel, the wallet, the ticket popup and the
+mask-zeroing race all land there.
+
