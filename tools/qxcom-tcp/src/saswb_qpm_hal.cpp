@@ -1,32 +1,51 @@
 /*
  *	SasWorkbench's substitution for QPM2's simulated peripheral manager.
  *
- *	QPM2's simulated printer prints a ticket to stdout and nothing else, so no ticket the machine
- *	produces can be looked at, redeemed or asserted on. This file gives that one function a body
- *	that also files the ticket in the wallet, which is the directory the simulator's printer panel
- *	shows and the test host reads.
+ *	Two peripherals are given bodies here, both halves of the money path.
+ *
+ *	The printer. QPM2's simulated one prints a ticket to stdout and nothing else, so no ticket the
+ *	machine produces can be looked at, redeemed or asserted on. Ours also files it in the wallet,
+ *	which is the directory the simulator's ticket panel shows and the test host reads.
+ *
+ *	The note acceptor. QPM2's simulated one can take a note - the shared region carries a bit per
+ *	denomination - but it can never report a ticket: the flag that would say so is only ever
+ *	cleared, and the barcode it hands back is a constant. Ours watches the acceptor directory, and
+ *	a ticket dropped in there by a person or by a script is reported as a document in escrow with
+ *	its own barcode. Without it there is no way to start a redemption on a real machine at all.
  *
  *	QPM2 is substituted, never edited. Their source is *included* rather than copied, with only the
- *	printer entry point renamed out of the way, so QPM2 remains the only place that file is
- *	maintained: a change they make to any other peripheral arrives here on the next configure, and
- *	the printer is the only behaviour that is ours. The swap is made by a gitignored preset in the
- *	demo, so no customer build reaches this file.
+ *	entry points we are replacing renamed out of the way, so QPM2 remains the only place that file
+ *	is maintained: a change they make to any other peripheral arrives here on the next configure.
+ *	The swap is made by a gitignored preset in the demo, so no customer build reaches this file.
  */
 
 //	Their whole file, unchanged. SASWB_QPM_HAL_SOURCE is the path to it, supplied by the CMake hook
 //	so this source names no checkout.
 #define qpmPrinterPrint qpmPrinterPrintAsQpm2WroteIt
 #define qpmPrinterRegisterCallback qpmPrinterRegisterCallbackAsQpm2WroteIt
+#define qpmBVRegisterCallback qpmBVRegisterCallbackAsQpm2WroteIt
+#define qpmBVGetWaitingNoteOrTicketInfo qpmBVGetWaitingNoteOrTicketInfoAsQpm2WroteIt
+#define qpmBVActOnWaitingNoteOrTicket qpmBVActOnWaitingNoteOrTicketAsQpm2WroteIt
+#define qpmShutdown qpmShutdownAsQpm2WroteIt
 #include SASWB_QPM_HAL_SOURCE
 #undef qpmPrinterPrint
 #undef qpmPrinterRegisterCallback
+#undef qpmBVRegisterCallback
+#undef qpmBVGetWaitingNoteOrTicketInfo
+#undef qpmBVActOnWaitingNoteOrTicket
+#undef qpmShutdown
 
+#include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
+#include <mutex>
 #include <string>
 #include <thread>
 
+#include "Acceptor.h"
+#include "Barcode.h"
 #include "Ticket.h"
 #include "Wallet.h"
 
@@ -203,7 +222,184 @@ void ReportPrintComplete()
 	}).detach();
 }
 
+//	--- the note acceptor's ticket path ----------------------------------------------------------
+//	The machine's own copy of the bill validator callback, kept here for the same reason as the
+//	printer's: QPM2's wrapper keeps its members private, so registering is intercepted rather than
+//	reached into.
+d2cCallback sBillValidatorCallback = nullptr;
+
+std::mutex sTicketGate;
+Ticket sTicketInEscrow;
+bool sTicketIsInEscrow = false;
+std::chrono::steady_clock::time_point sTicketHeldSince;
+
+std::atomic<bool> sWatching{false};
+std::atomic<bool> sStopWatching{false};
+
+//	How often the acceptor directory is looked at. A person pressing a button in the peripheral
+//	simulator should see the machine react at once, and a directory listing four times a second
+//	costs nothing next to the sixty-hertz frame the simulator is already drawing.
+const std::chrono::milliseconds kLookInterval{250};
+
+//	How long a ticket may sit in escrow with nobody acting on it before it is dropped. The machine
+//	has its own, shorter, hold timer and normally returns the ticket long before this; what this
+//	catches is a machine that never registered a validator at all, which would otherwise leave the
+//	acceptor blocked for the rest of the run with no way to tell.
+const std::chrono::seconds kEscrowGiveUp{120};
+
+void Report(int messageId, uint64_t argument)
+{
+	d2cCallback callback = sBillValidatorCallback;
+	if (callback == nullptr)
+		return;
+
+	D2C_MESSAGE message;
+	QPM_INIT_OBJECT(&message, D2C_MESSAGE);
+	message.MessageId = messageId;
+	message.Argument = argument;
+	callback(&message);
+}
+
+//	Takes at most one ticket at a time and holds it until the machine says what to do with it. A
+//	real acceptor has one document path, and offering a second while the first is unresolved is
+//	something no validator can do - modelling it otherwise would let a test pass in a way no
+//	machine could reproduce.
+void WatchTheAcceptor()
+{
+	Acceptor acceptor(DefaultAcceptorDirectory());
+	printf("[SasWorkbench] watching %s for a ticket to insert\n", acceptor.Directory().c_str());
+
+	while (!sStopWatching.load())
+	{
+		std::this_thread::sleep_for(kLookInterval);
+
+		{
+			std::lock_guard<std::mutex> held(sTicketGate);
+			if (sTicketIsInEscrow)
+			{
+				if (std::chrono::steady_clock::now() - sTicketHeldSince < kEscrowGiveUp)
+					continue;
+
+				printf("[SasWorkbench] nothing acted on the ticket in escrow for %lld seconds; "
+					"dropping it so the acceptor is usable again\n",
+					static_cast<long long>(kEscrowGiveUp.count()));
+				sTicketIsInEscrow = false;
+			}
+		}
+
+		AcceptorEntry offered;
+		try
+		{
+			if (!acceptor.Take(offered))
+				continue;
+		}
+		catch (const std::exception &problem)
+		{
+			printf("[SasWorkbench] the acceptor directory could not be read: %s\n", problem.what());
+			continue;
+		}
+
+		{
+			std::lock_guard<std::mutex> held(sTicketGate);
+			sTicketInEscrow = offered.ticket;
+			sTicketIsInEscrow = true;
+			sTicketHeldSince = std::chrono::steady_clock::now();
+		}
+
+		printf("[SasWorkbench] ticket %s in escrow: %s, %lld cents\n",
+			offered.fileName.c_str(), TicketBarcodeDigits(offered.ticket).c_str(),
+			static_cast<long long>(offered.ticket.amountCents));
+
+		Report(D2C_ACCEPTOR_PENDING_TCKT, 0);
+	}
+}
+
 }	//	namespace
+
+QPMAPI QRESULT qpmBVRegisterCallback(QPMHANDLE handle, const char *deviceId, d2cCallback callback)
+{
+	QRESULT result = qpmBVRegisterCallbackAsQpm2WroteIt(handle, deviceId, callback);
+	if (result != Q_SUCCESS)
+		return result;
+
+	sBillValidatorCallback = callback;
+
+	//	Started here rather than at load time, because a report before anything is listening is a
+	//	ticket silently thrown away. Once only: the machine may register more than one validator.
+	bool expected = false;
+	if (callback != nullptr && sWatching.compare_exchange_strong(expected, true))
+		std::thread(WatchTheAcceptor).detach();
+
+	return result;
+}
+
+QPMAPI QRESULT qpmBVGetWaitingNoteOrTicketInfo(QPMHANDLE handle, const char *deviceId,
+	PQPMO_BV_ESCROW_ENTRY pendingEntry)
+{
+	if (pendingEntry == nullptr)
+		return qpmBVGetWaitingNoteOrTicketInfoAsQpm2WroteIt(handle, deviceId, pendingEntry);
+
+	std::lock_guard<std::mutex> held(sTicketGate);
+
+	//	A note is QPM2's to answer, and so is the case where nothing is waiting at all. Only a
+	//	ticket this file put into escrow is answered here.
+	if (!sTicketIsInEscrow)
+		return qpmBVGetWaitingNoteOrTicketInfoAsQpm2WroteIt(handle, deviceId, pendingEntry);
+
+	//	Exactly the digits the peripheral simulator prints as the barcode, and exactly the number
+	//	the machine will pass to its network layer: it reads SZ_BARCODE_LEN characters and turns
+	//	them into one number, so a strip and a wire always carry the same ticket.
+	std::string barcode = TicketBarcodeDigits(sTicketInEscrow);
+	memset(pendingEntry->Barcode, 0, sizeof(pendingEntry->Barcode));
+	memcpy(pendingEntry->Barcode, barcode.c_str(),
+		barcode.size() < SZ_BARCODE_LEN ? barcode.size() : SZ_BARCODE_LEN);
+
+	//	Filled in because the structure has the fields, not because the machine reads them for a
+	//	ticket: what a ticket is worth is the host's to declare, and the machine never quotes this.
+	pendingEntry->Value = static_cast<unsigned int>(sTicketInEscrow.amountCents);
+	memset(pendingEntry->Denomination, 0, sizeof(pendingEntry->Denomination));
+
+	return Q_SUCCESS;
+}
+
+QPMAPI QRESULT qpmBVActOnWaitingNoteOrTicket(QPMHANDLE handle, const char *deviceId,
+	int finalizationAction)
+{
+	bool wasTicket = false;
+	{
+		std::lock_guard<std::mutex> held(sTicketGate);
+		wasTicket = sTicketIsInEscrow;
+		if (wasTicket)
+			sTicketIsInEscrow = false;
+	}
+
+	//	A note, or nothing: QPM2 already does the right thing with both.
+	if (!wasTicket)
+		return qpmBVActOnWaitingNoteOrTicketAsQpm2WroteIt(handle, deviceId, finalizationAction);
+
+	if (finalizationAction == QPM_BV_ACTION_ACCEPT)
+	{
+		printf("[SasWorkbench] the ticket in escrow was stacked\n");
+		Report(D2C_ACCEPTOR_TCKT_ACCEPTED, 0);
+	}
+	else
+	{
+		printf("[SasWorkbench] the ticket in escrow was returned\n");
+		Report(D2C_ACCEPTOR_BILL_REJECTED_OR_RETURNED, 0);
+	}
+
+	return Q_SUCCESS;
+}
+
+QPMAPI QRESULT qpmShutdown(QPMHANDLE handle)
+{
+	//	Stopped before their wrapper is deleted, so the watcher cannot report through a callback
+	//	whose owner has gone.
+	sStopWatching.store(true);
+	sBillValidatorCallback = nullptr;
+
+	return qpmShutdownAsQpm2WroteIt(handle);
+}
 
 QPMAPI QRESULT qpmPrinterRegisterCallback(QPMHANDLE handle, const char *deviceId,
 	d2cCallback callback)
