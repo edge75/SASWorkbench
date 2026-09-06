@@ -123,9 +123,22 @@ public sealed record NoteStep(SourceLocation Location, string Text) : ScriptStep
 public sealed record SendLongPollStep(SourceLocation Location, byte Command, byte[] Data)
     : ScriptStep(Location)
 {
-    public override string Describe() => Data.Length == 0
-        ? $"send lp {Command:X2}"
-        : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
+    /// <summary>
+    /// How the data was written, when it was written as named fields rather than as bytes.
+    /// </summary>
+    /// <remarks>
+    /// The bytes are the same either way — the names are turned into them while the script is
+    /// read, so a misspelt field stops the parse rather than a run. This is kept only so the
+    /// report shows the line the way it was written; a step whose log reads
+    /// <c>data 00000000200000...</c> is one nobody can check against the script.
+    /// </remarks>
+    public string? NamedData { get; init; }
+
+    public override string Describe() => NamedData is not null
+        ? $"send lp {Command:X2} with {NamedData}"
+        : Data.Length == 0
+            ? $"send lp {Command:X2}"
+            : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
 }
 
 /// <summary>Expects an exception to arrive, or expects it not to.</summary>
@@ -254,6 +267,23 @@ public sealed record DoorStep(SourceLocation Location, string Door, bool Open) :
     public override string RequiredCapability => $"stimulus.door.{Door}";
 
     public override string Describe() => $"door {Door} {(Open ? "open" : "close")}";
+}
+
+/// <summary>Feeds a ticket into the machine's acceptor.</summary>
+/// <remarks>
+/// The step carries the ticket itself, not the file it may have come from, because the two ways of
+/// writing it have to end at the same place: a ticket named by file is read while the script is
+/// parsed, so a path that is wrong or a file that is not a ticket stops the parse rather than a
+/// run. What the machine is given is a ticket either way.
+/// </remarks>
+public sealed record InsertTicketStep(SourceLocation Location, Tickets.Ticket Ticket, string? File)
+    : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.ticket";
+
+    public override string Describe() => File is not null
+        ? $"ticket insert {System.IO.Path.GetFileName(File)}"
+        : $"ticket insert amount={Ticket.AmountCents} validation={Ticket.ValidationNumber}";
 }
 
 /// <summary>Brings the machine to a known state: every door shut, every peripheral connected.</summary>

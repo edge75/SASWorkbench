@@ -37,6 +37,17 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            //  Handed straight to the machine rather than written into the acceptor directory.
+            //  There is no peripheral manager here to watch one, and a directory in the middle
+            //  would only add a way for the step to look done while nothing happened.
+            case InsertTicketStep insert:
+                if (!machine.InsertTicket(insert.Ticket))
+                    throw new StimulusUnavailableException(
+                        "the machine is already holding a ticket, so this one cannot go in until "
+                        + "the host has finished with that one");
+
+                return;
+
             case PlayGamesStep play:
                 try
                 {

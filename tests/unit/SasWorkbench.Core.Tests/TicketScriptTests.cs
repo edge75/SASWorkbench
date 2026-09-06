@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Tickets;
 
 namespace SasWorkbench.Core.Tests;
 
@@ -72,5 +73,81 @@ public class TicketScriptTests
     public void AnOrderingComparisonOnTextIsRefused()
     {
         Assert.Throws<ScriptParseException>(() => Parse("  egm expect ticket location > x"));
+    }
+
+    [Fact]
+    public void ATicketCanBeWrittenIntoTheStepItself()
+    {
+        ScriptTest test = Parse(
+            "  egm ticket insert amount=2000 validation=123456789012345678 type=cashable_from_cashout");
+
+        InsertTicketStep step = test.Steps.OfType<InsertTicketStep>().Single();
+        Assert.Equal(2000, step.Ticket.AmountCents);
+        Assert.Equal(123456789012345678ul, step.Ticket.ValidationNumber);
+        Assert.Equal(TicketValidationType.CashableFromCashout, step.Ticket.ValidationType);
+        Assert.Null(step.File);
+    }
+
+    // Both matter and neither has a sensible default: a ticket with no number cannot be redeemed,
+    // and a ticket worth nothing is refused, so a script missing either would be testing a
+    // refusal it did not mean to write.
+    [Theory]
+    [InlineData("  egm ticket insert amount=2000")]
+    [InlineData("  egm ticket insert validation=1234")]
+    public void AnInlineTicketNeedsBothAnAmountAndANumber(string line)
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(() => Parse(line));
+
+        Assert.Contains("validation", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ATicketTypeNothingRecognisesIsAParseError()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(
+            () => Parse("  egm ticket insert amount=1 validation=2 type=promotional"));
+
+        Assert.Contains("promotional", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("cashable_from_cashout", problem.Message, StringComparison.Ordinal);
+    }
+
+    // Read while the script is read, so a path that is wrong is a mistake in the script rather
+    // than a run that gets most of the way through and then cannot find a file.
+    [Fact]
+    public void ATicketNamedByFileIsReadDuringTheParse()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "saswb-insert-" + Guid.NewGuid().ToString("N") + ".json");
+        TicketFile.Write(path, new Ticket { ValidationNumber = 4242, AmountCents = 500 });
+
+        try
+        {
+            ScriptTest test = Parse($"  egm ticket insert {path}");
+
+            InsertTicketStep step = test.Steps.OfType<InsertTicketStep>().Single();
+            Assert.Equal(4242ul, step.Ticket.ValidationNumber);
+            Assert.Equal(path, step.File);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void ATicketFileThatIsNotThereIsAParseError()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(
+            () => Parse("  egm ticket insert nowhere/at/all.json"));
+
+        Assert.Contains("nowhere/at/all.json", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InsertingATicketNeedsSomethingToDriveTheMachine()
+    {
+        ScriptTest test = Parse("  egm ticket insert amount=1 validation=2");
+
+        Assert.Equal("stimulus.ticket",
+            test.Steps.OfType<InsertTicketStep>().Single().RequiredCapability);
     }
 }

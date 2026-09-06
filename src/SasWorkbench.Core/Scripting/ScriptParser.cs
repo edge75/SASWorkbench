@@ -350,20 +350,96 @@ public static class ScriptParser
             throw new ScriptParseException(location,
                 $"'{words[3]}' is not a long poll code. Expected two hex digits, such as 1F");
 
+        if (!SasCatalogue.LongPolls.ContainsKey(command))
+            throw new ScriptParseException(location,
+                $"long poll ${command:X2} is not one the gaming machine library implements");
+
+        if (words.Length > 4 && words[4].Equals("with", StringComparison.OrdinalIgnoreCase))
+            return ReadSendWithFields(words, location, command);
+
         byte[] data = [];
         if (words.Length > 4)
         {
             if (words.Length != 6 || !words[4].Equals("data", StringComparison.OrdinalIgnoreCase))
                 throw new ScriptParseException(location,
-                    "expected: host send lp <code> data <hex>");
+                    "expected: host send lp <code> [data <hex> | with <field>=<value> ...]");
             data = ParseHex(words[5], location);
         }
 
-        if (!SasCatalogue.LongPolls.ContainsKey(command))
-            throw new ScriptParseException(location,
-                $"long poll ${command:X2} is not one the gaming machine library implements");
-
         return new SendLongPollStep(location, command, data);
+    }
+
+    /// <summary>
+    /// Reads <c>host send lp 71 with transfer_code=ttc_valid_cashable_ticket ...</c>.
+    /// </summary>
+    /// <remarks>
+    /// The fields are turned into bytes here rather than at run time, for the same reason every
+    /// other name in a script is resolved while it is read: a field this build cannot write is a
+    /// mistake in the script, and a mistake in the script should stop before a machine is touched.
+    /// A length byte the layout begins with is filled in from what follows unless it is given.
+    /// </remarks>
+    private static SendLongPollStep ReadSendWithFields(
+        string[] words, SourceLocation location, byte command)
+    {
+        SasMessageLayout? layout = SasLayouts.For(command);
+        if (layout is null)
+        {
+            throw new ScriptParseException(location,
+                $"this build has no layout for long poll ${command:X2}, so its fields cannot be "
+                + "named. Write 'data <hex>' instead, and know that nothing will check it");
+        }
+
+        if (layout.Request.Count == 0)
+            throw new ScriptParseException(location,
+                $"long poll ${command:X2} carries no fields, so there is nothing to name");
+
+        if (words.Length == 5)
+            throw new ScriptParseException(location,
+                "expected: host send lp <code> with <field>=<value> [<field>=<value>...]");
+
+        var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (string word in words[5..])
+        {
+            string[] pair = word.Split('=', 2);
+            if (pair.Length != 2)
+                throw new ScriptParseException(location,
+                    $"'{word}' is not a field setting. Expected <field>=<value>");
+
+            string field = pair[0].Trim();
+            if (!HasField(layout.Request, field))
+            {
+                throw new ScriptParseException(location,
+                    $"long poll ${command:X2} has no field '{field}'. It carries: "
+                    + string.Join(", ", NamesOf(layout.Request)));
+            }
+
+            if (!SasNames.TryResolveFieldValue(pair[1], out long value))
+            {
+                throw new ScriptParseException(location,
+                    $"'{pair[1]}' is not a value for '{field}'. Expected a number, a hex code such "
+                    + "as $80, or one of the library's names, such as ttc_valid_cashable_ticket");
+            }
+
+            values[field] = value;
+        }
+
+        var buffer = new byte[HostMessage.MaxSymbols];
+        int length;
+        try
+        {
+            length = SasMessageEncoder.WriteRequestData(layout, values, buffer);
+        }
+        catch (Exception problem) when (problem is InvalidOperationException
+                                            or ArgumentOutOfRangeException)
+        {
+            throw new ScriptParseException(location,
+                $"long poll ${command:X2} cannot be built from those fields: {problem.Message}");
+        }
+
+        return new SendLongPollStep(location, command, buffer[..length])
+        {
+            NamedData = string.Join(' ', words[5..]),
+        };
     }
 
     private static ScriptStep ReadExpect(TestBuilder test, string[] words, SourceLocation location)
@@ -601,11 +677,12 @@ public static class ScriptParser
             string.Equals(f.Name, fieldName, StringComparison.OrdinalIgnoreCase));
         bool textual = declared?.Encoding is SasFieldEncoding.Ascii or SasFieldEncoding.Raw;
 
-        if (!textual
-            && long.TryParse(expected, NumberStyles.Integer, CultureInfo.InvariantCulture, out long number))
-        {
+        // The same rule as a command's fields: a plain number is decimal, a hex code is written
+        // with a dollar sign, and the library's own names for a code are accepted. Which matters
+        // most for a status byte — 'machine_status == 40' reads as decimal forty and is not the
+        // $40 anybody meant, so the ambiguity is refused rather than guessed at.
+        if (!textual && SasNames.TryResolveFieldValue(expected, out long number))
             return new ExpectFieldStep(location, command, fieldName, comparison, number, null);
-        }
 
         if (comparison is not (SasComparison.Equal or SasComparison.NotEqual))
             throw new ScriptParseException(location,
@@ -659,6 +736,10 @@ public static class ScriptParser
                 test.Steps.Add(new InsertBillStep(location, cents));
                 return;
 
+            case "ticket":
+                test.Steps.Add(ReadTicketInsert(words, location));
+                return;
+
             case "play":
                 test.Steps.Add(ReadPlay(words, location));
                 return;
@@ -681,9 +762,109 @@ public static class ScriptParser
 
             default:
                 throw new ScriptParseException(location,
-                    $"'egm {words[1]}' is not a machine action. Expected bill, play, press, door "
-                    + "or settle");
+                    $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
+                    + "press, door or settle");
         }
+    }
+
+    /// <summary>
+    /// Reads <c>egm ticket insert &lt;file&gt;</c> or <c>egm ticket insert amount=… validation=…</c>.
+    /// </summary>
+    /// <remarks>
+    /// A ticket named by file is read now rather than when the step runs, so a path that is wrong
+    /// is a mistake in the script and is reported as one. A ticket written inline exists so the
+    /// cases nothing has printed — a number no machine issued, an amount that does not match —
+    /// can be written without a file per case.
+    /// </remarks>
+    private static InsertTicketStep ReadTicketInsert(string[] words, SourceLocation location)
+    {
+        if (words.Length < 4 || !words[2].Equals("insert", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ScriptParseException(location,
+                "expected: egm ticket insert <file>, or "
+                + "egm ticket insert amount=<cents> validation=<number> [type=<name>]");
+        }
+
+        if (words.Length == 4 && !words[3].Contains('=', StringComparison.Ordinal))
+        {
+            string path = words[3];
+            try
+            {
+                return new InsertTicketStep(location, TicketFile.Read(path), path);
+            }
+            catch (Exception problem) when (problem is TicketFormatException or IOException
+                                                or ArgumentException)
+            {
+                throw new ScriptParseException(location,
+                    $"'{path}' cannot be read as a ticket: {problem.Message}");
+            }
+        }
+
+        long amount = 0;
+        ulong validation = 0;
+        var type = TicketValidationType.CashableFromCashout;
+        bool amountGiven = false;
+        bool validationGiven = false;
+
+        foreach (string word in words[3..])
+        {
+            string[] pair = word.Split('=', 2);
+            if (pair.Length != 2)
+                throw new ScriptParseException(location,
+                    $"'{word}' is not a setting. Expected amount=<cents>, validation=<number> "
+                    + "or type=<name>");
+
+            switch (pair[0].ToLowerInvariant())
+            {
+                case "amount":
+                    if (!long.TryParse(pair[1], out amount) || amount <= 0)
+                        throw new ScriptParseException(location,
+                            $"'{pair[1]}' is not an amount in cents");
+                    amountGiven = true;
+                    break;
+
+                case "validation":
+                    if (!ulong.TryParse(pair[1], out validation))
+                        throw new ScriptParseException(location,
+                            $"'{pair[1]}' is not a validation number. Expected up to eighteen digits");
+                    validationGiven = true;
+                    break;
+
+                case "type":
+                    if (!Enum.TryParse(pair[1].Replace("_", string.Empty, StringComparison.Ordinal),
+                            ignoreCase: true, out type))
+                    {
+                        throw new ScriptParseException(location,
+                            $"'{pair[1]}' is not a ticket type. Expected one of: "
+                            + string.Join(", ",
+                                Enum.GetNames<TicketValidationType>().Select(SasNames.Underscore)));
+                    }
+
+                    break;
+
+                default:
+                    throw new ScriptParseException(location,
+                        $"'{pair[0]}' is not a ticket setting. Expected amount, validation or type");
+            }
+        }
+
+        // Both are required, and neither has a sensible default. A ticket with no number is one
+        // the host cannot redeem, and a ticket worth nothing is refused by the machine, so a
+        // script that forgot either would be testing a refusal it did not mean to write.
+        if (!amountGiven || !validationGiven)
+            throw new ScriptParseException(location,
+                "egm ticket insert needs both amount=<cents> and validation=<number>");
+
+        return new InsertTicketStep(
+            location,
+            new Ticket
+            {
+                ValidationNumber = validation,
+                ValidationType = type,
+                AmountCents = amount,
+                Note = "written by a test",
+            },
+            File: null);
     }
 
     private static PlayGamesStep ReadPlay(string[] words, SourceLocation location)

@@ -160,6 +160,32 @@ public static class CapabilityProbe
         return values;
     }
 
+    /// <summary>
+    /// What being able to write into the acceptor adds.
+    /// </summary>
+    /// <remarks>
+    /// Named for what this host can do, not for what the machine will do with it, for the same
+    /// reason the wallet is. Whether the machine accepts tickets at all is a property of its
+    /// configuration and it says so on the wire; what is knowable from here is only that there is
+    /// a directory to put one in.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string?> ForAcceptor(string directory)
+    {
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            values["stimulus.ticket"] = directory;
+        }
+        catch (Exception problem) when (problem is IOException or UnauthorizedAccessException)
+        {
+            // Absent, so a test that needs it skips naming the directory rather than failing.
+        }
+
+        return values;
+    }
+
     /// <summary>What a stimulus backend adds.</summary>
     public static IReadOnlyDictionary<string, string?> ForStimulus(StimulusBackend backend) =>
         backend switch
@@ -168,6 +194,10 @@ public static class CapabilityProbe
             {
                 ["stimulus"] = "software",
                 ["stimulus.bill"] = "yes",
+
+                // The software machine takes a ticket handed to it directly, with no directory in
+                // between, so this is true of the machine rather than of a path on disk.
+                ["stimulus.ticket"] = "yes",
                 ["stimulus.play"] = "yes",
                 ["stimulus.settle"] = "yes",
                 ["stimulus.button.collect"] = "yes",
@@ -185,6 +215,7 @@ public static class CapabilityProbe
             {
                 ["stimulus"] = "manual",
                 ["stimulus.bill"] = "yes",
+                ["stimulus.ticket"] = "yes",
                 ["stimulus.play"] = "yes",
                 ["stimulus.settle"] = "yes",
                 ["stimulus.door.slot"] = "yes",

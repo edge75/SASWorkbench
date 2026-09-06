@@ -31,6 +31,7 @@ public sealed class FakeEgm : IDisposable
     private readonly byte[] _frame = new byte[HostMessage.MaxSymbols];
     private readonly Queue<byte> _exceptions = new();
     private readonly HashSet<string> _openDoors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TicketRedemption _redemption = new();
     private readonly Lock _gate = new();
 
     private Thread? _thread;
@@ -300,6 +301,32 @@ public sealed class FakeEgm : IDisposable
         TicketFile.Write(path, ticket, TicketEncoding.Json);
         RaiseException(SasExceptionCode.CashoutTicketPrinted);
         return ticket;
+    }
+
+    /// <summary>Where this machine's ticket redemption has got to, for a test that asks directly.</summary>
+    public TicketRedemption Redemption => _redemption;
+
+    /// <summary>
+    /// Feeds a ticket into the acceptor, which the machine holds until a host says what it is.
+    /// </summary>
+    /// <remarks>
+    /// The machine takes no money here and moves no meter. All it does is report that a document
+    /// is in escrow; the credits arrive only when the host answers the redemption long poll, which
+    /// is the whole point of the exchange and the reason a ticket cannot be tested at one end.
+    /// </remarks>
+    /// <returns>False when a ticket is already in flight, so this one is turned away.</returns>
+    public bool InsertTicket(Ticket ticket)
+    {
+        ArgumentNullException.ThrowIfNull(ticket);
+
+        bool taken;
+        lock (_gate)
+            taken = _redemption.Insert(ticket);
+
+        if (taken)
+            RaiseException(SasExceptionCode.TicketInserted);
+
+        return taken;
     }
 
     /// <summary>
@@ -632,10 +659,163 @@ public sealed class FakeEgm : IDisposable
         0x7E => DateAndTime(),
         0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
         0x6F or 0xAF => SelectedMeters(request),
+        0x70 => TicketInEscrow(),
+        0x71 => RedeemTicket(request),
 
         // Everything else has a layout but no source of values here.
         _ => null,
     };
+
+    /// <summary>
+    /// Says whether a ticket is being held, and quotes the number printed on it.
+    /// </summary>
+    /// <remarks>
+    /// The amount is zero and stays zero. The machine has read a barcode, not a value: what the
+    /// ticket is worth is the host's to declare, and a machine that filled this in would be
+    /// answering a question it was never asked.
+    /// </remarks>
+    private Dictionary<string, object> TicketInEscrow()
+    {
+        SasTicketStatus status;
+        ulong number;
+        lock (_gate)
+        {
+            status = _redemption.Ask();
+            number = _redemption.ValidationNumber;
+        }
+
+        if (status != SasTicketStatus.TICKET_STATUS_TICKET_IN_ESCROW)
+        {
+            return new Dictionary<string, object>
+            {
+                ["length"] = 1,
+                ["ticket_status"] = (byte)status,
+            };
+        }
+
+        return new Dictionary<string, object>
+        {
+            ["length"] = 16,
+            ["ticket_status"] = (byte)status,
+            ["transfer_amount"] = 0L,
+            ["parsing_code"] = 0,
+            ["validation_data"] = (long)number,
+        };
+    }
+
+    /// <summary>
+    /// Takes the host's verdict on the ticket being held, and reports what became of it.
+    /// </summary>
+    /// <remarks>
+    /// The money moves inside this call, before the reply is built, because the reply is what the
+    /// host reads to learn that it moved. The exception that announces the same thing is queued
+    /// rather than sent, so it arrives on a following general poll — which is the order a real
+    /// machine produces and the order a script written against one expects.
+    /// </remarks>
+    private Dictionary<string, object>? RedeemTicket(ReadOnlySpan<byte> request)
+    {
+        SasMessageLayout layout = SasLayouts.All[0x71];
+        SasDecoded command = SasMessageDecoder.DecodeRequest(layout, request);
+        if (command.Failure is not null || command.Number("transfer_code") is not { } rawCode)
+            return null;
+
+        var code = (SasTicketTransferCode)(byte)rawCode;
+        long amount = command.Number("transfer_amount") ?? 0;
+        var number = (ulong)(command.Number("validation_data") ?? 0);
+
+        bool redeemed;
+        SasTicketMachineStatus status;
+        long recorded;
+        ulong quoted;
+
+        lock (_gate)
+        {
+            redeemed = _redemption.Redeem(code, amount, number);
+
+            // Read before anything else happens. The answer to the command that accepts a ticket
+            // is "redemption pending", not "redeemed": the machine has agreed to take it and has
+            // not taken it yet, and a host told otherwise would have no reason ever to ask again.
+            status = _redemption.MachineStatus;
+            recorded = _redemption.AmountCents;
+            quoted = _redemption.ValidationNumber;
+
+            if (redeemed)
+            {
+                TakeTicket(_redemption.AmountCents, code);
+                _redemption.Settle(code);
+            }
+            else if (code == SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS)
+            {
+                // Reading the outcome is what closes the cycle, so the acceptor is free again
+                // only once the host has actually been told.
+                _redemption.CloseIfRead();
+            }
+        }
+
+        if (redeemed)
+            RaiseException(SasExceptionCode.TicketTransferComplete);
+
+        return Answer(status, recorded, quoted);
+
+        Dictionary<string, object> Answer(SasTicketMachineStatus answered, long cents, ulong validation)
+        {
+            if (!StatusCarries(answered))
+            {
+                return new Dictionary<string, object>
+                {
+                    ["length"] = 1,
+                    ["machine_status"] = (byte)answered,
+                };
+            }
+
+            return new Dictionary<string, object>
+            {
+                ["length"] = 16,
+                ["machine_status"] = (byte)answered,
+                ["transfer_amount"] = cents,
+                ["parsing_code"] = 0,
+                ["validation_data"] = (long)validation,
+            };
+        }
+    }
+
+    /// <summary>Whether a status answers with the ticket's amount and number, or with itself alone.</summary>
+    private static bool StatusCarries(SasTicketMachineStatus status) =>
+        (byte)status < (byte)SasTicketMachineStatus.GMSC_NOT_COMPATIBLE_WITH_CURRENT_REDEMPTION_CYCLE;
+
+    /// <summary>
+    /// Moves the meters a redeemed ticket moves, and puts its value on the machine.
+    /// </summary>
+    /// <remarks>
+    /// Which meters depends on what the host said the ticket was, not on what the ticket claims to
+    /// be: a restricted ticket redeemed as cashable is money the host has agreed to pay in cash,
+    /// and the machine counts what it was told.
+    /// </remarks>
+    private void TakeTicket(long cents, SasTicketTransferCode code)
+    {
+        switch (code)
+        {
+            case SasTicketTransferCode.TTC_VALID_RESTRICTED_PROMOTIONAL_TICKET:
+                Meters.Increment(SasMeterCode.TotalSASRestrictedTicketIn_Cents, cents);
+                Meters.Increment(SasMeterCode.TotalSASRestrictedTicketIn_Qty, 1);
+                break;
+
+            // Counted in credits rather than cents, because that is the only meter the protocol
+            // keeps for it. There is no quantity meter for this kind, so none is moved.
+            case SasTicketTransferCode.TTC_VALID_NONRESTRICTED_PROMOTIONAL_TICKET:
+                Meters.Increment(SasMeterCode.TotalNonrestrictedPromotionalTicketIn_Crd,
+                    cents / AccountingCents);
+                break;
+
+            default:
+                Meters.Increment(SasMeterCode.TotalCashableTicketIn_Cents, cents);
+                Meters.Increment(SasMeterCode.TotalSASCashableTicketIn_Qty, 1);
+                break;
+        }
+
+        Meters.SetCurrentCredits(
+            Meters.Read(SasMeterCode.CurrentCredits) + (cents / AccountingCents));
+    }
 
     /// <summary>
     /// Answers a selected-meter poll, in the shape a machine answers it: one entry per meter it

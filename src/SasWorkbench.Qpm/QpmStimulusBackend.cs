@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Tickets;
 
 namespace SasWorkbench.Qpm;
 
@@ -11,8 +12,12 @@ namespace SasWorkbench.Qpm;
 /// stimulus and the tests that need one are skipped by name. Nothing is offered on the strength
 /// of the peripheral simulator's labels, which describe a different machine.
 /// </remarks>
-public sealed class QpmStimulusBackend(QpmMachine machine) : IStimulusBackend, IDisposable
+public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirectory = null)
+    : IStimulusBackend, IDisposable
 {
+    private readonly TicketAcceptor _acceptor =
+        new(acceptorDirectory ?? TicketAcceptor.DefaultDirectory);
+
     public StimulusBackend Kind => StimulusBackend.Qpm;
 
     /// <summary>The machine being driven, for a caller that wants its lamps or its profile.</summary>
@@ -46,6 +51,25 @@ public sealed class QpmStimulusBackend(QpmMachine machine) : IStimulusBackend, I
 
             case InsertBillStep bill:
                 Machine.InsertNote(bill.Cents);
+                return;
+
+            // A ticket does not go through the shared region: it has a barcode and an amount, and
+            // the region carries eight note-value bits and nothing else. It is dropped into the
+            // acceptor directory instead, which is the same directory a person uses when they load
+            // a ticket by hand in the peripheral simulator - one path, so what is demonstrated and
+            // what is tested cannot come apart.
+            case InsertTicketStep insert:
+                try
+                {
+                    _acceptor.Offer(insert.Ticket);
+                }
+                catch (Exception problem) when (problem is IOException
+                                                    or UnauthorizedAccessException)
+                {
+                    throw new StimulusUnavailableException(
+                        $"the ticket could not be put into {_acceptor.Directory}: {problem.Message}");
+                }
+
                 return;
 
             case DoorStep door:
@@ -110,6 +134,11 @@ public sealed class QpmStimulusBackend(QpmMachine machine) : IStimulusBackend, I
             // about its configuration, and it answers that on the wire.
             ["stimulus.bill"] = "yes",
         };
+
+        // Only when there is somewhere to put one. Whether the machine will do anything with a
+        // ticket is its own configuration to answer, on the wire.
+        foreach ((string key, string? value) in CapabilityProbe.ForAcceptor(_acceptor.Directory))
+            values[key] = value;
 
         // Named one by one as well, so a test that needs a twenty can require exactly that rather
         // than requiring notes in general and failing on a machine that reads a different set.

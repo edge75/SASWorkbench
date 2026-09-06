@@ -36,7 +36,7 @@ public static class QpmEnvironment
             ScriptEnvironment link = DefaultEnvironment.Create(
                 step, runnerOptions with { Stimulus = StimulusBackend.None });
 
-            IStimulusBackend stimulus = Attach(settings);
+            IStimulusBackend stimulus = Attach(settings, runnerOptions.AcceptorDirectory);
 
             return link with
             {
@@ -50,14 +50,15 @@ public static class QpmEnvironment
     /// <summary>
     /// Attaches to the machine's peripherals, or hands back a backend that refuses and says why.
     /// </summary>
-    public static IStimulusBackend Attach(QpmOptions? options = null)
+    public static IStimulusBackend Attach(QpmOptions? options = null, string? acceptorDirectory = null)
     {
         QpmOptions settings = options ?? new QpmOptions();
 
         try
         {
-            return new QpmStimulusBackend(QpmMachine.Attach(
-                settings.RegionPath, settings.ResourcesDirectory, settings.Timings));
+            return new QpmStimulusBackend(
+                QpmMachine.Attach(settings.RegionPath, settings.ResourcesDirectory, settings.Timings),
+                acceptorDirectory);
         }
         catch (QpmUnavailableException unavailable)
         {

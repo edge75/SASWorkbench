@@ -58,6 +58,16 @@ public sealed record ScriptRunnerOptions
     /// as a machine that did not print.
     /// </remarks>
     public string WalletDirectory { get; init; } = TicketWallet.DefaultDirectory;
+
+    /// <summary>
+    /// The directory a ticket is dropped into to feed it to the machine's acceptor.
+    /// </summary>
+    /// <remarks>
+    /// The other half of the wallet, and the same agreement applies: the machine's peripheral
+    /// manager watches exactly this path, so a run writing somewhere else offers a ticket nobody
+    /// is looking for and reports a machine that ignored it.
+    /// </remarks>
+    public string AcceptorDirectory { get; init; } = TicketAcceptor.DefaultDirectory;
 }
 
 /// <summary>
