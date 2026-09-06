@@ -782,7 +782,8 @@ public static class ScriptParser
         {
             throw new ScriptParseException(location,
                 "expected: egm ticket insert <file>, or "
-                + "egm ticket insert amount=<cents> validation=<number> [type=<name>]");
+                + "egm ticket insert amount=<cents> validation=<number> "
+                + "[system=<0-99>] [type=<name>]");
         }
 
         if (words.Length == 4 && !words[3].Contains('=', StringComparison.Ordinal))
@@ -802,6 +803,7 @@ public static class ScriptParser
 
         long amount = 0;
         ulong validation = 0;
+        byte system = 0;
         var type = TicketValidationType.CashableFromCashout;
         bool amountGiven = false;
         bool validationGiven = false;
@@ -811,8 +813,8 @@ public static class ScriptParser
             string[] pair = word.Split('=', 2);
             if (pair.Length != 2)
                 throw new ScriptParseException(location,
-                    $"'{word}' is not a setting. Expected amount=<cents>, validation=<number> "
-                    + "or type=<name>");
+                    $"'{word}' is not a setting. Expected amount=<cents>, validation=<number>, "
+                    + "system=<0-99> or type=<name>");
 
             switch (pair[0].ToLowerInvariant())
             {
@@ -824,10 +826,18 @@ public static class ScriptParser
                     break;
 
                 case "validation":
-                    if (!ulong.TryParse(pair[1], out validation))
+                    if (!ulong.TryParse(pair[1], out validation) || pair[1].Length > 16)
                         throw new ScriptParseException(location,
-                            $"'{pair[1]}' is not a validation number. Expected up to eighteen digits");
+                            $"'{pair[1]}' is not a validation number. Expected up to sixteen "
+                            + "digits, which is what the barcode leaves after the system identifier");
                     validationGiven = true;
+                    break;
+
+                case "system":
+                    if (!byte.TryParse(pair[1], out system) || system > 99)
+                        throw new ScriptParseException(location,
+                            $"'{pair[1]}' is not a validation system identifier. Expected 0 to 99, "
+                            + "which is the two digits the barcode gives it");
                     break;
 
                 case "type":
@@ -844,7 +854,8 @@ public static class ScriptParser
 
                 default:
                     throw new ScriptParseException(location,
-                        $"'{pair[0]}' is not a ticket setting. Expected amount, validation or type");
+                        $"'{pair[0]}' is not a ticket setting. Expected amount, validation, system "
+                        + "or type");
             }
         }
 
@@ -860,6 +871,7 @@ public static class ScriptParser
             new Ticket
             {
                 ValidationNumber = validation,
+                ValidationSystemId = system,
                 ValidationType = type,
                 AmountCents = amount,
                 Note = "written by a test",

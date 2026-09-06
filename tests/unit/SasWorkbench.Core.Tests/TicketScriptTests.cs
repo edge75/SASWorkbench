@@ -79,11 +79,11 @@ public class TicketScriptTests
     public void ATicketCanBeWrittenIntoTheStepItself()
     {
         ScriptTest test = Parse(
-            "  egm ticket insert amount=2000 validation=123456789012345678 type=cashable_from_cashout");
+            "  egm ticket insert amount=2000 validation=1234567890123456 type=cashable_from_cashout");
 
         InsertTicketStep step = test.Steps.OfType<InsertTicketStep>().Single();
         Assert.Equal(2000, step.Ticket.AmountCents);
-        Assert.Equal(123456789012345678ul, step.Ticket.ValidationNumber);
+        Assert.Equal(1234567890123456ul, step.Ticket.ValidationNumber);
         Assert.Equal(TicketValidationType.CashableFromCashout, step.Ticket.ValidationType);
         Assert.Null(step.File);
     }

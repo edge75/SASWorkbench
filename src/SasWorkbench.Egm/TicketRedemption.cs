@@ -63,8 +63,14 @@ public sealed class TicketRedemption
     /// <summary>What the host said the ticket was worth, in cents.</summary>
     public long AmountCents { get; private set; }
 
-    /// <summary>The number the machine reports for this cycle, zero when it holds nothing.</summary>
-    public ulong ValidationNumber => Held?.ValidationNumber ?? 0;
+    /// <summary>
+    /// The number the machine reports for this cycle, zero when it holds nothing.
+    /// </summary>
+    /// <remarks>
+    /// The barcode read as a number, not the ticket's validation number on its own. The machine
+    /// knows only what the validator read off the strip.
+    /// </remarks>
+    public ulong ValidationNumber => Held?.BarcodeNumber ?? 0;
 
     /// <summary>True when the status carries an amount and a validation number with it.</summary>
     /// <remarks>
@@ -139,7 +145,7 @@ public sealed class TicketRedemption
             return false;
         }
 
-        if (Held is null || validationNumber != Held.ValidationNumber)
+        if (Held is null || validationNumber != Held.BarcodeNumber)
         {
             MachineStatus = SasTicketMachineStatus.GMSC_VALIDATION_NUMBER_DOES_NOT_MATCH;
             Return();

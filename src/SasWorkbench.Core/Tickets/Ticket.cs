@@ -76,4 +76,28 @@ public sealed record Ticket
     /// both encodings untouched and never interpreted.
     /// </summary>
     public string Note { get; init; } = string.Empty;
+
+    /// <summary>
+    /// The eighteen digits printed as the barcode: the validation system identifier in two digits,
+    /// then the validation number in sixteen.
+    /// </summary>
+    /// <remarks>
+    /// The same rule the peripheral simulator prints and the same one the platform writes, so what
+    /// a scanner would read, what the panel draws and what a test asserts on are one string. An
+    /// identifier above ninety-nine cannot be printed in two digits and produces a wider barcode;
+    /// no machine in scope issues one, and the platform writes a literal zero.
+    /// </remarks>
+    public string BarcodeDigits => $"{ValidationSystemId:D2}{ValidationNumber:D16}";
+
+    /// <summary>The number a host is told about this ticket: its barcode, read as one number.</summary>
+    /// <remarks>
+    /// Not <see cref="ValidationNumber"/> on its own, and the difference is not cosmetic. A
+    /// validator reads the strip and hands over what it read; the machine has no way of knowing
+    /// which of those digits were the system identifier, so all eighteen go to the host. The two
+    /// are the same number only while the identifier is zero, which is what every machine in scope
+    /// prints today — and a ticket written by hand with another one is exactly the case that would
+    /// otherwise pass here and fail against a real machine.
+    /// </remarks>
+    public ulong BarcodeNumber =>
+        ((ulong)ValidationSystemId * 10_000_000_000_000_000UL) + ValidationNumber;
 }

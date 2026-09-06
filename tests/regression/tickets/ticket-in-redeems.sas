@@ -26,18 +26,18 @@ test "a ticket is redeemed and the credits arrive" {
 
   # Written inline rather than read from a file: this number was never printed by anything, and
   # the test that needs a ticket a machine really produced is the print-then-redeem loop.
-  egm ticket insert amount=2000 validation=123456789012345678
+  egm ticket insert amount=2000 validation=1234567890123456
   host expect exception ticket_inserted within 5s
 
   # What the machine says it is holding. The amount is zero on purpose, and the specification says
   # so: the machine read a barcode.
   host send lp 70
   host expect field ticket_status of lp 70 == ticket_status_ticket_in_escrow
-  host expect field validation_data of lp 70 == 123456789012345678
+  host expect field validation_data of lp 70 == 1234567890123456
   host expect field transfer_amount of lp 70 == 0
 
   # The host's verdict, and the amount is the host's to declare.
-  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=2000 parsing_code=0 validation_data=123456789012345678
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=2000 parsing_code=0 validation_data=1234567890123456
   host expect field machine_status of lp 71 == gmsc_ticket_redemption_pending
   host expect exception ticket_transfer_complete within 5s
 
@@ -68,13 +68,13 @@ test "a ticket the host will not validate leaves the machine untouched" {
   egm settle
   host forget exceptions
 
-  egm ticket insert amount=500 validation=999999999999999999
+  egm ticket insert amount=500 validation=9999999999999999
   host expect exception ticket_inserted within 5s
 
   host send lp 70
   host expect field ticket_status of lp 70 == ticket_status_ticket_in_escrow
 
-  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=500 parsing_code=0 validation_data=999999999999999999
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=500 parsing_code=0 validation_data=9999999999999999
   host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 
   # No transfer happened, so there is nothing to announce and nothing to count.
@@ -99,15 +99,39 @@ test "a redemption for another ticket's number is refused" {
   egm settle
   host forget exceptions
 
-  egm ticket insert amount=1000 validation=111111111111111111
+  egm ticket insert amount=1000 validation=1111111111111111
   host expect exception ticket_inserted within 5s
 
   host send lp 70
-  host expect field validation_data of lp 70 == 111111111111111111
+  host expect field validation_data of lp 70 == 1111111111111111
 
-  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1000 parsing_code=0 validation_data=222222222222222222
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1000 parsing_code=0 validation_data=2222222222222222
   host expect field machine_status of lp 71 == gmsc_validation_number_does_not_match
 
   host expect no exception ticket_transfer_complete within 2s
   host expect meter credits unchanged
+}
+
+# The number the host is told is the whole barcode, not the ticket's validation number on its own.
+# A validator reads the strip and hands over what it read; the machine cannot know which two digits
+# were the validation system, so all eighteen go on the wire. This is the case that would otherwise
+# pass against the software machine and fail against a real one.
+test "the number the host is told is the whole barcode" {
+  tag @needs-stimulus
+  requires stimulus.ticket
+  requires stimulus.settle
+  requires decoder.lp70
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  egm settle
+  host forget exceptions
+
+  egm ticket insert amount=2000 validation=9876543210987654 system=64
+  host expect exception ticket_inserted within 5s
+
+  host send lp 70
+  host expect field validation_data of lp 70 == 649876543210987654
 }

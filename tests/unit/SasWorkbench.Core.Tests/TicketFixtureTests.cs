@@ -78,6 +78,36 @@ public class TicketFixtureTests
     }
 
     /// <summary>
+    /// The eighteen digits a scanner would read, which both programs compose the same way: the
+    /// validation system identifier in two digits, then the validation number in sixteen.
+    /// </summary>
+    /// <remarks>
+    /// Pinned against the simulator's own barcode test, which asserts this exact string for this
+    /// exact ticket. It matters beyond the printed strip: the number a host is told about a ticket
+    /// going in is the whole barcode, so the two programs disagreeing here would put a different
+    /// number on the wire depending on which of them the ticket passed through.
+    /// </remarks>
+    [Fact]
+    public void Composes_the_barcode_the_way_the_simulator_prints_it()
+    {
+        Ticket ticket = Full();
+
+        Assert.Equal("649876543210987654", ticket.BarcodeDigits);
+        Assert.Equal(649876543210987654ul, ticket.BarcodeNumber);
+    }
+
+    // With no validation system of its own - which is what the platform prints today, a literal
+    // zero - the barcode is the validation number and nothing else.
+    [Fact]
+    public void A_ticket_with_no_validation_system_reports_its_own_number()
+    {
+        Ticket ticket = Full() with { ValidationSystemId = 0 };
+
+        Assert.Equal("009876543210987654", ticket.BarcodeDigits);
+        Assert.Equal(ticket.ValidationNumber, ticket.BarcodeNumber);
+    }
+
+    /// <summary>
     /// A ticket is exchanged between two programs on two operating systems, so its line endings are
     /// part of the file rather than a local convention. A writer following the platform's newline
     /// would make the same ticket a different sequence of bytes on Windows and on Linux, and every
