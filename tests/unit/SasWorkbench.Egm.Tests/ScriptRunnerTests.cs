@@ -1,3 +1,4 @@
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
 
 namespace SasWorkbench.Egm.Tests;
@@ -381,6 +382,73 @@ public class ScriptRunnerTests
             """);
 
         Assert.Equal(Verdict.Pass, result.Verdict);
+    }
+
+    /// <summary>
+    /// What the machine is gets asked of the machine, over the link, and answered from its reply.
+    /// </summary>
+    /// <remarks>
+    /// The point of asking rather than being told is that the same question reaches both peers the
+    /// same way. A capability published from this fixture's own configuration would agree with the
+    /// fixture by construction and could never disagree with a real machine, which is the one
+    /// thing running a script against both peers is for.
+    /// </remarks>
+    [Theory]
+    [InlineData(SasCashoutValidation.Standard, "standard")]
+    [InlineData(SasCashoutValidation.SecureEnhanced, "secure_enhanced")]
+    [InlineData(SasCashoutValidation.System, "system")]
+    public void The_validation_style_a_case_requires_is_read_off_the_wire(
+        SasCashoutValidation configured, string named)
+    {
+        TestOutcome result = Run($"""
+            requires egm.validation == {named}
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            """,
+            new FakeEgmOptions { CashoutValidation = configured });
+
+        Assert.Equal(Verdict.Pass, result.Verdict);
+    }
+
+    [Fact]
+    public void A_machine_in_another_validation_style_skips_the_case_and_names_the_style_it_is_in()
+    {
+        TestOutcome result = Run("""
+            requires egm.validation == standard
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            """,
+            new FakeEgmOptions { CashoutValidation = SasCashoutValidation.SecureEnhanced });
+
+        Assert.Equal(Verdict.Skip, result.Verdict);
+        Assert.Contains("secure_enhanced", result.SkipReason!);
+        Assert.Equal(0, result.Failed);
+    }
+
+    /// <summary>
+    /// A machine that will not answer the question leaves the case skipped saying so.
+    /// </summary>
+    /// <remarks>
+    /// Never a default. A machine on fresh memory is in the standard style, so guessing standard
+    /// would be right often enough to be trusted and wrong on exactly the machines a ticket case
+    /// is run against.
+    /// </remarks>
+    [Fact]
+    public void A_machine_that_does_not_answer_the_enabled_features_poll_skips_the_case()
+    {
+        TestOutcome result = Run("""
+            requires egm.validation == standard
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            """,
+            new FakeEgmOptions { UnansweredCommands = [0xA0] });
+
+        Assert.Equal(Verdict.Skip, result.Verdict);
+        Assert.Contains("enabled-features", result.SkipReason!);
+        Assert.DoesNotContain("standard", result.SkipReason!);
     }
 
     /// <summary>

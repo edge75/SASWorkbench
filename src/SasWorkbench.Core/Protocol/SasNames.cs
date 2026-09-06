@@ -158,6 +158,30 @@ public static class SasNames
     public static IReadOnlyList<string> FieldValueNames =>
         TicketCodesByName.Keys.Where(k => k.Contains('_')).Order(StringComparer.Ordinal).ToList();
 
+    /// <summary>
+    /// Parses a validation style written the way a script or a report spells it.
+    /// </summary>
+    /// <remarks>
+    /// The reserved style is deliberately not parseable. It is a value a misconfigured machine can
+    /// report, so it has to be readable off the wire, but it is not one anybody may ask for.
+    /// </remarks>
+    public static bool TryParseValidation(string text, out SasCashoutValidation validation)
+    {
+        validation = default;
+        string bare = text.Trim().Replace("_", string.Empty, StringComparison.Ordinal);
+        return Enum.TryParse(bare, ignoreCase: true, out validation)
+               && validation != SasCashoutValidation.Reserved
+               && Enum.IsDefined(validation);
+    }
+
+    /// <summary>Every validation style a script may ask for, sorted, for a message.</summary>
+    public static IReadOnlyList<string> ValidationNames =>
+        Enum.GetValues<SasCashoutValidation>()
+            .Where(v => v != SasCashoutValidation.Reserved)
+            .Select(v => Underscore(v.ToString()))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
     /// <summary>Parses <c>$4A</c>, <c>0x4A</c>, <c>4A</c> or a plain decimal number.</summary>
     public static bool TryParseCode(string text, out byte code)
     {

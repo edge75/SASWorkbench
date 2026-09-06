@@ -130,22 +130,14 @@ public static class SoftwareMachineEnvironment
             //  prints into is by construction the one the host reads.
             var stimulus = new SoftwareMachineStimulus(machine, options.WalletDirectory);
 
-            //  Taken from the machine rather than from the stimulus table, because it is a fact
-            //  about the machine: what a script can drive and what the machine is configured to
-            //  do are different questions, and only the machine can answer the second one. A
-            //  real peer publishes this in its enabled-features reply, which this build cannot
-            //  decode - so there the capability is absent and a case that needs it skips saying
-            //  so, rather than being told what our own fixture happens to be in.
-            var capabilities = new Dictionary<string, string?>(
-                stimulus.Capabilities, StringComparer.OrdinalIgnoreCase)
-            {
-                ["egm.validation"] = SasNames.Underscore(machine.CashoutValidation.ToString()),
-            };
-
+            //  What this machine is configured to do is deliberately not published here. It
+            //  answers the enabled-features poll like any machine, and the runner asks it there —
+            //  so the same question reaches both peers the same way, and a disagreement between
+            //  them is a finding rather than an artefact of one being asked and the other told.
             return new ScriptEnvironment(
                 bus.Host,
                 stimulus,
-                capabilities,
+                stimulus.Capabilities,
                 new Composite(machine, bus));
         };
 

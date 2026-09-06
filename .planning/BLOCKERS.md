@@ -226,12 +226,26 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 
 ## 4. Other gates on the primary objective
 
-* **NVRAM holds the config that matters.** SAS poll address, AFT asset number, feature
-  flags, **printer protocol** and **bill-validator protocol** all live in NVRAM and the only
-  shipped way to set them is the platform's audit-menu framebuffer. On fresh NVRAM
-  `mPrinterProtocol = 0`, so **no ticket can print and no note can be accepted** — chapter 10
-  cannot run at all. **A golden `nvram.bin` fixture is a hard prerequisite.**
-  (`qspSetNetworkConfiguration` is exported but the demo never calls it — a cleaner future path.)
+* **NVRAM holds the config that matters.** ✅ solved 2026-09-06, and the shape of the solution
+  matters more than the fact of it. SAS poll address, AFT asset number, feature flags,
+  **printer protocol**, **bill-validator protocol** and the **cashout validation style** all live
+  in NVRAM, and the only shipped way to set them is the platform's audit-menu framebuffer, which
+  needs a person clicking. On fresh NVRAM `mPrinterProtocol = 0`, so no ticket can print and no
+  note can be accepted; and `validation_type = 0`, so a real machine returns every ticket.
+
+  Two fixtures are committed, and there are two because a machine performs one validation style
+  at a time: `fixtures/nvram/golden.nvram.gz` (standard, which chapter 10.1 is written against)
+  and `fixtures/nvram/secure-enhanced.nvram.gz` (the style redemption needs). The second was made
+  from the first by rewriting four bytes rather than by walking the menu a second time, which is
+  possible because the memory's own integrity rule is simple enough to maintain from outside — see
+  `docs/M3-golden-memory.md` for the layout, the rule, the guards, and what was measured on a real
+  machine. `qspSetNetworkConfiguration` is still exported and still never called by the demo.
+
+  **The trap that comes with it:** the memory records the arrangement its records were laid out in,
+  and a machine master-resets any memory not written in the arrangement it was built for. The
+  committed fixtures are arrangement 7, which is the QSP the M0 preset fetches; the QSP checkout at
+  `C:\Progetti\QSP` is arrangement 6 and the two are not interchangeable in either direction.
+  Rebuilding against a QSP whose arrangement differs means remaking the fixtures by hand.
 * **Ticket-in / redeem cannot be stimulated today**: the HAL QPM never emits a ticket-pending
   event (`fPendingTicket` is only ever false; `bna_mask` carries notes only). Needs new code
   in qpm's HAL or an injected `qspTestTicketIn`.

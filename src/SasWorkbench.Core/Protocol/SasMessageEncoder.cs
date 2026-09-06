@@ -37,12 +37,19 @@ public static class SasMessageEncoder
         destination[0] = address.Value;
         destination[1] = layout.Command;
         int cursor = 2;
+        var writtenAt = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (SasField field in layout.Response)
         {
             if (field.IsGroup)
             {
                 cursor += WriteGroup(layout, field, field.Name, values, destination[cursor..]);
+                continue;
+            }
+
+            if (field.BitsOfField is not null)
+            {
+                FoldBits(layout, field, values, destination, writtenAt);
                 continue;
             }
 
@@ -53,6 +60,7 @@ public static class SasMessageEncoder
                 throw new InvalidOperationException(
                     $"Long poll ${layout.Command:X2} needs a value for '{field.Name}'.");
 
+            writtenAt[field.Name] = cursor;
             cursor += WriteField(field, value, destination[cursor..]);
         }
 
@@ -84,12 +92,19 @@ public static class SasMessageEncoder
 
         int cursor = 0;
         int lengthAt = -1;
+        var writtenAt = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         foreach (SasField field in layout.Request)
         {
             if (field.IsGroup)
             {
                 cursor += WriteGroup(layout, field, field.Name, values, destination[cursor..]);
+                continue;
+            }
+
+            if (field.BitsOfField is not null)
+            {
+                FoldBits(layout, field, values, destination, writtenAt);
                 continue;
             }
 
@@ -110,6 +125,7 @@ public static class SasMessageEncoder
                     $"Long poll ${layout.Command:X2} needs a value for '{field.Name}'.");
             }
 
+            writtenAt[field.Name] = cursor;
             cursor += WriteField(field, value, destination[cursor..]);
         }
 
@@ -153,6 +169,11 @@ public static class SasMessageEncoder
             foreach (SasField member in group.Fields)
             {
                 string memberPath = $"{elementPath}.{member.Name}";
+                if (member.BitsOfField is not null)
+                    throw new InvalidOperationException(
+                        $"'{memberPath}' is a run of bits, and writing one inside a repeating "
+                        + "group is not something this build does.");
+
                 if (!values.TryGetValue(memberPath, out object? value))
                     throw new InvalidOperationException(
                         $"Long poll ${layout.Command:X2} needs a value for '{memberPath}'.");
@@ -176,6 +197,44 @@ public static class SasMessageEncoder
         }
 
         return cursor;
+    }
+
+    /// <summary>
+    /// Puts a named run of bits into the byte it belongs to, which has already been written.
+    /// </summary>
+    /// <remarks>
+    /// A run of bits carries no bytes of its own, so a caller may leave it out entirely and get
+    /// whatever the host byte already says. Supplying one and having it ignored is the outcome
+    /// worth refusing, so a value for a run whose host byte was never written is an error rather
+    /// than a silent no-op.
+    /// </remarks>
+    private static void FoldBits(
+        SasMessageLayout layout,
+        SasField field,
+        IReadOnlyDictionary<string, object> values,
+        Span<byte> destination,
+        Dictionary<string, int> writtenAt)
+    {
+        if (!values.TryGetValue(field.Name, out object? value))
+            return;
+
+        if (field.Bits is not { } range)
+            throw new InvalidOperationException(
+                $"'{field.Name}' is a run of bits but does not say which bits.");
+
+        if (!writtenAt.TryGetValue(field.BitsOfField!, out int offset))
+            throw new InvalidOperationException(
+                $"'{field.Name}' is a run of bits of '{field.BitsOfField}', which long poll "
+                + $"${layout.Command:X2} has not written.");
+
+        long number = Convert.ToInt64(value, CultureInfo.InvariantCulture);
+        int mask = (1 << range.Width) - 1;
+        if (number < 0 || number > mask)
+            throw new InvalidOperationException(
+                $"'{field.Name}' is {range}, which holds 0 to {mask}, and {number} is outside it.");
+
+        destination[offset] = (byte)((destination[offset] & ~(mask << range.LowBit))
+                                     | ((int)number << range.LowBit));
     }
 
     private static int WriteField(SasField field, object value, Span<byte> destination)

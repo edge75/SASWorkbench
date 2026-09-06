@@ -109,6 +109,16 @@ public static class SasMessageDecoder
                 continue;
             }
 
+            if (field.BitsOfField is not null)
+            {
+                string? bitFailure = ReadBits(field, path, values, prefix, out SasValue bits);
+                if (bitFailure is not null)
+                    return bitFailure;
+
+                values.Add(bits);
+                continue;
+            }
+
             int length;
             if (field.LengthFromField is { } lengthField)
             {
@@ -140,6 +150,49 @@ public static class SasMessageDecoder
             cursor += length;
         }
 
+        return null;
+    }
+
+    /// <summary>
+    /// Reads a run of bits out of a field that has already been decoded.
+    /// </summary>
+    /// <remarks>
+    /// The offset reported is the byte the bits came from, so a failure still points at a place in
+    /// the frame. The bytes kept are that byte, not the extracted value: what came off the wire is
+    /// the byte, and a test asserting on the wire should see it.
+    /// </remarks>
+    private static string? ReadBits(
+        SasField field, string path, List<SasValue> values, string? prefix, out SasValue value)
+    {
+        value = default!;
+        string source = field.BitsOfField!;
+
+        if (field.Bits is not { } range)
+            return $"Field '{path}' is a run of bits of '{source}' but does not say which bits.";
+
+        SasValue? host = values.LastOrDefault(v =>
+            v.Path == source || v.Path.EndsWith('.' + source, StringComparison.Ordinal));
+        if (host is null)
+        {
+            return $"Field '{path}' reads bits of '{source}', which is not a field decoded before "
+                   + "it in this message.";
+        }
+
+        if (host.Bytes.Length != 1)
+        {
+            return $"Field '{path}' reads bits of '{source}', which is {host.Bytes.Length} bytes "
+                   + "wide; a run of bits is named inside a single byte.";
+        }
+
+        if (range.LowBit < 0 || range.HighBit > 7 || range.Width < 1)
+            return $"Field '{path}' names {range}, which is not inside a byte.";
+
+        int mask = (1 << range.Width) - 1;
+        long number = (host.Bytes[0] >> range.LowBit) & mask;
+
+        value = new SasValue(path, field, host.Offset, [host.Bytes[0]], number,
+            Violation: Violated(field, number, host.Bytes.Length));
+        _ = prefix;
         return null;
     }
 

@@ -1,3 +1,4 @@
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Qpm;
 
 namespace SasWorkbench.Cli;
@@ -22,7 +23,8 @@ internal static class NvramCommand
 
         if (line.Arguments.Count == 0)
         {
-            Console.Error.WriteLine("error: 'nvram' needs an action: status, save or restore.");
+            Console.Error.WriteLine(
+                "error: 'nvram' needs an action: status, show, save, restore or validation.");
             return 2;
         }
 
@@ -31,8 +33,10 @@ internal static class NvramCommand
             return line.Arguments[0].ToLowerInvariant() switch
             {
                 "status" => Status(memory, fixture),
+                "show" => Show(memory, fixture),
                 "save" => Save(memory, fixture),
                 "restore" => Restore(memory, fixture),
+                "validation" => Validation(fixture, line),
                 _ => Unknown(line.Arguments[0]),
             };
         }
@@ -72,6 +76,95 @@ internal static class NvramCommand
         return 0;
     }
 
+    /// <summary>
+    /// Prints what the machine is configured to be, from its own memory and from a saved copy.
+    /// </summary>
+    /// <remarks>
+    /// Both, side by side, because the interesting question is nearly always whether they agree.
+    /// A machine that has cleared its memory since a fixture was saved reads back as an
+    /// unconfigured machine while the fixture beside it still describes a configured one.
+    /// </remarks>
+    private static int Show(string? memory, string fixture)
+    {
+        Describe("machine", () => NvramFixture.LiveConfiguration(memory));
+        Console.WriteLine();
+        Describe("saved", () => NvramFixture.Configuration(fixture));
+        return 0;
+    }
+
+    private static void Describe(string what, Func<NvramMachineConfiguration> read)
+    {
+        NvramMachineConfiguration configuration;
+        try
+        {
+            configuration = read();
+        }
+        catch (QpmUnavailableException unavailable)
+        {
+            Console.WriteLine($"  {what,-10} {unavailable.Reason}");
+            return;
+        }
+
+        string addresses = string.Join(", ", configuration.PollAddresses.Select(a => $"${a:X2}"));
+        Console.WriteLine($"  {what,-10} memory arrangement {configuration.LayoutVersion}");
+        Console.WriteLine($"             note acceptor    {Peripheral(configuration.BillValidatorProtocol)}");
+        Console.WriteLine($"             printer          {Peripheral(configuration.PrinterProtocol)}");
+        Console.WriteLine($"             maker            {configuration.ManufacturerText}");
+        Console.WriteLine($"             host addresses   {addresses}");
+        Console.WriteLine($"             asset number     {configuration.AssetNumber}");
+        Console.WriteLine($"             validation       "
+            + SasNames.Underscore(configuration.Validation.ToString()));
+        Console.WriteLine($"             takes tickets    {(configuration.TicketInEnabled ? "yes" : "no")}");
+        Console.WriteLine($"             validation id    "
+            + (configuration.SecureEnhancedConfigured ? "set by a host" : "not set"));
+
+        if (configuration.ConfigurationRequired != 0)
+        {
+            Console.WriteLine("             still to configure "
+                + $"${configuration.ConfigurationRequired:X4}");
+        }
+
+        if (configuration.Caveat is { } caveat)
+            Console.WriteLine($"             note             {caveat}");
+    }
+
+    private static string Peripheral(ushort protocol) =>
+        protocol == 0 ? "none, so it cannot be used" : $"protocol {protocol}";
+
+    /// <summary>
+    /// Writes a saved copy out again with the machine put into a validation style.
+    /// </summary>
+    private static int Validation(string fixture, CommandLine line)
+    {
+        if (line.Arguments.Count != 2)
+        {
+            Console.Error.WriteLine(
+                "error: expected 'nvram validation <standard|secure_enhanced|system> "
+                + "--fixture <in> --out <out>'.");
+            return 2;
+        }
+
+        if (!SasNames.TryParseValidation(line.Arguments[1], out SasCashoutValidation validation))
+        {
+            Console.Error.WriteLine(
+                $"error: '{line.Arguments[1]}' is not a validation style. Expected standard, "
+                + "secure_enhanced or system.");
+            return 2;
+        }
+
+        string output = line.Value("out") ?? fixture;
+        NvramMachineConfiguration written =
+            NvramFixture.Reconfigure(fixture, output, validation);
+
+        Console.WriteLine($"  wrote {output}");
+        Console.WriteLine($"  validation    {SasNames.Underscore(written.Validation.ToString())}");
+        Console.WriteLine($"  takes tickets {(written.TicketInEnabled ? "yes" : "no")}");
+        Console.WriteLine(
+            "  Restore it, boot a machine on it, and check the machine reports that style in its "
+            + "enabled-features reply before trusting it.");
+        return 0;
+    }
+
     private static int Save(string? memory, string fixture)
     {
         NvramSnapshot saved = NvramFixture.Save(memory, fixture);
@@ -91,7 +184,8 @@ internal static class NvramCommand
     private static int Unknown(string action)
     {
         Console.Error.WriteLine(
-            $"error: '{action}' is not a memory action. Expected status, save or restore.");
+            $"error: '{action}' is not a memory action. Expected status, show, save, restore or "
+            + "validation.");
         return 2;
     }
 }

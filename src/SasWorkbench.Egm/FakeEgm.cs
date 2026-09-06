@@ -526,6 +526,11 @@ public sealed class FakeEgm : IDisposable
             return;
         }
 
+        //  A command this machine has been built without. Silence rather than a rejection, for the
+        //  same reason as below: a rejection says the command was understood and declined.
+        if (_options.UnansweredCommands.Contains(command))
+            return;
+
         //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
         //  validation does not answer the cashout ticket information poll at all. Silence rather
         //  than a rejection, because the two say different things - a rejection would tell the
@@ -689,6 +694,7 @@ public sealed class FakeEgm : IDisposable
         },
         0x7E => DateAndTime(),
         0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
+        0xA0 => EnabledFeatures(request),
         0x6F or 0xAF => SelectedMeters(request),
         0x3D => LastCashout(),
         0x70 => TicketInEscrow(),
@@ -697,6 +703,53 @@ public sealed class FakeEgm : IDisposable
         // Everything else has a layout but no source of values here.
         _ => null,
     };
+
+    /// <summary>
+    /// What this machine says it can do.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only the validation half of it is real. The validation style is the machine's own, and the
+    /// ticket redemption bit follows it rather than standing on its own, because section 15 does
+    /// not allow redemption alongside standard validation — a machine claiming both would be
+    /// describing something no host may act on. Everything else is reported as absent: this
+    /// fixture does not do funds transfer, component authentication, tournaments or bonusing, and
+    /// a bit set here would be a claim a test could come to rely on.
+    /// </para>
+    /// <para>
+    /// The validation extensions bit is one a real machine sets alongside the enhanced styles and
+    /// this one leaves clear, deliberately: the commands it advertises are not implemented here.
+    /// It is the one place the two peers are expected to disagree about this reply, so a case
+    /// that runs against both should not assert on it until those commands exist.
+    /// </para>
+    /// <para>
+    /// The game number is echoed rather than looked up, because this machine has one game. A
+    /// number past the games it has is refused, which is what a machine does with a question
+    /// about a game it does not have.
+    /// </para>
+    /// </remarks>
+    private Dictionary<string, object>? EnabledFeatures(ReadOnlySpan<byte> request)
+    {
+        SasDecoded asked = SasMessageDecoder.DecodeRequest(SasLayouts.For(0xA0)!, request);
+        if (asked.Number("game_number") is not { } game || game > 1)
+            return null;
+
+        SasCashoutValidation validation = _options.CashoutValidation;
+        bool redemption = validation is SasCashoutValidation.SecureEnhanced
+            or SasCashoutValidation.System;
+
+        return new Dictionary<string, object>
+        {
+            ["game_number"] = game,
+            ["feature_codes_1"] = (byte)0x00,
+            ["validation_style"] = (byte)validation,
+            ["validation_extensions"] = (byte)0,
+            ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
+            ["feature_codes_2"] = (byte)0x00,
+            ["feature_codes_3"] = (byte)0x00,
+            ["reserved"] = new byte[3],
+        };
+    }
 
     /// <summary>
     /// The number and value of the ticket this machine printed most recently.

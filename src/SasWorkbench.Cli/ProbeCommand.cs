@@ -100,8 +100,8 @@ internal static class ProbeCommand
             + "is set, is a property of the machine and is not readable from here");
         if (refusal is not null)
             Console.WriteLine($"  stimulus.qpm       {refusal}");
-        Console.WriteLine("  egm.validation     the software machine publishes what it was built "
-            + "with; nothing here reads it off a real machine's wire");
+        Console.WriteLine("  egm.validation     only the machine can answer this, so it is asked "
+            + "over the link once one is up rather than probed from here");
         Console.WriteLine("  channel.2-4        carried through the model, but no second link is wired");
 
         return 0;

@@ -151,7 +151,7 @@ public sealed class ScriptRunner
             // A case written from a specification, long before the machine can be driven far
             // enough to run it, has neither a link nor the capability it needs. What it needs is
             // the more useful of the two answers, and it is a skip rather than a broken test.
-            if (baseline.FirstUnmet(test.Requirements) is { } missing)
+            if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
                 return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
                     SasChannel.One, testBase);
 
@@ -184,7 +184,7 @@ public sealed class ScriptRunner
             // No environment came up, so nothing beyond the baseline can be offered. If the test
             // was going to be skipped for a missing capability anyway, that is the reason worth
             // reporting - "no peer on the link" would send somebody looking for the wrong thing.
-            if (baseline.FirstUnmet(test.Requirements) is { } missing)
+            if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
                 return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
                     connect.Channel, testBase);
 
@@ -206,21 +206,49 @@ public sealed class ScriptRunner
                 environment.Stimulus.Kind,
                 environment.HostTransport.Capabilities.Caveat);
 
-            (Requirement Requirement, string Reason)? unmet = capabilities.FirstUnmet(test.Requirements);
+            (Requirement Requirement, string Reason)? unmet =
+                capabilities.FirstUnmet(Local(test.Requirements));
             if (unmet is { } gap)
             {
                 return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}",
                     connect.Channel, testBase, provenance);
             }
 
-            return Execute(test, connect, environment, stopwatch, testBase, provenance);
+            return Execute(test, connect, environment, capabilities, stopwatch, testBase, provenance);
         }
     }
+
+    /// <summary>
+    /// The requirements that can be settled without asking the machine anything.
+    /// </summary>
+    /// <remarks>
+    /// The rest are checked once the link is up, because the machine is the only thing that can
+    /// answer them. Checking them beforehand would skip every such case with "this environment
+    /// provides no ..." — true of the environment, and not the question the case is asking.
+    /// </remarks>
+    private static IEnumerable<Requirement> Local(IEnumerable<Requirement> requirements) =>
+        requirements.Where(r => !CapabilityProbe.IsAskedOfTheMachine(r.Key));
+
+    /// <summary>
+    /// Why a requirement the machine was asked about is unmet, said as a fact about the machine.
+    /// </summary>
+    /// <remarks>
+    /// "This environment provides no egm.validation" is the wrong sentence once the question has
+    /// actually been put to a machine: the environment was able to ask, and what happened is on
+    /// the link or in the machine's answer.
+    /// </remarks>
+    private static string AskedReason(Requirement requirement, string reason, MachineAnswers answers) =>
+        CapabilityProbe.IsAskedOfTheMachine(requirement.Key)
+        && answers.WhyNot is { } why
+        && reason.StartsWith("this environment provides no", StringComparison.Ordinal)
+            ? why
+            : reason;
 
     private TestOutcome Execute(
         ScriptTest test,
         ConnectStep connect,
         ScriptEnvironment environment,
+        CapabilitySet capabilities,
         Stopwatch stopwatch,
         ClockBase testBase,
         RunProvenance provenance)
@@ -290,6 +318,21 @@ public sealed class ScriptRunner
                     $"no gaming machine connected to {tcp.Description} within "
                     + $"{_options.PeerTimeout.TotalSeconds:F0}s",
                     connect.Channel, testBase, provenance);
+            }
+
+            // What only the machine can answer is asked here, now that there is a machine to ask
+            // and before a single step has run. A case that needed one and did not get it is a
+            // skip, exactly as it would have been had the answer come from this side of the link.
+            if (test.Requirements.Any(r => CapabilityProbe.IsAskedOfTheMachine(r.Key)))
+            {
+                MachineAnswers answers = CapabilityProbe.FromMachine(engine);
+                CapabilitySet asked = capabilities.With(answers.Values);
+                if (asked.FirstUnmet(test.Requirements) is { } gap)
+                {
+                    return Skipped(test, stopwatch,
+                        $"{gap.Requirement.Key}: {AskedReason(gap.Requirement, gap.Reason, answers)}",
+                        connect.Channel, testBase, provenance);
+                }
             }
 
             RefreshBaselines(engine, test.WatchedMeters, baselines);

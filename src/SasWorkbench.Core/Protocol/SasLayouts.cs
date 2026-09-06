@@ -379,6 +379,109 @@ public static class SasLayouts
                 ],
                 DerivedFrom = "lp3D_SendCashoutTicketInformation",
             },
+            // What the machine says it can do, one game at a time, with game zero meaning the
+            // machine itself. Three bytes of flags and three the specification has not assigned.
+            //
+            // The answer is per channel rather than per machine: the library clears the bits of
+            // any category this channel has not been given, so a channel that does not carry
+            // validation reports the standard style whatever the machine is configured in. That
+            // is a true answer about this link and not about the machine, and a run against one
+            // channel can only ever learn the first.
+            new()
+            {
+                Command = 0xA0,
+                Name = "enabled_features",
+                Description = "Which optional features the machine has, for one game.",
+                Request =
+                [
+                    Bcd("game_number", 2, SasUnit.Index,
+                        "Which game to ask about; zero means the machine as a whole."),
+                ],
+                Response =
+                [
+                    Bcd("game_number", 2, SasUnit.Index,
+                        "Which game this answers for, echoed from the request."),
+                    new()
+                    {
+                        Name = "feature_codes_1",
+                        Length = 1,
+                        Encoding = SasFieldEncoding.Bits,
+                        ByteOrder = SasByteOrder.NotApplicable,
+                        Description = "Bonusing, tournament and validation flags.",
+                    },
+                    new()
+                    {
+                        Name = "validation_style",
+                        Length = 0,
+                        BitsOfField = "feature_codes_1",
+                        Bits = new SasBitRange(6, 5),
+                        Unit = SasUnit.Code,
+                        Description =
+                            "Which validation the machine performs when it cashes out: standard, "
+                            + "system or secure enhanced.",
+
+                        // The fourth value is representable and is assigned to nothing, so a
+                        // machine reporting it is misconfigured. Reported as a violation rather
+                        // than a decode failure: the byte is still worth seeing.
+                        Constraint = SasConstraint.Between(0, 2),
+                    },
+                    new()
+                    {
+                        Name = "validation_extensions",
+                        Length = 0,
+                        BitsOfField = "feature_codes_1",
+                        Bits = SasBitRange.Bit(4),
+                        Description = "Whether the extended validation commands are available.",
+                    },
+                    new()
+                    {
+                        Name = "ticket_redemption",
+                        Length = 0,
+                        BitsOfField = "feature_codes_1",
+                        Bits = SasBitRange.Bit(7),
+                        Description = "Whether the machine will take a ticket for redemption.",
+                    },
+                    new()
+                    {
+                        Name = "feature_codes_2",
+                        Length = 1,
+                        Encoding = SasFieldEncoding.Bits,
+                        ByteOrder = SasByteOrder.NotApplicable,
+                        Description = "Metering, authentication and funds transfer flags.",
+                    },
+                    new()
+                    {
+                        Name = "meter_model",
+                        Length = 0,
+                        BitsOfField = "feature_codes_2",
+                        Bits = new SasBitRange(1, 0),
+                        Unit = SasUnit.Code,
+                        Description = "When a win is added to the meters, or zero if unstated.",
+                    },
+                    new()
+                    {
+                        Name = "feature_codes_3",
+                        Length = 1,
+                        Encoding = SasFieldEncoding.Bits,
+                        ByteOrder = SasByteOrder.NotApplicable,
+                        Description = "Polling rate, progressive and session flags.",
+                    },
+                    new()
+                    {
+                        Name = "reserved",
+                        Length = 3,
+                        Encoding = SasFieldEncoding.Raw,
+                        Description = "Three bytes the specification has not assigned.",
+                    },
+                ],
+                DerivedFrom = "lpA0_SendEnabledFeatures",
+
+                // Read from the library's handler and then checked against an exchange captured
+                // from a machine that is not ours, which is the strongest evidence a layout here
+                // has: twelve bytes back for six sent, three of them the reserved bytes the
+                // handler writes as zero.
+                ConfirmedByCapture = true,
+            },
             new()
             {
                 Command = 0x54,

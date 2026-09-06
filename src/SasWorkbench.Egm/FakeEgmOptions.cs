@@ -101,6 +101,17 @@ public sealed record FakeEgmOptions
     public SasCashoutValidation CashoutValidation { get; init; } = SasCashoutValidation.Standard;
 
     /// <summary>
+    /// Commands this machine will not answer at all.
+    /// </summary>
+    /// <remarks>
+    /// Machines differ in what they support, and a command a machine does not support draws
+    /// silence rather than a refusal — a refusal would say the machine understood and declined.
+    /// A test needs to be able to build such a machine, because how a host behaves when a poll
+    /// it depends on goes unanswered is a real question with a wrong answer available.
+    /// </remarks>
+    public IReadOnlyCollection<byte> UnansweredCommands { get; init; } = [];
+
+    /// <summary>
     /// How many coins are in the hopper. Machine state rather than a meter, because the library
     /// keeps no meter code for it.
     /// </summary>

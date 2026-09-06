@@ -101,15 +101,25 @@ internal static class Help
 
             NVRAM
               status                  what the machine holds, and what has been saved
+              show                    what each is configured to be, side by side
               save                    save the machine's memory as a fixture
               restore                 write a saved fixture back over it, keeping what was there
+              validation <style>      write a fixture out again in standard, secure_enhanced or
+                                      system validation
 
               --fixture <file>        which saved memory  (default: fixtures/nvram/golden.nvram.gz)
               --nvram <file>          the machine's memory, if it is not in the usual place
+              --out <file>            where 'validation' writes  (default: over the fixture)
 
-              A machine's note acceptor, its printer and which notes it takes live in this memory
-              and are set through its own menu, by hand. Both actions refuse while a machine is
-              running, because a copy taken or written under one is a configuration nobody had.
+              A machine's note acceptor, its printer, which notes it takes and which validation
+              style it performs live in this memory and are otherwise set through its own menu, by
+              hand. Save and restore refuse while a machine is running, because a copy taken or
+              written under one is a configuration nobody had.
+
+              A memory records the arrangement it was written in, and a machine clears any memory
+              not written in the arrangement it was built for — so a fixture and a build that
+              disagree cannot be used together, and every action here says so rather than reading
+              a configuration out of the wrong bytes.
 
             EXAMPLES
               sasctl run tests/regression --loopback --stimulus software
@@ -119,7 +129,9 @@ internal static class Help
               sasctl egm --tcp 127.0.0.1:7200
               sasctl qpm status --egm-resources <demo>/Resources
               sasctl qpm audit open --egm-resources <demo>/Resources
-              sasctl nvram save
+              sasctl nvram show
+              sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
+              sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz
             """);
     }
 }

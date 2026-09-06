@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Core.Tests;
 
@@ -156,6 +157,92 @@ public class MessageDecoderTests
     public void The_cashout_ticket_information_reply_is_thirteen_bytes()
     {
         Assert.Equal(13, SasLayouts.For(0x3D)!.FixedResponseLength);
+    }
+
+    /// <summary>
+    /// The enabled-features reply, against twelve bytes captured from a machine that is not ours.
+    /// </summary>
+    /// <remarks>
+    /// The bytes come from the conformance corpus's own recording of this exchange, so they are
+    /// evidence about the protocol rather than about our two implementations agreeing. What they
+    /// pin is the shape: an echoed game number, three bytes of flags, and three the specification
+    /// leaves unassigned, which a reader who stopped after the flags would mistake for a check
+    /// sequence.
+    /// </remarks>
+    [Fact]
+    public void Decodes_an_enabled_features_reply_captured_from_a_machine()
+    {
+        byte[] frame = Convert.FromHexString("01A0" + "0000" + "82CD03" + "000000" + "F300");
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0xA0)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(0, decoded.Number("game_number"));
+        Assert.Equal(0x82, decoded.Number("feature_codes_1"));
+        Assert.Equal(0xCD, decoded.Number("feature_codes_2"));
+        Assert.Equal(0x03, decoded.Number("feature_codes_3"));
+
+        // Bits six and five of the first byte, which is the whole of the corpus's own pass
+        // criterion for a machine configured for standard validation.
+        Assert.Equal((long)SasCashoutValidation.Standard, decoded.Number("validation_style"));
+        Assert.Equal(1, decoded.Number("ticket_redemption"));
+        Assert.Equal(0, decoded.Number("validation_extensions"));
+
+        // The second byte's meter model is the other two-bit run, and reading it as a mask
+        // rather than a number is what makes a run of bits worth naming at all.
+        Assert.Equal(1, decoded.Number("meter_model"));
+        Assert.Empty(decoded.Violations);
+    }
+
+    /// <summary>
+    /// A run of bits reads the byte it belongs to and takes none of its own.
+    /// </summary>
+    /// <remarks>
+    /// Ten bytes of payload and twelve on the wire whichever way the flags read, so a named run
+    /// of bits cannot move the fields after it.
+    /// </remarks>
+    [Fact]
+    public void The_enabled_features_reply_is_twelve_bytes_whatever_the_flags_say()
+    {
+        Assert.Equal(12, SasLayouts.For(0xA0)!.FixedResponseLength);
+    }
+
+    /// <summary>
+    /// The three validation styles survive a round trip through the run of bits that carries them.
+    /// </summary>
+    /// <remarks>
+    /// A single-bit flag can be written and read with a mask; a two-bit enumeration cannot, which
+    /// is the case for naming the run. Writing the style folds it into a byte that has already
+    /// been written, so this also pins that the fold leaves the rest of that byte alone.
+    /// </remarks>
+    [Theory]
+    [InlineData(SasCashoutValidation.Standard)]
+    [InlineData(SasCashoutValidation.System)]
+    [InlineData(SasCashoutValidation.SecureEnhanced)]
+    public void Writes_and_reads_back_a_validation_style(SasCashoutValidation validation)
+    {
+        SasMessageLayout layout = SasLayouts.For(0xA0)!;
+        var values = new Dictionary<string, object>
+        {
+            ["game_number"] = 0L,
+            ["feature_codes_1"] = (byte)0x82,
+            ["validation_style"] = (byte)validation,
+            ["feature_codes_2"] = (byte)0xCD,
+            ["feature_codes_3"] = (byte)0x03,
+            ["reserved"] = new byte[3],
+        };
+
+        var frame = new byte[32];
+        int length = SasMessageEncoder.WriteResponse(layout, SasAddress.Of(1), values, frame);
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, frame.AsSpan(0, length));
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal((long)validation, decoded.Number("validation_style"));
+
+        // Everything else the byte carried is still there: the flags around the run are not the
+        // run's to change.
+        Assert.Equal(1, decoded.Number("ticket_redemption"));
+        Assert.Equal(0xCD, decoded.Number("feature_codes_2"));
     }
 
     [Fact]

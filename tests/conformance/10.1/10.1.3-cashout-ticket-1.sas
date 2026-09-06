@@ -8,9 +8,9 @@
 # the ticket the printer filed is the only form of the question that means anything, and it needs
 # both ends: the wallet the machine printed into and the wire the host read.
 #
-# It runs against the software machine and skips on a real one, which is honest rather than
-# convenient: the validation style is a property of a machine's memory, this build cannot read it
-# off the wire yet, and a real machine on fresh memory is in no style at all.
+# Which machine it runs against is decided by the machine rather than by this file. The validation
+# style is a property of a machine's memory, and the machine is asked for it over the link before
+# any step runs, so a machine in another style skips this case saying which style it is in.
 #
 # Not covered here, and each for a reason rather than an oversight:
 #

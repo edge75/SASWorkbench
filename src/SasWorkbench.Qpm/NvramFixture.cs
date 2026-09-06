@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using SasWorkbench.Core.Protocol;
 
 namespace SasWorkbench.Qpm;
 
@@ -114,6 +115,54 @@ public static class NvramFixture
         string source = Resolve(memoryPath);
         byte[] memory = File.ReadAllBytes(source);
         return new NvramSnapshot(source, memory.Length, Digest(memory));
+    }
+
+    /// <summary>Reads the configuration a saved copy carries.</summary>
+    /// <exception cref="QpmUnavailableException">It is missing, or not a memory this build reads.</exception>
+    public static NvramMachineConfiguration Configuration(string fixturePath) =>
+        NvramConfiguration.Read(Load(fixturePath));
+
+    /// <summary>Reads the configuration the machine's memory carries as it is now.</summary>
+    /// <exception cref="QpmUnavailableException">There is none, or it is not one this build reads.</exception>
+    public static NvramMachineConfiguration LiveConfiguration(string? memoryPath) =>
+        NvramConfiguration.Read(File.ReadAllBytes(Resolve(memoryPath)));
+
+    /// <summary>
+    /// Writes a saved copy out again with the machine put into a validation style.
+    /// </summary>
+    /// <remarks>
+    /// This is the one piece of a machine's configuration that decides whether a ticket can be
+    /// redeemed at all, and the machine's own menu is the only shipped way to set it. Doing it
+    /// here rather than by hand is what makes the fixture reproducible — the result differs from
+    /// what it was made from by four bytes, two of them the marks, which is a change somebody can
+    /// read. What it does not do is make the fixture true: only a machine booted on it and
+    /// reporting that style in its enabled-features reply does that.
+    /// </remarks>
+    /// <returns>The configuration the written copy now carries.</returns>
+    /// <exception cref="QpmUnavailableException">It is missing, or not a memory this build reads.</exception>
+    public static NvramMachineConfiguration Reconfigure(
+        string fixturePath, string outputPath, SasCashoutValidation validation)
+    {
+        byte[] written = NvramConfiguration.WithValidation(Load(fixturePath), validation);
+
+        string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        using (FileStream output = File.Create(outputPath))
+        using (var compressor = new GZipStream(output, CompressionLevel.SmallestSize))
+            compressor.Write(written);
+
+        return NvramConfiguration.Read(written);
+    }
+
+    /// <summary>The bytes inside a saved copy.</summary>
+    private static byte[] Load(string fixturePath)
+    {
+        if (!File.Exists(fixturePath))
+            throw new QpmUnavailableException($"there is no saved memory at '{fixturePath}'");
+
+        return Decompress(fixturePath);
     }
 
     private static byte[] Decompress(string fixturePath)

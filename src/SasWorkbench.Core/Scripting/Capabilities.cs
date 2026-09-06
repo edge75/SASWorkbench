@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Transport;
 
@@ -97,6 +98,16 @@ public sealed class CapabilitySet
     }
 }
 
+/// <summary>What the machine on the link said about itself when it was asked.</summary>
+/// <param name="Values">The capabilities its answer establishes.</param>
+/// <param name="WhyNot">
+/// Why there are none, when there are none. Kept apart from the values because "the machine
+/// stayed quiet", "the poll never reached the wire" and "the reply made no sense" are three
+/// different things to be told, and a report that flattens them into an absent capability sends
+/// the reader to the wrong place.
+/// </param>
+public sealed record MachineAnswers(IReadOnlyDictionary<string, string?> Values, string? WhyNot);
+
 /// <summary>Works out what this machine and this build can do.</summary>
 public static class CapabilityProbe
 {
@@ -184,6 +195,90 @@ public static class CapabilityProbe
         }
 
         return values;
+    }
+
+    /// <summary>
+    /// The capabilities only the machine can answer for, which are therefore asked over the wire.
+    /// </summary>
+    /// <remarks>
+    /// These are checked after the link is up rather than before it, because there is nowhere
+    /// else to get them. A machine's validation style is not a property of this host, of the
+    /// stimulus backend or of the build: it is set in the machine's own memory, and the only
+    /// thing it can be read from is the machine.
+    /// </remarks>
+    public static readonly IReadOnlySet<string> AskedOfTheMachine =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "egm.validation" };
+
+    /// <summary>True when a requirement can only be answered by the machine on the link.</summary>
+    public static bool IsAskedOfTheMachine(string key) => AskedOfTheMachine.Contains(key);
+
+    /// <summary>
+    /// Asks the machine what it is, over the link, once it is up.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The enabled-features reply is where a machine publishes its validation style, so this is
+    /// the same question asked of both peers rather than one peer being asked and the other being
+    /// told what our own fixture happens to be in. A machine that does not answer the poll leaves
+    /// the capability absent, and a case that needs it skips saying the machine did not answer —
+    /// never saying it is in some style by default.
+    /// </para>
+    /// <para>
+    /// The answer is about this channel, not about the machine. The gaming machine library clears
+    /// the bits of any category the channel it answers on has not been given, so a link that does
+    /// not carry validation reports the standard style whatever the machine is configured in.
+    /// That is the honest answer for a test running on that link, and it is all one link can know.
+    /// </para>
+    /// </remarks>
+    public static MachineAnswers FromMachine(PollEngine engine)
+    {
+        ArgumentNullException.ThrowIfNull(engine);
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDENABLEFEATURES)!;
+
+        // Game zero, which is the machine as a whole rather than any one of its games.
+        LongPollResult result = engine.Execute(layout.Command, [0x00, 0x00]);
+
+        // A command the engine never got as far as sending says nothing about the machine, so it
+        // is asked again rather than reported as a machine that stayed quiet. Once: a second
+        // failure to reach the wire is a link worth hearing about, not something to grind on.
+        if (result.Outcome == LongPollOutcome.NotSent)
+            result = engine.Execute(layout.Command, [0x00, 0x00]);
+
+        if (result.Outcome == LongPollOutcome.NotSent)
+        {
+            return new MachineAnswers(values,
+                "the enabled-features poll could not be put on the link, so nothing was asked of "
+                + "the machine at all");
+        }
+
+        if (!result.Succeeded)
+        {
+            return new MachineAnswers(values,
+                $"the machine did not answer the enabled-features poll ({result.Outcome}), so "
+                + "what it is cannot be read off this link");
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("validation_style") is not { } style)
+        {
+            return new MachineAnswers(values,
+                "the machine's enabled-features reply could not be decoded: "
+                + (decoded.Failure ?? "it carries no validation style"));
+        }
+
+        // The fourth value is assigned to no style. A machine reporting it is misconfigured, and
+        // saying so beats naming a style nobody defined.
+        if (style is < 0 or > 2)
+        {
+            return new MachineAnswers(values,
+                $"the machine reports validation style {style}, which is assigned to no style");
+        }
+
+        values["egm.validation"] =
+            SasNames.Underscore(((SasCashoutValidation)style).ToString());
+        return new MachineAnswers(values, null);
     }
 
     /// <summary>What a stimulus backend adds.</summary>

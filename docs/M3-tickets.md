@@ -3,8 +3,9 @@
 **Status: the ticket path is built at both ends, and the first conformance case runs.** A machine
 prints a ticket and it is filed where a test and a person can both read it; a ticket goes back
 into a machine and a host redeems it; and GSA **10.1.3 Cashout Ticket 1** runs unattended against
-the software machine. What the milestone still owes is the extended log, the accounting
-denomination in a script, and a memory image that lets a real machine do any of this.
+the software machine. The memory image a real machine needs is done too — see
+`docs/M3-golden-memory.md`, where `10.1.1` passes against one. What the milestone still owes is the
+extended log, the accounting denomination in a script and the wall-clock timestamp mode.
 
 ---
 
@@ -123,20 +124,24 @@ and reports a document in escrow, and the machine decides what to do with it:
 [SasWorkbench] the ticket in escrow was returned
 ```
 
-Returned, not redeemed, and that is the expected answer today: a machine on fresh memory has no
-enhanced validation style configured, and redemption exists only for the enhanced styles. What
-this run proves is the mechanism — the event reaches the machine, the barcode it reads is the
-one on the ticket, and the machine's decision comes back. The machine's own reason for
-returning it is not visible in this capture, so it is not claimed here.
+Returned, not redeemed, and that was the expected answer at the time: the machine's memory carried
+no enhanced validation style, and redemption exists only for the enhanced styles. What this run
+proves is the mechanism — the event reaches the machine, the barcode it reads is the one on the
+ticket, and the machine's decision comes back. The machine's own reason for returning it is not
+visible in this capture, so it is not claimed here.
+
+The memory image that puts a real machine into an enhanced style landed afterwards
+(`docs/M3-golden-memory.md`). It has not been used to redeem a ticket on a real machine: such a
+machine will not derive a ticket number until a host sets its validation identifier, and that
+command is not modelled here.
 
 ## The conformance tree runs
 
 ```
 sasctl run tests/conformance --stimulus software
 
-  SKIP  10.1.1 standard validation configuration
-        egm.validation: this environment provides no 'egm.validation'
-  PASS  10.1.3 Cashout Ticket 1 (4.4s, 14 assert(s))
+  PASS  10.1.1 standard validation configuration (0.6s, 5 assert(s))
+  PASS  10.1.3 Cashout Ticket 1 (4.6s, 14 assert(s))
 ```
 
 A machine in the standard validation style prints a ticket, announces it, and then answers for
@@ -175,11 +180,10 @@ jackpot receipts. Each is named in the file rather than left to be discovered.
 * **Silence rather than a refusal.** A machine performing secure enhanced or system validation
   does not answer this poll at all. The software machine now does the same, and the difference
   matters: a refusal would say the command was understood and declined.
-* **A machine that knows its own validation style.** The software machine publishes it as a
-  capability, so a case declares the configuration it assumes and skips naming it when the
-  machine is in another. Nothing here reads that style off a real machine's wire, so against one
-  the capability is absent and the case says so — which is the same answer `BLOCKERS.md §4` has
-  always given for tickets on a real machine.
+* **A machine that knows its own validation style.** A case declares the configuration it
+  assumes and skips naming the style when the machine is in another. Since the golden memory work
+  that answer comes from the machine, over the link, rather than from what our own fixture was
+  built with — see `docs/M3-golden-memory.md`.
 
 The suite's own honesty check moved with it. It used to assert that every conformance case
 skipped; it now asserts that each one either runs or says what it needs, that none fails or
@@ -188,11 +192,12 @@ would look identical to one where the runner had quietly stopped executing anyth
 
 ## What is left in the milestone
 
-* **A golden memory image with an enhanced validation style**, without which a real machine
-  returns every ticket. `BLOCKERS.md §4` has always named this as a prerequisite for every
-  ticket test.
 * **The extended log** (`D34`) and **the accounting denomination in a script** (`D36`).
 * **The fourth timestamp mode, wall-clock time** (`D28`), outstanding from M1.5.
+
+The golden memory image is done — see `docs/M3-golden-memory.md`. Two images are committed,
+because a machine performs one validation style at a time, and `10.1.1` now passes against a real
+gaming machine.
 
 ## Known limits, stated rather than discovered later
 
@@ -208,9 +213,10 @@ would look identical to one where the runner had quietly stopped executing anyth
   That is enough for the standard validation style, whose command reads at the write index and
   whose records are never retired; the unread-record count, the reissue every fifteen seconds and
   the read index that walks behind the write one all belong to the enhanced styles.
-* Nothing reads a real machine's validation style off the wire. It is published in the enabled
-  features reply, which this build does not decode, so against a real machine a case that
-  declares a style skips saying the environment does not offer one.
+* The validation style is now read off the wire, from the enabled-features reply, so a case that
+  declares one is answered by the machine. What that reply says is about the channel it came back
+  on rather than about the machine: the library clears the bits of any category the answering
+  channel has not been given.
 * The software machine holds one ticket at a time. Two tickets in flight, the resend rule that
   makes an identical command a status request, and the buffer of past redemptions are all
   things the real library does and this fixture does not.

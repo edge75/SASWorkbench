@@ -144,6 +144,20 @@ public sealed record SasConstraint(
     public static SasConstraint AnyOf(params long[] values) => new(OneOf: values);
 }
 
+/// <summary>A run of bits inside another field, named the way the specification numbers them.</summary>
+/// <param name="HighBit">The most significant bit of the run, counting from zero.</param>
+/// <param name="LowBit">The least significant bit of the run.</param>
+public sealed record SasBitRange(int HighBit, int LowBit)
+{
+    /// <summary>A single bit.</summary>
+    public static SasBitRange Bit(int bit) => new(bit, bit);
+
+    /// <summary>How many bits the run covers.</summary>
+    public int Width => HighBit - LowBit + 1;
+
+    public override string ToString() => HighBit == LowBit ? $"bit {LowBit}" : $"bits {HighBit}-{LowBit}";
+}
+
 /// <summary>One field of a SAS message.</summary>
 public sealed record SasField
 {
@@ -167,6 +181,24 @@ public sealed record SasField
     /// one command, which is the trap a general model exists to avoid.
     /// </remarks>
     public string? LengthFromField { get; init; }
+
+    /// <summary>
+    /// Name of an earlier field this one is a run of bits inside, rather than bytes of its own.
+    /// </summary>
+    /// <remarks>
+    /// The third of the same family as <see cref="LengthFromField"/> and
+    /// <see cref="SasRepeat.CountedBy"/>: a later part of a message described in terms of an
+    /// earlier one. Several SAS replies pack a small enumeration into two or three bits of a
+    /// status byte — the validation style in the enabled-features reply is bits six and five of
+    /// one byte — and a model that can only name whole bytes has to describe those either as a
+    /// mask a test compares by hand, which cannot tell one two-bit value from another, or as a
+    /// decoder written for that one command. The byte itself is still decoded and still
+    /// assertable; this adds a second reading of the same bytes, and consumes none of its own.
+    /// </remarks>
+    public string? BitsOfField { get; init; }
+
+    /// <summary>Which bits of <see cref="BitsOfField"/>, most significant first.</summary>
+    public SasBitRange? Bits { get; init; }
 
     public SasFieldEncoding Encoding { get; init; } = SasFieldEncoding.Binary;
 

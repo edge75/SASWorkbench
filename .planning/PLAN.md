@@ -195,9 +195,14 @@ cashout ticket information poll is modelled from the library's handler and answe
 software machine, which is silent under the enhanced styles the way section 15.5 asks; a wire
 field can be compared against the ticket the printer filed, which is the only way to say the host
 was told about that ticket rather than about a plausible number; and the suite's honesty check
-now asks each conformance case to run or to say what it needs, with at least one running. On a
-real machine the case skips, because nothing here reads a validation style off the wire and fresh
-memory carries none — the golden image below is what changes that.
+now asks each conformance case to run or to say what it needs, with at least one running.
+
+✅ **and a conformance case runs against a real machine on 2026-09-06** — see
+`docs/M3-golden-memory.md`. Two memory images are committed, because a machine performs one
+validation style at a time, and the enabled-features reply now decodes, so a case's declared style
+is answered by the machine over the link rather than by our own fixture's configuration. `10.1.1`
+passes against `QSP_DemoOpenGL` and asserts what the corpus asks for rather than sending the
+command that sets the style it is about the absence of.
 
 ### Done ahead of M3, on 2026-09-05
 
