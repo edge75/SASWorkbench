@@ -376,6 +376,103 @@ public static class SasLayouts
                 ],
                 DerivedFrom = "lp54_SendSasVersionIdAndGamingMachineSerialNumber",
             },
+
+            // The two halves of a redemption. A ticket goes into the acceptor, the machine holds
+            // it and says so; the host asks what is being held with $70 and answers with $71.
+            // Neither is a meter read: both move a real transaction along, so a test that sends
+            // one has changed the machine whether or not it asserts on the reply.
+            new()
+            {
+                Command = 0x70,
+                Name = "ticket_validation_data",
+                Description = "What ticket, if any, the machine is holding in its acceptor.",
+
+                // Nothing follows the command byte, and nothing checks one: the machine reads
+                // this poll without verifying a check sequence, so the host sends two bytes.
+                Response =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    Byte("ticket_status", SasUnit.Code,
+                        "Zero while a ticket is held in escrow, $FF when none is.",
+                        SasConstraint.AnyOf(0x00, 0xFF)),
+
+                    // The machine answers zero here, every time. It has read a barcode, not a
+                    // value: what the ticket is worth is the host's to say in the reply to $71,
+                    // so a test reading an amount from this poll is reading a placeholder.
+                    Bcd("transfer_amount", 5, SasUnit.Cents,
+                        "Always zero: the machine does not know what the ticket is worth.")
+                        with { PresentWhen = new SasCondition("ticket_status", SasComparison.Equal, 0x00) },
+                    Byte("parsing_code", SasUnit.Code,
+                        "How the validation data is to be read; zero is the plain form.")
+                        with { PresentWhen = new SasCondition("ticket_status", SasComparison.Equal, 0x00) },
+                    Bcd("validation_data", 9, SasUnit.None,
+                        "The number printed on the ticket, as eighteen digits.")
+                        with { PresentWhen = new SasCondition("ticket_status", SasComparison.Equal, 0x00) },
+                ],
+                DerivedFrom = "lp70_SendTicketValidationData",
+            },
+            new()
+            {
+                Command = 0x71,
+                Name = "redeem_ticket",
+                Description = "The host's verdict on the ticket being held, and what the machine did with it.",
+
+                // A transfer code of $FF asks for the current status and carries nothing else,
+                // which is how a host reads the outcome after the machine has taken the ticket.
+                // The validation data is nine bytes here because the parsing code is zero; a
+                // non-zero parsing code makes it as long as the length byte allows, and this
+                // version does not model that.
+                Request =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    Byte("transfer_code", SasUnit.Code,
+                        "What the host decided: $00 to $02 accept, $80 upwards refuse, $FF only asks."),
+                    Bcd("transfer_amount", 5, SasUnit.Cents, "What the host says the ticket is worth.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.NotEqual, 0xFF) },
+                    Byte("parsing_code", SasUnit.Code, "How the validation data is to be read.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.NotEqual, 0xFF) },
+                    Bcd("validation_data", 9, SasUnit.None, "The number the host is redeeming.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.NotEqual, 0xFF) },
+
+                    // Only a restricted ticket carries these, and only on a machine that supports
+                    // the validation extensions. A restricted redemption that leaves them out is
+                    // legal and the machine falls back to its own default, so they are written
+                    // only when a caller supplies them.
+                    Bcd("restricted_expiration_month", 1, SasUnit.None, "Month the restricted credits expire.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.Equal, 0x01) },
+                    Bcd("restricted_expiration_day", 1, SasUnit.None, "Day the restricted credits expire.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.Equal, 0x01) },
+                    Bcd("restricted_expiration_year", 2, SasUnit.None, "Year the restricted credits expire.")
+                        with { PresentWhen = new SasCondition("transfer_code", SasComparison.Equal, 0x01) },
+                    new()
+                    {
+                        Name = "pool_id",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+
+                        // Least significant byte first, unlike the rest of this command.
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Index,
+                        Description = "Which restricted pool the credits belong to.",
+                        PresentWhen = new SasCondition("transfer_code", SasComparison.Equal, 0x01),
+                    },
+                ],
+
+                // $FF says no redemption has ever happened and $C0 says this command does not
+                // belong to the cycle in progress. Both answer with the status alone.
+                Response =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    Byte("machine_status", SasUnit.Code, "What the machine did with the ticket."),
+                    Bcd("transfer_amount", 5, SasUnit.Cents, "The amount the machine recorded.")
+                        with { PresentWhen = new SasCondition("machine_status", SasComparison.LessThan, 0xC0) },
+                    Byte("parsing_code", SasUnit.Code, "How the validation data is to be read.")
+                        with { PresentWhen = new SasCondition("machine_status", SasComparison.LessThan, 0xC0) },
+                    Bcd("validation_data", 9, SasUnit.None, "The number the machine has on the ticket.")
+                        with { PresentWhen = new SasCondition("machine_status", SasComparison.LessThan, 0xC0) },
+                ],
+                DerivedFrom = "lp71_RedeemTicket",
+            },
             new()
             {
                 Command = 0x7E,

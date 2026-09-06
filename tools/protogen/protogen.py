@@ -57,7 +57,12 @@ def read(path: Path) -> str:
 
 
 def enum_body(source: str, enum_name: str) -> str:
-    match = re.search(r"enum\s+" + enum_name + r"\s*\{(.*?)\n\};", source, re.S)
+    """Reads one enumeration's members, however the header spells the declaration.
+
+    Both forms appear in the same header: a plain `enum Name { ... };`, and a
+    `typedef enum _Name { ... } Name;` whose closing brace is followed by a name.
+    """
+    match = re.search(r"enum\s+" + enum_name + r"\s*\{(.*?)\n\}\s*[A-Za-z0-9_]*\s*;", source, re.S)
     if not match:
         raise SystemExit(f"enum {enum_name} not found")
     return match.group(1)
@@ -272,6 +277,9 @@ def main() -> int:
     long_polls = unique_names(parse_enum(source, "SasLongPollCode"))
     exceptions = unique_names(parse_enum(source, "SasExceptionCode"))
     meters = unique_names(parse_enum(source, "SasMeterCode"))
+    ticket_status = unique_names(parse_enum(source, "LP_TICKET_STATUS"))
+    transfer_codes = unique_names(parse_enum(source, "_LP_TICKET_TRANSFER_CODE"))
+    machine_status = unique_names(parse_enum(source, "_LP_GAMING_MACHINE_STATUS_CODES"))
     handlers = parse_long_poll_handlers(read(lp_h))
 
     files = {
@@ -284,6 +292,15 @@ def main() -> int:
         "SasMeterCode.g.cs": emit_enum(
             "SasMeterCode", "ushort", meters, sources,
             "Every meter the gaming machine library can report."),
+        "SasTicketStatus.g.cs": emit_enum(
+            "SasTicketStatus", "byte", ticket_status, sources,
+            "Whether the gaming machine is holding a ticket in its acceptor."),
+        "SasTicketTransferCode.g.cs": emit_enum(
+            "SasTicketTransferCode", "byte", transfer_codes, sources,
+            "What a host tells a gaming machine to do with the ticket it is holding."),
+        "SasTicketMachineStatus.g.cs": emit_enum(
+            "SasTicketMachineStatus", "byte", machine_status, sources,
+            "What a gaming machine reports it did with a ticket."),
         "CatalogueInfo.g.cs": emit_info_types(sources),
         "Catalogue.g.cs": emit_catalogue(long_polls, handlers, exceptions, meters, sources),
     }
@@ -306,8 +323,9 @@ def main() -> int:
         print("generated catalogue is up to date")
         return 0
 
-    print(f"{len(long_polls)} long polls, {len(exceptions)} exceptions, {len(meters)} meters "
-          f"-> {OUT_DIR.relative_to(REPO)}")
+    print(f"{len(long_polls)} long polls, {len(exceptions)} exceptions, {len(meters)} meters, "
+          f"{len(transfer_codes)} ticket transfer codes, {len(machine_status)} machine "
+          f"statuses -> {OUT_DIR.relative_to(REPO)}")
     if stale:
         print("updated: " + ", ".join(sorted(stale)))
     else:

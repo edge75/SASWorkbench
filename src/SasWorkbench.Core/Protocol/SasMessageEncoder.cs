@@ -60,6 +60,74 @@ public static class SasMessageEncoder
     }
 
     /// <summary>
+    /// Writes the data a host sends after the address and command bytes, from named values.
+    /// </summary>
+    /// <remarks>
+    /// The inverse of <see cref="SasMessageDecoder.DecodeRequest"/>, and the reason a script can
+    /// name the fields of a command instead of spelling out its bytes. A field the layout marks
+    /// as conditional is written only when a value is supplied for it, which is what lets one
+    /// layout describe both a redemption carrying an amount and a bare request for a status.
+    ///
+    /// A leading field called <c>length</c> is filled in from what follows unless the caller
+    /// gives one, because a length that disagrees with the message is a defect in the host rather
+    /// than a case worth writing by hand — and a caller that wants to send a wrong one still can.
+    /// </remarks>
+    /// <returns>How many bytes were written.</returns>
+    /// <exception cref="InvalidOperationException">A field has no value, or will not fit.</exception>
+    public static int WriteRequestData(
+        SasMessageLayout layout,
+        IReadOnlyDictionary<string, object> values,
+        Span<byte> destination)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(values);
+
+        int cursor = 0;
+        int lengthAt = -1;
+
+        foreach (SasField field in layout.Request)
+        {
+            if (field.IsGroup)
+            {
+                cursor += WriteGroup(layout, field, field.Name, values, destination[cursor..]);
+                continue;
+            }
+
+            if (field.PresentWhen is not null && !values.ContainsKey(field.Name))
+                continue;
+
+            if (!values.TryGetValue(field.Name, out object? value))
+            {
+                if (cursor == 0 && field.Length == 1
+                    && field.Name.Equals("length", StringComparison.OrdinalIgnoreCase))
+                {
+                    lengthAt = cursor;
+                    cursor += 1;
+                    continue;
+                }
+
+                throw new InvalidOperationException(
+                    $"Long poll ${layout.Command:X2} needs a value for '{field.Name}'.");
+            }
+
+            cursor += WriteField(field, value, destination[cursor..]);
+        }
+
+        if (lengthAt >= 0)
+        {
+            int payload = cursor - lengthAt - 1;
+            if (payload > byte.MaxValue)
+                throw new InvalidOperationException(
+                    $"Long poll ${layout.Command:X2} carries {payload} bytes, which its length "
+                    + "byte cannot express.");
+
+            destination[lengthAt] = (byte)payload;
+        }
+
+        return cursor;
+    }
+
+    /// <summary>
     /// Writes a repeating group. Elements are named the way the decoder names them when it reads
     /// one back — <c>meters[0].value</c> — so a message can be built and read with one vocabulary
     /// rather than two that have to be kept in step.

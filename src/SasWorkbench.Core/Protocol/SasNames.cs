@@ -37,6 +37,8 @@ public static class SasNames
 
     private static readonly FrozenDictionary<string, ushort> MetersByName = BuildMeterNames();
 
+    private static readonly FrozenDictionary<string, byte> TicketCodesByName = BuildTicketCodeNames();
+
     /// <summary>Turns an identifier into the underscored form a script writer would type.</summary>
     public static string Underscore(string symbol)
     {
@@ -114,6 +116,48 @@ public static class SasNames
             ? Underscore(info.Symbol)
             : $"${code:X2}";
 
+    /// <summary>
+    /// Resolves a value written into a command field: a number, a hex code, or the library's own
+    /// name for a ticket transfer code or a gaming machine status.
+    /// </summary>
+    /// <remarks>
+    /// The names are the library's, shouted underscores and all, rather than friendlier ones
+    /// invented here. A script that says <c>ttc_valid_cashable_ticket</c> can be checked against
+    /// the header in one step; a script that says <c>accept</c> cannot, and two people would not
+    /// choose the same word for it.
+    /// </remarks>
+    public static bool TryResolveFieldValue(string? text, out long value)
+    {
+        value = 0;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        string name = text.Trim();
+        if (TicketCodesByName.TryGetValue(name, out byte code))
+        {
+            value = code;
+            return true;
+        }
+
+        if (name.StartsWith('$') || name.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!TryParseCode(name, out byte parsed))
+                return false;
+
+            value = parsed;
+            return true;
+        }
+
+        // Plain decimal, and deliberately not the bare-two-hex-digits rule TryParseCode applies:
+        // an amount of 20 cents written next to a code of 20 must not become thirty-two.
+        return long.TryParse(name, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out value);
+    }
+
+    /// <summary>Every name a command field may be given a value by, sorted, for a message.</summary>
+    public static IReadOnlyList<string> FieldValueNames =>
+        TicketCodesByName.Keys.Where(k => k.Contains('_')).Order(StringComparer.Ordinal).ToList();
+
     /// <summary>Parses <c>$4A</c>, <c>0x4A</c>, <c>4A</c> or a plain decimal number.</summary>
     public static bool TryParseCode(string text, out byte code)
     {
@@ -154,6 +198,40 @@ public static class SasNames
         {
             names.TryAdd(info.Symbol, info.Code);
             names.TryAdd(Underscore(info.Symbol), info.Code);
+        }
+
+        return names.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// The ticket transfer codes and machine statuses, by the library's name for each.
+    /// </summary>
+    /// <remarks>
+    /// One table over both enumerations. Their names cannot collide - every transfer code begins
+    /// <c>TTC_</c> and every machine status <c>GMSC_</c> - so a caller does not have to say which
+    /// of the two it meant, and a field that takes one of them will not silently accept the other
+    /// by number alone.
+    /// </remarks>
+    private static FrozenDictionary<string, byte> BuildTicketCodeNames()
+    {
+        var names = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (SasTicketTransferCode code in Enum.GetValues<SasTicketTransferCode>())
+        {
+            names.TryAdd(code.ToString(), (byte)code);
+            names.TryAdd(Underscore(code.ToString()), (byte)code);
+        }
+
+        foreach (SasTicketMachineStatus status in Enum.GetValues<SasTicketMachineStatus>())
+        {
+            names.TryAdd(status.ToString(), (byte)status);
+            names.TryAdd(Underscore(status.ToString()), (byte)status);
+        }
+
+        foreach (SasTicketStatus status in Enum.GetValues<SasTicketStatus>())
+        {
+            names.TryAdd(status.ToString(), (byte)status);
+            names.TryAdd(Underscore(status.ToString()), (byte)status);
         }
 
         return names.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
