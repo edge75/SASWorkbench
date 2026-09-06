@@ -28,7 +28,12 @@ public static class TicketJsonCodec
         ArgumentNullException.ThrowIfNull(ticket);
 
         var buffer = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Indented = true }))
+
+        // The line ending is pinned rather than left to the platform. A ticket is a file two
+        // programs and two operating systems exchange, and a writer that follows Environment.NewLine
+        // makes the same ticket a different sequence of bytes on Windows and on Linux.
+        var options = new JsonWriterOptions { Indented = true, NewLine = "\n" };
+        using (var writer = new Utf8JsonWriter(buffer, options))
         {
             writer.WriteStartObject();
 

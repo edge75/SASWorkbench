@@ -1,0 +1,16 @@
+# A ticket. This file and its JSON form carry the same ticket.
+[ticket]
+validation_number    = 9876543210987654
+validation_type      = restricted_promotional_from_cashout
+amount_cents         = 2000
+ticket_number        = 17
+pool_id              = 3
+expiration           = 2026-12-31
+validation_system_id = 64
+printed_at           = 2026-09-06T14:23:11
+asset_number         = 1234
+location             = Quixant Test Floor
+address1             = 1 Somewhere Street
+address2             = Cambridge
+redeemed             = true
+note                 = every field set, so a dropped one shows

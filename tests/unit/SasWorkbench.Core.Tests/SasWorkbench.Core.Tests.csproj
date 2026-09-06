@@ -16,4 +16,10 @@
     <ProjectReference Include="..\..\..\src\SasWorkbench.Core\SasWorkbench.Core.csproj" />
   </ItemGroup>
 
+  <!-- The ticket specimens the simulator's own tests read, so both ends are checked against one
+       set of bytes rather than against each other's description of them. -->
+  <ItemGroup>
+    <None Include="..\..\fixtures\tickets\**" LinkBase="fixtures\tickets" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

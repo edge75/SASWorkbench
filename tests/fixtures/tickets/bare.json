@@ -1,0 +1,16 @@
+{
+  "validation_number": "0",
+  "validation_type": "cashable_from_cashout",
+  "amount_cents": 0,
+  "ticket_number": 0,
+  "pool_id": 0,
+  "expiration": null,
+  "validation_system_id": 0,
+  "printed_at": null,
+  "asset_number": 0,
+  "location": "",
+  "address1": "",
+  "address2": "",
+  "redeemed": false,
+  "note": ""
+}

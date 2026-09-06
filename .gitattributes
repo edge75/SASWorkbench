@@ -1,0 +1,3 @@
+# Ticket specimens are read byte for byte by two languages on two operating systems, so their
+# line endings are part of the fixture rather than a local checkout convention.
+tests/fixtures/tickets/** -text
