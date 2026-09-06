@@ -150,4 +150,47 @@ public class TicketScriptTests
         Assert.Equal("stimulus.ticket",
             test.Steps.OfType<InsertTicketStep>().Single().RequiredCapability);
     }
+
+    /// <summary>
+    /// A reply compared against the paper. The machine numbers its own tickets, so this is the
+    /// only form of the comparison that can say the host was told about the ticket that was
+    /// printed rather than about a number that merely looks right.
+    /// </summary>
+    [Fact]
+    public void AWireFieldCanBeComparedAgainstThePrintedTicket()
+    {
+        ScriptTest test = Parse("""
+              host send lp 3D
+              host expect field validation_number of lp 3D == ticket.validation_number
+            """);
+
+        ExpectFieldStep step = test.Steps.OfType<ExpectFieldStep>().Single();
+        Assert.Equal("validation_number", step.ExpectedTicketField);
+        Assert.Null(step.ExpectedNumber);
+        Assert.Null(step.ExpectedText);
+        Assert.Contains("ticket.validation_number", step.Describe(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AReferenceToATicketFieldThatDoesNotExistIsAParseError()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(() => Parse(
+            "  host expect field ticket_amount of lp 3D == ticket.amount_in_pennies"));
+
+        Assert.Contains("amount_in_pennies", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("amount_cents", problem.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Refused rather than compared as text. A printed date and a BCD reply are not the same kind
+    /// of thing, and a comparison that always failed would look like a machine defect.
+    /// </summary>
+    [Fact]
+    public void AReferenceToATicketFieldThatIsNotANumberIsAParseError()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(() => Parse(
+            "  host expect field ticket_amount of lp 3D == ticket.expiration"));
+
+        Assert.Contains("ticket.expiration", problem.Message, StringComparison.Ordinal);
+    }
 }

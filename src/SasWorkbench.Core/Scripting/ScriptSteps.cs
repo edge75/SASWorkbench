@@ -193,9 +193,23 @@ public sealed record ExpectFieldStep(
     long? ExpectedNumber,
     string? ExpectedText) : ScriptStep(Location)
 {
+    /// <summary>
+    /// The field of the ticket the machine last printed that this is compared against, when the
+    /// value is not a literal.
+    /// </summary>
+    /// <remarks>
+    /// The only way to check that the host was told about <em>this</em> ticket. A machine numbers
+    /// its own tickets, so the number is unknowable to whoever wrote the script; comparing the
+    /// reply against a literal can say the number is plausible but never that it is the number
+    /// on the paper, which is the whole claim a cashout ticket test is making.
+    /// </remarks>
+    public string? ExpectedTicketField { get; init; }
+
     public override string Describe()
     {
-        string expected = ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
+        string expected = ExpectedTicketField is not null
+            ? $"ticket.{ExpectedTicketField}"
+            : ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
         return $"expect field {Field} of lp {Command:X2} {Comparison} {expected}";
     }
 }

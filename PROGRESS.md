@@ -3,9 +3,10 @@
 Append one line per completed wave:
 `PHASE:<id> WAVE:<id> STATUS:<complete|failed> TS:<ISO-8601-UTC>`
 
-M0, M1, M1.5, M2 and M6 are complete — see `docs/`. M3 is in progress: the ticket path
-runs in both directions (`docs/M3-tickets.md`); the extended log, the accounting denomination
-in a script and GSA 10.1.3 remain.
+M0, M1, M1.5, M2 and M6 are complete — see `docs/`. M3 is in progress: the ticket path runs in
+both directions and GSA 10.1.3 runs unattended against the software machine
+(`docs/M3-tickets.md`); the golden memory image, the extended log, the accounting denomination in
+a script and the wall-clock timestamp mode remain.
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -39,3 +40,4 @@ PHASE:M3 WAVE:W2-ticket-model STATUS:complete TS:2026-09-06T06:07:48Z
 PHASE:M3 WAVE:W3-printer-panel STATUS:complete TS:2026-09-06T06:07:48Z
 PHASE:M3 WAVE:W4-ticket-out STATUS:complete TS:2026-09-06T07:40:43Z
 PHASE:M3 WAVE:W5-ticket-in STATUS:complete TS:2026-09-06T10:20:00Z
+PHASE:M3 WAVE:W6-cashout-ticket-info STATUS:complete TS:2026-09-06T19:48:51Z

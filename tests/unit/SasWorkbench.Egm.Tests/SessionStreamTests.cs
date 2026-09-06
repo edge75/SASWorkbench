@@ -104,11 +104,16 @@ public class SessionStreamTests
             e => e.Lane == SessionLane.Assertion && e.Verdict == Verdict.Pass);
     }
 
+    /// <summary>
+    /// The subject is the verdict reaching the stream, not the capability: any requirement
+    /// nothing offers would do. This one is a button no backend has, chosen because a button is
+    /// a property of a machine's own wiring and so is never claimed on this peer's behalf.
+    /// </summary>
     [Fact]
     public void ATestThatCannotRunStillReachesAVerdictInTheStream()
     {
         (RunReport report, SessionLog log) = Run("""
-            requires egm.validation
+            requires stimulus.button.service
             host connect loopback address 01
             host expect link up within 2s
             """);
@@ -117,6 +122,6 @@ public class SessionStreamTests
         SessionEvent verdict = Assert.Single(
             log.Snapshot(), e => e.Lane == SessionLane.Verdict);
         Assert.Equal(Verdict.Skip, verdict.Verdict);
-        Assert.Contains("egm.validation", verdict.Detail);
+        Assert.Contains("stimulus.button.service", verdict.Detail);
     }
 }

@@ -1,10 +1,10 @@
 # M3 — Tickets, the money path in both directions
 
-**Status: the ticket path is built at both ends.** A machine prints a ticket and it is filed
-where a test and a person can both read it; a ticket goes back into a machine and a host
-redeems it. The milestone is not finished — GSA **10.1.3 Cashout Ticket 1** needs the cashout
-ticket information long poll, and a real machine cannot complete a redemption until its
-validation style is configured — but nothing in the loop is missing a mechanism any more.
+**Status: the ticket path is built at both ends, and the first conformance case runs.** A machine
+prints a ticket and it is filed where a test and a person can both read it; a ticket goes back
+into a machine and a host redeems it; and GSA **10.1.3 Cashout Ticket 1** runs unattended against
+the software machine. What the milestone still owes is the extended log, the accounting
+denomination in a script, and a memory image that lets a real machine do any of this.
 
 ---
 
@@ -129,12 +129,68 @@ this run proves is the mechanism — the event reaches the machine, the barcode 
 one on the ticket, and the machine's decision comes back. The machine's own reason for
 returning it is not visible in this capture, so it is not claimed here.
 
+## The conformance tree runs
+
+```
+sasctl run tests/conformance --stimulus software
+
+  SKIP  10.1.1 standard validation configuration
+        egm.validation: this environment provides no 'egm.validation'
+  PASS  10.1.3 Cashout Ticket 1 (4.4s, 14 assert(s))
+```
+
+A machine in the standard validation style prints a ticket, announces it, and then answers for
+it: the cashout ticket information poll reports the number and the value of the ticket printed
+most recently, and both are checked against the ticket the printer actually filed.
+
+That cross-check is the point, and it needed a new thing to say. The machine numbers its own
+tickets, so the number is unknowable to whoever writes the script — an assertion against a
+literal can say a reply is plausible, never that the host was told about *this* ticket. A wire
+field can now be compared against the printed ticket:
+
+```
+host send lp 3D
+host expect field validation_number of lp 3D == ticket.validation_number
+host expect field ticket_amount of lp 3D == ticket.amount_cents
+```
+
+The ticket field is resolved while the script is read, so a name a ticket does not carry stops
+the parse, and a field that is not a number is refused rather than compared as text — a printed
+date against a decimal reply is a question nobody meant to ask. The comparison was checked by
+breaking it: a machine made to answer one higher than it printed fails both assertions and names
+the line, the number on the paper and the number on the wire.
+
+The case is written from the corpus and states what it does not cover: the priority order that
+puts a printed ticket ahead of the door exceptions raised before it, the change-light exceptions
+that need a service button, the announcement's reissue while a record is unread, and cashout and
+jackpot receipts. Each is named in the file rather than left to be discovered.
+
+### What answering it required
+
+* **A layout read off the library's handler.** Eleven bytes and a check sequence: the address,
+  the command, the validation number in four, the amount in cents in five. No length byte,
+  unlike the other ticket commands, and the widths are pinned by a byte-level test — a number
+  read as five bytes and an amount as four would decode without complaint and be wrong about
+  both.
+* **Silence rather than a refusal.** A machine performing secure enhanced or system validation
+  does not answer this poll at all. The software machine now does the same, and the difference
+  matters: a refusal would say the command was understood and declined.
+* **A machine that knows its own validation style.** The software machine publishes it as a
+  capability, so a case declares the configuration it assumes and skips naming it when the
+  machine is in another. Nothing here reads that style off a real machine's wire, so against one
+  the capability is absent and the case says so — which is the same answer `BLOCKERS.md §4` has
+  always given for tickets on a real machine.
+
+The suite's own honesty check moved with it. It used to assert that every conformance case
+skipped; it now asserts that each one either runs or says what it needs, that none fails or
+errors, and that at least one passes — because a tree where everything skips proves nothing and
+would look identical to one where the runner had quietly stopped executing anything.
+
 ## What is left in the milestone
 
 * **A golden memory image with an enhanced validation style**, without which a real machine
   returns every ticket. `BLOCKERS.md §4` has always named this as a prerequisite for every
   ticket test.
-* **The cashout ticket information long poll**, which GSA 10.1.3 is mostly about.
 * **The extended log** (`D34`) and **the accounting denomination in a script** (`D36`).
 * **The fourth timestamp mode, wall-clock time** (`D28`), outstanding from M1.5.
 
@@ -148,6 +204,13 @@ returning it is not visible in this capture, so it is not claimed here.
 * The ticket-in meters cannot be asserted on by name. A meter is readable by name only where a
   long poll this build decodes carries it as a field, and those meters are reachable only
   through the selected-meter polls, which name meters by code.
+* The software machine keeps one cashout record rather than the library's buffer of thirty-two.
+  That is enough for the standard validation style, whose command reads at the write index and
+  whose records are never retired; the unread-record count, the reissue every fifteen seconds and
+  the read index that walks behind the write one all belong to the enhanced styles.
+* Nothing reads a real machine's validation style off the wire. It is published in the enabled
+  features reply, which this build does not decode, so against a real machine a case that
+  declares a style skips saying the environment does not offer one.
 * The software machine holds one ticket at a time. Two tickets in flight, the resend rule that
   makes an identical command a status request, and the buffer of past redemptions are all
   things the real library does and this fixture does not.

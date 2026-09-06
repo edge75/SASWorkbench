@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -463,6 +464,108 @@ public class FakeEgmTests
         Assert.True(decoded.Succeeded, decoded.Failure);
         return decoded.Number(field) ?? -1;
     }
+
+    /// <summary>
+    /// A wallet of its own for each test, so one test's tickets are never another's evidence.
+    /// </summary>
+    private sealed class Wallet : IDisposable
+    {
+        public string Path { get; } = System.IO.Path.Combine(
+            System.IO.Path.GetTempPath(), "saswb-egm-" + Guid.NewGuid().ToString("N"));
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Path))
+                Directory.Delete(Path, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Cashout_ticket_information_names_the_ticket_that_was_printed()
+    {
+        using var wallet = new Wallet();
+        using var rig = new Rig();
+        rig.Machine.InsertBill(2000);
+
+        Ticket? printed = rig.Machine.Cashout(wallet.Path);
+        Assert.NotNull(printed);
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(
+            SasLayouts.For(0x3D)!, rig.Host.Execute(0x3D).Frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal((long)printed.ValidationNumber, decoded.Number("validation_number"));
+        Assert.Equal(printed.AmountCents, decoded.Number("ticket_amount"));
+    }
+
+    /// <summary>
+    /// The reply is about the most recent ticket, which is the write index the library's own
+    /// handler reads at. A machine that answered with the first would pass a test that only ever
+    /// cashed out once.
+    /// </summary>
+    [Fact]
+    public void The_reply_moves_on_when_a_second_ticket_is_printed()
+    {
+        using var wallet = new Wallet();
+        using var rig = new Rig();
+
+        rig.Machine.InsertBill(2000);
+        Ticket? first = rig.Machine.Cashout(wallet.Path);
+        rig.Machine.InsertBill(1000);
+        Ticket? second = rig.Machine.Cashout(wallet.Path);
+
+        Assert.NotNull(first);
+        Assert.NotNull(second);
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(
+            SasLayouts.For(0x3D)!, rig.Host.Execute(0x3D).Frame);
+
+        Assert.Equal(1000, decoded.Number("ticket_amount"));
+        Assert.Equal(2000, first.AmountCents);
+    }
+
+    /// <summary>
+    /// Nothing printed is a well-formed reply saying nothing has been, not a refusal. A machine on
+    /// fresh memory has an empty record rather than no record.
+    /// </summary>
+    [Fact]
+    public void A_machine_that_has_printed_nothing_answers_with_zeroes()
+    {
+        using var rig = new Rig();
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(
+            SasLayouts.For(0x3D)!, rig.Host.Execute(0x3D).Frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(0, decoded.Number("validation_number"));
+        Assert.Equal(0, decoded.Number("ticket_amount"));
+    }
+
+    /// <summary>
+    /// Section 15.5 as the library reads it: an enhanced style answers this poll with silence.
+    /// Silence and not a rejection, because a rejection would say the machine understood the
+    /// command and declined it, and this machine has not understood it.
+    /// </summary>
+    [Theory]
+    [InlineData(SasCashoutValidation.SecureEnhanced)]
+    [InlineData(SasCashoutValidation.System)]
+    public void An_enhanced_validation_style_does_not_answer_the_poll_at_all(
+        SasCashoutValidation style)
+    {
+        using var wallet = new Wallet();
+        using var rig = new Rig(
+            new FakeEgmOptions { CashoutValidation = style },
+            responseTimeout: TimeSpan.FromMilliseconds(300));
+
+        rig.Machine.InsertBill(2000);
+        rig.Machine.Cashout(wallet.Path);
+
+        Assert.Equal(LongPollOutcome.Silent, rig.Host.Execute(0x3D).Outcome);
+
+        //  The rest of the machine is untouched, so the silence is about this command rather than
+        //  about a machine that has stopped answering.
+        Assert.Equal(LongPollOutcome.Answered, rig.Host.Execute(0x1F).Outcome);
+    }
 }
 
 public class MeterStoreTests
@@ -572,4 +675,5 @@ public class EncoderTests
         Assert.Equal(125000, decoded.Number("amount"));
         Assert.Equal(0, decoded.Number("partial_pay"));
     }
+
 }

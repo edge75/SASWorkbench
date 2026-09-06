@@ -190,6 +190,14 @@ being changed anyway.
   reconfigured mid-session.
 
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
+✅ **it does, against the software machine, on 2026-09-06** — see `docs/M3-tickets.md`. The
+cashout ticket information poll is modelled from the library's handler and answered by the
+software machine, which is silent under the enhanced styles the way section 15.5 asks; a wire
+field can be compared against the ticket the printer filed, which is the only way to say the host
+was told about that ticket rather than about a plausible number; and the suite's honesty check
+now asks each conformance case to run or to say what it needs, with at least one running. On a
+real machine the case skips, because nothing here reads a validation style off the wire and fresh
+memory carries none — the golden image below is what changes that.
 
 ### Done ahead of M3, on 2026-09-05
 

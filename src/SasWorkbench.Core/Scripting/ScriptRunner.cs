@@ -365,7 +365,7 @@ public sealed class ScriptRunner
 
                 ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
 
-                ExpectFieldStep expect => CheckField(expect, engine, answered, at),
+                ExpectFieldStep expect => CheckField(expect, engine, answered, printed, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
@@ -759,8 +759,38 @@ public sealed class ScriptRunner
     private static string Shown(string value) => value.Length == 0 ? "unset" : value;
 
     private static StepResult CheckField(
-        ExpectFieldStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
+        ExpectFieldStep step,
+        PollEngine engine,
+        AnsweredPolls answered,
+        PrintedTickets printed,
+        TimeSpan at)
     {
+        //  Resolved before the poll is read, so a comparison against a ticket that was never
+        //  printed says that rather than blaming the reply.
+        long? fromTicket = null;
+        if (step.ExpectedTicketField is not null)
+        {
+            if (printed.Current is not { } paper)
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Error,
+                    Reason: "there is no printed ticket to compare against; "
+                        + "expect one printed first",
+                    At: at);
+            }
+
+            string written = TicketFields.Find(step.ExpectedTicketField)!.Format(paper.Ticket);
+            if (!long.TryParse(written, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out long parsed))
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Error,
+                    Reason: $"{paper.FileName}: {step.ExpectedTicketField} is "
+                        + $"{Shown(written)}, which is not a number",
+                    At: at);
+            }
+
+            fromTicket = parsed;
+        }
+
         SasMessageLayout? layout = SasLayouts.For(step.Command);
         if (layout is null)
         {
@@ -799,7 +829,20 @@ public sealed class ScriptRunner
         bool held;
         string actualText;
 
-        if (step.ExpectedText is not null)
+        if (fromTicket is { } wanted)
+        {
+            if (value.Number is not { } reported)
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                    Expected: step.Describe(),
+                    Actual: $"'{step.Field}' is {value.ToHex()}, which is not a number",
+                    At: at) { IsAssertion = true };
+            }
+
+            actualText = reported.ToString(CultureInfo.InvariantCulture);
+            held = Compare(reported, step.Comparison, wanted);
+        }
+        else if (step.ExpectedText is not null)
         {
             actualText = value.Text ?? value.ToHex();
             bool same = string.Equals(actualText, step.ExpectedText, StringComparison.Ordinal);
@@ -822,7 +865,8 @@ public sealed class ScriptRunner
             step.Location,
             step.Describe(),
             held ? Verdict.Pass : Verdict.Fail,
-            Expected: step.ExpectedText ?? step.ExpectedNumber?.ToString(),
+            Expected: fromTicket?.ToString(CultureInfo.InvariantCulture)
+                ?? step.ExpectedText ?? step.ExpectedNumber?.ToString(),
             Actual: actualText,
             At: at) { IsAssertion = true };
     }

@@ -132,6 +132,32 @@ public class MessageDecoderTests
         Assert.Empty(decoded.Violations);
     }
 
+    /// <summary>
+    /// The cashout ticket information reply, byte for byte against the offsets the library's own
+    /// handler writes: the number at bytes two to five and the amount at six to ten, with no
+    /// length byte between them. The widths are what this pins - a validation number read as five
+    /// bytes and an amount as four would decode without complaint and be wrong about both.
+    /// </summary>
+    [Fact]
+    public void Decodes_the_cashout_ticket_information_reply()
+    {
+        byte[] frame = Convert.FromHexString("013D" + "12345678" + "0000002000" + "0000");
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(SasLayouts.For(0x3D)!, frame);
+
+        Assert.True(decoded.Succeeded, decoded.Failure);
+        Assert.Equal(12345678, decoded.Number("validation_number"));
+        Assert.Equal(2000, decoded.Number("ticket_amount"));
+        Assert.Empty(decoded.Violations);
+    }
+
+    /// <summary>Eleven bytes and a check sequence, which is the length the handler declares.</summary>
+    [Fact]
+    public void The_cashout_ticket_information_reply_is_thirteen_bytes()
+    {
+        Assert.Equal(13, SasLayouts.For(0x3D)!.FixedResponseLength);
+    }
+
     [Fact]
     public void Reads_a_little_endian_field_least_significant_byte_first()
     {

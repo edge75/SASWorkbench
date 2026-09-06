@@ -357,6 +357,28 @@ public static class SasLayouts
                 ],
                 DerivedFrom = "lp2C_SendCurrentHopperLevel",
             },
+            // Standard validation's one command, and the only long poll whose answer is a
+            // property of the last ticket rather than of the machine's present state. The
+            // library reads the validation buffer at its write index, so what comes back is the
+            // most recently printed ticket - and there is no length byte, unlike the other
+            // ticket commands.
+            //
+            // A machine performing secure enhanced or system validation does not answer this at
+            // all, which is the library's own reading of section 15.5. Silence rather than a
+            // refusal: the two say different things, and only one of them is true.
+            new()
+            {
+                Command = 0x3D,
+                Name = "cashout_ticket_information",
+                Description = "The number and value of the ticket the machine printed most recently.",
+                Response =
+                [
+                    Bcd("validation_number", 4, SasUnit.None,
+                        "The number printed on the ticket, as eight digits."),
+                    Bcd("ticket_amount", 5, SasUnit.Cents, "What the ticket is worth."),
+                ],
+                DerivedFrom = "lp3D_SendCashoutTicketInformation",
+            },
             new()
             {
                 Command = 0x54,

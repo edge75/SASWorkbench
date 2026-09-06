@@ -52,6 +52,14 @@ public sealed class FakeEgm : IDisposable
     private long _billValueInDollars;
     private long _ticketsPrinted;
 
+    // The most recently printed ticket, which is what the cashout ticket information poll
+    // answers with. One record rather than the library's buffer of thirty-two: this fixture
+    // reads at the write index the way the library's handler does, and everything the buffer
+    // exists for - the unread-record count, the fifteen second reissue, the read index the
+    // enhanced styles advance - belongs to a style this machine does not perform.
+    private ulong _lastValidationNumber;
+    private long _lastTicketAmountCents;
+
     public FakeEgm(ISasTransport transport, FakeEgmOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
@@ -71,6 +79,9 @@ public sealed class FakeEgm : IDisposable
 
     /// <summary>The Table C-4 code this machine publishes as its accounting denomination.</summary>
     public byte DenominationCode { get; }
+
+    /// <summary>Which validation style this machine performs when it cashes out.</summary>
+    public SasCashoutValidation CashoutValidation => _options.CashoutValidation;
 
     /// <summary>What one accounting unit is worth, in cents.</summary>
     public int AccountingCents { get; }
@@ -299,6 +310,16 @@ public sealed class FakeEgm : IDisposable
         }
 
         TicketFile.Write(path, ticket, TicketEncoding.Json);
+
+        //  What the cashout ticket information poll will answer with, recorded before the
+        //  exception goes out so a host that reads the poll the instant it hears $3D is told
+        //  about this ticket rather than the one before it.
+        lock (_gate)
+        {
+            _lastValidationNumber = ticket.ValidationNumber;
+            _lastTicketAmountCents = ticket.AmountCents;
+        }
+
         RaiseException(SasExceptionCode.CashoutTicketPrinted);
         return ticket;
     }
@@ -505,6 +526,16 @@ public sealed class FakeEgm : IDisposable
             return;
         }
 
+        //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
+        //  validation does not answer the cashout ticket information poll at all. Silence rather
+        //  than a rejection, because the two say different things - a rejection would tell the
+        //  host the command was understood and refused, and this machine has not understood it.
+        if (command == (byte)SasLongPollCode.LP_SENDCASHOUTTICKETINFO
+            && _options.CashoutValidation != SasCashoutValidation.Standard)
+        {
+            return;
+        }
+
         SasMessageLayout? layout = SasLayouts.For(command);
         if (layout is null)
         {
@@ -659,12 +690,33 @@ public sealed class FakeEgm : IDisposable
         0x7E => DateAndTime(),
         0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
         0x6F or 0xAF => SelectedMeters(request),
+        0x3D => LastCashout(),
         0x70 => TicketInEscrow(),
         0x71 => RedeemTicket(request),
 
         // Everything else has a layout but no source of values here.
         _ => null,
     };
+
+    /// <summary>
+    /// The number and value of the ticket this machine printed most recently.
+    /// </summary>
+    /// <remarks>
+    /// Zero and zero until something has been cashed out, which is what a machine on fresh
+    /// memory answers: the record is real and empty rather than absent, so a host asking before
+    /// anything has been printed gets a well-formed reply saying nothing has.
+    /// </remarks>
+    private Dictionary<string, object> LastCashout()
+    {
+        lock (_gate)
+        {
+            return new Dictionary<string, object>
+            {
+                ["validation_number"] = (long)_lastValidationNumber,
+                ["ticket_amount"] = _lastTicketAmountCents,
+            };
+        }
+    }
 
     /// <summary>
     /// Says whether a ticket is being held, and quotes the number printed on it.

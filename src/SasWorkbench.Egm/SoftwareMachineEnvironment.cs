@@ -1,3 +1,4 @@
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
 
@@ -128,10 +129,23 @@ public static class SoftwareMachineEnvironment
             //  The wallet comes from the run rather than from here, so the directory this machine
             //  prints into is by construction the one the host reads.
             var stimulus = new SoftwareMachineStimulus(machine, options.WalletDirectory);
+
+            //  Taken from the machine rather than from the stimulus table, because it is a fact
+            //  about the machine: what a script can drive and what the machine is configured to
+            //  do are different questions, and only the machine can answer the second one. A
+            //  real peer publishes this in its enabled-features reply, which this build cannot
+            //  decode - so there the capability is absent and a case that needs it skips saying
+            //  so, rather than being told what our own fixture happens to be in.
+            var capabilities = new Dictionary<string, string?>(
+                stimulus.Capabilities, StringComparer.OrdinalIgnoreCase)
+            {
+                ["egm.validation"] = SasNames.Underscore(machine.CashoutValidation.ToString()),
+            };
+
             return new ScriptEnvironment(
                 bus.Host,
                 stimulus,
-                stimulus.Capabilities,
+                capabilities,
                 new Composite(machine, bus));
         };
 

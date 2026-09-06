@@ -1,3 +1,4 @@
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Egm;
@@ -87,6 +88,17 @@ public sealed record FakeEgmOptions
     /// exists to let a test catch.
     /// </remarks>
     public int CentsPerGameCredit { get; init; } = 100;
+
+    /// <summary>
+    /// Which validation style this machine performs when it cashes out.
+    /// </summary>
+    /// <remarks>
+    /// Standard, because that is what a machine on fresh memory is in and what the cashout
+    /// ticket information poll is defined against. The enhanced styles are named here so a test
+    /// can build a machine that refuses that poll, which is the behaviour section 15.5 asks for
+    /// and the one a script has no other way to see.
+    /// </remarks>
+    public SasCashoutValidation CashoutValidation { get; init; } = SasCashoutValidation.Standard;
 
     /// <summary>
     /// How many coins are in the hopper. Machine state rather than a meter, because the library

@@ -677,6 +677,41 @@ public static class ScriptParser
             string.Equals(f.Name, fieldName, StringComparison.OrdinalIgnoreCase));
         bool textual = declared?.Encoding is SasFieldEncoding.Ascii or SasFieldEncoding.Raw;
 
+        // A reply compared against the ticket the machine printed rather than against a literal.
+        // Resolved now, so a ticket field that does not exist is a mistake in the script; and
+        // restricted to the numeric ticket fields, because comparing a printed date against a
+        // BCD reply is a question nobody meant to ask.
+        if (expected.StartsWith("ticket.", StringComparison.OrdinalIgnoreCase))
+        {
+            string ticketFieldName = expected["ticket.".Length..];
+            TicketField? ticketField = TicketFields.Find(ticketFieldName);
+            if (ticketField is null)
+            {
+                throw new ScriptParseException(location,
+                    $"a ticket has no field '{ticketFieldName}'. Its fields are: "
+                    + string.Join(", ", TicketFields.All.Select(f => f.Name)));
+            }
+
+            if (ticketField.Kind is not (TicketFieldKind.Number or TicketFieldKind.Digits))
+            {
+                throw new ScriptParseException(location,
+                    $"'ticket.{ticketField.Name}' is not a number, so a long poll field cannot be "
+                    + "compared against it");
+            }
+
+            if (textual)
+            {
+                throw new ScriptParseException(location,
+                    $"'{fieldName}' holds text, so it cannot be compared against "
+                    + $"'ticket.{ticketField.Name}', which is a number");
+            }
+
+            return new ExpectFieldStep(location, command, fieldName, comparison, null, null)
+            {
+                ExpectedTicketField = ticketField.Name,
+            };
+        }
+
         // The same rule as a command's fields: a plain number is decimal, a hex code is written
         // with a dollar sign, and the library's own names for a code are accepted. Which matters
         // most for a status byte — 'machine_status == 40' reads as decimal forty and is not the

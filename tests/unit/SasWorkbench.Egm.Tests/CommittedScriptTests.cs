@@ -111,34 +111,46 @@ public class CommittedScriptTests
     }
 
     /// <summary>
-    /// This is the honesty check for the milestone. The conformance test asks for the validation
-    /// configuration, which nothing here can provide yet, so it must report as skipped with that
-    /// reason — not pass, not fail, and not quietly be missing from the suite.
+    /// The honesty check for the conformance tree. A case there either runs against the machine
+    /// this suite can assemble, or says what it needs and skips; it never fails, because a case
+    /// the environment cannot host is not evidence about the machine. The passing count is
+    /// asserted too: a tree where everything skips proves nothing, and would look identical to
+    /// one where the runner had quietly stopped executing anything.
     /// </summary>
     [Fact]
-    public void The_conformance_test_reports_as_skipped_and_says_what_is_missing()
+    public void Every_conformance_case_either_runs_or_says_what_it_needs()
     {
         IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(Suite("conformance"));
+
+        string wallet = Path.Combine(Path.GetTempPath(), "saswb-conformance-" + Guid.NewGuid().ToString("N"));
 
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            QuietGap = TimeSpan.FromMilliseconds(15),
+            WalletDirectory = wallet,
         });
 
-        RunReport report = runner.RunAll(documents, TestContext.Current.CancellationToken);
+        RunReport report;
+        try
+        {
+            report = runner.RunAll(documents, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            if (Directory.Exists(wallet))
+                Directory.Delete(wallet, recursive: true);
+        }
 
         Assert.NotEmpty(report.Tests);
-        Assert.Equal(0, report.Passed);
         Assert.Equal(0, report.Failed);
-        Assert.All(report.Tests, test =>
-        {
-            Assert.Equal(Verdict.Skip, test.Verdict);
-            Assert.False(string.IsNullOrWhiteSpace(test.SkipReason));
-        });
+        Assert.Equal(0, report.Errored);
+        Assert.True(report.Passed > 0, "no conformance case ran: " + Explain(report));
 
-        Assert.Equal(Verdict.Skip, report.Verdict);
-        Assert.Equal(3, report.ExitCode);
+        Assert.All(report.Tests, test => Assert.True(
+            test.Verdict != Verdict.Skip || !string.IsNullOrWhiteSpace(test.SkipReason),
+            $"{test.Name} was skipped without saying why"));
     }
 }
