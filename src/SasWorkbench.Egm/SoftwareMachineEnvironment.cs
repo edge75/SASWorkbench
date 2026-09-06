@@ -13,7 +13,7 @@ namespace SasWorkbench.Egm;
 /// Doors are modelled by the protocol door rather than by a physical switch, which is what lets
 /// one script run against both this peer and a real machine.
 /// </remarks>
-public sealed class SoftwareMachineStimulus(FakeEgm machine) : IStimulusBackend
+public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirectory) : IStimulusBackend
 {
     public StimulusBackend Kind => StimulusBackend.Software;
 
@@ -54,6 +54,14 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine) : IStimulusBackend
             // honest outcome rather than a reason to leave the step unsupported.
             case SettleStep:
                 machine.Settle();
+                return;
+
+            //  The only button this machine has. A collect on an empty machine prints nothing,
+            //  which is what a real one does too, so it is not an error - the assertion waiting
+            //  for a ticket is what reports it, and reports it as the machine having no money on
+            //  it rather than as a button that does not exist.
+            case PressButtonStep press when press.Button is "collect":
+                machine.Cashout(walletDirectory);
                 return;
 
             case DoorStep door:
@@ -106,7 +114,9 @@ public static class SoftwareMachineEnvironment
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();
 
-            var stimulus = new SoftwareMachineStimulus(machine);
+            //  The wallet comes from the run rather than from here, so the directory this machine
+            //  prints into is by construction the one the host reads.
+            var stimulus = new SoftwareMachineStimulus(machine, options.WalletDirectory);
             return new ScriptEnvironment(
                 bus.Host,
                 stimulus,

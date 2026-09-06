@@ -269,3 +269,34 @@ public sealed record SettleStep(SourceLocation Location) : StimulusStep(Location
 
     public override string Describe() => "settle to a known state";
 }
+
+/// <summary>
+/// Waits for the machine's printer to file a ticket in the wallet, and remembers it so the
+/// assertions that follow have something to be about.
+/// </summary>
+/// <remarks>
+/// This is an observation of the machine rather than of the wire: a ticket is a thing the printer
+/// produced, and the host learns of it by reading the directory all three programs share. What the
+/// printer was told is all the ticket carries — a pool, a validation system, an asset number and a
+/// location are never handed to it, so a test that wants those checks them against its own record
+/// of what it sent, not against the paper.
+/// </remarks>
+public sealed record ExpectTicketStep(SourceLocation Location, TimeSpan Within) : ScriptStep(Location)
+{
+    public override string Describe() => $"expect a ticket printed within {Within.TotalSeconds:0.##}s";
+}
+
+/// <summary>Asserts one field of the ticket the machine last printed.</summary>
+public sealed record ExpectTicketFieldStep(
+    SourceLocation Location,
+    string Field,
+    SasComparison Comparison,
+    long? ExpectedNumber,
+    string? ExpectedText) : ScriptStep(Location)
+{
+    public override string Describe()
+    {
+        string expected = ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
+        return $"expect ticket {Field} {Comparison} {expected}";
+    }
+}

@@ -1,6 +1,7 @@
 using System.Globalization;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -449,6 +450,74 @@ public static class ScriptParser
         return new ExpectMeterStep(location, meterName, comparison, value, ReadWithin(words, 6, location));
     }
 
+    // egm expect ticket printed within 10s
+    // egm expect ticket amount_cents == 2000
+    //
+    // An observation of the machine rather than of the wire, so it is an 'egm' line: the ticket is
+    // read from the wallet the printer files into, not decoded from a reply.
+    private static ScriptStep ReadEgmExpect(string[] words, SourceLocation location)
+    {
+        if (words.Length < 4 || !words[2].Equals("ticket", StringComparison.OrdinalIgnoreCase))
+            throw new ScriptParseException(location,
+                "expected: egm expect ticket printed within <duration>, or "
+                + "egm expect ticket <field> <comparison> <value>");
+
+        if (words[3].Equals("printed", StringComparison.OrdinalIgnoreCase))
+        {
+            if (words.Length != 6 || !words[4].Equals("within", StringComparison.OrdinalIgnoreCase))
+                throw new ScriptParseException(location,
+                    "expected: egm expect ticket printed within <duration>");
+
+            return new ExpectTicketStep(location, ParseDuration(words[5], location));
+        }
+
+        string fieldName = words[3];
+
+        // A field a ticket does not have is a mistake in the script, so it stops the parse rather
+        // than failing halfway through a run. The names are the ones written in a ticket file, so
+        // the script and the file a person edits by hand say the same words.
+        TicketField? field = TicketFields.Find(fieldName);
+        if (field is null)
+        {
+            throw new ScriptParseException(location,
+                $"a ticket has no field '{fieldName}'. Its fields are: "
+                + string.Join(", ", TicketFields.All.Select(f => f.Name)));
+        }
+
+        if (words.Length < 6)
+            throw new ScriptParseException(location, $"'{fieldName}' needs a comparison and a value");
+
+        SasComparison comparison = words[4] switch
+        {
+            "==" => SasComparison.Equal,
+            "!=" => SasComparison.NotEqual,
+            ">=" => SasComparison.AtLeast,
+            "<=" => SasComparison.AtMost,
+            ">" => SasComparison.GreaterThan,
+            "<" => SasComparison.LessThan,
+            _ => throw new ScriptParseException(location,
+                $"'{words[4]}' is not a comparison. Expected ==, !=, >=, <=, > or <"),
+        };
+
+        string expected = string.Join(' ', words[5..]);
+
+        // As with a wire field, what decides text from number is the field, not whether the
+        // literal happens to look numeric. A validation number is sixteen digits and is compared
+        // as a number; an expiration date is 2026-09-06 and is not.
+        bool numeric = field.Kind is TicketFieldKind.Number or TicketFieldKind.Digits;
+        if (numeric
+            && long.TryParse(expected, NumberStyles.Integer, CultureInfo.InvariantCulture, out long number))
+        {
+            return new ExpectTicketFieldStep(location, field.Name, comparison, number, null);
+        }
+
+        if (comparison is not (SasComparison.Equal or SasComparison.NotEqual))
+            throw new ScriptParseException(location,
+                $"'{expected}' can only be compared with == or !=");
+
+        return new ExpectTicketFieldStep(location, field.Name, comparison, null, expected);
+    }
+
     private static ExpectFieldStep ReadExpectField(
         TestBuilder test, string[] words, SourceLocation location)
     {
@@ -567,10 +636,14 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|play|press|door|settle ...");
+                "expected: egm bill|play|press|door|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
+            case "expect":
+                test.Steps.Add(ReadEgmExpect(words, location));
+                return;
+
             case "settle":
                 if (words.Length != 2)
                     throw new ScriptParseException(location, "expected: egm settle");

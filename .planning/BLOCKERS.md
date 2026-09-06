@@ -235,6 +235,15 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 * **Ticket-in / redeem cannot be stimulated today**: the HAL QPM never emits a ticket-pending
   event (`fPendingTicket` is only ever false; `bna_mask` carries notes only). Needs new code
   in qpm's HAL or an injected `qspTestTicketIn`.
+* **A simulated print never completes, and one cashout then stops the machine taking money.**
+  ✅ fixed 2026-09-06 in the substituted HAL. The platform clears its in-flight print only on
+  `D2C_PRINTER_PRINT_COMPLETE` (`QSP/src/LibPlatform/PrinterHandler.cpp:644-653`); on success the
+  print call itself clears nothing. QPM2's simulated printer returns success and raises no such
+  event, so the machine believes the printer is still busy for ever. **Measured, not argued:** the
+  first cashout printed correctly, and every note offered afterwards was refused — the bill meters
+  did not move and no `$4A` arrived — until the event was delivered. There is a watchdog
+  (`PrinterStatusGating.h:119`) that releases the busy mark, but the queued print-complete callback
+  is still never called, so the machine does not recover on its own.
 * **Game outcomes are nondeterministic**: `QSP_DemoOpenGL/src/GameApplication/Rng.cpp` is
   seeded by `std::random_device` and advanced by a free-running background thread.
 * **`KeyboardIntrusion` preset appears stale** — missing `DemoApplication::FrameResized`,

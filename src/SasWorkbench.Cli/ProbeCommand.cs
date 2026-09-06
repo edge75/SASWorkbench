@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Qpm;
 
@@ -82,6 +83,11 @@ internal static class ProbeCommand
 
         Console.WriteLine();
         Console.WriteLine("What a test may require");
+
+        //  The wallet is added by a run rather than by the baseline, because the directory is a
+        //  setting of the run. Showing it here means the probe lists what a run would actually
+        //  offer rather than a subset of it.
+        capabilities = capabilities.With(CapabilityProbe.ForWallet(TicketWallet.DefaultDirectory));
         foreach (string name in capabilities.Names)
         {
             string? value = capabilities.Value(name);
@@ -90,7 +96,8 @@ internal static class ProbeCommand
 
         Console.WriteLine();
         Console.WriteLine("Not available yet, and why");
-        Console.WriteLine("  printer            the ticket printer arrives with the ticket work");
+        Console.WriteLine("  printer            whether the machine has one, and whether its protocol "
+            + "is set, is a property of the machine and is not readable from here");
         if (refusal is not null)
             Console.WriteLine($"  stimulus.qpm       {refusal}");
         Console.WriteLine("  egm.validation     nothing here reads the machine's validation setting");

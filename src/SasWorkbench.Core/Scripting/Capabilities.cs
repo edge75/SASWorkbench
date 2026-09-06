@@ -131,6 +131,35 @@ public static class CapabilityProbe
         return new CapabilitySet(values);
     }
 
+    /// <summary>
+    /// What being able to read the wallet adds.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not called 'printer'. Whether the machine has a printer, and whether it is
+    /// configured well enough to use one, is a property of the machine and is not knowable from
+    /// here - on fresh memory the printer protocol is unset and no ticket can be produced at all.
+    /// What this host can honestly claim is narrower: that there is a directory a printed ticket
+    /// would land in and that it can read it. A machine that then prints nothing fails the
+    /// assertion that was waiting, which is a true statement about that machine rather than a
+    /// missing capability of ours.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string?> ForWallet(string directory)
+    {
+        var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            values["printer.wallet"] = directory;
+        }
+        catch (Exception problem) when (problem is IOException or UnauthorizedAccessException)
+        {
+            // Absent, so a test that needs it skips naming the directory rather than failing.
+        }
+
+        return values;
+    }
+
     /// <summary>What a stimulus backend adds.</summary>
     public static IReadOnlyDictionary<string, string?> ForStimulus(StimulusBackend backend) =>
         backend switch
@@ -141,6 +170,7 @@ public static class CapabilityProbe
                 ["stimulus.bill"] = "yes",
                 ["stimulus.play"] = "yes",
                 ["stimulus.settle"] = "yes",
+                ["stimulus.button.collect"] = "yes",
                 ["stimulus.door.slot"] = "yes",
                 ["stimulus.door.main"] = "yes",
                 ["stimulus.door.card_cage"] = "yes",

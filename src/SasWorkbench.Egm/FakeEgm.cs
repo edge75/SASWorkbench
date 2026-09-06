@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -48,6 +49,7 @@ public sealed class FakeEgm : IDisposable
     // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
     // currency units and does not move when the accounting denomination does.
     private long _billValueInDollars;
+    private long _ticketsPrinted;
 
     public FakeEgm(ISasTransport transport, FakeEgmOptions? options = null)
     {
@@ -243,6 +245,61 @@ public sealed class FakeEgm : IDisposable
         Meters.Increment(SasMeterCode.TotalDropIn_Crd, credits);
         Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
         RaiseException(exception);
+    }
+
+    /// <summary>
+    /// Cashes the machine out: every credit on it becomes one printed ticket, filed in the wallet
+    /// the way a real machine's printer files one.
+    /// </summary>
+    /// <remarks>
+    /// A cashout takes the whole credit meter rather than the last note put in, which is what a
+    /// collect button does on a real machine and what the same script measured against one.
+    /// The ticket is written into the same directory the host reads, so the two peers of D7 are
+    /// answering the same question rather than two similar ones.
+    /// </remarks>
+    /// <param name="walletDirectory">Where the printed ticket is filed.</param>
+    /// <returns>The ticket printed, or null when the machine had no credits to cash out.</returns>
+    public Ticket? Cashout(string walletDirectory)
+    {
+        long credits = Meters.Read(SasMeterCode.CurrentCredits);
+        if (credits <= 0)
+            return null;
+
+        long cents = credits * AccountingCents;
+        Meters.SetCurrentCredits(0);
+        Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
+        Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
+
+        DateTime printedAt = DateTime.Now;
+        uint number = (uint)Interlocked.Increment(ref _ticketsPrinted);
+        var ticket = new Ticket
+        {
+            // Not a secure enhanced validation number, and not pretending to be one: this machine
+            // has no validation system, so the number is its own and says so by being short.
+            ValidationNumber = (ulong)(printedAt.Ticks % 100_000_000),
+            ValidationType = TicketValidationType.CashableFromCashout,
+            AmountCents = cents,
+            TicketNumber = number,
+            PrintedAt = printedAt,
+            Note = "printed by the software machine",
+        };
+
+        Directory.CreateDirectory(walletDirectory);
+        string path = Path.Combine(walletDirectory,
+            $"{number:D6}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
+
+        // Two tickets can carry the same number - this machine is rebuilt for every test - so a
+        // name already taken gets a suffix rather than overwriting what is there.
+        int suffix = 1;
+        while (File.Exists(path))
+        {
+            path = Path.Combine(walletDirectory,
+                $"{number:D6}-{suffix++}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
+        }
+
+        TicketFile.Write(path, ticket, TicketEncoding.Json);
+        RaiseException(SasExceptionCode.CashoutTicketPrinted);
+        return ticket;
     }
 
     /// <summary>

@@ -394,12 +394,12 @@ public class ScriptRunnerTests
             host connect loopback address 01
             host poll every 20ms
             host expect link up within 2s
-            egm press collect
+            egm press service
             """);
 
         Assert.Equal(Verdict.Skip, result.Verdict);
         StepResult skipped = result.Steps.Single(s => s.Verdict == Verdict.Skip);
-        Assert.Contains("stimulus.button.collect", skipped.Reason!);
+        Assert.Contains("stimulus.button.service", skipped.Reason!);
     }
 
     /// <summary>

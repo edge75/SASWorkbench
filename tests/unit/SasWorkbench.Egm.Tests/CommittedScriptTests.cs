@@ -53,15 +53,29 @@ public class CommittedScriptTests
     {
         IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(Suite("regression"));
 
+        //  A wallet of its own, so a suite run here never writes into the one a real machine
+        //  and the peripheral simulator share, and two runs cannot see each other's tickets.
+        string wallet = Path.Combine(Path.GetTempPath(), "saswb-suite-" + Guid.NewGuid().ToString("N"));
+
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
             QuietGap = TimeSpan.FromMilliseconds(15),
+            WalletDirectory = wallet,
         });
 
-        RunReport report = runner.RunAll(documents, TestContext.Current.CancellationToken);
+        RunReport report;
+        try
+        {
+            report = runner.RunAll(documents, TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            if (Directory.Exists(wallet))
+                Directory.Delete(wallet, recursive: true);
+        }
 
         Assert.True(report.Verdict == Verdict.Pass, Explain(report));
         Assert.Equal(0, report.Failed);

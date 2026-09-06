@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using SasWorkbench.Core.Tickets;
+using System.Globalization;
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
@@ -46,6 +48,16 @@ public sealed record ScriptRunnerOptions
     /// live, and puts the run's steps on the same clock as the wire it produced.
     /// </summary>
     public SessionLog? Log { get; init; }
+
+    /// <summary>
+    /// The directory the machine's printer files its tickets in, and the one this host reads.
+    /// </summary>
+    /// <remarks>
+    /// The default is the wallet the peripheral simulator uses, because the two have to agree:
+    /// a host reading one directory while the machine writes another finds nothing and reports it
+    /// as a machine that did not print.
+    /// </remarks>
+    public string WalletDirectory { get; init; } = TicketWallet.DefaultDirectory;
 }
 
 /// <summary>
@@ -174,6 +186,7 @@ public sealed class ScriptRunner
         {
             CapabilitySet capabilities = baseline
                 .With(environment.ExtraCapabilities)
+                .With(CapabilityProbe.ForWallet(_options.WalletDirectory))
                 .With($"transport.{environment.HostTransport.Capabilities.Kind}"
                     .ToLowerInvariant(), "yes");
 
@@ -245,6 +258,10 @@ public sealed class ScriptRunner
         var baselines = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
         var window = new LastStimulus();
         var answered = new AnsweredPolls();
+        var printed = new PrintedTickets(_options.WalletDirectory);
+
+        //  Everything already in the wallet belongs to whatever ran before this test.
+        printed.Baseline();
 
         using (engine)
         {
@@ -270,7 +287,7 @@ public sealed class ScriptRunner
             foreach (ScriptStep step in test.Steps)
             {
                 StepResult result = RunStep(step, engine, environment, exceptions, consumed,
-                    test, baselines, window, answered, stopwatch.Elapsed);
+                    test, baselines, window, answered, printed, stopwatch.Elapsed);
                 steps.Add(result);
                 Log.Step(result, connect.Channel, testBase);
 
@@ -311,6 +328,7 @@ public sealed class ScriptRunner
         Dictionary<string, long> baselines,
         LastStimulus window,
         AnsweredPolls answered,
+        PrintedTickets printed,
         TimeSpan at)
     {
         try
@@ -340,6 +358,10 @@ public sealed class ScriptRunner
                 ExpectFieldStep expect => CheckField(expect, engine, answered, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
+
+                ExpectTicketStep expect => CheckTicketPrinted(expect, printed, at),
+
+                ExpectTicketFieldStep expect => CheckTicketField(expect, printed, at),
 
                 _ => new StepResult(step.Location, step.Describe(), Verdict.Error,
                     Reason: $"the runner does not implement '{step.GetType().Name}'", At: at),
@@ -650,6 +672,81 @@ public sealed class ScriptRunner
             _ => false,
         };
     }
+
+    private static StepResult CheckTicketPrinted(
+        ExpectTicketStep step, PrintedTickets printed, TimeSpan at)
+    {
+        PrintedTicket? ticket = printed.Take(step.Within, CancellationToken.None);
+        if (ticket is not null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+                Reason: $"{ticket.FileName}: {ticket.Ticket.AmountCents} cents, "
+                    + $"validation {ticket.Ticket.ValidationNumber}",
+                At: at);
+        }
+
+        // A file that would not read is the more useful answer when there is one: it says the
+        // machine did print and something about the ticket is wrong, which is a different problem
+        // from a machine that printed nothing.
+        string reason = printed.Problems.Count > 0
+            ? $"no ticket was printed within {step.Within.TotalSeconds:0.##}s. The wallet holds "
+                + $"{printed.Problems.Count} file(s) that would not read: "
+                + string.Join("; ", printed.Problems)
+            : $"no ticket was printed within {step.Within.TotalSeconds:0.##}s. Nothing new "
+                + $"appeared in {printed.Directory}";
+
+        return new StepResult(step.Location, step.Describe(), Verdict.Fail, Reason: reason, At: at);
+    }
+
+    private static StepResult CheckTicketField(
+        ExpectTicketFieldStep step, PrintedTickets printed, TimeSpan at)
+    {
+        if (printed.Current is not { } ticket)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Error,
+                Reason: "there is no printed ticket to assert on; expect one printed first",
+                At: at);
+        }
+
+        TicketField field = TicketFields.Find(step.Field)!;
+        string actual = field.Format(ticket.Ticket);
+
+        bool held;
+        if (step.ExpectedNumber is { } expected
+            && long.TryParse(actual, NumberStyles.Integer, CultureInfo.InvariantCulture, out long value))
+        {
+            held = step.Comparison switch
+            {
+                SasComparison.Equal => value == expected,
+                SasComparison.NotEqual => value != expected,
+                SasComparison.AtLeast => value >= expected,
+                SasComparison.AtMost => value <= expected,
+                SasComparison.GreaterThan => value > expected,
+                SasComparison.LessThan => value < expected,
+                _ => false,
+            };
+        }
+        else
+        {
+            string wanted = step.ExpectedText ?? step.ExpectedNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            bool same = string.Equals(actual, wanted, StringComparison.OrdinalIgnoreCase);
+            held = step.Comparison == SasComparison.NotEqual ? !same : same;
+        }
+
+        string wantedText = step.ExpectedText
+            ?? step.ExpectedNumber?.ToString(CultureInfo.InvariantCulture)
+            ?? "?";
+
+        return held
+            ? new StepResult(step.Location, step.Describe(), Verdict.Pass,
+                Reason: $"{ticket.FileName}: {step.Field} is {Shown(actual)}", At: at)
+            : new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Reason: $"{ticket.FileName}: {step.Field} is {Shown(actual)}, not {wantedText}",
+                At: at);
+    }
+
+    /// <summary>An empty field said as a word, so a message does not trail off into nothing.</summary>
+    private static string Shown(string value) => value.Length == 0 ? "unset" : value;
 
     private static StepResult CheckField(
         ExpectFieldStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
