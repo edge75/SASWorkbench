@@ -310,11 +310,12 @@ claim about this suite's flakiness has to name the load it was measured at.
 | | before | after |
 |---|---|---|
 | four assemblies, idle box | 4 of 10 failed (box busy) · 0 of 8 (box idle) | **0 of 10 failed** |
-| four assemblies + eight spinner processes | 7 of 8 failed | 5 of 10 failed, all honest silences |
+| four assemblies + eight spinner processes | 7 of 8 failed | **1 of 8 failed** |
 
-At eight spinners the box cannot honour a two-hundred-millisecond response timeout at all, which is
-the scheduler and not the code; every failure there now reads *the machine did not answer*, which is
-true. Nothing reports one command's answer under another command's name any more, at any load.
+The one remaining failure at eight spinners is honest: *the poll engine did not reach this command
+in time*, after three seconds of waiting for a thread on a box with twelve runnable processes. That
+is the scheduler, and it says so. **Nothing reports one command's answer under another command's
+name any more, at any load** — which is the property the suite needed before M4 widened anything.
 
 ---
 

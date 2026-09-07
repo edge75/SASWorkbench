@@ -174,8 +174,18 @@ all, which a script run could always say and a session could not.
 
 | contention | runs | runs with a failure |
 |---|---|---|
-| four assemblies + eight spinners, attribution fixed only | 10 | 6 — every one an honest silence |
-| four assemblies, idle box, attribution + turnaround | 10 | 2 — both an honest silence |
+| four assemblies, idle box | 10 | **0** |
+| four assemblies + eight spinners | 8 | **1** |
+
+The one failure at eight spinners is the honest form of the thing this document is about: *the poll
+engine did not reach this command in time*, after waiting three seconds for a thread on a box with
+twelve runnable processes. Nothing reports one command's answer under another command's name any
+more, at any load.
+
+Two intermediate measurements, because they say which change did what: with attribution fixed and
+nothing else, eight spinners still failed 6 runs in 10 — but every failure had become an honest
+silence rather than a wrong answer. Taking the timed wait out of the machines' turnaround and
+giving the fixtures a patient host is what moved the rate.
 
 ## What is still true, stated rather than discovered later
 
