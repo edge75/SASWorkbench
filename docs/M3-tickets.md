@@ -6,8 +6,9 @@ into a machine and a host redeems it; and GSA **10.1.3 Cashout Ticket 1** runs u
 the software machine. The memory image a real machine needs is done too — see
 `docs/M3-golden-memory.md`, where `10.1.1` passes against one. A run also explains itself packet by
 packet, either as it runs or afterwards from its own record — see `docs/M3-extended-log.md`, which
-also carries the fourth timestamp mode. What the milestone still owes is the accounting
-denomination in a script.
+also carries the fourth timestamp mode. The accounting denomination in a script is done too —
+see `docs/M3-accounting-denomination.md`, where six validation cases start measuring it. That was
+the last item in M3.
 
 ---
 

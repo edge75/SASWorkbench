@@ -27,7 +27,15 @@ public sealed record ScriptEnvironment(
 }
 
 /// <summary>Builds the environment a connect step asks for.</summary>
-public delegate ScriptEnvironment EnvironmentFactory(ConnectStep step, ScriptRunnerOptions options);
+/// <remarks>
+/// The declaration is handed over here rather than checked afterwards because a software machine
+/// has to be built in the configuration a case assumes, and the link opens before the first
+/// requirement is looked at. An environment that cannot honour it ignores it: the value is read
+/// back off the wire either way, so a case running against a machine it cannot configure is
+/// skipped rather than run against the wrong unit.
+/// </remarks>
+public delegate ScriptEnvironment EnvironmentFactory(
+    ConnectStep step, ScriptRunnerOptions options, MachineDeclaration? declared);
 
 /// <summary>
 /// The environments this assembly can build on its own: a real link to something already
@@ -42,7 +50,13 @@ public delegate ScriptEnvironment EnvironmentFactory(ConnectStep step, ScriptRun
 public static class DefaultEnvironment
 {
     /// <summary>Opens the link a connect step names, with no stimulus backend.</summary>
-    public static ScriptEnvironment Create(ConnectStep step, ScriptRunnerOptions options)
+    /// <remarks>
+    /// The declaration is not acted on: there is no machine here this build made, so there is
+    /// nothing to configure. It is read back off the wire by the runner like any other fact about
+    /// the machine.
+    /// </remarks>
+    public static ScriptEnvironment Create(
+        ConnectStep step, ScriptRunnerOptions options, MachineDeclaration? declared = null)
     {
         IStimulusBackend stimulus = options.Stimulus switch
         {

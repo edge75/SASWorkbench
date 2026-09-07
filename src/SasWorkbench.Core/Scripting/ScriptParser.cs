@@ -121,11 +121,123 @@ public static class ScriptParser
                 ReadEgm(test, words, location);
                 return;
 
+            case "machine":
+                ReadMachine(test, words, location);
+                return;
+
             default:
                 throw new ScriptParseException(location,
-                    $"'{words[0]}' is not a statement. Expected one of: requires, tag, note, "
-                    + "host, egm, test");
+                    $"'{words[0]}' is not a statement. Expected one of: requires, machine, tag, "
+                    + "note, host, egm, test");
         }
+    }
+
+    /// <summary>
+    /// Reads what a case assumes the machine is already in, rather than what it does to it.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a different word from <c>egm</c>: <c>machine</c> describes, <c>egm</c> acts.
+    /// The distinction is the whole of D36 — a declaration builds the software peer before the
+    /// link opens and is a precondition check on any other machine, while a setter is a stimulus
+    /// that a machine may refuse.
+    /// </remarks>
+    private static void ReadMachine(TestBuilder test, string[] words, SourceLocation location)
+    {
+        if (words.Length < 3)
+            throw new ScriptParseException(location, MachineUsage);
+
+        bool accounting = words[1].Equals("accounting", StringComparison.OrdinalIgnoreCase)
+                          && words[2].Equals("denomination", StringComparison.OrdinalIgnoreCase);
+        bool player = words[1].Equals("player", StringComparison.OrdinalIgnoreCase)
+                      && words[2].Equals("denominations", StringComparison.OrdinalIgnoreCase);
+
+        if (!accounting && !player)
+            throw new ScriptParseException(location, MachineUsage);
+
+        if (accounting)
+        {
+            if (test.Denomination is not null)
+                throw new ScriptParseException(location,
+                    "this case already declares an accounting denomination; a machine is in one "
+                    + "unit at a time");
+
+            (byte code, int cents) = ReadDenomination(words[3..], location);
+            test.Denomination = (code, cents);
+            test.DeclaredAt ??= location;
+            return;
+        }
+
+        if (words.Length < 4)
+            throw new ScriptParseException(location,
+                "expected: machine player denominations <cents>c [<cents>c ...]");
+
+        foreach (string word in words[3..])
+        {
+            if (!TryReadCents(word, out int cents))
+                throw new ScriptParseException(location,
+                    $"'{word}' is not a player denomination. Expected a number of cents such as "
+                    + "'10c'");
+            test.PlayerDenominations.Add(cents);
+        }
+
+        test.DeclaredAt ??= location;
+    }
+
+    private const string MachineUsage =
+        "expected: machine accounting denomination <cents>c|code <hex>, or "
+        + "machine player denominations <cents>c [<cents>c ...]";
+
+    /// <summary>
+    /// Reads a denomination written either as a number of cents or as a Table C-4 code.
+    /// </summary>
+    /// <remarks>
+    /// A bare number is refused rather than guessed at. '3' is ten cents as a code and three cents
+    /// as an amount, and the two readings differ by more than a factor of three on every credit
+    /// meter in the machine — so the script says which it means.
+    /// </remarks>
+    private static (byte Code, int Cents) ReadDenomination(string[] words, SourceLocation location)
+    {
+        if (words.Length == 2 && words[0].Equals("code", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!SasNames.TryParseCode(words[1], out byte code))
+                throw new ScriptParseException(location,
+                    $"'{words[1]}' is not a Table C-4 denomination code");
+
+            int? cents = SasDenomination.CentsOf(code);
+            if (cents is null)
+                throw new ScriptParseException(location,
+                    $"${code:X2} is not a denomination the protocol can express as an accounting "
+                    + "unit, so no machine can be in force at it");
+
+            return (code, cents.Value);
+        }
+
+        if (words.Length == 1 && TryReadCents(words[0], out int amount))
+        {
+            if (!MachineDeclaration.TryFromCents(amount, out byte code))
+                throw new ScriptParseException(location,
+                    $"{amount} cents is not in Table C-4, so no machine can be in force at it");
+
+            return (code, amount);
+        }
+
+        throw new ScriptParseException(location, MachineUsage);
+    }
+
+    /// <summary>Reads '10c' as ten cents. The suffix is what keeps it from being read as a code.</summary>
+    private static bool TryReadCents(string word, out int cents)
+    {
+        cents = 0;
+        string trimmed = word.TrimEnd(',');
+        if (trimmed.Length < 2
+            || (trimmed[^1] != 'c' && trimmed[^1] != 'C'))
+        {
+            return false;
+        }
+
+        return int.TryParse(trimmed[..^1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                   out cents)
+               && cents > 0;
     }
 
     private static void ReadRequires(TestBuilder test, string[] words, SourceLocation location)
@@ -748,7 +860,7 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|play|press|door|settle|expect ...");
+                "expected: egm bill|play|press|door|set|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -785,6 +897,19 @@ public static class ScriptParser
                 test.Steps.Add(new PressButtonStep(location, words[2].ToLowerInvariant()));
                 return;
 
+            case "set":
+                if (words.Length < 5
+                    || !words[2].Equals("accounting", StringComparison.OrdinalIgnoreCase)
+                    || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new ScriptParseException(location,
+                        "expected: egm set accounting denomination <cents>c|code <hex>");
+                }
+
+                (byte code, int unit) = ReadDenomination(words[4..], location);
+                test.Steps.Add(new SetDenominationStep(location, code, unit));
+                return;
+
             case "door":
                 if (words.Length != 4)
                     throw new ScriptParseException(location, "expected: egm door <name> open|close");
@@ -798,7 +923,7 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door or settle");
+                    + "press, door, set or settle");
         }
     }
 
@@ -1078,15 +1203,43 @@ public static class ScriptParser
 
         public List<ScriptStep> Steps { get; } = [];
 
-        public bool HasContent => Steps.Count > 0 || Requirements.Count > 0;
+        /// <summary>The accounting denomination declared, before it is joined to the player list.</summary>
+        public (byte Code, int Cents)? Denomination { get; set; }
+
+        public List<int> PlayerDenominations { get; } = [];
+
+        public SourceLocation? DeclaredAt { get; set; }
+
+        public bool HasContent =>
+            Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null;
 
         public ScriptTest Build() => new()
         {
             Name = name,
             Location = Location,
             Requirements = Requirements,
+            Machine = BuildDeclaration(),
             Tags = Tags,
             Steps = Steps,
         };
+
+        /// <summary>
+        /// Player denominations without an accounting denomination declare nothing a machine can
+        /// be built or checked against, so they are refused rather than kept and ignored.
+        /// </summary>
+        private MachineDeclaration? BuildDeclaration()
+        {
+            if (Denomination is not { } denomination)
+            {
+                return PlayerDenominations.Count == 0
+                    ? null
+                    : throw new ScriptParseException(DeclaredAt!,
+                        "player denominations say nothing on their own; declare the accounting "
+                        + "denomination they are meant to divide by");
+            }
+
+            return new MachineDeclaration(
+                DeclaredAt!, denomination.Code, denomination.Cents, PlayerDenominations);
+        }
     }
 }

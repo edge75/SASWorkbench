@@ -11,6 +11,8 @@ test "AD-33 the machine reply does not track the player's selection" {
   requires machine.multiple_denominations
   requires stimulus.select_game
 
+  machine accounting denomination 10c
+
   note "Enable several player denominations. Select each game in turn, reading the machine identification reply after each selection."
 
   host connect loopback address 01
@@ -31,6 +33,8 @@ test "AD-34 the per-game reply answers the same as the machine reply" {
   requires decoder.lp53
   requires machine.accounting_denomination
   requires machine.multiple_games
+
+  machine accounting denomination 10c
 
   host connect loopback address 01
   host poll every 200ms

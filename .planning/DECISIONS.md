@@ -434,6 +434,13 @@ need a memory clear, a power cycle, the configuration file, the audit pages, a h
 transfers, progressives, a bonus, or a second game. The suite does not go green because of this;
 it starts measuring something.
 
+**Built 2026-09-07, and the number measured was 6, not 7.** AD-37 needs a wager of twenty-five
+centavos, which needs a game credit worth twenty-five centavos, and nothing here can say what a
+game credit is worth — so it skips naming that rather than asserting a truncation it never caused.
+The declaration turned out to need a construct of its own rather than a `requires`, because a
+requirement is checked after the environment is built and cannot configure anything; the reasoning
+and the verification of which reply carries the value are in `docs/M3-accounting-denomination.md`.
+
 ---
 
 # Decisions 37–38

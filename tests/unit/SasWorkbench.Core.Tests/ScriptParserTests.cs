@@ -538,3 +538,160 @@ public class SasNamesTests
         Assert.False(SasNames.TryResolveException("$FE", out _));
     }
 }
+
+/// <summary>
+/// What a case declares about the machine it assumes, which is a different thing from what it
+/// requires of the environment and a different thing again from what it does to the machine.
+/// </summary>
+public class MachineDeclarationTests
+{
+    [Fact]
+    public void A_denomination_can_be_written_in_cents()
+    {
+        ScriptTest test = ScriptParser.Parse("machine accounting denomination 10c").Tests[0];
+
+        Assert.NotNull(test.Machine);
+        Assert.Equal(10, test.Machine!.Cents);
+        Assert.Equal(0x03, test.Machine.Code);
+        Assert.Equal("10c", test.Machine.Assumed);
+    }
+
+    [Fact]
+    public void A_denomination_can_be_written_as_a_table_code()
+    {
+        ScriptTest test = ScriptParser.Parse("machine accounting denomination code 03").Tests[0];
+
+        Assert.Equal(10, test.Machine!.Cents);
+        Assert.Equal(0x03, test.Machine.Code);
+    }
+
+    // A bare number is ambiguous - '3' is ten cents as a code and three cents as an amount - and
+    // the two readings differ by more than a factor of three on every credit meter in the machine.
+    [Fact]
+    public void A_bare_number_is_refused_rather_than_guessed_at()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(
+            () => ScriptParser.Parse("machine accounting denomination 3"));
+
+        Assert.Contains("code", problem.Reason, StringComparison.Ordinal);
+    }
+
+    // Code $1B is one of the five sub-cent codes, which exist in Table C-4 with a value of zero:
+    // a build that accepted one would divide by zero rather than refuse. Seven cents is simply not
+    // in the table - three cents is, at code $18, which is exactly why a script says which of the
+    // two things a bare number means.
+    [Theory]
+    [InlineData("machine accounting denomination code 1B")]
+    [InlineData("machine accounting denomination 7c")]
+    [InlineData("egm set accounting denomination 7c")]
+    public void A_unit_no_machine_can_be_in_force_at_is_refused(string line)
+    {
+        Assert.Throws<ScriptParseException>(() => ScriptParser.Parse(line));
+    }
+
+    // Every backend but the software machine refuses it, because no real machine can change the
+    // unit it counts in without a memory clear.
+    [Fact]
+    public void Only_the_software_machine_offers_the_setter()
+    {
+        Assert.True(CapabilityProbe.ForStimulus(StimulusBackend.Software)
+            .ContainsKey("stimulus.accounting_denomination"));
+
+        foreach (StimulusBackend backend in new[]
+                 { StimulusBackend.Manual, StimulusBackend.Qpm, StimulusBackend.None })
+        {
+            Assert.False(CapabilityProbe.ForStimulus(backend)
+                .ContainsKey("stimulus.accounting_denomination"));
+        }
+    }
+
+    // And a backend that does not offer it refuses the step with the reason, so the case skips -
+    // the same treatment a door nobody has wired gets.
+    [Fact]
+    public void A_backend_that_cannot_reconfigure_refuses_the_setter_with_a_reason()
+    {
+        var step = (StimulusStep)ScriptParser
+            .Parse("egm set accounting denomination 10c").Tests[0].Steps[0];
+
+        StimulusUnavailableException refused = Assert.Throws<StimulusUnavailableException>(
+            () => new NoStimulusBackend().Apply(step));
+
+        Assert.Contains("stimulus.accounting_denomination", refused.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_second_declaration_is_a_contradiction()
+    {
+        ScriptParseException problem = Assert.Throws<ScriptParseException>(
+            () => ScriptParser.Parse("""
+                machine accounting denomination 10c
+                machine accounting denomination 5c
+                """));
+
+        Assert.Contains("one unit at a time", problem.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Player_denominations_join_the_declaration()
+    {
+        ScriptTest test = ScriptParser.Parse("""
+            machine accounting denomination 10c
+            machine player denominations 10c 25c 50c
+            """).Tests[0];
+
+        Assert.Equal([10, 25, 50], test.Machine!.PlayerDenominationsInCents);
+    }
+
+    // On their own they declare nothing a machine can be built or checked against.
+    [Fact]
+    public void Player_denominations_alone_are_refused()
+    {
+        Assert.Throws<ScriptParseException>(
+            () => ScriptParser.Parse("machine player denominations 10c 25c"));
+    }
+
+    [Fact]
+    public void The_setter_is_a_stimulus_step()
+    {
+        ScriptTest test = ScriptParser.Parse("egm set accounting denomination 10c").Tests[0];
+
+        var step = Assert.IsType<SetDenominationStep>(Assert.Single(test.Steps));
+        Assert.Equal(0x03, step.Code);
+        Assert.Equal("stimulus.accounting_denomination", step.RequiredCapability);
+        Assert.Null(test.Machine);
+    }
+
+    // The declaration is checked by the same path as a capability the machine answers for, so an
+    // unmet one is a skip with a reason rather than a failure.
+    [Fact]
+    public void The_declaration_becomes_a_requirement_the_machine_answers()
+    {
+        ScriptTest test = ScriptParser.Parse("machine accounting denomination 10c").Tests[0];
+        Requirement requirement = test.Machine!.AsRequirement();
+
+        Assert.True(CapabilityProbe.IsAskedOfTheMachine(requirement.Key));
+        Assert.Equal("10c", requirement.ExpectedValue);
+    }
+
+    [Fact]
+    public void A_declaration_written_in_the_other_form_reads_the_same()
+    {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".yaml");
+        File.WriteAllText(path, """
+            name: ten centavos
+            steps:
+              - machine accounting denomination 10c
+              - host connect loopback address 01
+            """);
+
+        try
+        {
+            ScriptTest test = YamlScriptReader.ParseFile(path).Tests[0];
+            Assert.Equal(10, test.Machine!.Cents);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+}

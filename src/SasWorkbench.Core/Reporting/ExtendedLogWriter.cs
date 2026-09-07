@@ -146,6 +146,9 @@ public sealed class ExtendedLogWriter : IReportWriter
             }
         }
 
+        if (test.Machine is { } declared)
+            Pair(builder, "assumes", $"{declared}   (declared at line {declared.Location.Line})");
+
         Pair(builder, "does", Shape(test));
 
         if (test.Provenance is { } provenance)

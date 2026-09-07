@@ -208,7 +208,15 @@ public static class CapabilityProbe
     /// thing it can be read from is the machine.
     /// </remarks>
     public static readonly IReadOnlySet<string> AskedOfTheMachine =
-        new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "egm.validation" };
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "egm.validation",
+
+            // The accounting denomination is the same kind of fact and is read the same way. A
+            // memory clear establishes it, so no host can set it and no build can know it; the
+            // identification reply is where the machine publishes it.
+            MachineDeclaration.Capability,
+        };
 
     /// <summary>True when a requirement can only be answered by the machine on the link.</summary>
     public static bool IsAskedOfTheMachine(string key) => AskedOfTheMachine.Contains(key);
@@ -231,57 +239,132 @@ public static class CapabilityProbe
     /// That is the honest answer for a test running on that link, and it is all one link can know.
     /// </para>
     /// </remarks>
-    public static MachineAnswers FromMachine(PollEngine engine)
+    public static MachineAnswers FromMachine(PollEngine engine, IEnumerable<string>? wanted = null)
     {
         ArgumentNullException.ThrowIfNull(engine);
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 
+        // Only what a case actually asked about is put on the link. A probe nobody needed is
+        // traffic in somebody's log and a long poll in somebody's coverage tally, and neither
+        // belongs to the run that person is reading.
+        IReadOnlySet<string> asked = wanted is null
+            ? AskedOfTheMachine
+            : new HashSet<string>(wanted, StringComparer.OrdinalIgnoreCase);
+
+        string? whyNot = null;
+
+        if (asked.Contains("egm.validation"))
+            whyNot = AskValidation(engine, values);
+
+        if (asked.Contains(MachineDeclaration.Capability))
+            whyNot = AskAccountingDenomination(engine, values) ?? whyNot;
+
+        return new MachineAnswers(values, whyNot);
+    }
+
+    /// <summary>Reads the machine's validation style out of its enabled-features reply.</summary>
+    private static string? AskValidation(PollEngine engine, Dictionary<string, string?> values)
+    {
         SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDENABLEFEATURES)!;
 
         // Game zero, which is the machine as a whole rather than any one of its games.
-        LongPollResult result = engine.Execute(
-            layout.Command, [0x00, 0x00], purpose: WirePurpose.CapabilityProbe);
-
-        // A command the engine never got as far as sending says nothing about the machine, so it
-        // is asked again rather than reported as a machine that stayed quiet. Once: a second
-        // failure to reach the wire is a link worth hearing about, not something to grind on.
-        if (result.Outcome == LongPollOutcome.NotSent)
-            result = engine.Execute(
-                layout.Command, [0x00, 0x00], purpose: WirePurpose.CapabilityProbe);
-
-        if (result.Outcome == LongPollOutcome.NotSent)
+        if (Ask(engine, layout, [0x00, 0x00]) is not { } result)
         {
-            return new MachineAnswers(values,
-                "the enabled-features poll could not be put on the link, so nothing was asked of "
-                + "the machine at all");
+            return "the enabled-features poll could not be put on the link, so nothing was asked "
+                   + "of the machine at all";
         }
 
         if (!result.Succeeded)
         {
-            return new MachineAnswers(values,
-                $"the machine did not answer the enabled-features poll ({result.Outcome}), so "
-                + "what it is cannot be read off this link");
+            return $"the machine did not answer the enabled-features poll ({result.Outcome}), so "
+                   + "what it is cannot be read off this link";
         }
 
         SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
         if (decoded.Number("validation_style") is not { } style)
         {
-            return new MachineAnswers(values,
-                "the machine's enabled-features reply could not be decoded: "
-                + (decoded.Failure ?? "it carries no validation style"));
+            return "the machine's enabled-features reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no validation style");
         }
 
         // The fourth value is assigned to no style. A machine reporting it is misconfigured, and
         // saying so beats naming a style nobody defined.
         if (style is < 0 or > 2)
+            return $"the machine reports validation style {style}, which is assigned to no style";
+
+        values["egm.validation"] = SasNames.Underscore(((SasCashoutValidation)style).ToString());
+        return null;
+    }
+
+    /// <summary>
+    /// Reads the accounting denomination the machine is in force at, off its identification reply.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Verified against the library's own handler rather than argued from the specification: the
+    /// identification reply's denomination byte is filled from the machine's stored accounting
+    /// denomination, and so is the same byte in the per-game configuration reply. The denomination
+    /// the player has currently selected is a different value, kept in a different place, answered
+    /// by a different poll, and silent altogether unless the machine is multi-denomination - so it
+    /// cannot stand in for this one.
+    /// </para>
+    /// <para>
+    /// The answer is in cents rather than as a code, because a code names a unit only to somebody
+    /// holding Table C-4, and this value ends up in a skip a person has to act on.
+    /// </para>
+    /// </remarks>
+    private static string? AskAccountingDenomination(
+        PollEngine engine, Dictionary<string, string?> values)
+    {
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDMACHINEID_INFO)!;
+
+        if (Ask(engine, layout, []) is not { } result)
         {
-            return new MachineAnswers(values,
-                $"the machine reports validation style {style}, which is assigned to no style");
+            return "the machine identification poll could not be put on the link, so what unit "
+                   + "the machine counts in was never asked";
         }
 
-        values["egm.validation"] =
-            SasNames.Underscore(((SasCashoutValidation)style).ToString());
-        return new MachineAnswers(values, null);
+        if (!result.Succeeded)
+        {
+            return $"the machine did not answer the identification poll ({result.Outcome}), so "
+                   + "the unit it counts in cannot be read off this link";
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("denomination") is not { } code)
+        {
+            return "the machine's identification reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no denomination");
+        }
+
+        if (code is < 0 or > SasDenomination.LastCode
+            || SasDenomination.CentsOf((byte)code) is not { } cents)
+        {
+            return $"the machine reports denomination code ${code:X2}, which Table C-4 gives no "
+                   + "value as an accounting unit";
+        }
+
+        values[MachineDeclaration.Capability] = MachineDeclaration.Describe(cents);
+        return null;
+    }
+
+    /// <summary>
+    /// Puts one probe on the link, and null when it never got there.
+    /// </summary>
+    /// <remarks>
+    /// A command the engine never got as far as sending says nothing about the machine, so it is
+    /// asked again rather than reported as a machine that stayed quiet. Once: a second failure to
+    /// reach the wire is a link worth hearing about, not something to grind on.
+    /// </remarks>
+    private static LongPollResult? Ask(PollEngine engine, SasMessageLayout layout, byte[] data)
+    {
+        LongPollResult result = engine.Execute(
+            layout.Command, data, purpose: WirePurpose.CapabilityProbe);
+
+        if (result.Outcome == LongPollOutcome.NotSent)
+            result = engine.Execute(layout.Command, data, purpose: WirePurpose.CapabilityProbe);
+
+        return result.Outcome == LongPollOutcome.NotSent ? null : result;
     }
 
     /// <summary>What a stimulus backend adds.</summary>
@@ -292,6 +375,13 @@ public static class CapabilityProbe
             {
                 ["stimulus"] = "software",
                 ["stimulus.bill"] = "yes",
+
+                // A software machine is built to order, so a case can state the accounting
+                // denomination it assumes and get one, and can change it during a run. No real
+                // machine can offer either: section 16 makes the unit something a memory clear
+                // establishes, and a host cannot perform one over the link.
+                ["machine.accounting_denomination"] = "yes",
+                ["stimulus.accounting_denomination"] = "yes",
 
                 // The software machine takes a ticket handed to it directly, with no directory in
                 // between, so this is true of the machine rather than of a path on disk.

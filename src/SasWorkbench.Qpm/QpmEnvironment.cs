@@ -31,7 +31,11 @@ public static class QpmEnvironment
     {
         QpmOptions settings = options ?? new QpmOptions();
 
-        return (step, runnerOptions) =>
+        // The declaration is deliberately dropped: a machine driven through its peripherals is a
+        // real machine, its accounting denomination is established by a memory clear, and nothing
+        // reachable from here can change it. The runner reads it off the wire and skips a case
+        // that assumed another unit, which is the honest outcome.
+        return (step, runnerOptions, _) =>
         {
             ScriptEnvironment link = DefaultEnvironment.Create(
                 step, runnerOptions with { Stimulus = StimulusBackend.None });

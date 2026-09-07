@@ -344,3 +344,26 @@ public sealed record ExpectTicketFieldStep(
         return $"expect ticket {Field} {Comparison} {expected}";
     }
 }
+
+/// <summary>Changes the accounting denomination the machine is counting in, during a run.</summary>
+/// <remarks>
+/// <para>
+/// A stimulus like any other, which is what keeps it honest: section 16 makes the unit a property
+/// a memory clear establishes, so no real machine can honour this. On one that cannot be
+/// reconfigured the step refuses with a reason and the case skips, exactly as a door nobody has
+/// wired does.
+/// </para>
+/// <para>
+/// Values already counted are left in the unit they were counted in. Rescaling them would either
+/// invent money or truncate it away, and a machine cannot be in two units at once — so a case that
+/// wants a clean measurement declares its denomination instead of changing one mid-run.
+/// </para>
+/// </remarks>
+public sealed record SetDenominationStep(SourceLocation Location, byte Code, int Cents)
+    : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.accounting_denomination";
+
+    public override string Describe() =>
+        $"set accounting denomination {MachineDeclaration.Describe(Cents)}";
+}

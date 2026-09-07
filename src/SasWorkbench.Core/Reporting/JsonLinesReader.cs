@@ -227,6 +227,7 @@ public static class JsonLinesReader
             Name = name,
             Location = Where(element),
             Verdict = verdict,
+            Machine = ReadDeclaration(element),
             StartedAt = When(element, "startedAt") ?? default,
             Duration = Duration(element, "durationMs"),
             SkipReason = Text(element, "skipReason"),
@@ -237,6 +238,40 @@ public static class JsonLinesReader
                 ? ReadProvenance(how, problems, number)
                 : null,
         };
+    }
+
+    /// <summary>
+    /// Reads back what the case assumed, so a record rendered from this file says the same as one
+    /// rendered from the run it came from.
+    /// </summary>
+    private static MachineDeclaration? ReadDeclaration(JsonElement element)
+    {
+        if (!element.TryGetProperty("assumes", out JsonElement assumes)
+            || assumes.ValueKind != JsonValueKind.Object)
+        {
+            return null;
+        }
+
+        if (!assumes.TryGetProperty("accountingDenominationCents", out JsonElement cents)
+            || !cents.TryGetInt32(out int amount)
+            || !assumes.TryGetProperty("accountingDenominationCode", out JsonElement code)
+            || !code.TryGetInt32(out int number))
+        {
+            return null;
+        }
+
+        var players = new List<int>();
+        if (assumes.TryGetProperty("playerDenominationsInCents", out JsonElement list)
+            && list.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement player in list.EnumerateArray())
+            {
+                if (player.TryGetInt32(out int value))
+                    players.Add(value);
+            }
+        }
+
+        return new MachineDeclaration(Where(assumes), (byte)number, amount, players);
     }
 
     private static StepResult ReadStep(JsonElement element, List<string> problems, int number)
@@ -359,6 +394,8 @@ public static class JsonLinesReader
 
         public IReadOnlyList<Requirement> Requirements { get; init; } = [];
 
+        public MachineDeclaration? Machine { get; init; }
+
         public RunProvenance? Provenance { get; init; }
 
         public List<StepResult> Steps { get; } = [];
@@ -375,6 +412,7 @@ public static class JsonLinesReader
             SkipReason = SkipReason,
             Tags = Tags,
             Requirements = Requirements,
+            Machine = Machine,
             Provenance = Provenance,
             Steps = Steps,
             Wire = Wire,

@@ -8,7 +8,9 @@ both directions and GSA 10.1.3 runs unattended against the software machine
 (`docs/M3-tickets.md`), the memory images a real machine needs are committed, with GSA 10.1.1
 passing against one (`docs/M3-golden-memory.md`), and a run now explains itself packet by packet
 either as it runs or afterwards from its own record, with wall-clock time as the fourth timestamp
-mode (`docs/M3-extended-log.md`). The accounting denomination in a script remains.
+mode (`docs/M3-extended-log.md`), and a case can state the accounting denomination it assumes and
+change one during a run, which starts six of the forty-four validation cases measuring
+(`docs/M3-accounting-denomination.md`). M3 is complete.
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -45,3 +47,4 @@ PHASE:M3 WAVE:W5-ticket-in STATUS:complete TS:2026-09-06T10:20:00Z
 PHASE:M3 WAVE:W6-cashout-ticket-info STATUS:complete TS:2026-09-06T19:48:51Z
 PHASE:M3 WAVE:W7-golden-nvram STATUS:complete TS:2026-09-06T21:51:44Z
 PHASE:M3 WAVE:W8-extended-log STATUS:complete TS:2026-09-07T08:35:00Z
+PHASE:M3 WAVE:W9-accounting-denomination STATUS:complete TS:2026-09-07T11:45:55Z

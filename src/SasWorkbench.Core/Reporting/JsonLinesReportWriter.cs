@@ -74,6 +74,16 @@ public sealed class JsonLinesReportWriter : IReportWriter
                     key = r.Key,
                     value = r.ExpectedValue,
                 }),
+                assumes = test.Machine is { } declared
+                    ? new
+                    {
+                        file = declared.Location.File,
+                        line = declared.Location.Line,
+                        accountingDenominationCents = declared.Cents,
+                        accountingDenominationCode = declared.Code,
+                        playerDenominationsInCents = declared.PlayerDenominationsInCents,
+                    }
+                    : null,
                 provenance = test.Provenance is { } how
                     ? new
                     {

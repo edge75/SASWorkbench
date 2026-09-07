@@ -32,6 +32,9 @@ public sealed record ScriptTest
     /// <summary>What the environment must provide.</summary>
     public IReadOnlyList<Requirement> Requirements { get; init; } = [];
 
+    /// <summary>The configuration this case assumes the machine is already in, when it says.</summary>
+    public MachineDeclaration? Machine { get; init; }
+
     /// <summary>Labels that cut across the suite, such as <c>@slow</c> or <c>@destructive</c>.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
 

@@ -152,7 +152,13 @@ public sealed class ScriptRunner
             // A case written from a specification, long before the machine can be driven far
             // enough to run it, has neither a link nor the capability it needs. What it needs is
             // the more useful of the two answers, and it is a skip rather than a broken test.
-            if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
+            // Nothing was built, so nothing was measured - but what the run's stimulus backend
+            // would have offered is knowable without a link, and naming a capability it does
+            // provide would send the reader after the wrong thing.
+            CapabilitySet withBackend =
+                baseline.With(CapabilityProbe.ForStimulus(_options.Stimulus));
+
+            if (withBackend.FirstUnmet(Local(Declared(test))) is { } missing)
                 return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
                     SasChannel.One, testBase);
 
@@ -163,6 +169,7 @@ public sealed class ScriptRunner
                 Verdict = Verdict.Error,
                 Tags = test.Tags,
                 Requirements = test.Requirements,
+                Machine = test.Machine,
                 StartedAt = startedAt,
                 Duration = stopwatch.Elapsed,
                 SkipReason = "the test never opens a link; add 'host connect ...'",
@@ -180,14 +187,14 @@ public sealed class ScriptRunner
         ScriptEnvironment environment;
         try
         {
-            environment = _options.Environment(connect, _options);
+            environment = _options.Environment(connect, _options, test.Machine);
         }
         catch (TransportRefusedException refused)
         {
             // No environment came up, so nothing beyond the baseline can be offered. If the test
             // was going to be skipped for a missing capability anyway, that is the reason worth
             // reporting - "no peer on the link" would send somebody looking for the wrong thing.
-            if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
+            if (baseline.FirstUnmet(Local(Declared(test))) is { } missing)
                 return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
                     connect.Channel, testBase);
 
@@ -210,7 +217,7 @@ public sealed class ScriptRunner
                 environment.HostTransport.Capabilities.Caveat);
 
             (Requirement Requirement, string Reason)? unmet =
-                capabilities.FirstUnmet(Local(test.Requirements));
+                capabilities.FirstUnmet(Local(Declared(test)));
             if (unmet is { } gap)
             {
                 return Skipped(test, stopwatch, startedAt, $"{gap.Requirement.Key}: {gap.Reason}",
@@ -232,6 +239,20 @@ public sealed class ScriptRunner
     /// </remarks>
     private static IEnumerable<Requirement> Local(IEnumerable<Requirement> requirements) =>
         requirements.Where(r => !CapabilityProbe.IsAskedOfTheMachine(r.Key));
+
+    /// <summary>
+    /// Everything the case needs, including what it declared rather than required.
+    /// </summary>
+    /// <remarks>
+    /// A declaration is checked by the same path as a requirement so that an unmet one is a skip
+    /// with a reason and never a failure, which is what makes it D19 applied to a unit. It is kept
+    /// out of the case's own requirement list so a report says what the script said, rather than
+    /// showing a line nobody wrote.
+    /// </remarks>
+    private static IEnumerable<Requirement> Declared(ScriptTest test) =>
+        test.Machine is { } machine
+            ? test.Requirements.Append(machine.AsRequirement())
+            : test.Requirements;
 
     /// <summary>
     /// Why a requirement the machine was asked about is unmet, said as a fact about the machine.
@@ -328,11 +349,18 @@ public sealed class ScriptRunner
             // What only the machine can answer is asked here, now that there is a machine to ask
             // and before a single step has run. A case that needed one and did not get it is a
             // skip, exactly as it would have been had the answer come from this side of the link.
-            if (test.Requirements.Any(r => CapabilityProbe.IsAskedOfTheMachine(r.Key)))
+            List<Requirement> declared = Declared(test).ToList();
+            string[] wanted = declared
+                .Select(r => r.Key)
+                .Where(CapabilityProbe.IsAskedOfTheMachine)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            if (wanted.Length > 0)
             {
-                MachineAnswers answers = CapabilityProbe.FromMachine(engine);
+                MachineAnswers answers = CapabilityProbe.FromMachine(engine, wanted);
                 CapabilitySet asked = capabilities.With(answers.Values);
-                if (asked.FirstUnmet(test.Requirements) is { } gap)
+                if (asked.FirstUnmet(declared) is { } gap)
                 {
                     return Skipped(test, stopwatch, startedAt,
                         $"{gap.Requirement.Key}: {AskedReason(gap.Requirement, gap.Reason, answers)}",
@@ -365,6 +393,7 @@ public sealed class ScriptRunner
                 Duration = stopwatch.Elapsed,
                 Tags = test.Tags,
                 Requirements = test.Requirements,
+                Machine = test.Machine,
                 StartedAt = startedAt,
                 Wire = wire,
                 Provenance = provenance,
@@ -1027,6 +1056,7 @@ public sealed class ScriptRunner
             Verdict = Verdict.Skip,
             Tags = test.Tags,
             Requirements = test.Requirements,
+            Machine = test.Machine,
             StartedAt = startedAt,
             Duration = stopwatch.Elapsed,
             SkipReason = reason,

@@ -76,6 +76,14 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.Cashout(walletDirectory);
                 return;
 
+            // Refused by every other backend, and honoured here only because this machine is one
+            // this build made. Values already counted stay in the unit they were counted in.
+            case SetDenominationStep set:
+                if (machine.SetAccountingDenomination(set.Code) is { } refusal)
+                    throw new StimulusUnavailableException(refusal);
+
+                return;
+
             case DoorStep door:
                 try
                 {
@@ -111,10 +119,10 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options) =>
+        (step, options, declared) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
-                return DefaultEnvironment.Create(step, options);
+                return DefaultEnvironment.Create(step, options, declared);
 
             var bus = new LoopbackBus();
             FakeEgmOptions settings = (machineOptions ?? new FakeEgmOptions()) with
@@ -122,6 +130,19 @@ public static class SoftwareMachineEnvironment
                 Address = step.Address,
                 Channel = step.Channel,
             };
+
+            // A case that says what unit it assumes gets a machine in that unit. Nothing is
+            // asserted here about whether the machine accepted it - section 16 may refuse the
+            // value, and if it does the machine publishes what it fell back to and the runner
+            // reads that off the wire like it would from any other machine.
+            if (declared is not null)
+            {
+                settings = settings with
+                {
+                    AccountingDenomination = declared.Code,
+                    PlayerDenominationsInCents = declared.PlayerDenominationsInCents,
+                };
+            }
 
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();

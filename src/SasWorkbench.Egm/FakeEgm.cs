@@ -60,6 +60,11 @@ public sealed class FakeEgm : IDisposable
     private ulong _lastValidationNumber;
     private long _lastTicketAmountCents;
 
+    // The unit in force, which a script can change part-way through a session. Guarded because a
+    // stimulus arrives on the runner's thread while the poll loop is answering on its own.
+    private byte _denominationCode;
+    private int _accountingCents;
+
     public FakeEgm(ISasTransport transport, FakeEgmOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(transport);
@@ -71,20 +76,79 @@ public sealed class FakeEgm : IDisposable
 
         _transport = transport;
         _options = options ?? new FakeEgmOptions();
-        (DenominationCode, AccountingCents, DenominationRefusal) = ResolveDenomination(_options);
+        (_denominationCode, _accountingCents, DenominationRefusal) = ResolveDenomination(_options);
     }
 
     /// <summary>The meters this machine keeps.</summary>
     public MeterStore Meters { get; } = new();
 
     /// <summary>The Table C-4 code this machine publishes as its accounting denomination.</summary>
-    public byte DenominationCode { get; }
+    public byte DenominationCode
+    {
+        get
+        {
+            lock (_gate)
+                return _denominationCode;
+        }
+    }
 
     /// <summary>Which validation style this machine performs when it cashes out.</summary>
     public SasCashoutValidation CashoutValidation => _options.CashoutValidation;
 
     /// <summary>What one accounting unit is worth, in cents.</summary>
-    public int AccountingCents { get; }
+    public int AccountingCents
+    {
+        get
+        {
+            lock (_gate)
+                return _accountingCents;
+        }
+    }
+
+    /// <summary>
+    /// Changes the unit this machine counts in, part-way through a session.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// No real machine can do this - section 16 makes the accounting denomination a property a
+    /// memory clear establishes - so this exists only because a software machine is one this build
+    /// made and a script has to be able to reach it. Every other backend refuses the step.
+    /// </para>
+    /// <para>
+    /// A value section 16 does not allow is refused outright rather than replaced with one cent.
+    /// Falling back would leave the machine counting in a unit the script never asked for while
+    /// every assertion after it looked healthy, which is the silent degrade this project refuses;
+    /// the caller gets the reason and the case skips.
+    /// </para>
+    /// <para>
+    /// Values already counted are left in the unit they were counted in. Rescaling them would
+    /// either invent money or truncate it away, and neither is something a machine does.
+    /// </para>
+    /// </remarks>
+    /// <returns>Why the change was refused, or null when it was made.</returns>
+    public string? SetAccountingDenomination(byte code)
+    {
+        if (SasDenomination.CentsOf(code) is not { } cents)
+        {
+            return $"${code:X2} is not a denomination the protocol can express as an accounting "
+                   + "unit, so this machine will not count in it";
+        }
+
+        if (_options.PlayerDenominationsInCents.Count > 0
+            && !SasDenomination.DividesEvenly(cents, _options.PlayerDenominationsInCents))
+        {
+            return $"{cents} cents does not divide every denomination offered to the player, so "
+                   + "section 16 does not allow this machine to count in it";
+        }
+
+        lock (_gate)
+        {
+            _denominationCode = code;
+            _accountingCents = cents;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// Why a configured accounting denomination was refused, or null when none was.
@@ -281,6 +345,11 @@ public sealed class FakeEgm : IDisposable
         Meters.SetCurrentCredits(0);
         Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
         Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
+
+        // The same money in the other unit. A machine keeps both totals, and it is the pair that
+        // makes the accounting denomination visible at all: the cents meter reads the same at
+        // every denomination while this one moves with the unit.
+        Meters.Increment(SasMeterCode.TotalTicketOut_Crd, credits);
 
         DateTime printedAt = DateTime.Now;
         uint number = (uint)Interlocked.Increment(ref _ticketsPrinted);
@@ -917,6 +986,12 @@ public sealed class FakeEgm : IDisposable
                 Meters.Increment(SasMeterCode.TotalSASCashableTicketIn_Qty, 1);
                 break;
         }
+
+        // Every kind of ticket feeds the machine-wide total, which is in accounting units - so a
+        // ticket carrying an amount the unit does not divide leaves a remainder here. That is
+        // inherent rather than a defect: a ticket carries any number of cents, and section 16's
+        // divisibility rule constrains only the denominations a player may choose.
+        Meters.Increment(SasMeterCode.TotalTicketIn_Crd, cents / AccountingCents);
 
         Meters.SetCurrentCredits(
             Meters.Read(SasMeterCode.CurrentCredits) + (cents / AccountingCents));

@@ -188,10 +188,13 @@ being changed anyway.
   the tally reports coverage twice — over all packets, and over the distinct long polls a run
   exchanged, which is the number M4 moves.
 
-* **The accounting denomination in a script** (D36), after the ticket path: a declaration of the
-  configuration a case assumes, which builds the software machine and is a precondition check on a
-  real one, and a step that changes it, which refuses with a reason on a machine that cannot be
-  reconfigured mid-session.
+* **The accounting denomination in a script** (D36) — ✅ **done 2026-09-07**, see
+  `docs/M3-accounting-denomination.md`. A case states the unit it assumes before the link opens;
+  against the software machine that builds one, against any other it is read back off the
+  identification reply and a mismatch skips naming what the machine is in force at. The setter is a
+  stimulus, so a machine that cannot be reconfigured refuses it and the case skips. **Six** of the
+  forty-four validation cases now run, not the seven estimated: the seventh needs a wager smaller
+  than one game credit, and nothing here can say what a game credit is worth.
 
 **Done when** GSA **10.1.3 Cashout Ticket 1** runs unattended, end to end.
 ✅ **it does, against the software machine, on 2026-09-06** — see `docs/M3-tickets.md`. The

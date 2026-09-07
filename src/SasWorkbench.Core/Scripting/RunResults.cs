@@ -70,6 +70,9 @@ public sealed record TestOutcome
     /// </remarks>
     public IReadOnlyList<Requirement> Requirements { get; init; } = [];
 
+    /// <summary>The configuration the case assumed the machine was in, when it said.</summary>
+    public MachineDeclaration? Machine { get; init; }
+
     /// <summary>When the test began, in the world.</summary>
     /// <remarks>
     /// The anchor that puts a run's relative times on somebody's watch. Every other timestamp in

@@ -15,11 +15,22 @@ test "AD-16 the credits meters are reported in accounting units" {
   requires stimulus.bill
   requires stimulus.play
 
-  note "Configuration B. Insert one thousand pesos in notes and play until total coin in is exactly five hundred pesos."
+  machine accounting denomination 10c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+
+  # Five hundred pesos in notes, then five hundred pesos of coin in. The plan asks for a thousand
+  # pesos of headroom, which a machine that plays exactly what it is told does not need.
+  egm bill insert 10000
+  egm bill insert 10000
+  egm bill insert 10000
+  egm bill insert 10000
+  egm bill insert 10000
+
+  # A game credit is one peso, so five games at a hundred credits wager fifty thousand centavos.
+  egm play games=5 bet=100
 
   # The eight credits meters the case names: total coin in, total coin out, current credits,
   # total ticket in, total ticket out, machine paid paytable win, won credits, hand paid credits.
@@ -40,6 +51,8 @@ test "AD-17 the machine total is the sum converted once, not the sum of conversi
   requires machine.accounting_denomination
   requires machine.multiple_games
   requires stimulus.play
+
+  machine accounting denomination 10c
 
   note "Configuration B. Contrive coin in of twenty-five centavos on each of four games."
 
@@ -64,6 +77,8 @@ test "AD-18 a real-time game start reports credits wagered and coin in in differ
   requires stimulus.play
   requires stimulus.real_time_events
 
+  machine accounting denomination 10c
+
   note "Configuration B, real-time events enabled. Play one game with a known wager and a known win."
   note "Credits wagered is a number of game credits and is unchanged by the denomination, while total coin in on the same event is in tenths of a peso. The game end event carries the win in tenths of a peso."
 }
@@ -74,6 +89,8 @@ test "AD-19 a legacy bonus is read and reported in accounting units" {
   requires machine.accounting_denomination
   requires stimulus.legacy_bonus
 
+  machine accounting denomination 10c
+
   note "Configuration B. Award a legacy bonus of five hundred units, which is fifty pesos."
   note "The inbound amount is read as accounting units, so the credit meter rises by fifty pesos and the bonus meters report five hundred rather than five thousand."
 }
@@ -83,6 +100,8 @@ test "AD-20 the wager category coin in is in accounting units" {
   requires decoder.lpB4
   requires machine.accounting_denomination
   requires stimulus.play
+
+  machine accounting denomination 10c
 
   note "Configuration B, with a known coin in on wager category zero of game one."
 }
@@ -95,6 +114,8 @@ test "AD-21 a cancelled-credits handpay reports its amount in accounting units" 
   requires decoder.lp1B
   requires machine.accounting_denomination
   requires stimulus.handpay
+
+  machine accounting denomination 10c
 
   note "Configuration B. Force a cancelled-credits handpay of one hundred pesos."
 
@@ -112,6 +133,8 @@ test "AD-22 a non-progressive top win handpay reports its amount in accounting u
   requires decoder.lp1B
   requires machine.accounting_denomination
   requires stimulus.handpay
+
+  machine accounting denomination 10c
 
   note "Configuration B. Force a handpay reported at level 40 hex, of one hundred pesos."
 
@@ -133,6 +156,8 @@ test "AD-23 a handpay with a progressive component stays in cents" {
   requires stimulus.handpay
   requires stimulus.progressive
 
+  machine accounting denomination 10c
+
   note "Configuration B. Force a handpay of one hundred pesos with a progressive component, at level 01."
 
   host connect loopback address 01
@@ -149,6 +174,8 @@ test "AD-24 a partial pay is in accounting units whatever the amount field is do
   requires decoder.lp1B
   requires machine.accounting_denomination
   requires stimulus.handpay
+
+  machine accounting denomination 10c
 
   note "Configuration B. Force a handpay of one hundred pesos with a partial pay of fifty, once at level 01 and once at level 00. The partial pay reads the same both times."
 

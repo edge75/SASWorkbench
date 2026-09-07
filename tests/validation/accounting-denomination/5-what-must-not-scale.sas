@@ -9,12 +9,34 @@ test "AD-25 ticket amounts stay in cents" {
   requires decoder.lp6F
   requires machine.accounting_denomination
   requires stimulus.ticket
+  requires stimulus.button.collect
+  requires printer.wallet
 
-  note "Configuration B. Print a ticket for twenty-five pesos fifty, and redeem one for thirteen pesos thirty."
+  machine accounting denomination 10c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+
+  # Thirteen pesos thirty in, cashed straight back out, then twelve pesos twenty in. Both amounts
+  # carry odd centavos on purpose: the meters below are defined in cents and must show every one
+  # of them, while the credit meters these same tickets feed are in accounting units.
+  egm ticket insert amount=1330 validation=1111111111111111
+  host expect exception ticket_inserted within 5s
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1330 parsing_code=0 validation_data=1111111111111111
+  host send lp 71 with transfer_code=ttc_request_for_current_ticket_status
+  host expect field machine_status of lp 71 == gmsc_cashable_ticket_redeemed
+
+  egm press collect
+  egm expect ticket printed within 20s
+
+  egm ticket insert amount=1220 validation=2222222222222222
+  host expect exception ticket_inserted within 5s
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1220 parsing_code=0 validation_data=2222222222222222
+  host send lp 71 with transfer_code=ttc_request_for_current_ticket_status
+  host expect field machine_status of lp 71 == gmsc_cashable_ticket_redeemed
 
   # The cents ticket meters: cashable ticket in and out, restricted ticket in and out.
   host send lp 6F data 0A00000D000E000F001000
@@ -31,6 +53,8 @@ test "AD-26 transfer amounts stay in cents" {
   requires decoder.lp6F
   requires machine.accounting_denomination
   requires stimulus.aft
+
+  machine accounting denomination 10c
 
   note "Configuration B. Transfer two hundred pesos in and fifty pesos out."
 
@@ -50,6 +74,8 @@ test "AD-27 the current transfer amounts stay in cents" {
   requires machine.accounting_denomination
   requires stimulus.aft
 
+  machine accounting denomination 10c
+
   note "Configuration B, with a known balance. The current cashable, restricted and nonrestricted amounts are all in centavos. A wrong unit here refuses a legitimate cash-out."
 }
 
@@ -59,6 +85,8 @@ test "AD-28 progressive amounts stay in cents" {
   requires machine.accounting_denomination
   requires stimulus.progressive
 
+  machine accounting denomination 10c
+
   note "Configuration B, with a progressive level at a known amount. Section 10.4 puts these amounts in units of cents."
 }
 
@@ -66,24 +94,34 @@ test "AD-29 counts stay counts" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp6F
   requires machine.accounting_denomination
+  requires stimulus.bill
   requires stimulus.play
+
+  machine accounting denomination 10c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+
+  # A known number of games, because a count can only be shown not to scale against a number
+  # somebody knows. The plan reads this one off the audit page; here it is contrived.
+  egm bill insert 1000
+  egm play games=3 bet=2
 
   # Games played and won, ticket quantities, and the transfer counts. B9 is a quantity rather than
   # an amount, which is easy to get wrong because it sits among the transfer meters.
   host send lp 6F data 12000005000600110012001300B900BB00BD00
 
   host expect field meters[0].code == 5
-  host expect field meters[0].value >= 0
+  host expect field meters[0].value == 3
 }
 
 test "AD-30 the payback percentage stays a percentage" {
   tag @accounting-denomination
   requires decoder.lp6F
   requires machine.accounting_denomination
+
+  machine accounting denomination 10c
 
   host connect loopback address 01
   host poll every 200ms
@@ -101,6 +139,8 @@ test "AD-31 attendant keyed funds stay in cents" {
   requires decoder.lp6F
   requires machine.accounting_denomination
   requires stimulus.attendant_keyed
+
+  machine accounting denomination 10c
 
   note "Configuration B. Key on one hundred pesos and key off forty."
 
@@ -126,6 +166,8 @@ test "AD-32 door and power counts are read from the legacy meters and are unscal
   requires machine.accounting_denomination
   requires stimulus.door.main
   requires stimulus.power_cycle
+
+  machine accounting denomination 10c
 
   note "Configuration B. Open and close the main door twice, then power-cycle once."
 

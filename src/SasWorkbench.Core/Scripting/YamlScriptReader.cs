@@ -113,6 +113,7 @@ public static class YamlScriptReader
             throw new ScriptParseException(location, $"test '{name}' has no 'steps'");
 
         var steps = new List<ScriptStep>();
+        MachineDeclaration? machine = null;
         foreach ((string line, SourceLocation at) in ReadStrings(stepsNode!, path, "steps"))
         {
             // Each step is a line of the same language the purpose-built form uses, so it is
@@ -126,6 +127,18 @@ public static class YamlScriptReader
             foreach (Requirement requirement in inner.Requirements)
                 requirements.Add(requirement with { Location = at });
 
+            // A declaration is a property of the case, so a second one is a contradiction rather
+            // than an override - the same rule the purpose-built form applies.
+            if (inner.Machine is { } declared)
+            {
+                if (machine is not null)
+                    throw new ScriptParseException(at,
+                        "this case already declares an accounting denomination; a machine is in "
+                        + "one unit at a time");
+
+                machine = declared with { Location = at };
+            }
+
             tags.AddRange(inner.Tags);
         }
 
@@ -134,6 +147,7 @@ public static class YamlScriptReader
             Name = name,
             Location = location,
             Requirements = requirements,
+            Machine = machine,
             Tags = tags,
             Steps = steps,
         };
