@@ -321,6 +321,7 @@ public sealed class ExtendedLogWriter : IReportWriter
         Tally(builder, "explained in full", coverage.Explained, coverage.Packets);
         Tally(builder, "known but not decoded", coverage.NamedOnly, coverage.Packets);
         Tally(builder, "layout did not fit", coverage.LayoutDidNotFit, coverage.Packets);
+        Tally(builder, "not a message at all", coverage.NotAMessage, coverage.Packets);
         Tally(builder, "not named at all", coverage.Unknown, coverage.Packets);
 
         if (coverage.HostsOwn > 0)

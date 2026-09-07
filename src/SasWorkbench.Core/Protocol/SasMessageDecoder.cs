@@ -131,6 +131,17 @@ public static class SasMessageDecoder
                            + "was not decoded as a number.";
                 length = (int)source.Number.Value;
             }
+            else if (field.MeterWidthFromField is { } meterField)
+            {
+                // The most recent match, for the same reason as above: inside a repeating group
+                // the code that governs this meter is the one just decoded.
+                SasValue? source = values.LastOrDefault(v =>
+                    v.Path == meterField || v.Path.EndsWith('.' + meterField, StringComparison.Ordinal));
+                if (source?.Number is null)
+                    return $"Field '{path}' takes its width from the meter named by '{meterField}', "
+                           + "but that field was not decoded as a number.";
+                length = SasMeterWidths.Of((ushort)source.Number.Value);
+            }
             else
             {
                 length = field.Length == SasField.Remaining ? payload.Length - cursor : field.Length;
@@ -288,7 +299,8 @@ public static class SasMessageDecoder
         foreach (SasField field in fields)
         {
             if (field.IsGroup || field.PresentWhen is not null
-                || field.Length == SasField.Remaining || field.LengthFromField is not null)
+                || field.Length == SasField.Remaining || field.LengthFromField is not null
+                || field.MeterWidthFromField is not null)
             {
                 return -1;
             }

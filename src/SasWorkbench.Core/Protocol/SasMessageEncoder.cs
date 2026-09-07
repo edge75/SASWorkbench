@@ -191,6 +191,20 @@ public static class SasMessageEncoder
                         Length = Convert.ToInt32(lengthValue, CultureInfo.InvariantCulture),
                     };
                 }
+                else if (member.MeterWidthFromField is { } meterField)
+                {
+                    string meterPath = $"{elementPath}.{meterField}";
+                    if (!values.TryGetValue(meterPath, out object? meterValue))
+                        throw new InvalidOperationException(
+                            $"'{memberPath}' takes its width from the meter named by '{meterPath}', "
+                            + "which has no value.");
+
+                    toWrite = member with
+                    {
+                        Length = SasMeterWidths.Of(
+                            Convert.ToUInt16(meterValue, CultureInfo.InvariantCulture)),
+                    };
+                }
 
                 cursor += WriteField(toWrite, value, destination[cursor..]);
             }

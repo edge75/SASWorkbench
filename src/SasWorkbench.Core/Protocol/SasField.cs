@@ -183,6 +183,18 @@ public sealed record SasField
     public string? LengthFromField { get; init; }
 
     /// <summary>
+    /// Name of an earlier field holding a meter code, whose width then decides this field's length.
+    /// </summary>
+    /// <remarks>
+    /// The third way a field's length can be established, after a fixed number and
+    /// <see cref="LengthFromField"/>. Long poll <c>$2F</c> needs it: its reply carries a meter code
+    /// and then the meter, with no size byte between them, so the width is a property of the meter
+    /// rather than of the message. See <see cref="SasMeterWidths"/>, which is the library's own
+    /// table.
+    /// </remarks>
+    public string? MeterWidthFromField { get; init; }
+
+    /// <summary>
     /// Name of an earlier field this one is a run of bits inside, rather than bytes of its own.
     /// </summary>
     /// <remarks>

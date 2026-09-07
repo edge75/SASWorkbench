@@ -135,6 +135,50 @@ public static class SasLayouts
         Description = description,
     };
 
+    /// <summary>A plain binary number written least significant byte first.</summary>
+    private static SasField LittleEndianNumber(string name, int bytes, string description) => new()
+    {
+        Name = name,
+        Length = bytes,
+        Encoding = SasFieldEncoding.Binary,
+        ByteOrder = SasByteOrder.LittleEndian,
+        Unit = SasUnit.None,
+        Description = description,
+    };
+
+    /// <summary>
+    /// One of the dedicated bill-count commands, whose field is deliberately not a readable meter.
+    /// </summary>
+    /// <remarks>
+    /// The count is genuinely a meter, and it is not offered under a meter name because long poll
+    /// <c>$1E</c> already answers the same six meters and the two commands do not always agree —
+    /// the library divides this one by the accounting denomination under two of its meter modes
+    /// and does not divide <c>$1E</c>. A test can still assert on the field of this reply; what it
+    /// cannot do is ask for the twenty-unit bill meter by name and silently be given a different
+    /// number than it used to get.
+    /// </remarks>
+    private static SasMessageLayout BillCountLayout(
+        byte command, string name, string field, int denomination, string handler) => new()
+        {
+            Command = command,
+            Name = name,
+            Description = $"How many {denomination}-unit bills the machine has taken.",
+            Response =
+            [
+                new()
+                {
+                    Name = field,
+                    Length = 4,
+                    Encoding = SasFieldEncoding.Bcd,
+                    ByteOrder = SasByteOrder.BigEndian,
+                    Unit = SasUnit.Count,
+                    Description = $"Number of {denomination}-unit bills accepted.",
+                },
+            ],
+            DerivedFrom = handler,
+            ConfirmedByCapture = true,
+        };
+
     /// <summary>A four-byte accumulating meter, the shape most meter commands answer with.</summary>
     private static SasMessageLayout MeterLayout(
         byte command, string name, string field, SasUnit unit, string description, string handler)
@@ -619,6 +663,224 @@ public static class SasLayouts
                 ],
                 DerivedFrom = "lp7E_SendCurrentDateAndTime",
                 Broadcast = true,
+            },
+            // The selected meters again, under an older command and in a shape no size byte
+            // describes. Two things separate it from $6F: a meter code is one byte rather than
+            // two, and a meter's value carries no width of its own - the library writes
+            // getMeterMinimumSize() bytes for it, four for most meters and five for the ones it
+            // counts in cents. So the only thing that says where one meter ends is which meter it
+            // is, which is why this layout needs a width taken from the code.
+            //
+            // Proved against the legacy tester's own capture, which carries eight of these
+            // exchanges: a request of 01 2F 03 00 00 05 and its reply 01 2F 07 00 00 05 00 00 00
+            // 26, one meter of four bytes inside a seven-byte payload.
+            new()
+            {
+                Command = 0x2F,
+                Name = "meters_for_game",
+                Description = "Meters chosen by the host, each as wide as the meter itself is.",
+                Request =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes of game number and meter codes that follow."),
+                    Bcd("game_number", 2, SasUnit.Index,
+                        "Which game the meters are for; zero means the machine as a whole."),
+                    new()
+                    {
+                        Name = "requested",
+                        Length = 0,
+                        Repeat = SasRepeat.ToEndOfMessage,
+                        Description = "The meter codes the host is asking for, one byte each.",
+                        Fields =
+                        [
+                            Byte("code", SasUnit.Code, "Which meter."),
+                        ],
+                    },
+                ],
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Bcd("game_number", 2, SasUnit.Index,
+                        "Which game the meters are for; zero means the machine as a whole."),
+                    new()
+                    {
+                        Name = "meters",
+                        Length = 0,
+                        Repeat = SasRepeat.ToEndOfMessage,
+                        Description =
+                            "One entry per meter the machine answered, in the order asked for.",
+                        Fields =
+                        [
+                            Byte("code", SasUnit.Code, "Which meter."),
+                            new()
+                            {
+                                Name = "value",
+                                Length = 0,
+                                MeterWidthFromField = "code",
+                                Encoding = SasFieldEncoding.Bcd,
+                                ByteOrder = SasByteOrder.BigEndian,
+                                Unit = SasUnit.None,
+                                Description =
+                                    "The meter itself, as wide as the library's own table makes "
+                                    + "this meter.",
+                                IsMeter = true,
+                            },
+                        ],
+                    },
+                ],
+                DerivedFrom = "lp2F_SendSelectedMetersForGameN",
+                ConfirmedByCapture = true,
+            },
+
+            // Three of the seven dedicated bill-count commands, and only three, because these are
+            // the three the imported corpus carries. $31 to $34 share the same handler and the
+            // same six bytes, and are left out rather than written from the shape of their
+            // neighbours - no capture here shows one.
+            //
+            // Their fields are deliberately not offered as readable meters, and that is not a
+            // formality. The library answers these through lpXX_SendMeter, which divides the value
+            // by the accounting denomination under two of its meter modes, while long poll $1E
+            // answers the same six meters undivided. The two commands therefore do not always
+            // agree, so a script that has always read bills_20 from $1E keeps reading it from $1E
+            // rather than being moved to a command that may answer something else.
+            BillCountLayout(0x35, "bills_20_meter", "bills_20", 20, "lp35_Send20BillsInMeter"),
+            BillCountLayout(0x36, "bills_50_meter", "bills_50", 50, "lp36_Send50BillsInMeter"),
+            BillCountLayout(0x37, "bills_100_meter", "bills_100", 100, "lp37_Send100BillsInMeter"),
+
+            // Both halves of this message are the same six bytes, because the machine answers with
+            // what it now holds - which is what the host just sent unless the host sent a zero
+            // identifier, the library's way of asking without setting. Both numbers are plain
+            // binary least significant byte first, which the handler states in as many words
+            // before it assembles them by hand.
+            //
+            // Proved against the toolkit's 10.2.1 traces: 01 4C 01 00 10 01 00 00 sets identifier
+            // $100001 and sequence 1, and 01 4C 01 00 10 99 00 00 comes back carrying sequence
+            // $99 after the machine had advanced it.
+            new()
+            {
+                Command = 0x4C,
+                Name = "secure_enhanced_validation_id",
+                Description =
+                    "Sets the identifier and sequence number a machine puts on validated tickets.",
+                Request =
+                [
+                    LittleEndianNumber("validation_id", 3,
+                        "Identifier the host is giving this machine; zero asks without setting."),
+                    LittleEndianNumber("sequence_number", 3,
+                        "Where the machine is to start numbering."),
+                ],
+                Response =
+                [
+                    LittleEndianNumber("validation_id", 3,
+                        "The identifier the machine now holds."),
+                    LittleEndianNumber("sequence_number", 3,
+                        "The number the machine will put on its next validated ticket."),
+                ],
+                DerivedFrom = "lp4C_SetSecureEnhancedValidationId",
+                ConfirmedByCapture = true,
+            },
+
+            // One entry of the machine's validation buffer. The function code chooses which: zero
+            // reads the current one and moves the machine on when the host acknowledges, $FF looks
+            // at the current one without moving, and anything else is an index into the buffer.
+            //
+            // Proved against the toolkit's 10.1.3 step8 trace, where the reply's date and time
+            // read 07/20/2026 17:57:38 against a trace whose own header says it started on
+            // 07/20/26 - which is what fixes the offsets, since a layout one byte out would put
+            // the year where the day is and still decode.
+            new()
+            {
+                Command = 0x4D,
+                Name = "enhanced_validation_information",
+                Description = "One entry of the machine's validation buffer.",
+                Request =
+                [
+                    Byte("function", SasUnit.Code,
+                        "Zero reads the current entry, $FF looks at it without advancing, and any "
+                        + "other value is an index into the buffer."),
+                ],
+                Response =
+                [
+                    Byte("validation_type", SasUnit.Code, "What kind of ticket or handpay this was."),
+                    Byte("index", SasUnit.Index, "Which entry of the buffer answered."),
+                    Bcd("month", 1, SasUnit.None, "Month the entry was made.")
+                        with { Constraint = SasConstraint.Between(0, 12) },
+                    Bcd("day", 1, SasUnit.None, "Day the entry was made.")
+                        with { Constraint = SasConstraint.Between(0, 31) },
+                    Bcd("year", 2, SasUnit.None, "Four-digit year the entry was made."),
+                    Bcd("hour", 1, SasUnit.None, "Hour, on a twenty-four hour clock.")
+                        with { Constraint = SasConstraint.Between(0, 23) },
+                    Bcd("minute", 1, SasUnit.None, "Minute.")
+                        with { Constraint = SasConstraint.Between(0, 59) },
+                    Bcd("second", 1, SasUnit.None, "Second.")
+                        with { Constraint = SasConstraint.Between(0, 59) },
+                    Bcd("validation_number", 8, SasUnit.None,
+                        "The number printed on the ticket, as sixteen digits."),
+                    Bcd("amount", 5, SasUnit.Cents, "What the ticket or handpay was worth."),
+                    LittleEndianNumber("ticket_number", 2,
+                        "The machine's own sequence number for this ticket."),
+                    Bcd("validation_system_id", 1, SasUnit.Code,
+                        "Which validation system the number belongs to."),
+                    Bcd("expiration_month", 1, SasUnit.None, "Month the ticket expires.")
+                        with { Constraint = SasConstraint.Between(0, 12) },
+                    Bcd("expiration_day", 1, SasUnit.None, "Day the ticket expires.")
+                        with { Constraint = SasConstraint.Between(0, 31) },
+                    Bcd("expiration_year", 2, SasUnit.None, "Four-digit year the ticket expires."),
+                    LittleEndianNumber("pool_id", 2, "Which restricted pool the ticket belongs to."),
+                ],
+                DerivedFrom = "lp4D_SendEnhancedValidationInfo",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x51,
+                Name = "games_implemented",
+                Description = "How many games the machine holds.",
+                Response =
+                [
+                    Bcd("games", 2, SasUnit.Count, "Number of games implemented."),
+                ],
+                DerivedFrom = "lp51_SendNumberOfGamesImplemented",
+                ConfirmedByCapture = true,
+            },
+
+            // A broadcast, and the only command modelled here that normally goes to address zero,
+            // where nothing answers at all. Sent to a machine's own address it is acknowledged.
+            // The length byte counts the group byte plus six bytes per level, so a message
+            // carrying two levels reads $0D.
+            //
+            // Proved against the toolkit's session log, where 00 86 0D 01 01 00 00 00 04 14 02 00
+            // 00 00 04 14 broadcasts $4.14 to levels one and two of group one.
+            new()
+            {
+                Command = 0x86,
+                Name = "multiple_level_progressive",
+                Description = "Broadcasts the current amount of several progressive levels at once.",
+                Request =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Byte("progressive_group", SasUnit.Index,
+                        "Which progressive group these levels belong to."),
+                    new()
+                    {
+                        Name = "levels",
+                        Length = 0,
+                        Repeat = SasRepeat.ToEndOfMessage,
+                        Description = "One entry per level being broadcast.",
+                        Fields =
+                        [
+                            Byte("level", SasUnit.Index, "Which level, one to thirty-two.",
+                                SasConstraint.Between(1, 32)),
+                            Bcd("amount", 5, SasUnit.Cents, "What that level currently stands at."),
+                        ],
+                    },
+                ],
+                Shape = SasResponseShape.Acknowledgement,
+                DerivedFrom = "lp86_MultipleLevelProgressive",
+                Broadcast = true,
+                ConfirmedByCapture = true,
             },
             new()
             {

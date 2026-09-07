@@ -100,6 +100,9 @@ public sealed class PacketExplainer
 
         CheckCheckSequence(bytes, findings);
 
+        if (!StandsAsAMessage(bytes, fromMachine: false))
+            return NotAMessage(bytes, "host", fromMachine: false);
+
         SasMessageLayout? layout = SasLayouts.For(command);
         string name = CatalogueName(command);
         string headline = $"long poll ${command:X2} — {name}, to the machine at ${bytes[0]:X2}";
@@ -161,6 +164,18 @@ public sealed class PacketExplainer
         if (bytes.Length == 1)
             return OneByteFromMachine(bytes[0]);
 
+        // The busy response: the machine's address and a zero, two bytes and no check sequence.
+        // It is the one answer to a long poll that echoes no command, so it has to be recognised
+        // before anything tries to read a command out of the second byte.
+        if (bytes.Length == 2 && bytes[1] == 0x00
+            && (_address is not { } busyAt || bytes[0] == busyAt.Value))
+        {
+            return Bare(
+                $"busy response from the machine at ${bytes[0]:X2} — it has the command and is "
+                + "asking to be polled for the answer again, so this is not an answer",
+                PacketMeaning.Explained);
+        }
+
         byte command = bytes[1];
         if (_address is { } known && bytes[0] != known.Value)
         {
@@ -170,6 +185,9 @@ public sealed class PacketExplainer
         }
 
         CheckCheckSequence(bytes, findings);
+
+        if (!StandsAsAMessage(bytes, fromMachine: true))
+            return NotAMessage(bytes, "machine", fromMachine: true);
 
         SasMessageLayout? layout = SasLayouts.For(command);
         string headline = $"reply to long poll ${command:X2} — {CatalogueName(command)}";
@@ -354,6 +372,45 @@ public sealed class PacketExplainer
             ? $"the gaming machine library names long poll ${command:X2} and this build has not "
               + "established the layout of its bytes, so what they mean is not claimed"
             : $"long poll ${command:X2} is in no list this build holds, so it cannot even be named";
+
+    /// <summary>
+    /// Whether a run of bytes is one whole SAS message, by the protocol's own test.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A message of more than two symbols ends in a frame check sequence, and that sequence is the
+    /// only statement anything makes about where a message begins and ends — SAS delimits with
+    /// silence and nothing else. When it does not check out, no byte of the frame is established,
+    /// the command byte included, so reading a long poll out of the second byte is a guess.
+    /// </para>
+    /// <para>
+    /// Two things produce such bytes and neither is repaired here. A damaged message is one. The
+    /// other is a recorder that printed one message as several lines: the conformance toolkit's
+    /// tracer does that, and the pieces then arrive as separate records whose second byte is
+    /// whatever payload happened to land there. Stitching them would put this build's guess about
+    /// the message where the recording's own fault was, and in at least one capture the pieces do
+    /// not add up to a whole message anyway.
+    /// </para>
+    /// </remarks>
+    private static bool StandsAsAMessage(byte[] bytes, bool fromMachine)
+    {
+        // A long poll with no data is an address and a command and nothing else, and carries no
+        // check sequence. A reply is never that short: it echoes both bytes and then checks them.
+        if (bytes.Length < (fromMachine ? 4 : 2))
+            return false;
+
+        return !HostMessage.CarriesCrc(bytes.Length) || SasCrc.Verify(bytes);
+    }
+
+    private static PacketExplanation NotAMessage(byte[] bytes, string end, bool fromMachine) => Bare(
+        $"{bytes.Length} byte(s) from the {end} that do not stand as a SAS message, so what they "
+        + "say is not read: either a damaged message or a piece of one a recorder split",
+        PacketMeaning.NotAMessage,
+        limit: bytes.Length < (fromMachine ? 4 : 2)
+            ? "too few bytes to hold an address, a command and a check sequence, and none of the "
+              + "shorter forms either"
+            : "the check sequence does not check out, so no byte of this frame is established - "
+              + "naming the long poll from the second byte would be a guess");
 
     private static void CheckHostWakeupBits(
         WireRecord record, List<string> findings, bool captured)

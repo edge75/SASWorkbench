@@ -137,6 +137,7 @@ internal static class ImportCommand
         Line("explained in full", coverage.Explained, coverage.Packets);
         Line("known but not decoded", coverage.NamedOnly, coverage.Packets);
         Line("layout did not fit", coverage.LayoutDidNotFit, coverage.Packets);
+        Line("not a message at all", coverage.NotAMessage, coverage.Packets);
         Line("not named at all", coverage.Unknown, coverage.Packets);
         Console.WriteLine();
         Console.WriteLine($"  long polls   {coverage.Commands,8:N0} distinct command(s)");

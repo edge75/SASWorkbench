@@ -34,6 +34,11 @@ sasctl import "C:\igs\GSA SAS Host Simulator v1.1" \
 is.** That is the whole argument for the import: the first figure was never wrong, it was just a
 measurement of the script. Neither figure moves a decoder; both are inputs to the ones that will.
 
+> **Superseded on 2026-09-07 by `M4-layouts.md`.** The forty-three per cent is now a hundred, and
+> the twenty-one distinct commands turned out to be eighteen: three of them — `$01`, `$20` and
+> `$30` — were bytes read out of pieces of other messages and were never sent by anybody. The
+> backlog below is kept as it stood, because what it got wrong is the more useful half of it.
+
 ### The backlog, produced rather than guessed
 
 Eleven commands the corpus contains and this build cannot decode, and one it cannot even name:
@@ -79,10 +84,16 @@ on roughly one machine byte in seventy is exactly what the protocol says plus wh
 misreading mark parity would add.
 
 **It also explains the fragments.** The tracer starts a new printed line at every byte carrying the
-bit, so one fourteen-byte machine reply with two spurious bits in it comes out as three lines. They
-are read as the tracer wrote them, and the spurious bit is reported beside them. Stitching them
-back together would hide a fault on the line and put this build's guess about the message in its
-place — and it is those fragments that make `$54` an undecoded command over the corpus.
+bit, so one fourteen-byte machine reply with two spurious bits in it comes out as three lines.
+Stitching them back together would hide a fault on the line and put this build's guess about the
+message in its place — and it is those fragments that make `$54` an undecoded command over the
+corpus.
+
+> **Two corrections, 2026-09-07 — see `M4-layouts.md`.** The ninth bit is *one* cause of a split
+> and not the only one: two splits in `10.2.2/step2.trc` carry no ninth bit anywhere and are still
+> printed as two timed lines. And the pieces are no longer read as the tracer wrote them: a run of
+> bytes whose check sequence does not check out is now named as not a message, because reading a
+> command out of a piece of one invented three commands the corpus never contained.
 
 ### The session log's direction field was documented wrong
 

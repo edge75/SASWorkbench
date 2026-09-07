@@ -107,8 +107,8 @@ public sealed class ExtendedLogTests
                     Tx(1, 20, 0x81),
                     Rx(2, 45, 0x00),
 
-                    // $51 is named in the catalogue and has no layout in this build; $1A has one.
-                    Command(3, 0x01, 0x51),
+                    // $21 is named in the catalogue and has no layout in this build; $1A has one.
+                    Command(3, 0x01, 0x21),
                     Rx(4, 70, 0x81),
                     Command(5, 0x01, 0x1A),
                     Reply(6, 0x01, 0x1A, 0x00, 0x00, 0x12, 0x34),
@@ -264,12 +264,12 @@ public sealed class ExtendedLogTests
     [Fact]
     public void ACommandWithNoEstablishedLayoutIsNamedAndSaysItIsNotDecoded()
     {
-        PacketExplanation packet = PacketExplainer.ExplainAll([Command(0, 0x01, 0x51)])[0];
+        PacketExplanation packet = PacketExplainer.ExplainAll([Command(0, 0x01, 0x21)])[0];
 
         Assert.Equal(PacketMeaning.NamedOnly, packet.Meaning);
         Assert.Equal("known but not decoded", packet.MeaningLabel);
-        Assert.Equal<byte?>(0x51, packet.Command);
-        Assert.Contains("$51", packet.Headline, StringComparison.Ordinal);
+        Assert.Equal<byte?>(0x21, packet.Command);
+        Assert.Contains("$21", packet.Headline, StringComparison.Ordinal);
         Assert.Contains("has not established", packet.Limit!, StringComparison.Ordinal);
 
         // Named, and no fields invented for it.
@@ -303,6 +303,127 @@ public sealed class ExtendedLogTests
         Assert.Equal(PacketMeaning.LayoutDidNotFit, packet.Meaning);
         Assert.NotNull(packet.Limit);
         Assert.Contains("byte", packet.Limit!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ---- bytes that are not a message ---------------------------------------------------------
+
+    /// <summary>
+    /// A reply whose check sequence does not check out is not read as a reply to anything.
+    /// </summary>
+    /// <remarks>
+    /// These are the bytes the conformance toolkit's tracer printed as one line when it split a
+    /// fourteen-byte reply to long poll $54 across two. Read as written, the second byte is $54
+    /// and the packet claims to be a $54 that does not fit — which is a claim about the machine
+    /// made from a fault in the recording. The check sequence is the protocol's own test of
+    /// whether a run of bytes is one message, and it fails here, so nothing is read out of them.
+    /// </remarks>
+    [Fact]
+    public void AReplyWhoseCheckSequenceDoesNotCheckOutIsNotReadAsAReply()
+    {
+        PacketExplanation packet = PacketExplainer.ExplainAll(
+        [
+            Tx(0, 0, 0x81),
+            Rx(1, 10, 0x01, 0x54, 0x09, 0x36, 0x30, 0x32, 0x31, 0x30),
+        ])[1];
+
+        Assert.Equal(PacketMeaning.NotAMessage, packet.Meaning);
+        Assert.Equal("not a message", packet.MeaningLabel);
+        Assert.Null(packet.Command);
+        Assert.Contains("do not stand as a SAS message", packet.Headline, StringComparison.Ordinal);
+
+        // The evidence stays on the packet: the bytes, and the check that failed.
+        Assert.Contains(packet.Findings,
+            f => f.Contains("check sequence does not check out", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// The pieces of a split reply neither prove nor deny that the command was understood.
+    /// </summary>
+    /// <remarks>
+    /// The tally rule is that a command counts as explained only when every packet carrying it
+    /// was, and that rule is right for whole messages. Applied to a fragment it turned a hundred
+    /// good $54 replies into an undecoded command, and it read a piece of one reply as traffic
+    /// for a command the capture never contained.
+    /// </remarks>
+    [Fact]
+    public void APieceOfASplitReplyNeitherProvesNorDeniesTheCommand()
+    {
+        PacketCoverage coverage = PacketCoverage.Of(PacketExplainer.ExplainAll(
+        [
+            Tx(0, 0, 0x81),
+            Command(1, 0x01, 0x54),
+            Reply(2, 0x01, 0x54, 0x09, 0x36, 0x30, 0x32, 0x31, 0x30, 0x30, 0x30, 0x30, 0x31),
+            Rx(3, 30, 0x01, 0x54, 0x09, 0x36, 0x30, 0x32, 0x31, 0x30),
+            Rx(4, 40, 0x30, 0x30, 0x30, 0x31, 0x5B, 0xC9),
+        ]));
+
+        Assert.Equal([0x54], coverage.CommandsExplained);
+        Assert.Empty(coverage.CommandsNamedOnly);
+        Assert.Empty(coverage.CommandsUnknown);
+        Assert.Equal(2, coverage.NotAMessage);
+    }
+
+    /// <summary>
+    /// A two-byte machine message is not a reply, and the second byte is not a command.
+    /// </summary>
+    /// <remarks>
+    /// This is the pair the tracer printed at the tail of a split reply to long poll $7E. Read as
+    /// a reply it names long poll $20 at a machine address the link never used, which is how a
+    /// command the corpus does not contain appeared in a coverage tally.
+    /// </remarks>
+    [Fact]
+    public void TwoBytesFromTheMachineAreNotReadAsAReply()
+    {
+        PacketExplanation packet = PacketExplainer
+            .ExplainAll([Tx(0, 0, 0x81), Rx(1, 10, 0x07, 0x20)])[1];
+
+        Assert.Equal(PacketMeaning.NotAMessage, packet.Meaning);
+        Assert.Null(packet.Command);
+    }
+
+    /// <summary>
+    /// The busy response is the one reply to a long poll that echoes no command, so it has to be
+    /// recognised before anything reads a command out of the second byte.
+    /// </summary>
+    [Fact]
+    public void TheBusyResponseIsNamedRatherThanReadAsALongPollZero()
+    {
+        PacketExplanation packet = PacketExplainer
+            .ExplainAll([Tx(0, 0, 0x81), Rx(1, 10, 0x01, 0x00)])[1];
+
+        Assert.Equal(PacketMeaning.Explained, packet.Meaning);
+        Assert.Null(packet.Command);
+        Assert.Contains("busy", packet.Headline, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// A long poll with no data is two bytes and carries no check sequence, so the rule above must
+    /// not reach it. Getting this wrong makes every bare long poll unreadable.
+    /// </summary>
+    [Fact]
+    public void ALongPollWithNoDataIsStillReadAsALongPoll()
+    {
+        PacketExplanation packet = PacketExplainer.ExplainAll([Tx(0, 0, 0x01, 0x54)])[0];
+
+        Assert.Equal(PacketMeaning.Explained, packet.Meaning);
+        Assert.Equal<byte?>(0x54, packet.Command);
+    }
+
+    /// <summary>
+    /// The same rule runs in both directions. A host message whose check sequence does not check
+    /// out is still a finding, and it is still not evidence that this build understands the
+    /// command somebody would have read out of its second byte.
+    /// </summary>
+    [Fact]
+    public void AHostMessageWhoseCheckSequenceIsWrongIsNotReadAsALongPollEither()
+    {
+        PacketExplanation packet = PacketExplainer.ExplainAll(
+            [Tx(0, 0, 0x01, 0x4C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24, 0xF7)])[0];
+
+        Assert.Equal(PacketMeaning.NotAMessage, packet.Meaning);
+        Assert.Null(packet.Command);
+        Assert.Contains(packet.Findings,
+            f => f.Contains("check sequence does not check out", StringComparison.Ordinal));
     }
 
     // ---- the one-byte answer, which is genuinely ambiguous -----------------------------------
@@ -496,7 +617,7 @@ public sealed class ExtendedLogTests
         // Two distinct commands crossed the wire; one of them is a layout this build has not
         // established, and it is named so that breadth work knows where to go.
         Assert.Equal(2, coverage.Commands);
-        Assert.Equal([0x51], coverage.CommandsNamedOnly);
+        Assert.Equal([0x21], coverage.CommandsNamedOnly);
         Assert.Equal([0x1A], coverage.CommandsExplained);
     }
 
@@ -528,7 +649,7 @@ public sealed class ExtendedLogTests
 
         Assert.Contains("explained in full", log, StringComparison.Ordinal);
         Assert.Contains("known but not decoded", log, StringComparison.Ordinal);
-        Assert.Contains("$51", log, StringComparison.Ordinal);
+        Assert.Contains("$21", log, StringComparison.Ordinal);
         Assert.Contains("where breadth work is worth most", Flat(log), StringComparison.Ordinal);
     }
 
@@ -546,7 +667,7 @@ public sealed class ExtendedLogTests
             [
                 poor.Tests[0] with
                 {
-                    Wire = [Command(0, 0x01, 0x51), Command(1, 0x01, 0x21), Command(2, 0x01, 0x6E)],
+                    Wire = [Command(0, 0x01, 0x21), Command(1, 0x01, 0x6E), Command(2, 0x01, 0x72)],
                 },
             ],
         };

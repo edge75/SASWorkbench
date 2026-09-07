@@ -21,6 +21,17 @@ public enum PacketMeaning
     /// <summary>A layout was applied and the bytes did not fit it. A finding, not a guess.</summary>
     LayoutDidNotFit,
 
+    /// <summary>
+    /// The bytes do not stand as a SAS message, so nothing is read out of them.
+    /// </summary>
+    /// <remarks>
+    /// The check sequence is the protocol's own test of whether a run of bytes is one message. A
+    /// frame that fails it gives no assurance about any byte in it, the command byte included, so
+    /// naming the long poll would be a guess dressed as a reading. The bytes and the check that
+    /// failed are both recorded; nothing is repaired and nothing is dropped.
+    /// </remarks>
+    NotAMessage,
+
     /// <summary>Nothing in this build names it at all.</summary>
     Unknown,
 }
@@ -105,6 +116,7 @@ public sealed record PacketExplanation
         PacketMeaning.Explained => "explained",
         PacketMeaning.NamedOnly => "known but not decoded",
         PacketMeaning.LayoutDidNotFit => "layout did not fit",
+        PacketMeaning.NotAMessage => "not a message",
         _ => "unknown",
     };
 
@@ -132,6 +144,7 @@ public sealed record PacketExplanation
 /// <param name="Explained">How many were explained in full.</param>
 /// <param name="NamedOnly">How many were named and not decoded.</param>
 /// <param name="LayoutDidNotFit">How many had a layout applied that the bytes did not fit.</param>
+/// <param name="NotAMessage">How many did not stand as a message at all.</param>
 /// <param name="Unknown">How many nothing in this build names.</param>
 /// <param name="HostsOwn">How many the host sent itself, with no step asking.</param>
 /// <param name="CommandsExplained">The long polls whose bytes were read in full.</param>
@@ -142,6 +155,7 @@ public sealed record PacketCoverage(
     int Explained,
     int NamedOnly,
     int LayoutDidNotFit,
+    int NotAMessage,
     int Unknown,
     int HostsOwn,
     IReadOnlyList<byte> CommandsExplained,
@@ -180,6 +194,7 @@ public sealed record PacketCoverage(
             all.Count(p => p.Meaning == PacketMeaning.Explained),
             all.Count(p => p.Meaning == PacketMeaning.NamedOnly),
             all.Count(p => p.Meaning == PacketMeaning.LayoutDidNotFit),
+            all.Count(p => p.Meaning == PacketMeaning.NotAMessage),
             all.Count(p => p.Meaning == PacketMeaning.Unknown),
             all.Count(p => p.IsHostsOwn),
             With(PacketMeaning.Explained),

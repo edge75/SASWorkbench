@@ -263,7 +263,17 @@ the machine, 0 never occurs. And **the 39 MB `TXRXData.dat` is worthless for bre
 messages, two distinct values, zero replies, so it is a tester polling something that never
 answered. The 4 KB one beside `sastest.exe` carries nine distinct long polls.
 
-Still to do in this milestone: the full long-poll catalogue and the layouts on the backlog above ·
+✅ **The backlog is decoded and the number moved** — see `docs/M4-layouts.md`. Eight of the eleven
+commands needed a layout and got one, each read from the library's own handler and each verified
+against bytes from a named capture. The other three were never in the corpus: `$01`, `$20` and
+`$30` were second bytes of pieces of other messages, printed as lines of their own by the toolkit's
+tracer. A run of bytes whose check sequence does not check out is no longer read as a message at
+all, which is what stopped a fragment inventing a command and denying two real ones. Over the
+corpus the tally goes from **9 of 21 (43%) to 18 of 18 (100%)**; over our own suite it stays at
+**10 of 10**, because no script here sends any of the eight; the catalogue moves from **28 to 36
+of 124 replies** decoding field by field.
+
+Still to do in this milestone: the rest of the long-poll catalogue ·
 `sastest.ini` and GSA XML imported as overlays and **diffed** against the header-derived catalogue
 (the diff is itself a finding: 22 long polls in the INI have no decoder, and `$72`/`$6E`/`$B0` are
 absent from its command lists) · replay of a capture against a machine and a diff of the verdicts ·

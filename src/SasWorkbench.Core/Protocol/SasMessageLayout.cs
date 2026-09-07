@@ -71,7 +71,8 @@ public sealed record SasMessageLayout
             foreach (SasField part in Response)
             {
                 if (part.Length == SasField.Remaining || part.IsGroup
-                    || part.PresentWhen is not null || part.LengthFromField is not null)
+                    || part.PresentWhen is not null || part.LengthFromField is not null
+                    || part.MeterWidthFromField is not null)
                     return null;
                 total += part.Length;
             }
