@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Transport;
@@ -238,13 +239,15 @@ public static class CapabilityProbe
         SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDENABLEFEATURES)!;
 
         // Game zero, which is the machine as a whole rather than any one of its games.
-        LongPollResult result = engine.Execute(layout.Command, [0x00, 0x00]);
+        LongPollResult result = engine.Execute(
+            layout.Command, [0x00, 0x00], purpose: WirePurpose.CapabilityProbe);
 
         // A command the engine never got as far as sending says nothing about the machine, so it
         // is asked again rather than reported as a machine that stayed quiet. Once: a second
         // failure to reach the wire is a link worth hearing about, not something to grind on.
         if (result.Outcome == LongPollOutcome.NotSent)
-            result = engine.Execute(layout.Command, [0x00, 0x00]);
+            result = engine.Execute(
+                layout.Command, [0x00, 0x00], purpose: WirePurpose.CapabilityProbe);
 
         if (result.Outcome == LongPollOutcome.NotSent)
         {

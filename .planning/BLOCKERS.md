@@ -266,6 +266,29 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
   `QSP/CMakeLists.txt:126`), so EGM behaviour can change under a passing suite. Record
   versions in every run record.
 
+### The suite is still intermittently flaky under load — measured 2026-09-07
+
+Two one-behind defects were found and fixed before M3 (`docs/one-behind.md`, D33), and they were
+real. They were not all of it. Running all four test projects at once still fails one
+timing-sensitive engine test in some runs:
+
+| run | what failed |
+|---|---|
+| 1 | one meter-index test: several meters answered `$00`, "neither an acknowledgement nor a rejection" |
+| 2 | three tests in the same project, same shape |
+| 3 (**with the extended-log work reverted**) | a different test, in a different project: an acknowledgement mistaken for a payload |
+| 4, 5 | 544 tests, all green |
+
+**Three of five runs, and it happens with the wave's changes reverted**, so it is not from the
+extended log. Every one of these tests passes on its own. The shape is the same in each case: a
+reply arriving under the wrong command's name when the machine is slow to answer because the machine
+is competing for a core with three other test processes.
+
+**What this costs.** Exactly what D33 said it costs: a suite that fails one run in three cannot tell
+you whether the next milestone works. It is worth chasing before M4 widens the surface, and the
+measurement above is the starting point — the failures are reproducible by running
+`dotnet test SasWorkbench.slnx` a few times, and they are not reproducible per project.
+
 ---
 
 ## 5. Useful levers that already exist

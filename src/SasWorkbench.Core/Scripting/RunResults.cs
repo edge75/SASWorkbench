@@ -58,6 +58,26 @@ public sealed record TestOutcome
     /// <summary>The test's labels, carried into the report.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
 
+    /// <summary>
+    /// What the test declared it needs, carried into the report rather than left in the script.
+    /// </summary>
+    /// <remarks>
+    /// A record that holds the verdict but not the conditions the case claimed to need cannot be
+    /// read back into a description of what the case was for. Everything here was in the script;
+    /// what changes is that the record now carries it, so anything rendered from the record can
+    /// say it without reading the script again — and without inventing prose when the script is
+    /// thin.
+    /// </remarks>
+    public IReadOnlyList<Requirement> Requirements { get; init; } = [];
+
+    /// <summary>When the test began, in the world.</summary>
+    /// <remarks>
+    /// The anchor that puts a run's relative times on somebody's watch. Every other timestamp in
+    /// the record is an elapsed time from a zero inside the run, which is what makes them
+    /// comparable with each other and useless for comparing with anything outside it.
+    /// </remarks>
+    public DateTimeOffset StartedAt { get; init; }
+
     /// <summary>Every message that crossed the wire, so a failure can be read back byte by byte.</summary>
     public IReadOnlyList<WireRecord> Wire { get; init; } = [];
 

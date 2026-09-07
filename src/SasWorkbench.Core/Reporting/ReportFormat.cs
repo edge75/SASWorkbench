@@ -16,6 +16,15 @@ public enum ReportFormat
 
     /// <summary>One JSON object per line, for anything that wants to read the run.</summary>
     JsonLines,
+
+    /// <summary>
+    /// A log that explains itself: what each case is before it runs, and what every packet means.
+    /// </summary>
+    /// <remarks>
+    /// A rendering of the record rather than a second capture, so the same log can be produced
+    /// afterwards from a run written with <see cref="JsonLines"/> and will read the same.
+    /// </remarks>
+    Extended,
 }
 
 /// <summary>Writes a run report in one format.</summary>
@@ -42,6 +51,7 @@ public static class Reports
             [ReportFormat.JUnit] = new JUnitReportWriter(),
             [ReportFormat.Markdown] = new MarkdownReportWriter(),
             [ReportFormat.JsonLines] = new JsonLinesReportWriter(),
+            [ReportFormat.Extended] = new ExtendedLogWriter(),
         };
 
     /// <summary>
@@ -61,6 +71,7 @@ public static class Reports
                 "junit" or "xml" => ReportFormat.JUnit,
                 "md" or "markdown" => ReportFormat.Markdown,
                 "jsonl" or "json" => ReportFormat.JsonLines,
+                "extended" or "explain" => ReportFormat.Extended,
                 _ => null,
             };
 
@@ -80,7 +91,7 @@ public static class Reports
     }
 
     /// <summary>Every format name a command line accepts, for a help line.</summary>
-    public static string Names => "html, junit, md, jsonl";
+    public static string Names => "html, junit, md, jsonl, extended";
 
     /// <summary>
     /// Writes each requested report into <paramref name="directory"/>, named after the run.

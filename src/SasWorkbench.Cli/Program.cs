@@ -26,6 +26,7 @@ try
         "qpm" => QpmCommand.Execute(line),
         "nvram" => NvramCommand.Execute(line),
         "find" => FindCommand.Execute(line),
+        "explain" => ExplainCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

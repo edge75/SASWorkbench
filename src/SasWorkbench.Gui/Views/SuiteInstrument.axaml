@@ -56,10 +56,13 @@
                  AutomationProperties.Name="Gaming machine resource directory" />
       </Grid>
 
-      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
         <TextBlock Grid.Column="0" Classes="strong" Text="{Binding RunSummary}"
                    TextWrapping="Wrap" VerticalAlignment="Center" />
-        <Button Grid.Column="1" Content="Write report"
+        <Button Grid.Column="1" Content="Explain"
+                Command="{Binding ExplainRunCommand}"
+                AutomationProperties.Name="Explain the last run, packet by packet" />
+        <Button Grid.Column="2" Content="Write report"
                 Command="{Binding SaveReportCommand}" />
       </Grid>
     </StackPanel>
@@ -95,7 +98,7 @@
       </Grid>
     </Border>
 
-    <TabControl Grid.Row="4" IsVisible="{Binding Suite.HasSelection}">
+    <TabControl Grid.Row="4" IsVisible="{Binding HasSuiteDetail}">
 
       <TabItem Header="Steps">
         <ListBox ItemsSource="{Binding Suite.Steps}" Margin="0,6,0,0"
@@ -136,6 +139,15 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
+      </TabItem>
+
+      <!-- The extended log of D34, in the same well as the frames it explains. A tab rather than
+           a surface of its own, because it is read after a run rather than during one. -->
+      <TabItem Header="Explained">
+        <ScrollViewer Margin="0,6,0,0" HorizontalScrollBarVisibility="Auto"
+                      AutomationProperties.Name="The last run, explained">
+          <SelectableTextBlock Classes="hex" Text="{Binding ExtendedLog}" />
+        </ScrollViewer>
       </TabItem>
 
     </TabControl>

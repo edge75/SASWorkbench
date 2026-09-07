@@ -166,7 +166,7 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
         // A new log is a new clock. Carrying the old one's "previous message" into it would
         // measure the first event of this session from the last event of the one before.
-        _stamper = new SessionStamper(Timestamps);
+        _stamper = NewStamper();
         _shown.Clear();
         Rows.Clear();
         Flush();
@@ -233,6 +233,23 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
     partial void OnTimestampsChanged(TimestampMode value) => Rebuild();
 
     partial void OnWakeupChanged(WakeupDisplay value) => Rebuild();
+
+    /// <summary>
+    /// A stamper for the chosen mode, given the clock of whatever log is being watched.
+    /// </summary>
+    /// <remarks>
+    /// Wall-clock time needs the instant the session began, and before a log arrives there is no
+    /// such instant — and no events either. Stamping relatively until one arrives shows nothing
+    /// wrongly, because there is nothing on screen to show; answering from this moment's clock
+    /// would put every row of a session recorded yesterday at today's time.
+    /// </remarks>
+    private SessionStamper NewStamper()
+    {
+        DateTimeOffset? origin = _log?.Clock.StartedAt;
+        return Timestamps == TimestampMode.WallClock && origin is null
+            ? new SessionStamper(TimestampMode.SinceTestStart)
+            : new SessionStamper(Timestamps, origin);
+    }
 
     /// <summary>Called on whichever thread recorded the event, so it only buffers.</summary>
     private void OnAppended(SessionEvent record)
@@ -302,7 +319,7 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
     private void Rebuild()
     {
-        _stamper = new SessionStamper(Timestamps);
+        _stamper = NewStamper();
         Rows.Clear();
 
         foreach (SessionEvent record in _shown)
@@ -371,7 +388,7 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
     private SessionRow Row(SessionEvent record, TimeSpan offset) => new(
         record,
-        $"{offset.TotalMilliseconds,9:F1}",
+        SessionStamper.Format(offset, _stamper.Mode),
         Label(record.Lane),
         record.Channel == SasChannel.One ? string.Empty : $"c{(int)record.Channel}",
         [.. record.Symbols.Select(s => Symbol(s, Wakeup))],

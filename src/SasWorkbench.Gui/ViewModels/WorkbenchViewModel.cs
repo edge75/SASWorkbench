@@ -43,8 +43,11 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
         Suite.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SuiteViewModel.Selected))
-                ScopeToSelectedTest();
+            if (e.PropertyName != nameof(SuiteViewModel.Selected))
+                return;
+
+            ScopeToSelectedTest();
+            OnPropertyChanged(nameof(HasSuiteDetail));
         };
 
         Rediscover();
@@ -233,6 +236,28 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     /// <summary>Which reports to write. The self-contained page is the one worth sending.</summary>
     [ObservableProperty]
     public partial string ReportFormats { get; set; } = "html";
+
+    /// <summary>
+    /// The last run, explained packet by packet, or the reason there is nothing to explain.
+    /// </summary>
+    /// <remarks>
+    /// Rendered on demand rather than as a run goes, because it is a rendering of the record and
+    /// the record is complete only once the run is. The same renderer the command line uses, so
+    /// what is read here and what is read in a file are the same text.
+    /// </remarks>
+    [ObservableProperty]
+    public partial string? ExtendedLog { get; set; }
+
+    /// <summary>
+    /// Whether there is anything to show below the tree: a test to inspect, or a run explained.
+    /// </summary>
+    /// <remarks>
+    /// The extended log is about the whole run rather than about one case, so it must not be
+    /// reachable only through selecting a case. Selecting one still fills the other two tabs.
+    /// </remarks>
+    public bool HasSuiteDetail => Suite.HasSelection || !string.IsNullOrEmpty(ExtendedLog);
+
+    partial void OnExtendedLogChanged(string? value) => OnPropertyChanged(nameof(HasSuiteDetail));
 
     /// <summary>What should drive the machine during a run.</summary>
     public IReadOnlyList<StimulusBackend> StimulusBackends { get; } =
@@ -642,6 +667,29 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         {
             Status = $"could not write the report: {denied.Message}";
         }
+    }
+
+    /// <summary>
+    /// Explains the last run: what each case was, and what every packet meant.
+    /// </summary>
+    /// <remarks>
+    /// A packet whose layout this build has not established is named and marked undecoded rather
+    /// than guessed at, so the tally at the end of the log says how much of what crossed the wire
+    /// this build actually understands.
+    /// </remarks>
+    [RelayCommand]
+    private void ExplainRun()
+    {
+        if (LastReport is not { } report)
+        {
+            ExtendedLog = null;
+            Status = "run something first";
+            return;
+        }
+
+        ExtendedLog = new ExtendedLogWriter().Render(report);
+        Status = "explained the last run; a packet marked 'known but not decoded' is a layout "
+                 + "this build has not established";
     }
 
     [RelayCommand]

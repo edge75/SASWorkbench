@@ -4,8 +4,10 @@
 prints a ticket and it is filed where a test and a person can both read it; a ticket goes back
 into a machine and a host redeems it; and GSA **10.1.3 Cashout Ticket 1** runs unattended against
 the software machine. The memory image a real machine needs is done too — see
-`docs/M3-golden-memory.md`, where `10.1.1` passes against one. What the milestone still owes is the
-extended log, the accounting denomination in a script and the wall-clock timestamp mode.
+`docs/M3-golden-memory.md`, where `10.1.1` passes against one. A run also explains itself packet by
+packet, either as it runs or afterwards from its own record — see `docs/M3-extended-log.md`, which
+also carries the fourth timestamp mode. What the milestone still owes is the accounting
+denomination in a script.
 
 ---
 
@@ -192,12 +194,13 @@ would look identical to one where the runner had quietly stopped executing anyth
 
 ## What is left in the milestone
 
-* **The extended log** (`D34`) and **the accounting denomination in a script** (`D36`).
-* **The fourth timestamp mode, wall-clock time** (`D28`), outstanding from M1.5.
+* **The accounting denomination in a script** (`D36`) — the declaration a case makes about the
+  configuration it assumes, and the step that changes it.
 
 The golden memory image is done — see `docs/M3-golden-memory.md`. Two images are committed,
 because a machine performs one validation style at a time, and `10.1.1` now passes against a real
-gaming machine.
+gaming machine. The extended log (`D34`) and the fourth timestamp mode (`D28`) are done — see
+`docs/M3-extended-log.md`.
 
 ## Known limits, stated rather than discovered later
 

@@ -17,6 +17,16 @@ public enum TimestampMode
 
     /// <summary>Zero is the previous event of any kind — turnaround latency.</summary>
     SincePreviousMessage,
+
+    /// <summary>Zero is midnight — when it happened in the world, in this machine's own zone.</summary>
+    /// <remarks>
+    /// The mode for matching a run against something outside it: another tool's log, a machine's
+    /// own log, or somebody's account of what they were doing. It needs no field the record does
+    /// not already hold — the session carries the instant it began and every event carries its
+    /// elapsed time — which is why it is derived here like the other three rather than written
+    /// into the log.
+    /// </remarks>
+    WallClock,
 }
 
 /// <summary>
@@ -27,7 +37,14 @@ public enum TimestampMode
 /// subtraction per event rather than a re-scan of the log. Reset it when the mode changes or the
 /// events are replayed from the start.
 /// </remarks>
-public sealed class SessionStamper(TimestampMode mode)
+/// <param name="mode">Which zero to measure from.</param>
+/// <param name="origin">
+/// When the session began, which <see cref="TimestampMode.WallClock"/> needs and the other three
+/// modes do not. Asking for wall-clock time without it is refused rather than answered from the
+/// current time: a recorded session read back tomorrow would be stamped with tomorrow's clock and
+/// nothing would say so.
+/// </param>
+public sealed class SessionStamper(TimestampMode mode, DateTimeOffset? origin = null)
 {
     private readonly Dictionary<int, TimeSpan> _previousPoll = [];
     private TimeSpan _testStart;
@@ -35,7 +52,14 @@ public sealed class SessionStamper(TimestampMode mode)
     private bool _seenMessage;
 
     /// <summary>Which zero this stamper is measuring from.</summary>
-    public TimestampMode Mode { get; } = mode;
+    public TimestampMode Mode { get; } = mode == TimestampMode.WallClock && origin is null
+        ? throw new ArgumentException(
+            "Wall-clock time needs the instant the session began. Without it there is nothing to "
+            + "add the elapsed times to.", nameof(origin))
+        : mode;
+
+    /// <summary>When the session began, for the one mode that measures from outside it.</summary>
+    public DateTimeOffset? Origin { get; } = origin;
 
     /// <summary>Forgets everything, as if no event had been stamped.</summary>
     public void Reset()
@@ -70,6 +94,10 @@ public sealed class SessionStamper(TimestampMode mode)
                 ? record.At - _previousMessage
                 : record.At,
 
+            // Local rather than universal, because the thing this is matched against is a log
+            // somebody read off a screen in the room the machine was in.
+            TimestampMode.WallClock => (Origin!.Value + record.At).ToLocalTime().TimeOfDay,
+
             _ => record.At,
         };
 
@@ -87,11 +115,23 @@ public sealed class SessionStamper(TimestampMode mode)
 
     /// <summary>Stamps a whole sequence at once, for a report.</summary>
     public static IReadOnlyList<(SessionEvent Event, TimeSpan Offset)> StampAll(
-        IEnumerable<SessionEvent> events, TimestampMode mode)
+        IEnumerable<SessionEvent> events, TimestampMode mode, DateTimeOffset? origin = null)
     {
         ArgumentNullException.ThrowIfNull(events);
 
-        var stamper = new SessionStamper(mode);
+        var stamper = new SessionStamper(mode, origin);
         return events.Select(e => (e, stamper.Stamp(e))).ToList();
     }
+
+    /// <summary>
+    /// Renders an offset the way its mode should read, so every view spells one the same way.
+    /// </summary>
+    /// <remarks>
+    /// A time of day has to be written as one. The other three modes are durations and read as
+    /// milliseconds, but 47,183,204.6 ms past midnight is a number nobody can compare with a
+    /// timestamp in another program's log, which is the only reason that mode exists.
+    /// </remarks>
+    public static string Format(TimeSpan offset, TimestampMode mode) => mode == TimestampMode.WallClock
+        ? offset.ToString(@"hh\:mm\:ss\.fff")
+        : $"{offset.TotalMilliseconds,9:F1}";
 }

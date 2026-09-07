@@ -144,6 +144,7 @@ public sealed class ScriptRunner
         ConnectStep? connect = test.Steps.OfType<ConnectStep>().FirstOrDefault();
         ClockBase testBase = Log.Clock.Mark();
         var stopwatch = Stopwatch.StartNew();
+        DateTimeOffset startedAt = DateTimeOffset.UtcNow;
         Log.TestStarted(test.Name, test.Location, connect?.Channel ?? SasChannel.One);
 
         if (connect is null)
@@ -152,7 +153,7 @@ public sealed class ScriptRunner
             // enough to run it, has neither a link nor the capability it needs. What it needs is
             // the more useful of the two answers, and it is a skip rather than a broken test.
             if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
-                return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
+                return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
                     SasChannel.One, testBase);
 
             var broken = new TestOutcome
@@ -161,6 +162,8 @@ public sealed class ScriptRunner
                 Location = test.Location,
                 Verdict = Verdict.Error,
                 Tags = test.Tags,
+                Requirements = test.Requirements,
+                StartedAt = startedAt,
                 Duration = stopwatch.Elapsed,
                 SkipReason = "the test never opens a link; add 'host connect ...'",
                 Steps =
@@ -185,10 +188,10 @@ public sealed class ScriptRunner
             // was going to be skipped for a missing capability anyway, that is the reason worth
             // reporting - "no peer on the link" would send somebody looking for the wrong thing.
             if (baseline.FirstUnmet(Local(test.Requirements)) is { } missing)
-                return Skipped(test, stopwatch, $"{missing.Requirement.Key}: {missing.Reason}",
+                return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
                     connect.Channel, testBase);
 
-            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase);
+            return Skipped(test, stopwatch, startedAt, refused.Message, connect.Channel, testBase);
         }
 
         using (environment)
@@ -210,11 +213,12 @@ public sealed class ScriptRunner
                 capabilities.FirstUnmet(Local(test.Requirements));
             if (unmet is { } gap)
             {
-                return Skipped(test, stopwatch, $"{gap.Requirement.Key}: {gap.Reason}",
+                return Skipped(test, stopwatch, startedAt, $"{gap.Requirement.Key}: {gap.Reason}",
                     connect.Channel, testBase, provenance);
             }
 
-            return Execute(test, connect, environment, capabilities, stopwatch, testBase, provenance);
+            return Execute(
+                test, connect, environment, capabilities, stopwatch, startedAt, testBase, provenance);
         }
     }
 
@@ -250,6 +254,7 @@ public sealed class ScriptRunner
         ScriptEnvironment environment,
         CapabilitySet capabilities,
         Stopwatch stopwatch,
+        DateTimeOffset startedAt,
         ClockBase testBase,
         RunProvenance provenance)
     {
@@ -272,7 +277,7 @@ public sealed class ScriptRunner
         }
         catch (TransportRefusedException refused)
         {
-            return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase, provenance);
+            return Skipped(test, stopwatch, startedAt, refused.Message, connect.Channel, testBase, provenance);
         }
 
         // The engine keeps its own clock, so its zero is marked on the session clock before it
@@ -309,12 +314,12 @@ public sealed class ScriptRunner
             }
             catch (TransportRefusedException refused)
             {
-                return Skipped(test, stopwatch, refused.Message, connect.Channel, testBase, provenance);
+                return Skipped(test, stopwatch, startedAt, refused.Message, connect.Channel, testBase, provenance);
             }
 
             if (environment.HostTransport is TcpTransport tcp && !tcp.WaitForPeer(_options.PeerTimeout))
             {
-                return Skipped(test, stopwatch,
+                return Skipped(test, stopwatch, startedAt,
                     $"no gaming machine connected to {tcp.Description} within "
                     + $"{_options.PeerTimeout.TotalSeconds:F0}s",
                     connect.Channel, testBase, provenance);
@@ -329,7 +334,7 @@ public sealed class ScriptRunner
                 CapabilitySet asked = capabilities.With(answers.Values);
                 if (asked.FirstUnmet(test.Requirements) is { } gap)
                 {
-                    return Skipped(test, stopwatch,
+                    return Skipped(test, stopwatch, startedAt,
                         $"{gap.Requirement.Key}: {AskedReason(gap.Requirement, gap.Reason, answers)}",
                         connect.Channel, testBase, provenance);
                 }
@@ -359,6 +364,8 @@ public sealed class ScriptRunner
                 Steps = steps,
                 Duration = stopwatch.Elapsed,
                 Tags = test.Tags,
+                Requirements = test.Requirements,
+                StartedAt = startedAt,
                 Wire = wire,
                 Provenance = provenance,
                 SkipReason = Aggregate(steps) == Verdict.Skip
@@ -953,19 +960,25 @@ public sealed class ScriptRunner
             if (!MeterIndex.TryResolve(meter, out MeterSource source))
                 continue;
 
-            (long? value, _) = ReadMeter(engine, source);
+            (long? value, _) = ReadMeter(engine, source, WirePurpose.MeterBaseline);
             if (value is not null)
                 baselines[meter] = value.Value;
         }
     }
 
-    private static (long? Value, string? Failure) ReadMeter(PollEngine engine, MeterSource source)
+    /// <param name="purpose">
+    /// Why the meter is being read, for the reads no step asked for. A baseline is taken before
+    /// the first step and again before every stimulus, so a log that did not mark them would show
+    /// polls a reader could not account for.
+    /// </param>
+    private static (long? Value, string? Failure) ReadMeter(
+        PollEngine engine, MeterSource source, string? purpose = null)
     {
         SasMessageLayout? layout = SasLayouts.For(source.Command);
         if (layout is null)
             return (null, $"long poll ${source.Command:X2} has no layout");
 
-        LongPollResult reply = engine.Execute(source.Command);
+        LongPollResult reply = engine.Execute(source.Command, purpose: purpose);
         if (!reply.Succeeded)
             return (null, reply.Detail ?? reply.Outcome.ToString());
 
@@ -1001,6 +1014,7 @@ public sealed class ScriptRunner
     private TestOutcome Skipped(
         ScriptTest test,
         Stopwatch stopwatch,
+        DateTimeOffset startedAt,
         string reason,
         SasChannel channel,
         ClockBase testBase,
@@ -1012,6 +1026,8 @@ public sealed class ScriptRunner
             Location = test.Location,
             Verdict = Verdict.Skip,
             Tags = test.Tags,
+            Requirements = test.Requirements,
+            StartedAt = startedAt,
             Duration = stopwatch.Elapsed,
             SkipReason = reason,
             Provenance = provenance,

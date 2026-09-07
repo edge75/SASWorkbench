@@ -300,4 +300,78 @@ public class SessionStamperTests
 
         Assert.Equal(TimeSpan.FromMilliseconds(200), stamped[2].Offset);
     }
+
+    // ---- wall-clock time, the fourth mode ----------------------------------------------------
+
+    /// <summary>
+    /// Wall-clock time is the session's own beginning plus the elapsed time a record already
+    /// holds, so it needs nothing added to the record.
+    /// </summary>
+    /// <remarks>
+    /// The mode for matching a run against something outside it — another tool's log, a machine's
+    /// own log, or somebody's account of what they were doing. Local rather than universal,
+    /// because the thing it is compared against was read off a screen in a room.
+    /// </remarks>
+    [Fact]
+    public void WallClockIsTheSessionsBeginningPlusTheElapsedTimeTheRecordHolds()
+    {
+        var origin = new DateTimeOffset(2026, 9, 7, 21, 48, 51, TimeSpan.Zero);
+        var log = new SessionLog();
+        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+            TimeSpan.FromMilliseconds(1230.7), ClockBase.Session);
+
+        TimeSpan offset =
+            SessionStamper.StampAll(log.Snapshot(), TimestampMode.WallClock, origin)[0].Offset;
+
+        Assert.Equal(
+            (origin + TimeSpan.FromMilliseconds(1230.7)).ToLocalTime().TimeOfDay,
+            offset);
+    }
+
+    /// <summary>
+    /// Wall-clock time without the instant the session began is refused, not answered from now.
+    /// </summary>
+    /// <remarks>
+    /// A recorded session read back tomorrow would otherwise be stamped with tomorrow's clock and
+    /// nothing would say so — a wrong answer indistinguishable from a right one, which is exactly
+    /// what this project refuses to produce.
+    /// </remarks>
+    [Fact]
+    public void WallClockWithoutAnOriginIsRefusedRatherThanReadFromTheCurrentTime()
+    {
+        ArgumentException refused = Assert.Throws<ArgumentException>(
+            () => new SessionStamper(TimestampMode.WallClock));
+
+        Assert.Contains("instant the session began", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheOtherThreeModesNeedNoOrigin()
+    {
+        foreach (TimestampMode mode in Enum.GetValues<TimestampMode>()
+                     .Where(m => m != TimestampMode.WallClock))
+        {
+            Assert.Equal(mode, new SessionStamper(mode).Mode);
+        }
+    }
+
+    /// <summary>A time of day is written as one; the other three modes are durations.</summary>
+    [Fact]
+    public void ATimeOfDayIsWrittenAsATimeAndADurationAsMilliseconds()
+    {
+        var noon = new TimeSpan(0, 12, 34, 56, 789);
+
+        Assert.Equal("12:34:56.789", SessionStamper.Format(noon, TimestampMode.WallClock));
+        Assert.Equal(
+            "  45296.8",
+            SessionStamper.Format(TimeSpan.FromMilliseconds(45296.789),
+                TimestampMode.SinceTestStart));
+    }
+
+    /// <summary>D28's fourth mode exists, so a view offering the modes offers four.</summary>
+    [Fact]
+    public void ThereAreFourTimestampModes()
+    {
+        Assert.Equal(4, Enum.GetValues<TimestampMode>().Length);
+    }
 }

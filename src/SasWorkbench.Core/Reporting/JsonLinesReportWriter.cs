@@ -58,10 +58,31 @@ public sealed class JsonLinesReportWriter : IReportWriter
                 file = test.Location.File,
                 line = test.Location.Line,
                 verdict = test.Verdict.ToString(),
+                startedAt = test.StartedAt,
                 durationMs = test.Duration.TotalMilliseconds,
                 assertions = test.Assertions,
                 skipReason = test.SkipReason,
                 tags = test.Tags,
+
+                // What the case said it needed, and what it was carried over. Both were already
+                // known when the run happened; recording them is what lets anything rendered from
+                // this file afterwards say what the case was for without reading the script again.
+                requires = test.Requirements.Select(r => new
+                {
+                    file = r.Location.File,
+                    line = r.Location.Line,
+                    key = r.Key,
+                    value = r.ExpectedValue,
+                }),
+                provenance = test.Provenance is { } how
+                    ? new
+                    {
+                        transport = how.Transport,
+                        fidelity = how.Fidelity.ToString(),
+                        stimulus = how.Stimulus.ToString(),
+                        caveat = how.Caveat,
+                    }
+                    : null,
             });
 
             foreach (StepResult step in test.Steps)

@@ -118,7 +118,8 @@ Also in this milestone, because all three touch the wire row that step 4 rewrite
   per-symbol wakeup flag, because a joined string cannot highlight bit 8.
 * **Timestamp modes** (D28) — since test start, since previous poll, since previous message.
   Selectable per view, and *not* baked into the record, so the raw log is unaffected.
-  **A fourth, wall-clock time, was added to D28 on 2026-09-05 and is outstanding** — see M3.
+  **A fourth, wall-clock time, was added to D28 on 2026-09-05 and landed on 2026-09-07** with the
+  extended log — see M3 and `docs/M3-extended-log.md`.
 * **Channels 2–4 stop being offered as ordinary choices** — the probe advertises one, so the other
   three render as `⟨unknown⟩` with the reason. This is a "never silently degrade" violation
   currently shipping in the window.
@@ -172,17 +173,20 @@ being changed anyway.
   M0 swapped the serial transport and libsas's platform check.
 * Fix the mask-zeroing race (Trap B) — it fabricates door events on the SAS wire.
 * Ticket-in path so redemption can be stimulated at all.
-* **The fourth timestamp mode, wall-clock time** (D28), outstanding from M1.5. Small, and it
-  belongs with any work that touches the session stream: it needs no new field, because the
-  session already records a clock base and every record already carries its elapsed time.
+* **The fourth timestamp mode, wall-clock time** (D28), outstanding from M1.5. ✅ **done
+  2026-09-07**, with the extended log rather than in a wave of its own — the mode exists for
+  matching a run against another tool's log, which is what somebody reading an extended log is
+  doing. It needed no new field. Asking for it without the instant the session began is refused
+  rather than answered from the current clock.
 * **The ticket surface in `qpm_simulator`** (D35), which is an ImGui application: a popup showing
   printed tickets, buttons to export one as JSON, and buttons to load a JSON ticket so an insertion
   can be simulated by hand. The by-hand path and the scripted one must be the same path.
-* **The extended log** (D34) — a description of each test case before it runs and of every packet
-  with its meaning, asked for before a run or produced afterwards from a log that already exists.
-  It is a rendering of the record, never a second capture, so it can be regenerated and corrected
-  without re-running anything. A packet this build cannot decode is named and marked undecoded, so
-  the extended log doubles as the coverage measurement M4 is trying to move.
+* **The extended log** (D34) — ✅ **done 2026-09-07**, see `docs/M3-extended-log.md`. Available as
+  `run --report extended`, as `sasctl explain <run.jsonl>`, and from the window; a test asserts the
+  two renderings are byte-identical, which is what makes it a rendering of the record rather than a
+  second capture. A packet this build cannot decode is named and marked `known but not decoded`, and
+  the tally reports coverage twice — over all packets, and over the distinct long polls a run
+  exchanged, which is the number M4 moves.
 
 * **The accounting denomination in a script** (D36), after the ticket path: a declaration of the
   configuration a case assumes, which builds the software machine and is a precondition check on a
@@ -230,9 +234,15 @@ command that sets the style it is about the absence of.
 
 ## M4 · Breadth
 
-**The extended log of D34 is the measurement this milestone moves.** Every packet it can only name
-rather than explain is a layout M4 has not established yet, so the honest place to start is
-whatever the extended log of a real run leaves undecoded.
+**The extended log of D34 is the measurement this milestone moves, and it exists now.** Every
+packet it can only name rather than explain is a layout M4 has not established yet, so the honest
+place to start is whatever the extended log of a real run leaves undecoded — the log names those
+commands under its own tally, so the starting list is produced rather than guessed at:
+
+```
+sasctl run tests/conformance --tcp 127.0.0.1:9760 --report jsonl
+sasctl explain runs/<timestamp>/run.jsonl        # the 'known but not decoded' list is the backlog
+```
 
 Full long-poll catalogue · `sastest.ini` and GSA XML imported as overlays and **diffed**
 against the header-derived catalogue (the diff is itself a finding: 22 long polls in the

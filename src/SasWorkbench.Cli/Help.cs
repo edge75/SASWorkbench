@@ -25,6 +25,7 @@ internal static class Help
               sasctl qpm <action> [options]      drive a running machine's peripherals by hand
               sasctl nvram <action> [options]    save or restore a machine's configured memory
               sasctl find <file> [options]       find messages in a recorded run, by line number
+              sasctl explain <file> [options]    explain a recorded run, packet by packet
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -99,6 +100,19 @@ internal static class Help
               on, so the file already open in an editor can be jumped into rather than replaced by
               a filtered copy of itself.
 
+            EXPLAIN
+              --out <file>            write the log to a file instead of the screen
+
+              Reads a run written with --report jsonl and renders the same extended log that
+              'run --report extended' produces during a run. It is a rendering of the record,
+              never a second recording, so an explanation that turns out wrong is corrected and
+              rendered again without re-running anything.
+
+              Every packet gets a line. A reply whose layout this build has not established is
+              named and marked 'known but not decoded' rather than guessed at, and the tally at
+              the end says how many packets were explained in full and how many only named — so
+              the log measures how much of the protocol this build understands.
+
             NVRAM
               status                  what the machine holds, and what has been saved
               show                    what each is configured to be, side by side
@@ -129,6 +143,7 @@ internal static class Help
               sasctl egm --tcp 127.0.0.1:7200
               sasctl qpm status --egm-resources <demo>/Resources
               sasctl qpm audit open --egm-resources <demo>/Resources
+              sasctl explain runs/20260907-101500/run.jsonl
               sasctl nvram show
               sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
               sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz

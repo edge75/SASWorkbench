@@ -44,6 +44,7 @@ public sealed class PollEngine : IDisposable
     private volatile bool _running;
     private volatile bool _pendingReady;
     private byte _pendingCommand;
+    private string? _pendingPurpose;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
     private long _pendingTicket;
@@ -167,7 +168,16 @@ public sealed class PollEngine : IDisposable
     /// SAS is strictly one transaction at a time, so callers are serialised here rather than
     /// pipelined. Waiting is the honest model of the protocol.
     /// </remarks>
-    public LongPollResult Execute(byte command, ReadOnlySpan<byte> data = default, TimeSpan? timeout = null)
+    /// <param name="purpose">
+    /// Why this poll is being sent, when the host is asking on its own behalf rather than because
+    /// a step asked. It goes onto the record with the message, so a log can say which packets no
+    /// step accounts for instead of leaving a reader to work it out from where they sit.
+    /// </param>
+    public LongPollResult Execute(
+        byte command,
+        ReadOnlySpan<byte> data = default,
+        TimeSpan? timeout = null,
+        string? purpose = null)
     {
         if (data.Length > _pendingData.Length)
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
@@ -187,6 +197,7 @@ public sealed class PollEngine : IDisposable
                 data.CopyTo(_pendingData);
                 _pendingDataLength = data.Length;
                 _pendingCommand = command;
+                _pendingPurpose = purpose;
                 _pendingResult = null;
                 _pendingTicket++;
                 _pendingDone.Reset();
@@ -316,11 +327,13 @@ public sealed class PollEngine : IDisposable
         byte command;
         int dataLength;
         long ticket;
+        string? purpose;
         lock (_submitGate)
         {
             command = _pendingCommand;
             dataLength = _pendingDataLength;
             ticket = _pendingTicket;
+            purpose = _pendingPurpose;
             _pendingReady = false;
         }
 
@@ -339,7 +352,7 @@ public sealed class PollEngine : IDisposable
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();
-        SendAndRecord(length, $"long poll ${command:X2}");
+        SendAndRecord(length, WirePurpose.Label($"long poll ${command:X2}", purpose)!);
         Interlocked.Increment(ref _longPolls);
 
         int received = _link.Receive(_inbound, _options.ResponseTimeout, _options.QuietGap, out bool wakeup);
@@ -348,7 +361,7 @@ public sealed class PollEngine : IDisposable
         LongPollResult result = Interpret(command, received, wakeup, latency);
         if (received > 0)
         {
-            RecordReceive(received, wakeup, result.Outcome.ToString());
+            RecordReceive(received, wakeup, WirePurpose.Label(result.Outcome.ToString(), purpose));
             MarkHeard();
         }
         else
