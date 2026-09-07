@@ -19,10 +19,17 @@ public sealed record HostSessionSpec(
     string Target,
     SasAddress Address,
     SasChannel Channel = SasChannel.One,
-    TimeSpan? PollInterval = null)
+    TimeSpan? PollInterval = null,
+    TimeSpan? ResponseTimeout = null)
 {
     /// <summary>The interval to use when none was given.</summary>
     public TimeSpan Interval => PollInterval ?? TimeSpan.FromMilliseconds(200);
+
+    /// <summary>
+    /// How long the host waits for a machine to answer. A script run already says this; a session
+    /// could not, so it took the engine's own default whatever it was talking to.
+    /// </summary>
+    public TimeSpan Patience => ResponseTimeout ?? TimeSpan.FromMilliseconds(200);
 }
 
 /// <summary>One meter, as read from the machine.</summary>
@@ -173,6 +180,7 @@ public sealed class HostSession : IDisposable
             Address = spec.Address,
             Channel = spec.Channel,
             PollInterval = spec.Interval,
+            ResponseTimeout = spec.Patience,
         });
 
         var session = new HostSession(engine, owned, log ?? new SessionLog());

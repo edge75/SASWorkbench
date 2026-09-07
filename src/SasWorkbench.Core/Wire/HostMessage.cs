@@ -27,6 +27,18 @@ public static class HostMessage
     /// <summary>Bit 7 of an address byte turns an addressed poll into a general poll.</summary>
     public const byte GeneralPollFlag = 0x80;
 
+    /// <summary>
+    /// Byte 1 of a general poll's answer when the machine is reporting real-time events, which is
+    /// how a reply in that format is told from an ordinary long poll's answer.
+    /// </summary>
+    public const byte RealTimeEventIdentifier = 0xFF;
+
+    /// <summary>
+    /// Byte 1 of a busy response: the machine's address and a zero, with no echoed command and no
+    /// check sequence. The one reply to a long poll that does not echo the command it answers.
+    /// </summary>
+    public const byte BusyResponseByte = 0x00;
+
     /// <summary>The longest host message: address, command, length, 255 data bytes and two check bytes.</summary>
     public const int MaxSymbols = 3 + 255 + 2;
 

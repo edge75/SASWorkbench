@@ -24,6 +24,9 @@ namespace SasWorkbench.Core.Polling;
 /// </remarks>
 public sealed class PollEngine : IDisposable
 {
+    /// <summary>Stands in for a command where a general poll is being answered. No command is negative.</summary>
+    private const int GeneralPoll = -1;
+
     private readonly SasLink _link;
     private readonly PollEngineOptions _options;
     private readonly Stopwatch _clock = new();
@@ -298,15 +301,24 @@ public sealed class PollEngine : IDisposable
         SendAndRecord(pollLength, "general poll");
         Interlocked.Increment(ref _generalPolls);
 
-        int received = _link.Receive(_inbound, _options.ResponseTimeout, _options.QuietGap, out bool wakeup);
+        int received = ReceiveAnswer(GeneralPoll, out bool wakeup, out _);
         if (received == 0)
         {
             Interlocked.Increment(ref _silences);
             return;
         }
 
-        RecordReceive(received, wakeup, null);
+        // A reply of more than one byte to a general poll is the real-time event format, which this
+        // build does not decode. Naming it is the honest answer; reading its address byte as an
+        // exception code would invent a machine event out of a message about another one.
+        bool realTimeEvent = received > 1;
+        RecordReceive(received, wakeup, realTimeEvent
+            ? "known but not decoded: a general poll answered in the real-time event format"
+            : null);
         MarkHeard();
+
+        if (realTimeEvent)
+            return;
 
         byte code = _inbound[0];
         if (code == 0x00)
@@ -355,10 +367,10 @@ public sealed class PollEngine : IDisposable
         SendAndRecord(length, WirePurpose.Label($"long poll ${command:X2}", purpose)!);
         Interlocked.Increment(ref _longPolls);
 
-        int received = _link.Receive(_inbound, _options.ResponseTimeout, _options.QuietGap, out bool wakeup);
+        int received = ReceiveAnswer(command, out bool wakeup, out int discardedMessages);
         var latency = TimeSpan.FromTicks(_clock.ElapsedTicks - sentAt);
 
-        LongPollResult result = Interpret(command, received, wakeup, latency);
+        LongPollResult result = Interpret(command, received, wakeup, latency, discardedMessages);
         if (received > 0)
         {
             RecordReceive(received, wakeup, WirePurpose.Label(result.Outcome.ToString(), purpose));
@@ -382,11 +394,15 @@ public sealed class PollEngine : IDisposable
         _pendingDone.Set();
     }
 
-    private LongPollResult Interpret(byte command, int received, bool wakeup, TimeSpan latency)
+    private LongPollResult Interpret(
+        byte command, int received, bool wakeup, TimeSpan latency, int discardedMessages)
     {
         if (received == 0)
             return new LongPollResult(command, _options.Channel, LongPollOutcome.Silent,
-                [], latency, "The machine did not answer.");
+                [], latency, discardedMessages == 0
+                    ? "The machine did not answer."
+                    : $"The machine did not answer. {discardedMessages} message(s) that cannot be "
+                      + "an answer to this poll arrived while waiting and were discarded.");
 
         byte[] frame = _inbound.AsSpan(0, received).ToArray();
 
@@ -451,6 +467,95 @@ public sealed class PollEngine : IDisposable
         ReadOnlySpan<SasSymbol> message = _outbound.AsSpan(0, length);
         WireLog.Record(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
         Wire?.Invoke(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
+    }
+
+    /// <summary>
+    /// Reads until a message arrives that could be the answer to the poll just sent, or the
+    /// machine's time to answer runs out.
+    /// </summary>
+    /// <param name="command">
+    /// The long poll being answered, or <see cref="GeneralPoll"/> for a general poll.
+    /// </param>
+    /// <remarks>
+    /// <para>
+    /// Draining the line before a poll goes out cannot catch an answer that arrives after the
+    /// drain, and the drain is the only thing between the two: on a slow machine the overdue answer
+    /// to the previous transaction lands inside this one's window and is read as its reply. Silence
+    /// is SAS's only frame delimiter, so it cannot be told apart by when it arrived — but it can be
+    /// told apart by what it says, and a message that cannot belong to this transaction is not
+    /// this transaction's answer whatever else is true of it.
+    /// </para>
+    /// <para>
+    /// What is discarded is counted and recorded, never swallowed. The machine's time to answer is
+    /// not extended by a foreign message: the deadline is from the moment the poll was sent, so a
+    /// line carrying noise cannot make the host wait longer than a quiet one.
+    /// </para>
+    /// </remarks>
+    private int ReceiveAnswer(int command, out bool wakeup, out int discardedMessages)
+    {
+        TimeSpan deadline = _clock.Elapsed + _options.ResponseTimeout;
+        discardedMessages = 0;
+        while (true)
+        {
+            TimeSpan remaining = deadline - _clock.Elapsed;
+            if (remaining < TimeSpan.Zero)
+                remaining = TimeSpan.Zero;
+
+            int received = _link.Receive(_inbound, remaining, _options.QuietGap, out wakeup);
+            if (received == 0)
+                return 0;
+
+            // A received wakeup bit is always a fault, and the caller reports it as one. Discarding
+            // it here would hide the very thing worth knowing about that message.
+            if (wakeup || CouldAnswer(command, _inbound.AsSpan(0, received)))
+                return received;
+
+            Discard(received, command);
+            discardedMessages++;
+            if (_clock.Elapsed >= deadline)
+                return 0;
+        }
+    }
+
+    /// <summary>
+    /// Whether a received message can be the answer to <paramref name="command"/> at all.
+    /// </summary>
+    /// <remarks>
+    /// Read off the gaming machine library's own replies rather than reasoned about. A long poll is
+    /// answered by an acknowledgement (the address alone), a rejection (the address with bit 7
+    /// set), a busy response (the address and a zero, the one reply that echoes no command), or an
+    /// ordinary reply whose second byte echoes the command. A general poll is answered by one byte,
+    /// or by the real-time event format, which carries the address and a fixed identifier instead
+    /// of a command. One ambiguity is left rather than guessed at: an exception code equal to the
+    /// machine's own address is indistinguishable from an acknowledgement, and is read as one.
+    /// </remarks>
+    private bool CouldAnswer(int command, ReadOnlySpan<byte> frame)
+    {
+        byte address = _options.Address.Value;
+
+        if (command == GeneralPoll)
+            return frame.Length == 1
+                || (frame[0] == address && frame[1] == HostMessage.RealTimeEventIdentifier);
+
+        if (frame.Length == 1)
+            return frame[0] == address || frame[0] == (byte)(address | HostMessage.GeneralPollFlag);
+
+        if (frame[0] != address)
+            return false;
+
+        return frame[1] == (byte)command
+               || (frame.Length == 2 && frame[1] == HostMessage.BusyResponseByte);
+    }
+
+    /// <summary>Counts and records a message that cannot be the answer to the poll it arrived under.</summary>
+    private void Discard(int received, int command)
+    {
+        Interlocked.Add(ref _symbolsDiscarded, received);
+
+        string asked = command == GeneralPoll ? "a general poll" : $"long poll ${command:X2}";
+        RecordReceive(received, wakeup: false,
+            $"discarded {received} symbol{(received == 1 ? string.Empty : "s")} - this cannot be "
+            + $"an answer to {asked}, so it answers some earlier one");
     }
 
     /// <summary>

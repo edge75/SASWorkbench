@@ -41,7 +41,7 @@ public class QpmMachineTests
         string idle = FakeGamingMachine.StartNothing(directory.Path);
 
         QpmUnavailableException refused = Assert.Throws<QpmUnavailableException>(
-            () => QpmMachine.Attach(idle, null, FakeGamingMachine.Timings));
+            () => QpmMachine.Attach(idle, null, FakeGamingMachine.ImpatientTimings));
 
         Assert.Contains("heartbeat", refused.Reason, StringComparison.Ordinal);
         Assert.Contains("silently lost", refused.Reason, StringComparison.Ordinal);

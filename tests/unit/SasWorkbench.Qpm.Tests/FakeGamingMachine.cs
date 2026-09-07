@@ -33,9 +33,21 @@ public sealed class FakeGamingMachine : IDisposable
     /// <summary>How fast the heartbeat advances, in milliseconds.</summary>
     public static int TickMilliseconds => 5;
 
-    /// <summary>Timings scaled to this machine's tick rate.</summary>
+    /// <summary>
+    /// Timings for a test that expects this machine to be running. Both are far longer than this
+    /// machine's five-millisecond tick needs, on purpose: what is being waited on is a thread
+    /// being scheduled, and four test assemblies at once are exactly what stops one being.
+    /// </summary>
     public static QpmTimings Timings { get; } =
-        new(TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2));
+        new(TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+    /// <summary>
+    /// Timings for a test that expects <em>no</em> machine. Waiting longer cannot change the
+    /// answer — a loaded box only makes a stopped heartbeat more certain — so these stay short and
+    /// the test stays quick.
+    /// </summary>
+    public static QpmTimings ImpatientTimings { get; } =
+        new(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(200));
 
     /// <summary>Creates the region file and starts a machine reading it.</summary>
     public static FakeGamingMachine Start(string directory, bool clobbersTheMasks = false)

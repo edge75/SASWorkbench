@@ -9,13 +9,19 @@ public class PollEngineTests
 {
     private static readonly SasAddress Address = SasAddress.Of(1);
 
+    /// <summary>
+    /// A quick poll loop with a patient host. The patience is deliberately far longer than any
+    /// machine here takes to answer: these tests are about what the engine does with a reply, and
+    /// a machine whose thread is not scheduled for a while is the one thing four test assemblies
+    /// running at once reliably produce. The two tests that are about a clock set their own.
+    /// </summary>
     private static PollEngineOptions FastOptions() => new()
     {
         Address = Address,
         PollInterval = TimeSpan.FromMilliseconds(20),
-        ResponseTimeout = TimeSpan.FromMilliseconds(200),
+        ResponseTimeout = TimeSpan.FromSeconds(2),
         QuietGap = TimeSpan.FromMilliseconds(15),
-        LinkDownAfter = TimeSpan.FromMilliseconds(500),
+        LinkDownAfter = TimeSpan.FromSeconds(5),
     };
 
     private static bool WaitUntil(Func<bool> condition, int milliseconds = 3000)
@@ -242,13 +248,17 @@ public class PollEngineTests
         engine.Start();
         engine.Execute(0x1F);
 
-        Assert.True(WaitUntil(() => engine.WireLog.Snapshot().Count >= 4));
-        IReadOnlyList<WireRecord> log = engine.WireLog.Snapshot();
+        // Waiting on a count would be waiting on the wrong thing: a long poll submitted this early
+        // can be served before the first general poll, so four records can arrive without one.
+        static bool Sent(IReadOnlyList<WireRecord> log, string hex) => log.Any(
+            r => r.Direction == WireDirection.Transmit && r.ToHex() == hex);
 
-        Assert.Contains(log, r => r.Direction == WireDirection.Transmit && r.ToHex() == "1.80");
-        Assert.Contains(log, r => r.Direction == WireDirection.Transmit && r.ToHex() == "1.81");
-        Assert.Contains(log, r => r.Direction == WireDirection.Transmit && r.ToHex() == "1.01 0.1F");
-        Assert.Contains(log, r => r.Direction == WireDirection.Receive);
+        Assert.True(WaitUntil(() =>
+        {
+            IReadOnlyList<WireRecord> so_far = engine.WireLog.Snapshot();
+            return Sent(so_far, "1.80") && Sent(so_far, "1.81") && Sent(so_far, "1.01 0.1F")
+                   && so_far.Any(r => r.Direction == WireDirection.Receive);
+        }));
     }
 
     [Fact]
@@ -258,7 +268,11 @@ public class PollEngineTests
         using var machine = new ScriptedMachine(bus.Egm, Address);
         machine.Start();
 
-        using var engine = new PollEngine(bus.Host, FastOptions());
+        // This one is about the clock, so it keeps a short one of its own.
+        using var engine = new PollEngine(bus.Host, FastOptions() with
+        {
+            LinkDownAfter = TimeSpan.FromMilliseconds(500),
+        });
         engine.Start();
 
         Assert.True(WaitUntil(() => engine.State == LinkState.Up));
@@ -331,15 +345,217 @@ public class PollEngineTests
         engine.Start();
         Assert.True(WaitUntil(() => engine.State == LinkState.Up, 10000));
 
-        Assert.Equal(LongPollOutcome.Silent, engine.Execute(0x1F).Outcome);
-        PutOnTheLine(bus, LateAnswerTo(0x1F));
+        Assert.Equal(LongPollOutcome.Silent,
+            engine.Execute(0x1F, [], LongEnoughToBeReached).Outcome);
+        PutOnTheLine(bus, AnswerTo(0x1F));
 
-        LongPollResult next = engine.Execute(0x2F);
+        LongPollResult next = engine.Execute(0x2F, [], LongEnoughToBeReached);
 
         Assert.True(
             next.Outcome == LongPollOutcome.Answered && next.Frame.Length > 1 && next.Frame[1] == 0x2F,
             $"long poll $2F came back {next.Outcome} as {next.ToHex()} - "
-            + "the late reply to $1F was handed to it instead");
+            + "the late reply to $1F was handed to it instead"
+            // The counters and the tail of the wire: what went wrong on a link is not something a
+            // reader can reconstruct from the name of an outcome.
+            + $"\n{engine.Statistics}\n"
+            + string.Join('\n', engine.WireLog.Snapshot().TakeLast(20)));
+    }
+
+    /// <summary>
+    /// Draining the line before a poll goes out cannot catch an answer that arrives after the
+    /// drain, and a reply echoes the command it answers - so a reply echoing a different one is
+    /// not this poll's answer, whatever else is true of it. Without that rule the drain is the
+    /// only defence and the drain has a window it cannot close, which is how one command's answer
+    /// used to be reported under another command's name.
+    /// </summary>
+    /// <remarks>
+    /// Staged rather than timed, at both ends: the line hands back prepared messages one per read
+    /// with a silence after each, so what this proves depends on the order the bytes arrive in and
+    /// not on any thread being scheduled promptly.
+    /// </remarks>
+    [Fact]
+    public void A_reply_echoing_another_command_is_not_this_polls_answer()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(bus.Host, 0x2F, AnswerTo(0x1F));
+
+        using var engine = new PollEngine(line, SpacedOutOptions());
+        engine.Start();
+
+        LongPollResult next = engine.Execute(0x2F, [], LongEnoughToBeReached);
+
+        Assert.Equal(LongPollOutcome.Silent, next.Outcome);
+        Assert.Contains("discarded", next.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Discarding the message that cannot be this poll's answer is not the end of the transaction:
+    /// the machine still has the rest of its time to answer, and the answer it then gives is the
+    /// one the caller asked for. A host that gave up at the first foreign byte would turn one late
+    /// reply into a silence for every poll behind it.
+    /// </summary>
+    [Fact]
+    public void The_answer_that_follows_a_discarded_message_is_still_read()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(bus.Host, 0x2F, AnswerTo(0x1F), AnswerTo(0x2F));
+
+        using var engine = new PollEngine(line, SpacedOutOptions());
+        engine.Start();
+
+        LongPollResult next = engine.Execute(0x2F, [], LongEnoughToBeReached);
+
+        Assert.Equal(LongPollOutcome.Answered, next.Outcome);
+        Assert.Equal(0x2F, next.Frame[1]);
+        Assert.True(engine.Statistics.SymbolsDiscarded >= AnswerTo(0x1F).Length,
+            $"only {engine.Statistics.SymbolsDiscarded} discarded symbols were counted");
+    }
+
+    /// <summary>
+    /// A busy response is the one reply to a long poll that echoes no command: the machine's
+    /// address and a zero, with no check sequence. Read off the gaming machine library's own
+    /// sender rather than reasoned about. Treating it as a message about some other poll would
+    /// throw the machine's answer away and report a silence instead.
+    /// </summary>
+    [Fact]
+    public void A_busy_response_is_the_machines_answer_and_not_a_message_about_another_poll()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(bus.Host, 0x2F, [Address.Value, 0x00]);
+
+        using var engine = new PollEngine(line, SpacedOutOptions());
+        engine.Start();
+
+        LongPollResult next = engine.Execute(0x2F, [], LongEnoughToBeReached);
+
+        Assert.Equal(LongPollOutcome.Answered, next.Outcome);
+        Assert.Equal([Address.Value, 0x00], next.Frame);
+    }
+
+    /// <summary>
+    /// The same fault runs the other way. A general poll is answered by a single byte, so an
+    /// earlier long poll's reply landing in a general poll's window is not an exception - and
+    /// reading its first byte as one invents a machine event that never happened, which is worse
+    /// than an unreadable meter because somebody would go looking for the door that opened.
+    /// </summary>
+    [Fact]
+    public void A_late_long_poll_reply_does_not_become_an_exception()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(
+            bus.Host, (byte)(Address.Value | HostMessage.GeneralPollFlag), AnswerTo(0x1F));
+
+        using var engine = new PollEngine(line, FastOptions());
+        var reported = new List<byte>();
+        engine.ExceptionReported += report =>
+        {
+            lock (reported)
+                reported.Add(report.Code);
+        };
+        engine.Start();
+
+        Assert.True(WaitUntil(() => engine.Statistics.SymbolsDiscarded >= AnswerTo(0x1F).Length));
+
+        lock (reported)
+            Assert.Empty(reported);
+    }
+
+    /// <summary>
+    /// A general poll answered in the real-time event format is longer than one byte and carries a
+    /// fixed identifier where a long poll's reply carries its command. This build does not decode
+    /// that format, so the honest answer is to name it: discarding it would drop a machine event,
+    /// and reading its address byte as an exception code would invent one.
+    /// </summary>
+    [Fact]
+    public void A_general_poll_answered_in_the_real_time_event_format_is_named_rather_than_guessed()
+    {
+        using var bus = new LoopbackBus();
+        byte[] realTimeEvent = [Address.Value, HostMessage.RealTimeEventIdentifier, 0x11, 0x00, 0x00];
+        var line = new ScriptedLine(
+            bus.Host, (byte)(Address.Value | HostMessage.GeneralPollFlag), realTimeEvent);
+
+        using var engine = new PollEngine(line, FastOptions());
+        var reported = new List<byte>();
+        engine.ExceptionReported += report =>
+        {
+            lock (reported)
+                reported.Add(report.Code);
+        };
+        engine.Start();
+
+        Assert.True(WaitUntil(() => engine.WireLog.Snapshot().Any(record =>
+            record.Note?.Contains("real-time event", StringComparison.OrdinalIgnoreCase) == true)));
+
+        lock (reported)
+            Assert.Empty(reported);
+        Assert.Equal(0, engine.Statistics.SymbolsDiscarded);
+    }
+
+    /// <summary>
+    /// A line that hands back prepared messages, one per read, with a silence after each - which
+    /// is how a machine's replies actually reach a host, and what makes an arrival order testable
+    /// without staging it on a clock. The messages are queued when a chosen poll is transmitted,
+    /// so they land after the line has been resynchronised: the one window draining cannot close.
+    /// </summary>
+    private sealed class ScriptedLine(ISasTransport inner, byte trigger, params byte[][] messages)
+        : ISasTransport
+    {
+        private readonly Queue<byte[]> _queued = new();
+        private bool _silenceNext;
+
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols)
+        {
+            bool matches = symbols.Length >= 2
+                ? symbols[1].Data == trigger
+                : symbols.Length == 1 && symbols[0].Data == trigger;
+
+            inner.Write(symbols);
+            if (!matches)
+                return;
+
+            lock (_queued)
+            {
+                foreach (byte[] message in messages)
+                    _queued.Enqueue(message);
+            }
+        }
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout)
+        {
+            byte[] message;
+            lock (_queued)
+            {
+                // Silence is SAS's only frame delimiter, so one has to follow each message or the
+                // next one is read as its continuation.
+                if (_silenceNext)
+                {
+                    _silenceNext = false;
+                    return 0;
+                }
+
+                if (_queued.Count == 0)
+                    return inner.Read(destination, timeout);
+
+                message = _queued.Dequeue();
+                _silenceNext = true;
+            }
+
+            for (int i = 0; i < message.Length; i++)
+                destination[i] = SasSymbol.Data8(message[i]);
+            return message.Length;
+        }
+
+        public void Dispose() => inner.Dispose();
     }
 
     /// <summary>
@@ -359,10 +575,10 @@ public class PollEngineTests
         engine.Start();
         Assert.True(WaitUntil(() => engine.State == LinkState.Up, 10000));
 
-        engine.Execute(0x1F);
-        byte[] late = LateAnswerTo(0x1F);
+        engine.Execute(0x1F, [], LongEnoughToBeReached);
+        byte[] late = AnswerTo(0x1F);
         PutOnTheLine(bus, late);
-        engine.Execute(0x2F);
+        engine.Execute(0x2F, [], LongEnoughToBeReached);
 
         Assert.True(engine.Statistics.SymbolsDiscarded >= late.Length,
             $"only {engine.Statistics.SymbolsDiscarded} of {late.Length} late symbols were counted");
@@ -411,12 +627,18 @@ public class PollEngineTests
     /// </summary>
     private static PollEngineOptions SpacedOutOptions() => FastOptions() with
     {
-        ResponseTimeout = TimeSpan.FromMilliseconds(50),
         PollInterval = TimeSpan.FromSeconds(1),
     };
 
+    /// <summary>
+    /// How long the tests below wait for the poll thread to reach their command. Spaced-out polling
+    /// and a patient host together make the wait a caller gets by default too tight to rely on —
+    /// and how long a caller waits is not what any of these tests is about, so they say.
+    /// </summary>
+    private static readonly TimeSpan LongEnoughToBeReached = TimeSpan.FromSeconds(10);
+
     /// <summary>A well-formed answer to <paramref name="command"/>, as a machine would have sent it.</summary>
-    private static byte[] LateAnswerTo(byte command)
+    private static byte[] AnswerTo(byte command)
     {
         Span<byte> frame = stackalloc byte[HostMessage.MaxSymbols];
         frame[0] = Address.Value;

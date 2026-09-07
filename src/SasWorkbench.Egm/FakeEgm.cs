@@ -532,6 +532,13 @@ public sealed class FakeEgm : IDisposable
 
                 _message.Add(symbol);
             }
+
+            // A read takes everything the line was holding, so a read that did not fill the
+            // buffer ends the message. Answering on that rather than on a timed silence keeps
+            // this machine's turnaround off the clock: a timed wait is the one thing a loaded
+            // machine stretches, and stretching it here makes a host look at fault.
+            if (read < _incoming.Length)
+                Dispatch();
         }
 
         Dispatch();

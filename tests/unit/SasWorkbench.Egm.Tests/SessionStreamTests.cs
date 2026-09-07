@@ -18,7 +18,7 @@ public class SessionStreamTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
-            ResponseTimeout = TimeSpan.FromMilliseconds(200),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
             Log = log,
         });

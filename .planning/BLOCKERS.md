@@ -266,7 +266,7 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
   `QSP/CMakeLists.txt:126`), so EGM behaviour can change under a passing suite. Record
   versions in every run record.
 
-### The suite is still intermittently flaky under load — measured 2026-09-07
+### The suite was intermittently flaky under load — ✅ fixed 2026-09-07
 
 Two one-behind defects were found and fixed before M3 (`docs/one-behind.md`, D33), and they were
 real. They were not all of it. Running all four test projects at once still fails one
@@ -288,6 +288,33 @@ is competing for a core with three other test processes.
 you whether the next milestone works. It is worth chasing before M4 widens the surface, and the
 measurement above is the starting point — the failures are reproducible by running
 `dotnet test SasWorkbench.slnx` a few times, and they are not reproducible per project.
+
+**Chased, and it was a third real defect of the same family.** See `docs/one-behind.md`. Short
+version: draining the line before a poll goes out cannot catch an answer that arrives after the
+drain, and the engine attributed a message to a transaction by *when it arrived*. A message is now
+attributed by what it says — a reply echoes the command it answers — or it is discarded, counted and
+recorded, and the listening continues within the same window. The same fault ran the other way and
+was worse: a stale long poll reply in a general poll's window had its first byte read as an
+exception code, inventing a machine event.
+
+**What was left after that was not a defect.** Both software machines waited for a *timed* silence
+before answering, so their turnaround was ten milliseconds plus whatever a loaded scheduler added,
+against a host that waits two hundred. They now answer as soon as they hold the message. The
+fixtures that are not about the host's patience were given a patient host; the ones that are about a
+clock keep their own.
+
+**Rates, at stated loads — and the load is the variable, not the suite.** Four assemblies at once on
+an idle box was 0 in 8 before any of this work and 4 in 10 when the box happened to be busy, so any
+claim about this suite's flakiness has to name the load it was measured at.
+
+| | before | after |
+|---|---|---|
+| four assemblies, idle box | 4 of 10 failed (box busy) · 0 of 8 (box idle) | **0 of 10 failed** |
+| four assemblies + eight spinner processes | 7 of 8 failed | 5 of 10 failed, all honest silences |
+
+At eight spinners the box cannot honour a two-hundred-millisecond response timeout at all, which is
+the scheduler and not the code; every failure there now reads *the machine did not answer*, which is
+true. Nothing reports one command's answer under another command's name any more, at any load.
 
 ---
 

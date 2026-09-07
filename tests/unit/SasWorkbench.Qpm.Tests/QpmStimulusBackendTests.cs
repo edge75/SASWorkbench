@@ -93,7 +93,7 @@ public class QpmStimulusBackendTests
         string idle = FakeGamingMachine.StartNothing(directory.Path);
 
         IStimulusBackend backend = QpmEnvironment.Attach(
-            new QpmOptions(idle, directory.Path, FakeGamingMachine.Timings));
+            new QpmOptions(idle, directory.Path, FakeGamingMachine.ImpatientTimings));
 
         StimulusUnavailableException refused = Assert.Throws<StimulusUnavailableException>(
             () => backend.Apply(new InsertBillStep(SourceLocation.None, 2000)));

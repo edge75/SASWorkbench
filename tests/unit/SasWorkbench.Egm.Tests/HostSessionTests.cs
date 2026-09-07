@@ -14,12 +14,15 @@ namespace SasWorkbench.Egm.Tests;
 /// </summary>
 public class HostSessionTests
 {
+    // Patient with the machine on purpose: what these tests are about is the session, and the
+    // software machine is a thread on the same loaded box as three other test assemblies.
     private static HostSessionSpec Spec() => new(
         ScriptTransport.Loopback,
         string.Empty,
         SasAddress.Of(1),
         SasChannel.One,
-        TimeSpan.FromMilliseconds(20));
+        TimeSpan.FromMilliseconds(20),
+        TimeSpan.FromSeconds(2));
 
     private static bool WaitUntil(Func<bool> condition, int milliseconds = 3000)
     {
@@ -99,7 +102,11 @@ public class HostSessionTests
 
         Assert.True(unreadable.Length == 0,
             "these meters are offered but cannot be read: "
-            + string.Join(", ", unreadable.Select(r => $"{r.Name} ({r.Problem})")));
+            + string.Join(", ", unreadable.Select(r => $"{r.Name} ({r.Problem})"))
+            // The counters and the tail of the wire: a meter that came back unreadable is only
+            // diagnosable from what actually crossed the link before it.
+            + $"\n{session.Statistics}\n"
+            + string.Join('\n', session.WireLog.Snapshot().TakeLast(40)));
     }
 
     [Fact]

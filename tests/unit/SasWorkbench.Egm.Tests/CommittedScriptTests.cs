@@ -62,6 +62,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
             WalletDirectory = wallet,
         });
@@ -108,6 +109,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
             WalletDirectory = wallet,
         });
@@ -164,6 +166,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = unconfigurable,
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
         });
 
@@ -201,6 +204,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
         });
 
@@ -237,6 +241,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
         });
 
@@ -263,6 +268,7 @@ public class CommittedScriptTests
             Stimulus = StimulusBackend.Software,
             Environment = SoftwareMachineEnvironment.For(),
             PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(2),
             QuietGap = TimeSpan.FromMilliseconds(15),
             WalletDirectory = wallet,
         });
