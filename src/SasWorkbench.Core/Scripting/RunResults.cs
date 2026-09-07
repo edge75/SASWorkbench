@@ -127,6 +127,17 @@ public sealed record RunProvenance(
     StimulusBackend Stimulus,
     string? Caveat)
 {
+    /// <summary>
+    /// Whether the ninth bit was recorded at all. False only for imported traffic: two of the
+    /// three capture formats keep the eight data bits and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// A property of the link and not of any one message, which is why it lives here. Without it,
+    /// a reading of such a capture would report every host message as one no machine would answer —
+    /// a finding about the recorder dressed up as a finding about the machine.
+    /// </remarks>
+    public bool WakeupBitCaptured { get; init; } = true;
+
     public override string ToString()
     {
         string caveat = Caveat is null ? string.Empty : $" — {Caveat}";

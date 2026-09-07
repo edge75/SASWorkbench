@@ -45,6 +45,7 @@ public sealed class JsonLinesReportWriter : IReportWriter
                 fidelity = p.Fidelity.ToString(),
                 stimulus = p.Stimulus.ToString(),
                 caveat = p.Caveat,
+                wakeupBitCaptured = p.WakeupBitCaptured,
             }),
             capabilities = report.Capabilities,
         });
@@ -91,6 +92,7 @@ public sealed class JsonLinesReportWriter : IReportWriter
                         fidelity = how.Fidelity.ToString(),
                         stimulus = how.Stimulus.ToString(),
                         caveat = how.Caveat,
+                        wakeupBitCaptured = how.WakeupBitCaptured,
                     }
                     : null,
             });

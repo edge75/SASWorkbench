@@ -11,6 +11,12 @@ either as it runs or afterwards from its own record, with wall-clock time as the
 mode (`docs/M3-extended-log.md`), and a case can state the accounting denomination it assumes and
 change one during a run, which starts six of the forty-four validation cases measuring
 (`docs/M3-accounting-denomination.md`). M3 is complete.
+
+M4 has started, and it opened with the flakiness of `BLOCKERS.md §4` rather than with a decoder: a
+third defect of the one-behind family was found and fixed, and four concurrent assemblies now run
+green ten times out of ten on an idle box (`docs/one-behind.md`). Then the importer: traffic nobody
+here authored is read into the record a run writes, and the coverage tally falls from 10 of 10
+distinct long polls over our own suite to 9 of 21 over the corpus (`docs/M4-import.md`).
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -48,3 +54,5 @@ PHASE:M3 WAVE:W6-cashout-ticket-info STATUS:complete TS:2026-09-06T19:48:51Z
 PHASE:M3 WAVE:W7-golden-nvram STATUS:complete TS:2026-09-06T21:51:44Z
 PHASE:M3 WAVE:W8-extended-log STATUS:complete TS:2026-09-07T08:35:00Z
 PHASE:M3 WAVE:W9-accounting-denomination STATUS:complete TS:2026-09-07T11:45:55Z
+PHASE:M4 WAVE:W0-attribution STATUS:complete TS:2026-09-07T18:05:00Z
+PHASE:M4 WAVE:W1-capture-import STATUS:complete TS:2026-09-07T19:20:00Z

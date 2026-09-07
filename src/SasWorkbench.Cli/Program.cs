@@ -27,6 +27,7 @@ try
         "nvram" => NvramCommand.Execute(line),
         "find" => FindCommand.Execute(line),
         "explain" => ExplainCommand.Execute(line),
+        "import" => ImportCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

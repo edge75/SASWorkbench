@@ -100,7 +100,8 @@ public sealed class ExtendedLogWriter : IReportWriter
         Description(builder, test);
         Steps(builder, test);
 
-        IReadOnlyList<PacketExplanation> packets = PacketExplainer.ExplainAll(test.Wire);
+        IReadOnlyList<PacketExplanation> packets = PacketExplainer.ExplainAll(
+            test.Wire, address: null, wakeupBitCaptured: test.Provenance?.WakeupBitCaptured ?? true);
         Packets(builder, packets);
         Coverage(builder, "WHAT THIS CASE EXPLAINED, COUNTED", PacketCoverage.Of(packets), false);
         return packets;

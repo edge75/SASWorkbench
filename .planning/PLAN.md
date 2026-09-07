@@ -235,7 +235,7 @@ command that sets the style it is about the absence of.
 
 ---
 
-## M4 · Breadth
+## M4 · Breadth  — the import landed 2026-09-07
 
 **The extended log of D34 is the measurement this milestone moves, and it exists now.** Every
 packet it can only name rather than explain is a layout M4 has not established yet, so the honest
@@ -247,10 +247,27 @@ sasctl run tests/conformance --tcp 127.0.0.1:9760 --report jsonl
 sasctl explain runs/<timestamp>/run.jsonl        # the 'known but not decoded' list is the backlog
 ```
 
-Full long-poll catalogue · `sastest.ini` and GSA XML imported as overlays and **diffed**
-against the header-derived catalogue (the diff is itself a finding: 22 long polls in the
-INI have no decoder, and `$72`/`$6E`/`$B0` are absent from its command lists) · `.trc` and
-`TXRXData.dat` import, replay and diff · GUI session recording (D5) · second channel to
+✅ **The reader is built and the number is measured** — see `docs/M4-import.md`. `sasctl import`
+reads the toolkit's traces and its session log and the legacy tester's serial log into the same
+record a run writes, so `sasctl explain` renders an import unchanged and the two renderings stay
+byte-identical. Over our own suite the tally reads **10 of 10 distinct long polls (100%)**; over the
+imported corpus, **9 of 21 (43%)** — the same build, changing nothing but whose traffic it is. The
+backlog is `$1F $20 $2F $35 $36 $37 $4C $4D $51 $54 $86` known but not decoded, and `$30` in no list
+this build holds.
+
+Three findings worth carrying forward. A trace's brackets are the **ninth bit**, established by
+counting rather than assumed — and the tracer breaks a printed line at every byte carrying one, so
+a reply with a spurious bit in it arrives as fragments, which is why `$1F` and `$54` decode in our
+own suite and not over the corpus. The session log's **direction field was documented wrong**: 2 is
+the machine, 0 never occurs. And **the 39 MB `TXRXData.dat` is worthless for breadth** — 1,124,493
+messages, two distinct values, zero replies, so it is a tester polling something that never
+answered. The 4 KB one beside `sastest.exe` carries nine distinct long polls.
+
+Still to do in this milestone: the full long-poll catalogue and the layouts on the backlog above ·
+`sastest.ini` and GSA XML imported as overlays and **diffed** against the header-derived catalogue
+(the diff is itself a finding: 22 long polls in the INI have no decoder, and `$72`/`$6E`/`$B0` are
+absent from its command lists) · replay of a capture against a machine and a diff of the verdicts ·
+splitting a capture into the transactions inside it · GUI session recording (D5) · second channel to
 prove D16 against GSA 10.1.4.
 
 ---

@@ -26,6 +26,7 @@ internal static class Help
               sasctl nvram <action> [options]    save or restore a machine's configured memory
               sasctl find <file> [options]       find messages in a recorded run, by line number
               sasctl explain <file> [options]    explain a recorded run, packet by packet
+              sasctl import <path>... [options]  read traffic another tool recorded
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -112,6 +113,24 @@ internal static class Help
               named and marked 'known but not decoded' rather than guessed at, and the tally at
               the end says how many packets were explained in full and how many only named — so
               the log measures how much of the protocol this build understands.
+
+            IMPORT
+              --out <dir>             where to write the record  (default: runs/<time>-import)
+              --limit <n>             stop after this many messages, and say so in the record
+              --report <list>         which reports to write  (default: jsonl,extended)
+
+              Reads the conformance toolkit's traces and its session log, and the legacy tester's
+              serial log, and writes the same record a run writes — so 'explain' reads an import
+              with no knowledge that captures exist.
+
+              Why it is worth doing: our own suite exchanges only what it was taught to exchange,
+              so a coverage figure taken over it measures the script rather than the protocol. A
+              recording of another tool driving a real machine does not flatter anything.
+
+              An import asserts nothing and comes back as a skipped run, because reading somebody
+              else's traffic proves nothing about this build and must not be able to look like a
+              pass. Where a recording kept only eight data bits, the record says the wakeup bit
+              was never captured rather than putting it where the protocol would want it.
 
             NVRAM
               status                  what the machine holds, and what has been saved

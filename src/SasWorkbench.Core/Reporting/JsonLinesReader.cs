@@ -197,7 +197,16 @@ public static class JsonLinesReader
                          + "know; it is read as none");
         }
 
-        return new RunProvenance(transport, weight, backend, Text(element, "caveat"));
+        // Absent means the bit was recorded, because every run this project writes records it.
+        // Only an import says otherwise, and a reader that defaulted the other way would call
+        // every one of our own runs a capture that lost the ninth bit.
+        bool wakeup = !element.TryGetProperty("wakeupBitCaptured", out JsonElement captured)
+                      || captured.ValueKind != JsonValueKind.False;
+
+        return new RunProvenance(transport, weight, backend, Text(element, "caveat"))
+        {
+            WakeupBitCaptured = wakeup,
+        };
     }
 
     private static Builder ReadTest(JsonElement element, List<string> problems, int number)

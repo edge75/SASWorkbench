@@ -23,24 +23,36 @@ namespace SasWorkbench.Core.Reporting;
 /// </remarks>
 public sealed class PacketExplainer
 {
+    private readonly bool _wakeupBitCaptured;
     private SasAddress? _address;
 
     /// <param name="address">
     /// The machine's poll address, when a caller already knows it. Leaving it out is normal: it is
     /// learned from the first general poll or long poll in the record.
     /// </param>
-    public PacketExplainer(SasAddress? address = null) => _address = address;
+    /// <param name="wakeupBitCaptured">
+    /// False for imported traffic whose recorder kept only the eight data bits. Where the wakeup
+    /// bit was is then not in the record at all, so it is reported as not recorded rather than as
+    /// missing — the two look identical in the bytes and mean opposite things.
+    /// </param>
+    public PacketExplainer(SasAddress? address = null, bool wakeupBitCaptured = true)
+    {
+        _address = address;
+        _wakeupBitCaptured = wakeupBitCaptured;
+    }
 
     /// <summary>The address in force, once the record has shown one.</summary>
     public SasAddress? Address => _address;
 
     /// <summary>Explains a whole sequence, in the order it was recorded.</summary>
     public static IReadOnlyList<PacketExplanation> ExplainAll(
-        IEnumerable<WireRecord> records, SasAddress? address = null)
+        IEnumerable<WireRecord> records,
+        SasAddress? address = null,
+        bool wakeupBitCaptured = true)
     {
         ArgumentNullException.ThrowIfNull(records);
 
-        var explainer = new PacketExplainer(address);
+        var explainer = new PacketExplainer(address, wakeupBitCaptured);
         return records.Select(explainer.Explain).ToList();
     }
 
@@ -72,7 +84,7 @@ public sealed class PacketExplainer
 
     private PacketExplanation FromHost(WireRecord record, byte[] bytes, List<string> findings)
     {
-        CheckHostWakeupBits(record, findings);
+        CheckHostWakeupBits(record, findings, _wakeupBitCaptured);
 
         if (bytes.Length == 0)
         {
@@ -133,7 +145,7 @@ public sealed class PacketExplainer
 
     private PacketExplanation FromMachine(WireRecord record, byte[] bytes, List<string> findings)
     {
-        if (record.Symbols.Any(s => s.Wakeup))
+        if (_wakeupBitCaptured && record.Symbols.Any(s => s.Wakeup))
         {
             findings.Add(
                 "a received symbol carries the wakeup bit; only a host may set it, so this is a "
@@ -343,9 +355,16 @@ public sealed class PacketExplainer
               + "established the layout of its bytes, so what they mean is not claimed"
             : $"long poll ${command:X2} is in no list this build holds, so it cannot even be named";
 
-    private static void CheckHostWakeupBits(WireRecord record, List<string> findings)
+    private static void CheckHostWakeupBits(
+        WireRecord record, List<string> findings, bool captured)
     {
         if (record.Symbols.Length == 0)
+            return;
+
+        // Where the bit was is not in the record, so there is nothing here to find either way.
+        // The case says so once, in the line that says what it was carried over; repeating it on
+        // every packet of a million-message capture would bury the findings that are real.
+        if (!captured)
             return;
 
         if (!record.Symbols[0].Wakeup)
