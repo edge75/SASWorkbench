@@ -361,6 +361,27 @@ internal static class OverlayDiffCommand
             Console.WriteLine($"    {Codes(elsewhereOnly)}");
             Console.WriteLine();
 
+            // Half of that is a correction. The dispatcher answers none of them, and the
+            // library's *receiver* frames most of them anyway - it holds a table of how many
+            // bytes each host message is, and eighteen of these are in it. So the library says
+            // how long the host's own message is and nothing about what comes back.
+            CommandComparison[] framedAnyway = elsewhereOnly
+                .Where(c => SasCatalogue.HostMessageLengths.ContainsKey(c.Code))
+                .ToArray();
+
+            if (framedAnyway.Length > 0)
+            {
+                Console.WriteLine($"  {framedAnyway.Length} of those the library's receiver does "
+                                  + "frame, even though its dispatcher answers");
+                Console.WriteLine("  none of them: it holds the total length of each host message, "
+                                  + "so how long the host's");
+                Console.WriteLine("  own message is and whether it ends in a check sequence are "
+                                  + "answerable for these -");
+                Console.WriteLine("  and what comes back is not:");
+                Console.WriteLine($"    {Codes(framedAnyway)}");
+                Console.WriteLine();
+            }
+
             CommandComparison[] replyOnly = elsewhereOnly
                 .Where(c => c.Toolkit is null
                             && c.Disagreements.Any(d => d.Detail.Contains(

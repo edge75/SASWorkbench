@@ -28,6 +28,7 @@ try
         "find" => FindCommand.Execute(line),
         "explain" => ExplainCommand.Execute(line),
         "import" => ImportCommand.Execute(line),
+        "sweep" => SweepCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

@@ -101,6 +101,12 @@ test "AD-20 the wager category coin in is in accounting units" {
   requires machine.accounting_denomination
   requires stimulus.play
 
+  # The software machine answers no wager category at all - it refuses a command it has no
+  # values for - so a case about what that reply reports needs a machine that has some. This
+  # requirement was added when the reply became decodable: until then decoder.lpB4 was what
+  # held the case back, and the case turned out never to have been written.
+  requires machine.wager_categories
+
   machine accounting denomination 10c
 
   note "Configuration B, with a known coin in on wager category zero of game one."

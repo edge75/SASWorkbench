@@ -253,18 +253,31 @@ public class CorpusLayoutTests
     // ---- what was left alone -------------------------------------------------------------------
 
     /// <summary>
-    /// The four remaining dedicated bill counts share <c>lpXX_SendMeter</c> with the three that
-    /// were established, so writing them from the shape of their neighbours would have been easy.
-    /// No capture here carries one, so they are still undecoded — which is the difference between
-    /// a layout and a guess that happens to be right.
+    /// The four remaining dedicated bill counts shared <c>lpXX_SendMeter</c> with the three
+    /// established here, so writing them from the shape of their neighbours would have been easy.
+    /// No capture in this corpus carries one, and they stayed undecoded on that ground until a
+    /// sweep of a real machine produced the bytes — see <see cref="SweepLayoutTests"/>. What this
+    /// still holds is the reason: the corpus does not prove them, and it is the sweep and not this
+    /// corpus that does.
     /// </summary>
     [Theory]
     [InlineData(0x31)]
     [InlineData(0x32)]
     [InlineData(0x33)]
     [InlineData(0x34)]
-    public void A_bill_count_no_capture_proves_is_still_undecoded(int command)
+    public void A_bill_count_this_corpus_does_not_carry_is_proved_by_the_sweep_instead(int command)
     {
-        Assert.True(SasLayouts.IsKnownButUndecoded((byte)command));
+        Assert.DoesNotContain(
+            (byte)command,
+            Corpus().SelectMany(c => c).Distinct());
+
+        Assert.False(SasLayouts.IsKnownButUndecoded((byte)command));
+        Assert.True(SasLayouts.For((byte)command)!.ConfirmedByCapture);
     }
+
+    /// <summary>Every command byte this file quotes bytes for, so the claim above is checkable.</summary>
+    private static IEnumerable<byte[]> Corpus() =>
+    [
+        [0x2F], [0x35], [0x36], [0x37], [0x4C], [0x4D], [0x51], [0x86], [0x1F], [0x54],
+    ];
 }

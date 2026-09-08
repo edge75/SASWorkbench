@@ -127,8 +127,15 @@ they do not, and this build is wrong.
 The gaming machine library's handler for both — `lpXX_EnableDisable` in `lp.cpp` — calls
 `crcCheck(rxPacket, false)` and sends a negative acknowledgement when it fails. With a two-byte
 frame that check reads the address and the command byte *as* the check sequence and computes zero
-against them, so it can never pass. On that reading a real machine refuses a two-byte `$01`; it
-has not yet been measured on the wire, and it should be.
+against them, so it can never pass.
+
+> **Measured on the wire on 2026-09-08 — see `M4-sweep.md`.** A real machine answers a two-byte
+> `$01` with **silence**, not with a refusal, and the same command with a check sequence is
+> acknowledged. The reason is a second statement of the same rule that this wave did not find: the
+> library's *receiver* holds a table of how long each host message is, so it is still waiting for
+> two more bytes when the inter-byte deadline expires and the message is dropped as incomplete
+> before the handler above is ever reached. Both readings agree the host's message has no effect;
+> what the measurement corrects is the manner of the refusal.
 
 What this build does instead is decide from the shape of the message rather than from the command.
 `HostMessage.WriteLongPoll` appends a check sequence when the message carries data and not
@@ -141,10 +148,14 @@ Seven more commands share that handler — `$03`–`$07`, `$0A` and `$0B` — so
 requirement. They have no layout here, so the diff had nothing to compare, and the defect would
 arrive with the layout.
 
-**Not fixed in this wave, deliberately.** The fix is a check-sequence property per command on the
-layout, honoured by the host framing and by the machine, and that changes how every host message
-is framed. It is the first thing in the next wave, and it should be measured on the wire against a
+**Not fixed in this wave, deliberately.** The fix is a check-sequence property per command,
+honoured by the host framing and by the machine, and that changes how every host message is
+framed. It is the first thing in the next wave, and it should be measured on the wire against a
 real machine rather than left as a reading of the handler, which is all it is today.
+
+> **Fixed and measured on 2026-09-08 — `M4-sweep.md`.** The property is read from two library
+> sources rather than one, and the two agree on all 124 commands. Fifty-seven require a check
+> sequence; nine of those carry no data, which is the group this disagreement was about.
 
 ### The exceptions
 
@@ -222,6 +233,12 @@ dispatch. A machine would not answer them.
 **Twenty more commands are in an overlay and in no part of this build.** Eighteen are the legacy
 funds-transfer family that the library never implemented, and they are the same eighteen the
 2026-09-03/04 pass found. The other two are a different kind of finding:
+
+> **Half of that is corrected by `M4-sweep.md`.** The library's dispatcher answers none of the
+> eighteen, but its *receiver* frames all eighteen: it holds the total length of each host
+> message, so how long the host's own message is and whether it ends in a check sequence are
+> answerable for every one of them. What comes back is still not, which is why none of them gets a
+> reply layout. `sasctl catalogue diff` now reports both halves.
 
 * **`$A5`** exists only in the legacy tester, and there only as a reply it can read. It has no entry
   in either command list, no template in the toolkit, and no code in the library. Nothing here can

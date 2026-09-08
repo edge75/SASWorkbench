@@ -191,6 +191,49 @@ public static class SasLayouts
             DerivedFrom = handler,
         };
 
+
+    /// <summary>
+    /// A single four-byte meter answered through the library's shared meter handler, offered as a
+    /// field rather than as a meter a script may name.
+    /// </summary>
+    /// <remarks>
+    /// The same reasoning the dedicated bill-count commands already carry, and it applies to every
+    /// command answering through <c>lpXX_SendMeter</c>: that handler divides the value by the
+    /// accounting denomination under two of the machine's meter modes and the bulk commands do
+    /// not, so two commands reporting the same meter do not always report the same number. A test
+    /// asserts on the field of whichever reply it asked for; what it cannot do is ask for a meter
+    /// by name and be given a different number than it used to get.
+    /// </remarks>
+    private static SasMessageLayout SharedMeterLayout(
+        byte command, string name, string field, SasUnit unit, string description, string handler)
+        => new()
+        {
+            Command = command,
+            Name = name,
+            Description = description,
+            Response = [Bcd(field, 4, unit, description)],
+            DerivedFrom = handler,
+            ConfirmedByCapture = true,
+        };
+
+    /// <summary>A reply that echoes the game number it was asked for and then reports meters.</summary>
+    private static SasMessageLayout GameMeterLayout(
+        byte command, string name, string description, string handler, params SasField[] meters)
+        => new()
+        {
+            Command = command,
+            Name = name,
+            Description = description,
+            Request = [GameNumber()],
+            Response = [GameNumber(), .. meters],
+            DerivedFrom = handler,
+            ConfirmedByCapture = true,
+        };
+
+    /// <summary>Which game, as two binary coded decimal digits. Zero means the machine itself.</summary>
+    private static SasField GameNumber() =>
+        Bcd("game_number", 2, SasUnit.Index, "Which game; zero means the machine as a whole.");
+
     /// <summary>Every layout, by command byte.</summary>
     public static FrozenDictionary<byte, SasMessageLayout> All { get; } = Build();
 
@@ -892,6 +935,538 @@ public static class SasLayouts
                     Byte("denomination", SasUnit.Code, "Denomination code currently selected."),
                 ],
                 DerivedFrom = "lpB1_SendCurrentPlayerDenomination",
+            },
+
+            // ---------------------------------------------------------------------------------
+            // Established from the library's own handlers and checked against a catalogue sweep
+            // of a real gaming machine, which `sasctl sweep` runs. Every reply below was produced
+            // by asking that machine, so the bytes are ours rather than somebody else's
+            // recording, and the sweep can be run again to check them.
+            // ---------------------------------------------------------------------------------
+
+            // The rest of the dedicated bill counts. The previous wave left $31 to $34 undecoded
+            // on purpose, because no capture here carried one; the sweep carries all seventeen.
+            BillCountLayout(0x31, "bills_1_meter", "bills_1", 1, "lp31_Send1BillsInMeter"),
+            BillCountLayout(0x32, "bills_2_meter", "bills_2", 2, "lp32_Send2BillsInMeter"),
+            BillCountLayout(0x33, "bills_5_meter", "bills_5", 5,
+                "lp33_Send5BillsInMeter"),
+            BillCountLayout(0x34, "bills_10_meter", "bills_10", 10, "lp34_Send10BillsInMeter"),
+            BillCountLayout(0x38, "bills_500_meter", "bills_500", 500, "lp38_Send500BillsInMeter"),
+            BillCountLayout(0x39, "bills_1000_meter", "bills_1000", 1000,
+                "lp39_Send1000BillsInMeter"),
+            BillCountLayout(0x3A, "bills_200_meter", "bills_200", 200, "lp3A_Send200BillsInMeter"),
+            BillCountLayout(0x3B, "bills_25_meter", "bills_25", 25, "lp3B_Send25BillsInMeter"),
+            BillCountLayout(0x3C, "bills_2000_meter", "bills_2000", 2000,
+                "lp3C_Send2000BillsInMeter"),
+            BillCountLayout(0x3E, "bills_2500_meter", "bills_2500", 2500,
+                "lp3E_Send2500BillsInMeter"),
+            BillCountLayout(0x3F, "bills_5000_meter", "bills_5000", 5000,
+                "lp3F_Send5000BillsInMeter"),
+            BillCountLayout(0x40, "bills_10000_meter", "bills_10000", 10000,
+                "lp40_Send10KBillsInMeter"),
+            BillCountLayout(0x41, "bills_20000_meter", "bills_20000", 20000,
+                "lp41_Send20KBillsInMeter"),
+            BillCountLayout(0x42, "bills_25000_meter", "bills_25000", 25000,
+                "lp42_Send25KBillsInMeter"),
+            BillCountLayout(0x43, "bills_50000_meter", "bills_50000", 50000,
+                "lp43_Send50KBillsInMeter"),
+            BillCountLayout(0x44, "bills_100000_meter", "bills_100000", 100000,
+                "lp44_Send100KBillsInMeter"),
+            BillCountLayout(0x45, "bills_250_meter", "bills_250", 250, "lp45_Send250BillsInMeter"),
+
+            // The other single meters that answer through the same shared handler. $47 reports
+            // the very meter $2A does - TotalCreditsFromCoinAcceptor - so on this library the
+            // external coin acceptor and the coin acceptor can never disagree. Recorded because a
+            // test written against one of them is really written against both.
+            SharedMeterLayout(0x2A, "true_coin_in", "true_coin_in", SasUnit.Credits,
+                "Credits taken by the coin acceptor.", "lp2A_SendTrueCoinIn"),
+            SharedMeterLayout(0x2B, "true_coin_out", "true_coin_out", SasUnit.Credits,
+                "Credits paid out of the hopper.", "lp2B_SendTrueCoinOut"),
+            SharedMeterLayout(0x46, "bills_accepted_credits", "bills_accepted_credits",
+                SasUnit.Credits, "Credit value of every note the machine has taken.",
+                "lp46_SendCreditAmountOfAllBillsAccepted"),
+            SharedMeterLayout(0x47, "external_coin_acceptor_credits",
+                "external_coin_acceptor_credits", SasUnit.Credits,
+                "Credits taken by the external coin acceptor.",
+                "lp47_SendCoinAmountAcceptedFromExternalCoinAcceptor"),
+            SharedMeterLayout(0x49, "bills_in_stacker", "bills_in_stacker", SasUnit.Count,
+                "How many notes are in the stacker now.",
+                "lp49_SendNumberOfBillsCurrentlyInTheStacker"),
+            SharedMeterLayout(0x4A, "stacker_credits", "stacker_credits", SasUnit.Credits,
+                "Credit value of the notes in the stacker now.",
+                "lp4A_SendTotalCreditAmountOfAllBillsCurrentlyInTheStacker"),
+
+            // Two two-byte counts rather than the usual four-byte meter, which is the whole
+            // reason this command exists separately from the ones either side of it.
+            new()
+            {
+                Command = 0x18,
+                Name = "games_since_power_up",
+                Description = "Games played since the machine last powered up and since its door "
+                              + "last closed.",
+                Response =
+                [
+                    Bcd("games_since_power_up", 2, SasUnit.Count,
+                        "Games played since the last power up."),
+                    Bcd("games_since_door_closure", 2, SasUnit.Count,
+                        "Games played since the slot door last closed."),
+                ],
+                DerivedFrom = "lp18_SendGamesPlayedSinceLastPowerUpAndSlotDoorClosure",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x19,
+                Name = "meters_five",
+                Description = "Five accounting meters in one reply.",
+                Response =
+                [
+                    Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
+                    Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
+                    Bcd("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine."),
+                    Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
+                    Bcd("games_played", 4, SasUnit.Count, "Games played."),
+                ],
+                DerivedFrom = "lp19_SendMeters",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x1C,
+                Name = "meters_eight",
+                Description = "Eight accounting meters in one reply.",
+                Response =
+                [
+                    Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
+                    Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
+                    Bcd("total_drop", 4, SasUnit.Credits,
+                        "Credits dropped into the machine."),
+                    Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
+                    Bcd("games_played", 4, SasUnit.Count, "Games played."),
+                    Bcd("games_won", 4, SasUnit.Count, "Games won."),
+                    Bcd("slot_door_opened", 4, SasUnit.Count, "Times the slot door was opened."),
+                    Bcd("power_reset", 4, SasUnit.Count, "Times mains power was reset."),
+                ],
+                DerivedFrom = "lp1C_SendMeters",
+                ConfirmedByCapture = true,
+            },
+            GameMeterLayout(0x2D, "handpay_cancelled_credits",
+                "Credits cancelled by a handpay, for one game.",
+                "lp2D_SendTotalHandpayCancelledCredits",
+                Bcd("handpay_cancelled_credits", 4, SasUnit.Credits,
+                    "Credits cancelled by a handpay.")),
+            GameMeterLayout(0x52, "game_n_meters", "Four accounting meters for one game.",
+                "lp52_SendGameNMeters",
+                Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered on this game."),
+                Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out by this game."),
+                Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots by this game."),
+                Bcd("games_played", 4, SasUnit.Count, "Times this game was played.")),
+            GameMeterLayout(0x83, "cumulative_progressive_wins",
+                "Progressive wins for one game, deductible and non-deductible added together.",
+                "lp83_SendCumulativeProgressiveWins",
+                Bcd("cumulative_progressive_win", 4, SasUnit.Credits,
+                    "Progressive amounts this game has won, added together.")),
+            GameMeterLayout(0x9A, "legacy_bonus_meters",
+                "The three legacy bonus meters for one game.", "lp9A_SendLegacyBonusMeters",
+                Bcd("deductible", 4, SasUnit.Credits, "Deductible legacy bonus paid."),
+                Bcd("non_deductible", 4, SasUnit.Credits, "Non-deductible legacy bonus paid."),
+                Bcd("wager_match", 4, SasUnit.Credits, "Wager match legacy bonus paid.")),
+            new()
+            {
+                Command = 0x48,
+                Name = "last_accepted_bill",
+                Description = "What the last note the machine took was, and how many of that "
+                              + "denomination it has taken.",
+                Response =
+                [
+                    Bcd("country_code", 1, SasUnit.Code, "Which currency the note was."),
+                    Bcd("denomination_code", 1, SasUnit.Code, "Which denomination the note was."),
+                    Bcd("count", 4, SasUnit.Count,
+                        "How many notes of that denomination have been taken."),
+                ],
+                DerivedFrom = "lp48_SendLastAcceptedBillInformation",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x50,
+                Name = "validation_meters",
+                Description = "How many tickets of one validation type the machine has issued or "
+                              + "taken, and their total value.",
+                Request =
+                [
+                    Byte("validation_type", SasUnit.Code, "Which kind of validation to report."),
+                ],
+                Response =
+                [
+                    Byte("validation_type", SasUnit.Code,
+                        "The kind of validation being reported."),
+                    Bcd("quantity", 4, SasUnit.Count, "How many of them."),
+                    Bcd("amount", 5, SasUnit.Cents, "Their total value."),
+                ],
+                DerivedFrom = "lp50_SendValidationMeters",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x53,
+                Name = "game_n_configuration",
+                Description = "How one game is configured: its identifiers, its denomination, its "
+                              + "maximum bet, its paytable and its payback percentage.",
+                Request = [GameNumber()],
+                Response =
+                [
+                    GameNumber(),
+                    Ascii("game_id", 2, "Two characters naming the maker."),
+                    Ascii("additional_id", 3, "Three more characters the maker chooses."),
+                    Byte("denomination", SasUnit.Code, "Accounting denomination code."),
+                    Byte("max_bet", SasUnit.Credits, "Largest bet this game takes, in credits."),
+                    Byte("progressive_group", SasUnit.Index,
+                        "Which progressive group this game belongs to."),
+
+                    // Little-endian, as the identification reply's game options are. Read the
+                    // other way round it decodes into a plausible wrong answer.
+                    LittleEndianNumber("game_options", 2, "Game option bits."),
+                    Ascii("paytable_id", 6, "Six characters naming the paytable."),
+                    Ascii("base_percentage", 4,
+                        "Base payback percentage as four digits, so 9210 is 92.10 per cent."),
+                ],
+                DerivedFrom = "lp53_SendGameNConfiguration",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x55,
+                Name = "selected_game_number",
+                Description = "Which game the player currently has selected.",
+                Response =
+                [
+                    Bcd("selected_game", 2, SasUnit.Index, "The game currently selected."),
+                ],
+                DerivedFrom = "lp55_SendSelectedGameNumber",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x57,
+                Name = "pending_cashout_information",
+                Description = "What the machine is waiting to pay out, and how.",
+                Response =
+                [
+                    Byte("cashout_type", SasUnit.Code,
+                        "How the machine intends to pay: a ticket, a handpay, or neither."),
+                    Bcd("amount", 5, SasUnit.Cents, "What it is waiting to pay."),
+                ],
+                DerivedFrom = "lp57_SendPendingCashoutInformation",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x84,
+                Name = "progressive_win_amount",
+                Description = "The progressive amount the machine most recently won.",
+                Response =
+                [
+                    Byte("progressive_group", SasUnit.Index, "Which progressive group."),
+                    Byte("level", SasUnit.Index, "Which level was hit, or zero for none."),
+                    Bcd("amount", 5, SasUnit.Cents, "What that level paid."),
+                ],
+                DerivedFrom = "lp84_SendProgressiveWinAmount",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x85,
+                Name = "sas_progressive_win_amount",
+                Description = "The progressive amount the machine most recently won on a level a "
+                              + "host had set.",
+                Response =
+                [
+                    Byte("progressive_group", SasUnit.Index, "Which progressive group."),
+                    Byte("level", SasUnit.Index, "Which level was hit, or zero for none."),
+                    Bcd("amount", 5, SasUnit.Cents, "What that level paid."),
+                ],
+                DerivedFrom = "lp85_SendSasProgressiveWinAmount",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x8E,
+                Name = "card_information",
+                Description = "The hand a card game is showing.",
+                Response =
+                [
+                    Byte("hand_type", SasUnit.Code, "Which stage of the hand this is."),
+                    Byte("card_1", SasUnit.Code, "First card."),
+                    Byte("card_2", SasUnit.Code, "Second card."),
+                    Byte("card_3", SasUnit.Code, "Third card."),
+                    Byte("card_4", SasUnit.Code, "Fourth card."),
+                    Byte("card_5", SasUnit.Code, "Fifth card."),
+                ],
+                DerivedFrom = "lp8E_SendCardInformation",
+                ConfirmedByCapture = true,
+            },
+
+            // Nine reel positions, not five. The overlay diff found the two other descriptions of
+            // SAS disagreeing about this reply's length - seven bytes against eleven - and the
+            // library's handler settled it at eleven. This is the same answer off a real machine.
+            new()
+            {
+                Command = 0x8F,
+                Name = "physical_reel_stop_information",
+                Description = "Where each of the machine's reels stopped.",
+                Response =
+                [
+                    Byte("reel_1", SasUnit.Index, "Where reel one stopped."),
+                    Byte("reel_2", SasUnit.Index, "Where reel two stopped."),
+                    Byte("reel_3", SasUnit.Index, "Where reel three stopped."),
+                    Byte("reel_4", SasUnit.Index, "Where reel four stopped."),
+                    Byte("reel_5", SasUnit.Index, "Where reel five stopped."),
+                    Byte("reel_6", SasUnit.Index, "Where reel six stopped."),
+                    Byte("reel_7", SasUnit.Index, "Where reel seven stopped."),
+                    Byte("reel_8", SasUnit.Index, "Where reel eight stopped."),
+                    Byte("reel_9", SasUnit.Index, "Where reel nine stopped."),
+                ],
+                DerivedFrom = "lp8F_SendPhysicalReelStopInformation",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x90,
+                Name = "legacy_bonus_win_amount",
+                Description = "The legacy bonus the machine most recently paid.",
+                Response =
+                [
+                    Byte("multiplier", SasUnit.None, "What the win was multiplied by."),
+                    Bcd("multiplied_win", 4, SasUnit.Credits, "The multiplied win."),
+                    Byte("tax_status", SasUnit.Code, "How the bonus is taxed."),
+                    Bcd("bonus", 4, SasUnit.Credits, "The bonus itself."),
+                ],
+                DerivedFrom = "lp90_SendLegacyBonusWinAmount",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0xB3,
+                Name = "token_denomination",
+                Description = "What the machine's token is worth.",
+                Response =
+                [
+                    Byte("token_denomination", SasUnit.Code, "Denomination code of the token."),
+                ],
+                DerivedFrom = "lpB3_SendTokenDenomination",
+                ConfirmedByCapture = true,
+            },
+
+            // The length-prefixed replies. Each states its own length, and in three of them that
+            // is the only thing that says where the message ends.
+            new()
+            {
+                Command = 0x4F,
+                Name = "current_hopper_status",
+                Description = "What the hopper is doing, how full it is, and how much is in it.",
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Byte("status", SasUnit.Code, "What the hopper is doing."),
+                    Byte("percent_full", SasUnit.None,
+                        "How full the hopper is, or $FF when it cannot tell."),
+
+                    // The level is in the reply only when the hopper can measure it. A machine
+                    // that cannot answers five bytes rather than nine, and its length byte says so.
+                    Bcd("hopper_level", 4, SasUnit.Count, "How many coins are in the hopper.") with
+                    {
+                        PresentWhen = new SasCondition(
+                            "percent_full", SasComparison.NotEqual, 0xFF),
+                    },
+                ],
+                DerivedFrom = "lp4F_SendCurrentHopperStatus",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x56,
+                Name = "enabled_game_numbers",
+                Description = "Which of the machine's games are enabled.",
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Byte("count", SasUnit.Count, "How many games are enabled."),
+                    new()
+                    {
+                        Name = "games",
+                        Length = 0,
+                        Repeat = SasRepeat.CountedBy("count"),
+                        Description = "One entry per enabled game.",
+                        Fields = [Bcd("game_number", 2, SasUnit.Index, "An enabled game.")],
+                    },
+                ],
+                DerivedFrom = "lp56_SendEnabledGameNumbers",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x87,
+                Name = "multiple_sas_progressive_win_amount",
+                Description = "Every progressive level the machine most recently won on.",
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Byte("progressive_group", SasUnit.Index, "Which progressive group."),
+                    Byte("count", SasUnit.Count, "How many levels follow."),
+                    new()
+                    {
+                        Name = "levels",
+                        Length = 0,
+                        Repeat = SasRepeat.CountedBy("count"),
+                        Description = "One entry per level won.",
+                        Fields =
+                        [
+                            Byte("level", SasUnit.Index, "Which level."),
+                            Bcd("amount", 5, SasUnit.Cents, "What it paid."),
+                        ],
+                    },
+                ],
+                DerivedFrom = "lp87_SendMultipleSasProgressiveWinAmount",
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0xB2,
+                Name = "enabled_player_denominations",
+                Description = "Which denominations a player may choose.",
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    Byte("count", SasUnit.Count,
+                        "How many denominations are enabled."),
+                    new()
+                    {
+                        Name = "denominations",
+                        Length = 0,
+                        Repeat = SasRepeat.CountedBy("count"),
+                        Description = "One code per enabled denomination.",
+                        Fields =
+                        [
+                            Byte("denomination", SasUnit.Code,
+                                "An enabled denomination."),
+                        ],
+                    },
+                ],
+                DerivedFrom = "lpB2_SendEnabledPlayerDenominations",
+                ConfirmedByCapture = true,
+            },
+
+            // The coin-in meter here is as wide as the machine says it is, which is the same
+            // general shape long poll $6F needed: a field whose length an earlier field states.
+            new()
+            {
+                Command = 0xB4,
+                Name = "wager_category_information",
+                Description = "What one wager category pays back, and how much has been wagered "
+                              + "in it.",
+                Request =
+                [
+                    GameNumber(),
+                    new()
+                    {
+                        Name = "wager_category",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.BigEndian,
+                        Unit = SasUnit.Code,
+                        Description = "Which wager category; zero means the game as a whole.",
+                    },
+                ],
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    GameNumber(),
+                    new()
+                    {
+                        Name = "wager_category",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.BigEndian,
+                        Unit = SasUnit.Code,
+                        Description = "The wager category being reported.",
+                    },
+                    Ascii("payback_percentage", 4,
+                        "Payback percentage as four digits, so 9210 is 92.10 per cent."),
+                    Byte("meter_size", SasUnit.Count,
+                        "How many bytes the coin-in meter that follows occupies."),
+                    new()
+                    {
+                        Name = "coin_in",
+                        Length = 0,
+                        LengthFromField = "meter_size",
+                        Encoding = SasFieldEncoding.Bcd,
+                        ByteOrder = SasByteOrder.BigEndian,
+                        Unit = SasUnit.Credits,
+                        Description = "Credits wagered in this category, as wide as the size byte "
+                                      + "says.",
+                    },
+                ],
+                DerivedFrom = "lpB4_SendWagerCategoryInformation",
+                ConfirmedByCapture = true,
+            },
+
+            // Two length-prefixed strings inside one reply, which is why the fields after them
+            // cannot be at fixed offsets. The machine that answered this one is called
+            // "Multigame Pack" and its paytable "PT_001". The library can also append a list of
+            // player denominations here, which its own comment calls an off-by-default extension
+            // for legacy hosts and a deviation from the specification's table; a machine with it
+            // turned on produces bytes this layout reports as an unmodelled trailer rather than
+            // failing to fit.
+            new()
+            {
+                Command = 0xB5,
+                Name = "extended_game_n_information",
+                Description = "One game's name, paytable, maximum bet and progressive levels.",
+                Request = [GameNumber()],
+                Response =
+                [
+                    Byte("length", SasUnit.Count,
+                        "Bytes following, not counting the check sequence."),
+                    GameNumber(),
+                    Bcd("max_bet", 2, SasUnit.Credits, "Largest bet this game takes."),
+                    Byte("progressive_group", SasUnit.Index, "Which progressive group."),
+
+                    // Copied straight out of a machine word rather than reversed, which the
+                    // handler's own comment says in as many words.
+                    LittleEndianNumber("progressive_levels", 4,
+                        "One bit per progressive level this game uses."),
+                    Byte("name_length", SasUnit.Count, "How many characters the game name is."),
+                    new()
+                    {
+                        Name = "game_name",
+                        Length = 0,
+                        LengthFromField = "name_length",
+                        Encoding = SasFieldEncoding.Ascii,
+                        ByteOrder = SasByteOrder.NotApplicable,
+                        Description = "What the game is called.",
+                    },
+                    Byte("paytable_length", SasUnit.Count,
+                        "How many characters the paytable name is."),
+                    new()
+                    {
+                        Name = "paytable_name",
+                        Length = 0,
+                        LengthFromField = "paytable_length",
+                        Encoding = SasFieldEncoding.Ascii,
+                        ByteOrder = SasByteOrder.NotApplicable,
+                        Description = "What the paytable is called.",
+                    },
+                    Bcd("wager_categories", 2, SasUnit.Count,
+                        "How many wager categories this game has."),
+                ],
+                DerivedFrom = "lpB5_SendExtendedGameNInformation",
+                ConfirmedByCapture = true,
             },
         ];
 

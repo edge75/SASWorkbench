@@ -27,6 +27,7 @@ internal static class Help
               sasctl find <file> [options]       find messages in a recorded run, by line number
               sasctl explain <file> [options]    explain a recorded run, packet by packet
               sasctl import <path>... [options]  read traffic another tool recorded
+              sasctl sweep [options]             ask a machine every command it may be asked
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -142,6 +143,31 @@ internal static class Help
               pass. Where a recording kept only eight data bits, the record says the wakeup bit
               was never captured rather than putting it where the protocol would want it.
 
+            SWEEP
+              --tcp <host:port>       reach the machine over TCP, listening unless --dial
+              --serial <port>         reach it over a serial port
+              --address <hh>          poll address, in hex  (default: 01)
+              --list                  print what would be asked and what would not, and stop
+              --framing               measure the check-sequence rule on the wire instead of
+                                      sweeping. This one sends $01 and $02, which the sweep
+                                      itself withholds, and sends $02 last so the machine is
+                                      left playing.
+              --out <directory>       where to write the record  (default: runs/<time>-sweep)
+              --report <formats>      which reports to write  (default: jsonl,extended)
+
+              Asks the machine every command in the catalogue that can be asked, and writes down
+              what came back. A coverage figure taken over traffic can only name the commands
+              somebody happened to send; this produces bytes for the rest, which is also the only
+              thing that verifies a layout rather than asserting it.
+
+              A command that changes the machine is not sent. Every one is listed by name with
+              what it would have changed - '--list' prints the whole classification without
+              opening a link. A command that answers nothing is recorded as answering nothing,
+              because a machine's silence is a fact about the machine.
+
+              It asserts nothing, so like an import it comes back as a run in which nothing was
+              tested rather than as a pass.
+
             NVRAM
               status                  what the machine holds, and what has been saved
               show                    what each is configured to be, side by side
@@ -173,6 +199,8 @@ internal static class Help
               sasctl qpm status --egm-resources <demo>/Resources
               sasctl qpm audit open --egm-resources <demo>/Resources
               sasctl explain runs/20260907-101500/run.jsonl
+              sasctl sweep --list
+              sasctl sweep --tcp 127.0.0.1:9760
               sasctl nvram show
               sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
               sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz

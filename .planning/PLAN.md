@@ -291,7 +291,29 @@ that fails the check, and a two-byte frame cannot pass it. Both peers here share
 assumption, so they agree with each other and neither would have caught it; fixing that is the
 first item of the next wave.
 
-Still to do in this milestone: the rest of the long-poll catalogue, starting from that backlog ·
+✅ **The check sequence is a property of the command, and the backlog is swept into layouts** —
+see `docs/M4-sweep.md`. Two waves. The framing defect is fixed and **measured on the wire**: a real
+machine answers a two-byte `$01` with silence rather than a refusal, because the library's
+*receiver* holds a table of how long each host message is and drops a short one as incomplete
+before any handler sees it. That table is a second statement of the same rule, in a second file,
+and the generator now reads both and reports any disagreement — there are none across all 124
+commands. It also says more than the handlers can: it frames two commands the dispatcher answers
+nowhere, and all eighteen legacy funds-transfer commands the last wave reported as existing only in
+somebody else's model.
+
+Then `sasctl sweep` asks a real machine every command in the catalogue that can be asked — 83 of
+124, with **41 withheld by name and with what each would have changed**, a classification the
+generated catalogue enforces so a setter added to the library arrives as a failing test rather than
+as a command the sweep sends. 74 answered with data, 9 answered nothing and are recorded as
+answering nothing, none was refused. **47 of the diff's 86 became layouts**, each read from the
+library's handler and checked against the bytes that machine sent: the catalogue goes from **36 to
+83 of 124 replies** decoding field by field, the diff's backlog from **86 to 39**, and a sweep now
+explains **76 of its 83 distinct commands**. Both older bodies of traffic stay at 100% and could not
+move, because neither carries any of the forty-seven. The meter index deliberately did not move.
+
+Still to do in this milestone: the rest of the long-poll catalogue — 39 commands, of which the five
+tournament meters need a machine that advertises tournament mode and the AFT family needs a
+registered host ·
 the real-time event payloads for the eight exceptions the toolkit describes and this build does not
 decode · replay of a capture against a machine and a diff of the verdicts · splitting a capture into
 the transactions inside it · GUI session recording (D5) · second channel to prove D16 against
