@@ -46,6 +46,25 @@ public sealed record FakeEgmOptions
     /// <summary>Paytable identifier, up to six characters.</summary>
     public string PaytableId { get; init; } = "001";
 
+    /// <summary>
+    /// What this machine calls its game, which only the extended game information reply carries.
+    /// </summary>
+    /// <remarks>
+    /// Fixture configuration, of a piece with the serial number and the paytable identifier above:
+    /// a name is something a machine is given rather than machinery it has. An empty name is
+    /// legitimate and the reply says so with a zero length, which is what a machine that was never
+    /// given one answers.
+    /// </remarks>
+    public string GameName { get; init; } = "QXFAKE";
+
+    /// <summary>What one token is worth, as a Table C-4 code.</summary>
+    /// <remarks>
+    /// Zero, because this machine has no coin acceptor and no token, so nothing here ever
+    /// configured one - and zero is the byte the real machine under test published for the same
+    /// reason when the catalogue was swept on 2026-09-08.
+    /// </remarks>
+    public byte TokenDenomination { get; init; }
+
     /// <summary>Theoretical payback percentage, in hundredths of a percent.</summary>
     public int BasePercentage { get; init; } = 9210;
 

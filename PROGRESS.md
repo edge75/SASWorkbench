@@ -83,3 +83,4 @@ PHASE:M4 WAVE:W3-overlay-diff STATUS:complete TS:2026-09-07T22:44:48Z
 PHASE:M4 WAVE:W4-check-sequence STATUS:complete TS:2026-09-08T07:55:00Z
 PHASE:M4 WAVE:W5-catalogue-sweep STATUS:complete TS:2026-09-08T06:50:04Z
 PHASE:M4 WAVE:W6-real-time-events STATUS:complete TS:2026-09-08T12:19:10Z
+PHASE:M4 WAVE:W7-software-machine-values STATUS:complete TS:2026-09-08T18:04:18Z

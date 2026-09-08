@@ -21,7 +21,7 @@ namespace SasWorkbench.Egm;
 /// cannot answer it rejects, rather than inventing a reply that a test would then depend on.
 /// </para>
 /// </remarks>
-public sealed class FakeEgm : IDisposable
+public sealed partial class FakeEgm : IDisposable
 {
     private readonly ISasTransport _transport;
     private readonly FakeEgmOptions _options;
@@ -68,6 +68,22 @@ public sealed class FakeEgm : IDisposable
     // stimulus arrives on the runner's thread while the poll loop is answering on its own.
     private byte _denominationCode;
     private int _accountingCents;
+
+    // What the last note taken was. Zero and zero until one is, which is what the library answers
+    // on a machine that has taken none: its handler reads the stored denomination code and looks
+    // up that denomination's own count, and code zero is the one-dollar note.
+    private byte _lastBillCountryCode;
+    private byte _lastBillDenominationCode;
+
+    // Games played since the machine came up and since the slot door was last shut. Kept here
+    // rather than as meters because the protocol keeps no meter code for either.
+    private long _gamesSincePowerUp;
+    private long _gamesSinceDoorClosure;
+
+    // What a host set with the secure enhanced validation identifier command, which a machine
+    // performing that validation echoes back. Held only by a machine configured for it.
+    private uint _secureValidationId;
+    private uint _secureSequenceNumber;
 
     public FakeEgm(ISasTransport transport, FakeEgmOptions? options = null)
     {
@@ -349,7 +365,19 @@ public sealed class FakeEgm : IDisposable
         Meters.Increment(countMeter, 1);
         Meters.Increment(SasMeterCode.TotalCreditsFromBillsAccepted, credits);
         Meters.Increment(SasMeterCode.TotalDropIn_Crd, credits);
+
+        // A note taken goes into the stacker, and nothing here ever empties one: this machine has
+        // no drop. So these two only ever rise, which is true of it and would not be true of a
+        // machine somebody collects from.
+        Meters.Increment(SasMeterCode.NumberOfBillsCurrentlyInTheStacker, 1);
+        Meters.Increment(SasMeterCode.TotalValueOfBillsCurrentlyInTheStacker_Crd, credits);
         Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
+
+        lock (_gate)
+        {
+            _lastBillCountryCode = _options.BillCountryCode;
+            _lastBillDenominationCode = (byte)denomination;
+        }
 
         // Queued as the note exception carrying what the note was, which is what the machine
         // library does; the per-denomination code the host sees when reporting is off is worked
@@ -402,6 +430,12 @@ public sealed class FakeEgm : IDisposable
         Meters.SetCurrentCredits(0);
         Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
         Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
+
+        // The same ticket counted again in the family the validation meter poll reads. A machine
+        // moves both, and a fixture that moved only one would answer that poll with a zero its own
+        // cashout had just disproved.
+        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Qty, 1);
+        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Cents, cents);
 
         // The same money in the other unit. A machine keeps both totals, and it is the pair that
         // makes the accounting denomination visible at all: the cents meter reads the same at
@@ -501,6 +535,14 @@ public sealed class FakeEgm : IDisposable
 
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
+
+        // Neither of these is a meter - the protocol keeps no code for either - and both are
+        // things this machine's own stimulus moves, so it counts them.
+        lock (_gate)
+        {
+            _gamesSincePowerUp += games;
+            _gamesSinceDoorClosure += games;
+        }
         if (winCredits > 0)
         {
             Meters.Increment(SasMeterCode.GamesWon, 1);
@@ -580,6 +622,22 @@ public sealed class FakeEgm : IDisposable
         {
             if (open ? !_openDoors.Add(door.Name) : !_openDoors.Remove(door.Name))
                 return false;
+        }
+
+        // The one door the protocol keeps a count for, and the one whose closing starts the
+        // games-since-door-closure figure again. Both are moved by this machine's own stimulus,
+        // so this machine maintains them.
+        if (door.Opened == SasExceptionCode.SlotDoorOpened)
+        {
+            if (open)
+            {
+                Meters.Increment(SasMeterCode.NumberSlotDoorOpened, 1);
+            }
+            else
+            {
+                lock (_gate)
+                    _gamesSinceDoorClosure = 0;
+            }
         }
 
         RaiseException(open ? door.Opened : door.Closed);
@@ -898,6 +956,12 @@ public sealed class FakeEgm : IDisposable
             return;
         }
 
+        // A command this machine answers with silence rather than with a reply, because the
+        // machine library does. The two are not interchangeable: a refusal says the command was
+        // understood and declined, silence says it was never acted on.
+        if (ReferenceEquals(values, NoAnswer))
+            return;
+
         int length;
         try
         {
@@ -915,385 +979,6 @@ public sealed class FakeEgm : IDisposable
             _outbound[i] = SasSymbol.Data8(_frame[i]);
 
         Send(_outbound.AsSpan(0, length));
-    }
-
-    private Dictionary<string, object>? ValuesFor(SasMessageLayout layout, ReadOnlySpan<byte> request) => layout.Command switch
-    {
-        0x0F => new Dictionary<string, object>
-        {
-            ["total_cancelled_credits"] = Meters.Read(SasMeterCode.TotalCancelledCredits),
-            ["total_coin_in"] = Meters.Read(SasMeterCode.TotalCoinInCredits),
-            ["total_coin_out"] = Meters.Read(SasMeterCode.TotalCoinOutCredits),
-            ["total_drop"] = Meters.Read(SasMeterCode.TotalDropIn_Crd),
-            ["total_jackpot"] = Meters.Read(SasMeterCode.TotalJackpotCredits),
-            ["games_played"] = Meters.Read(SasMeterCode.GamesPlayed),
-        },
-        0x10 => Single("total_cancelled_credits", SasMeterCode.TotalCancelledCredits),
-        0x11 => Single("total_coin_in", SasMeterCode.TotalCoinInCredits),
-        0x12 => Single("total_coin_out", SasMeterCode.TotalCoinOutCredits),
-        0x13 => Single("total_drop", SasMeterCode.TotalDropIn_Crd),
-        0x14 => Single("total_jackpot", SasMeterCode.TotalJackpotCredits),
-        0x15 => Single("games_played", SasMeterCode.GamesPlayed),
-        0x16 => Single("games_won", SasMeterCode.GamesWon),
-        0x17 => Single("games_lost", SasMeterCode.GamesLost),
-        0x1A => Single("current_credits", SasMeterCode.CurrentCredits),
-        0x1E => new Dictionary<string, object>
-        {
-            ["bills_1"] = Meters.Read(SasMeterCode.TotalNumberOfUSD1BillsAccepted),
-            ["bills_5"] = Meters.Read(SasMeterCode.TotalNumberOfUSD5BillsAccepted),
-            ["bills_10"] = Meters.Read(SasMeterCode.TotalNumberOfUSD10BillsAccepted),
-            ["bills_20"] = Meters.Read(SasMeterCode.TotalNumberOfUSD20BillsAccepted),
-            ["bills_50"] = Meters.Read(SasMeterCode.TotalNumberOfUSD50BillsAccepted),
-            ["bills_100"] = Meters.Read(SasMeterCode.TotalNumberOfUSD100BillsAccepted),
-        },
-        0x1F => new Dictionary<string, object>
-        {
-            ["game_id"] = _options.GameId,
-            ["additional_id"] = _options.AdditionalId,
-            ["denomination"] = DenominationCode,
-            ["max_bet"] = _options.MaxBet,
-            ["progressive_group"] = _options.ProgressiveGroup,
-            ["game_options"] = _options.GameOptions,
-            ["paytable_id"] = _options.PaytableId,
-            ["base_percentage"] = _options.BasePercentage,
-        },
-        0x20 => new Dictionary<string, object>
-        {
-            ["total_bill_value"] = Interlocked.Read(ref _billValueInDollars),
-        },
-        0x2C => new Dictionary<string, object> { ["hopper_level"] = (long)_options.HopperLevel },
-        0x54 => new Dictionary<string, object>
-        {
-            ["length"] = _options.SasVersion.Length + _options.SerialNumber.Length,
-            ["sas_version"] = _options.SasVersion,
-            ["serial_number"] = _options.SerialNumber,
-        },
-        0x7E => DateAndTime(),
-        0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
-        0xA0 => EnabledFeatures(request),
-        0x6F or 0xAF => SelectedMeters(request),
-        0x3D => LastCashout(),
-        0x70 => TicketInEscrow(),
-        0x71 => RedeemTicket(request),
-
-        // Everything else has a layout but no source of values here.
-        _ => null,
-    };
-
-    /// <summary>
-    /// What this machine says it can do.
-    /// </summary>
-    /// <remarks>
-    /// <para>
-    /// Only the validation half of it is real. The validation style is the machine's own, and the
-    /// ticket redemption bit follows it rather than standing on its own, because section 15 does
-    /// not allow redemption alongside standard validation — a machine claiming both would be
-    /// describing something no host may act on. Everything else is reported as absent: this
-    /// fixture does not do funds transfer, component authentication, tournaments or bonusing, and
-    /// a bit set here would be a claim a test could come to rely on.
-    /// </para>
-    /// <para>
-    /// The validation extensions bit is one a real machine sets alongside the enhanced styles and
-    /// this one leaves clear, deliberately: the commands it advertises are not implemented here.
-    /// It is the one place the two peers are expected to disagree about this reply, so a case
-    /// that runs against both should not assert on it until those commands exist.
-    /// </para>
-    /// <para>
-    /// The game number is echoed rather than looked up, because this machine has one game. A
-    /// number past the games it has is refused, which is what a machine does with a question
-    /// about a game it does not have.
-    /// </para>
-    /// </remarks>
-    private Dictionary<string, object>? EnabledFeatures(ReadOnlySpan<byte> request)
-    {
-        SasDecoded asked = SasMessageDecoder.DecodeRequest(SasLayouts.For(0xA0)!, request);
-        if (asked.Number("game_number") is not { } game || game > 1)
-            return null;
-
-        SasCashoutValidation validation = _options.CashoutValidation;
-        bool redemption = validation is SasCashoutValidation.SecureEnhanced
-            or SasCashoutValidation.System;
-
-        return new Dictionary<string, object>
-        {
-            ["game_number"] = game,
-            ["feature_codes_1"] = (byte)0x00,
-            ["validation_style"] = (byte)validation,
-            ["validation_extensions"] = (byte)0,
-            ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
-            ["feature_codes_2"] = (byte)0x00,
-            ["feature_codes_3"] = (byte)0x00,
-            ["reserved"] = new byte[3],
-        };
-    }
-
-    /// <summary>
-    /// The number and value of the ticket this machine printed most recently.
-    /// </summary>
-    /// <remarks>
-    /// Zero and zero until something has been cashed out, which is what a machine on fresh
-    /// memory answers: the record is real and empty rather than absent, so a host asking before
-    /// anything has been printed gets a well-formed reply saying nothing has.
-    /// </remarks>
-    private Dictionary<string, object> LastCashout()
-    {
-        lock (_gate)
-        {
-            return new Dictionary<string, object>
-            {
-                ["validation_number"] = (long)_lastValidationNumber,
-                ["ticket_amount"] = _lastTicketAmountCents,
-            };
-        }
-    }
-
-    /// <summary>
-    /// Says whether a ticket is being held, and quotes the number printed on it.
-    /// </summary>
-    /// <remarks>
-    /// The amount is zero and stays zero. The machine has read a barcode, not a value: what the
-    /// ticket is worth is the host's to declare, and a machine that filled this in would be
-    /// answering a question it was never asked.
-    /// </remarks>
-    private Dictionary<string, object> TicketInEscrow()
-    {
-        SasTicketStatus status;
-        ulong number;
-        lock (_gate)
-        {
-            status = _redemption.Ask();
-            number = _redemption.ValidationNumber;
-        }
-
-        if (status != SasTicketStatus.TICKET_STATUS_TICKET_IN_ESCROW)
-        {
-            return new Dictionary<string, object>
-            {
-                ["length"] = 1,
-                ["ticket_status"] = (byte)status,
-            };
-        }
-
-        return new Dictionary<string, object>
-        {
-            ["length"] = 16,
-            ["ticket_status"] = (byte)status,
-            ["transfer_amount"] = 0L,
-            ["parsing_code"] = 0,
-            ["validation_data"] = (long)number,
-        };
-    }
-
-    /// <summary>
-    /// Takes the host's verdict on the ticket being held, and reports what became of it.
-    /// </summary>
-    /// <remarks>
-    /// The money moves inside this call, before the reply is built, because the reply is what the
-    /// host reads to learn that it moved. The exception that announces the same thing is queued
-    /// rather than sent, so it arrives on a following general poll — which is the order a real
-    /// machine produces and the order a script written against one expects.
-    /// </remarks>
-    private Dictionary<string, object>? RedeemTicket(ReadOnlySpan<byte> request)
-    {
-        SasMessageLayout layout = SasLayouts.All[0x71];
-        SasDecoded command = SasMessageDecoder.DecodeRequest(layout, request);
-        if (command.Failure is not null || command.Number("transfer_code") is not { } rawCode)
-            return null;
-
-        var code = (SasTicketTransferCode)(byte)rawCode;
-        long amount = command.Number("transfer_amount") ?? 0;
-        var number = (ulong)(command.Number("validation_data") ?? 0);
-
-        bool redeemed;
-        SasTicketMachineStatus status;
-        long recorded;
-        ulong quoted;
-
-        lock (_gate)
-        {
-            redeemed = _redemption.Redeem(code, amount, number);
-
-            // Read before anything else happens. The answer to the command that accepts a ticket
-            // is "redemption pending", not "redeemed": the machine has agreed to take it and has
-            // not taken it yet, and a host told otherwise would have no reason ever to ask again.
-            status = _redemption.MachineStatus;
-            recorded = _redemption.AmountCents;
-            quoted = _redemption.ValidationNumber;
-
-            if (redeemed)
-            {
-                TakeTicket(_redemption.AmountCents, code);
-                _redemption.Settle(code);
-            }
-            else if (code == SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS)
-            {
-                // Reading the outcome is what closes the cycle, so the acceptor is free again
-                // only once the host has actually been told.
-                _redemption.CloseIfRead();
-            }
-        }
-
-        if (redeemed)
-            RaiseException(SasExceptionCode.TicketTransferComplete);
-
-        return Answer(status, recorded, quoted);
-
-        Dictionary<string, object> Answer(SasTicketMachineStatus answered, long cents, ulong validation)
-        {
-            if (!StatusCarries(answered))
-            {
-                return new Dictionary<string, object>
-                {
-                    ["length"] = 1,
-                    ["machine_status"] = (byte)answered,
-                };
-            }
-
-            return new Dictionary<string, object>
-            {
-                ["length"] = 16,
-                ["machine_status"] = (byte)answered,
-                ["transfer_amount"] = cents,
-                ["parsing_code"] = 0,
-                ["validation_data"] = (long)validation,
-            };
-        }
-    }
-
-    /// <summary>Whether a status answers with the ticket's amount and number, or with itself alone.</summary>
-    private static bool StatusCarries(SasTicketMachineStatus status) =>
-        (byte)status < (byte)SasTicketMachineStatus.GMSC_NOT_COMPATIBLE_WITH_CURRENT_REDEMPTION_CYCLE;
-
-    /// <summary>
-    /// Moves the meters a redeemed ticket moves, and puts its value on the machine.
-    /// </summary>
-    /// <remarks>
-    /// Which meters depends on what the host said the ticket was, not on what the ticket claims to
-    /// be: a restricted ticket redeemed as cashable is money the host has agreed to pay in cash,
-    /// and the machine counts what it was told.
-    /// </remarks>
-    private void TakeTicket(long cents, SasTicketTransferCode code)
-    {
-        switch (code)
-        {
-            case SasTicketTransferCode.TTC_VALID_RESTRICTED_PROMOTIONAL_TICKET:
-                Meters.Increment(SasMeterCode.TotalSASRestrictedTicketIn_Cents, cents);
-                Meters.Increment(SasMeterCode.TotalSASRestrictedTicketIn_Qty, 1);
-                break;
-
-            // Counted in credits rather than cents, because that is the only meter the protocol
-            // keeps for it. There is no quantity meter for this kind, so none is moved.
-            case SasTicketTransferCode.TTC_VALID_NONRESTRICTED_PROMOTIONAL_TICKET:
-                Meters.Increment(SasMeterCode.TotalNonrestrictedPromotionalTicketIn_Crd,
-                    cents / AccountingCents);
-                break;
-
-            default:
-                Meters.Increment(SasMeterCode.TotalCashableTicketIn_Cents, cents);
-                Meters.Increment(SasMeterCode.TotalSASCashableTicketIn_Qty, 1);
-                break;
-        }
-
-        // Every kind of ticket feeds the machine-wide total, which is in accounting units - so a
-        // ticket carrying an amount the unit does not divide leaves a remainder here. That is
-        // inherent rather than a defect: a ticket carries any number of cents, and section 16's
-        // divisibility rule constrains only the denominations a player may choose.
-        Meters.Increment(SasMeterCode.TotalTicketIn_Crd, cents / AccountingCents);
-
-        Meters.SetCurrentCredits(
-            Meters.Read(SasMeterCode.CurrentCredits) + (cents / AccountingCents));
-    }
-
-    /// <summary>
-    /// Answers a selected-meter poll, in the shape a machine answers it: one entry per meter it
-    /// supports, each stating its own width, and nothing at all for one it does not.
-    /// </summary>
-    /// <remarks>
-    /// Meters are answered in the order they were asked for, and an unsupported code is left out
-    /// entirely rather than answered with zero - a host that assumed a fixed number of entries
-    /// would read the next meter's code as this one's value. The door and power counts are refused
-    /// here on purpose and are read with the legacy meters command instead.
-    /// </remarks>
-    private Dictionary<string, object>? SelectedMeters(ReadOnlySpan<byte> request)
-    {
-        // Address, command, length, and two bytes of game number at the very least.
-        if (request.Length < 5)
-            return null;
-
-        int declared = request[2];
-        int codes = (declared - 2) / 2;
-        int firstCode = 5;
-        if (codes < 0 || firstCode + (codes * 2) > request.Length)
-            return null;
-
-        long game = ((request[3] >> 4) * 1000) + ((request[3] & 0x0F) * 100)
-                    + ((request[4] >> 4) * 10) + (request[4] & 0x0F);
-
-        var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-        int entries = 0;
-        int payload = 2;
-
-        for (int i = 0; i < codes; i++)
-        {
-            // Binary, least significant byte first.
-            ushort code = (ushort)(request[firstCode + (i * 2)]
-                                   | (request[firstCode + (i * 2) + 1] << 8));
-
-            if (!IsReportableMeter(code))
-                continue;
-
-            long value = Meters.Read(code);
-            int size = WidthOf(code, value);
-
-            values[$"meters[{entries}].code"] = code;
-            values[$"meters[{entries}].size"] = size;
-            values[$"meters[{entries}].value"] = value;
-            entries++;
-            payload += 3 + size;
-        }
-
-        values["length"] = payload;
-        values["game_number"] = game;
-        values["meters.count"] = entries;
-        return values;
-    }
-
-    /// <summary>
-    /// Whether a selected-meter poll may answer about this meter at all. The slot door and power
-    /// reset counts are excluded by the machine rather than merely absent from it.
-    /// </summary>
-    private static bool IsReportableMeter(ushort code) =>
-        code != (ushort)SasMeterCode.NumberSlotDoorOpened
-        && code != (ushort)SasMeterCode.NumberACPowerLost
-        && SasCatalogue.Meters.ContainsKey(code);
-
-    /// <summary>
-    /// How many bytes this meter's value takes. Four is the floor, five for a meter counted in
-    /// cents, and the field widens as the value grows so that it never rolls over silently the
-    /// way the fixed-width polls do.
-    /// </summary>
-    private static int WidthOf(ushort code, long value)
-    {
-        int floor = SasMeterUnits.UnitOf(code) == SasMeterUnit.Cents ? 5 : 4;
-        int digits = value <= 0 ? 1 : (int)Math.Floor(Math.Log10(value)) + 1;
-        return Math.Max(floor, (digits + 1) / 2);
-    }
-
-    private Dictionary<string, object> Single(string field, SasMeterCode meter) =>
-        new() { [field] = Meters.Read(meter) };
-
-    private static Dictionary<string, object> DateAndTime()
-    {
-        DateTime now = DateTime.Now;
-        return new Dictionary<string, object>
-        {
-            ["month"] = now.Month,
-            ["day"] = now.Day,
-            ["year"] = now.Year,
-            ["hour"] = now.Hour,
-            ["minute"] = now.Minute,
-            ["second"] = now.Second,
-        };
     }
 
     private void Reject()

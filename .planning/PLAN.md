@@ -325,8 +325,17 @@ because nobody in it ever turned reporting on. The measurement also found, on th
 machine library has already fixed in a revision the machine under test does not have —
 `BLOCKERS.md` Trap E.
 
-Still to do in this milestone: the software machine answering the 47 replies the sweep established,
-so a regression case can be written against any of them · the rest of the long-poll catalogue — 39
+✅ **The software machine answers, and says what it cannot** — see `docs/M4-software-machine.md`.
+It went from 27 of the catalogue's 83 replies to **71**, so a regression case can now be written
+against most of what the sweep established; `tests/regression` goes from 14 cases to 28, still with
+no skips, and our own suite from **11 to 37 distinct long polls** explained. The twelve it does not
+answer are named with the reason: nine need a progressive, a legacy bonus, reels or cards, and three
+are ones the machine library itself answers with silence rather than a reply. No coverage figure of
+the catalogue moved and none could — this wave establishes no layout, it fills in a machine willing
+to send one. **Eleven of the new replies are byte-identical to what the real machine sent**, which
+is D7's diff made concrete, and it found two length bytes one too small on this side.
+
+Still to do in this milestone: the rest of the long-poll catalogue — 39
 commands, of which the five tournament meters need a machine that advertises tournament mode and the
 AFT family needs a registered host · the four event payloads Trap D blocks · replay of a capture
 against a machine and a diff of the verdicts · splitting a capture into the transactions inside it ·

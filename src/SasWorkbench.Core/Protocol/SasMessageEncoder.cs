@@ -61,7 +61,8 @@ public static class SasMessageEncoder
                     $"Long poll ${layout.Command:X2} needs a value for '{field.Name}'.");
 
             writtenAt[field.Name] = cursor;
-            cursor += WriteField(field, value, destination[cursor..]);
+            cursor += WriteField(Sized(layout, field, prefix: null, values), value,
+                destination[cursor..]);
         }
 
         return SasCrc.Append(destination, cursor);
@@ -126,7 +127,8 @@ public static class SasMessageEncoder
             }
 
             writtenAt[field.Name] = cursor;
-            cursor += WriteField(field, value, destination[cursor..]);
+            cursor += WriteField(Sized(layout, field, prefix: null, values), value,
+                destination[cursor..]);
         }
 
         if (lengthAt >= 0)
@@ -178,39 +180,61 @@ public static class SasMessageEncoder
                     throw new InvalidOperationException(
                         $"Long poll ${layout.Command:X2} needs a value for '{memberPath}'.");
 
-                SasField toWrite = member;
-                if (member.LengthFromField is { } lengthField)
-                {
-                    string lengthPath = $"{elementPath}.{lengthField}";
-                    if (!values.TryGetValue(lengthPath, out object? lengthValue))
-                        throw new InvalidOperationException(
-                            $"'{memberPath}' takes its length from '{lengthPath}', which has no value.");
-
-                    toWrite = member with
-                    {
-                        Length = Convert.ToInt32(lengthValue, CultureInfo.InvariantCulture),
-                    };
-                }
-                else if (member.MeterWidthFromField is { } meterField)
-                {
-                    string meterPath = $"{elementPath}.{meterField}";
-                    if (!values.TryGetValue(meterPath, out object? meterValue))
-                        throw new InvalidOperationException(
-                            $"'{memberPath}' takes its width from the meter named by '{meterPath}', "
-                            + "which has no value.");
-
-                    toWrite = member with
-                    {
-                        Length = SasMeterWidths.Of(
-                            Convert.ToUInt16(meterValue, CultureInfo.InvariantCulture)),
-                    };
-                }
-
-                cursor += WriteField(toWrite, value, destination[cursor..]);
+                cursor += WriteField(Sized(layout, member, elementPath, values), value,
+                    destination[cursor..]);
             }
         }
 
         return cursor;
+    }
+
+    /// <summary>
+    /// Gives a field whose width an earlier field states the width that field says.
+    /// </summary>
+    /// <remarks>
+    /// A length-prefixed field appears both inside a repeating group and on its own — the game
+    /// name of the extended game information reply and the coin-in meter of the wager category
+    /// reply are both at the top level — so the rule lives in one place and both callers use it.
+    /// A field that names no other field is returned unchanged.
+    /// </remarks>
+    private static SasField Sized(
+        SasMessageLayout layout,
+        SasField field,
+        string? prefix,
+        IReadOnlyDictionary<string, object> values)
+    {
+        string Path(string name) => prefix is null ? name : $"{prefix}.{name}";
+
+        if (field.LengthFromField is { } lengthField)
+        {
+            string lengthPath = Path(lengthField);
+            if (!values.TryGetValue(lengthPath, out object? lengthValue))
+                throw new InvalidOperationException(
+                    $"Long poll ${layout.Command:X2} field '{Path(field.Name)}' takes its length "
+                    + $"from '{lengthPath}', which has no value.");
+
+            return field with
+            {
+                Length = Convert.ToInt32(lengthValue, CultureInfo.InvariantCulture),
+            };
+        }
+
+        if (field.MeterWidthFromField is { } meterField)
+        {
+            string meterPath = Path(meterField);
+            if (!values.TryGetValue(meterPath, out object? meterValue))
+                throw new InvalidOperationException(
+                    $"Long poll ${layout.Command:X2} field '{Path(field.Name)}' takes its width "
+                    + $"from the meter named by '{meterPath}', which has no value.");
+
+            return field with
+            {
+                Length = SasMeterWidths.Of(
+                    Convert.ToUInt16(meterValue, CultureInfo.InvariantCulture)),
+            };
+        }
+
+        return field;
     }
 
     /// <summary>
