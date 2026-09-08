@@ -190,6 +190,12 @@ public sealed class PacketExplainer
         if (!StandsAsAMessage(bytes, fromMachine: true))
             return NotAMessage(bytes, "machine", fromMachine: true);
 
+        // A machine reporting in real time answers a general poll with a whole message rather than
+        // one byte, and the marker in place of the command byte is what says so. No long poll is
+        // answered with it, so the two cannot be confused.
+        if (command == SasEventLayouts.Marker)
+            return RealTimeEvent(bytes, findings);
+
         SasMessageLayout? layout = SasLayouts.For(command);
         string headline = $"reply to long poll ${command:X2} — {CatalogueName(command)}";
 
@@ -252,6 +258,102 @@ public sealed class PacketExplainer
             limit: "no general poll or long poll in this record shows the machine's address, so "
                    + "which of the two this is cannot be said");
     }
+
+    /// <summary>
+    /// Explains a real-time event message: the machine's address, the marker, an exception code,
+    /// whatever that exception carries, and a check sequence.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Three outcomes and they are kept apart. An exception the library builds with no data is
+    /// explained in full by its three bytes, and saying so is not a concession — there is nothing
+    /// else in the message. An exception that carries data and whose payload this build has
+    /// established is decoded field by field. An exception that carries data and has no
+    /// established payload is named, with the bytes quoted and nothing claimed about them.
+    /// </para>
+    /// <para>
+    /// The no-activity event is the machine saying it has nothing queued, in the same format as
+    /// everything else. It is not an exception and is not counted as one.
+    /// </para>
+    /// </remarks>
+    private static PacketExplanation RealTimeEvent(byte[] bytes, List<string> findings) =>
+        ReadEvent(bytes, findings) with { IsRealTimeEvent = true };
+
+    private static PacketExplanation ReadEvent(byte[] bytes, List<string> findings)
+    {
+        if (bytes.Length < SasEventLayouts.HeaderLength + 2)
+        {
+            return Bare(
+                $"a real-time event message of {bytes.Length} bytes, which is too short to carry "
+                + "an exception code",
+                PacketMeaning.Unknown,
+                limit: "the marker says this is an event and there is no code byte after it");
+        }
+
+        byte code = bytes[2];
+        if (code == 0x00)
+        {
+            return Bare(
+                $"no exception, reported in the real-time event format by the machine at "
+                + $"${bytes[0]:X2} — it has nothing queued",
+                PacketMeaning.Explained);
+        }
+
+        string named = SasCatalogue.Exceptions.TryGetValue(code, out SasExceptionInfo? info)
+            ? $"{SasNames.Underscore(info.Symbol)} — {info.Description}"
+            : "which is in no exception list this build holds";
+        string headline = $"real-time event ${code:X2} {named}, from the machine at ${bytes[0]:X2}";
+
+        if (SasEventLayouts.For(code) is { } layout)
+        {
+            SasDecoded decoded = SasMessageDecoder.DecodeEvent(layout, bytes);
+            if (!decoded.Succeeded)
+            {
+                return Bare($"{headline} (the bytes do not fit the payload)",
+                    PacketMeaning.LayoutDidNotFit,
+                    exception: code,
+                    limit: decoded.Failure,
+                    derivedFrom: layout.DerivedFrom);
+            }
+
+            SasValue? extra = decoded["unmodelled_trailer"];
+            if (extra is not null)
+            {
+                findings.Add(
+                    $"{extra.Bytes.Length} byte(s) beyond what the payload describes: "
+                    + extra.ToHex());
+            }
+
+            return Bare(headline, PacketMeaning.Explained, exception: code,
+                derivedFrom: layout.DerivedFrom) with
+            {
+                Fields = decoded.Values.Select(Field).ToList(),
+            };
+        }
+
+        int carried = bytes.Length - SasEventLayouts.HeaderLength - 2;
+        if (carried == 0)
+        {
+            // Most exceptions carry nothing at all, and for those the code is the whole event.
+            // There is no payload to establish, so this is explained rather than merely named.
+            return Bare(headline + ", carrying no data", Named(code, info), exception: code,
+                limit: info is null
+                    ? "the machine reported a code the library does not define"
+                    : null);
+        }
+
+        return Bare($"{headline}, carrying {carried} byte(s) this build does not read",
+            PacketMeaning.NamedOnly,
+            exception: code,
+            limit: SasEventLayouts.NeverQueued.TryGetValue(code, out string? why)
+                ? $"exception ${code:X2} carries data and {why}"
+                : $"exception ${code:X2} carries data and this build has established no payload "
+                  + "for it, so what those bytes mean is not claimed");
+    }
+
+    /// <summary>Whether an exception with no payload is at least named somewhere.</summary>
+    private static PacketMeaning Named(byte code, SasExceptionInfo? info) =>
+        info is null ? PacketMeaning.Unknown : PacketMeaning.Explained;
 
     private static PacketExplanation Exception(byte code)
     {

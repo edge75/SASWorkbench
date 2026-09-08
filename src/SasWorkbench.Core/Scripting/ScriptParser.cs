@@ -706,18 +706,27 @@ public static class ScriptParser
         return new ExpectTicketFieldStep(location, field.Name, comparison, null, expected);
     }
 
-    private static ExpectFieldStep ReadExpectField(
+    private static ScriptStep ReadExpectField(
         TestBuilder test, string[] words, SourceLocation location)
     {
         // host expect field base_percentage == 9210
         // host expect field serial_number of lp 54 == QX12345
+        // host expect field credits_wagered of event game_started == 5 within 3s
         if (words.Length < 4)
             throw new ScriptParseException(location,
-                "expected: host expect field <name> [of lp <code>] <comparison> <value>");
+                "expected: host expect field <name> [of lp <code> | of event <name>] "
+                + "<comparison> <value>");
 
         string fieldName = words[3];
         int cursor = 4;
         byte command;
+
+        if (cursor + 2 < words.Length
+            && words[cursor].Equals("of", StringComparison.OrdinalIgnoreCase)
+            && words[cursor + 1].Equals("event", StringComparison.OrdinalIgnoreCase))
+        {
+            return ReadExpectEventField(words, location, fieldName, cursor + 2);
+        }
 
         if (cursor + 2 < words.Length
             && words[cursor].Equals("of", StringComparison.OrdinalIgnoreCase)
@@ -763,17 +772,7 @@ public static class ScriptParser
         if (cursor >= words.Length)
             throw new ScriptParseException(location, $"'{fieldName}' needs a comparison after it");
 
-        SasComparison comparison = words[cursor] switch
-        {
-            "==" => SasComparison.Equal,
-            "!=" => SasComparison.NotEqual,
-            ">=" => SasComparison.AtLeast,
-            "<=" => SasComparison.AtMost,
-            ">" => SasComparison.GreaterThan,
-            "<" => SasComparison.LessThan,
-            _ => throw new ScriptParseException(location,
-                $"'{words[cursor]}' is not a comparison. Expected ==, !=, >=, <=, > or <"),
-        };
+        SasComparison comparison = ReadComparison(words[cursor], location);
 
         cursor++;
         if (cursor >= words.Length)
@@ -837,6 +836,97 @@ public static class ScriptParser
 
         return new ExpectFieldStep(location, command, fieldName, comparison, null, expected);
     }
+
+    /// <summary>
+    /// Reads an assertion about one field of a real-time event's payload.
+    /// </summary>
+    /// <remarks>
+    /// The event is named rather than coded wherever this build has established a payload for it,
+    /// and an exception with no established payload is refused at parse time — there is no field
+    /// to name, so a script asking for one is a mistake in the script rather than a capability
+    /// this environment happens to lack.
+    /// </remarks>
+    private static ExpectEventFieldStep ReadExpectEventField(
+        string[] words, SourceLocation location, string fieldName, int cursor)
+    {
+        string eventName = words[cursor];
+        if (!SasNames.TryResolveException(eventName, out byte code))
+        {
+            throw new ScriptParseException(location,
+                $"'{eventName}' is not an exception this build knows. Write its name, such as "
+                + "game_started, or its code, such as $7E");
+        }
+
+        SasEventLayout? layout = SasEventLayouts.For(code);
+        if (layout is null)
+        {
+            throw new ScriptParseException(location,
+                $"exception ${code:X2} carries no payload this build has established, so it has "
+                + "no fields. The events with one are: "
+                + string.Join(", ", SasEventLayouts.All.Values.Select(e => e.Name).Order()));
+        }
+
+        if (!HasField(layout.Payload, fieldName))
+        {
+            throw new ScriptParseException(location,
+                $"event {layout.Name} has no field '{fieldName}'. Its fields are: "
+                + string.Join(", ", NamesOf(layout.Payload)));
+        }
+
+        cursor++;
+        if (cursor >= words.Length)
+            throw new ScriptParseException(location, $"'{fieldName}' needs a comparison after it");
+
+        SasComparison comparison = ReadComparison(words[cursor], location);
+        cursor++;
+        if (cursor >= words.Length)
+            throw new ScriptParseException(location, "the comparison needs a value after it");
+
+        // 'within' ends the value, the way it does on an exception expectation.
+        int end = words.Length;
+        TimeSpan within = DefaultWithin;
+        for (int i = cursor + 1; i < words.Length - 1; i++)
+        {
+            if (!words[i].Equals("within", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            within = ReadWithin(words, i, location);
+            end = i;
+            break;
+        }
+
+        string expected = string.Join(' ', words[cursor..end]);
+        SasField? declared = layout.Payload.FirstOrDefault(f =>
+            string.Equals(f.Name, fieldName, StringComparison.OrdinalIgnoreCase));
+        bool textual = declared?.Encoding is SasFieldEncoding.Ascii or SasFieldEncoding.Raw;
+
+        if (!textual && SasNames.TryResolveFieldValue(expected, out long number))
+        {
+            return new ExpectEventFieldStep(
+                location, code, layout.Name, fieldName, comparison, number, null, within);
+        }
+
+        if (comparison is not (SasComparison.Equal or SasComparison.NotEqual))
+        {
+            throw new ScriptParseException(location,
+                $"'{fieldName}' holds text, which can only be compared with == or !=");
+        }
+
+        return new ExpectEventFieldStep(
+            location, code, layout.Name, fieldName, comparison, null, expected, within);
+    }
+
+    private static SasComparison ReadComparison(string word, SourceLocation location) => word switch
+    {
+        "==" => SasComparison.Equal,
+        "!=" => SasComparison.NotEqual,
+        ">=" => SasComparison.AtLeast,
+        "<=" => SasComparison.AtMost,
+        ">" => SasComparison.GreaterThan,
+        "<" => SasComparison.LessThan,
+        _ => throw new ScriptParseException(location,
+            $"'{word}' is not a comparison. Expected ==, !=, >=, <=, > or <"),
+    };
 
     private static ExpectLinkStep ReadExpectLink(string[] words, SourceLocation location)
     {

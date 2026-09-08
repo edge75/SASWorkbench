@@ -215,6 +215,31 @@ public sealed record ExpectFieldStep(
 }
 
 /// <summary>
+/// Expects a field of a real-time event's payload to hold a particular value.
+/// </summary>
+/// <remarks>
+/// Separate from <see cref="ExpectFieldStep"/> because an event is waited for rather than asked
+/// for. A reply can be read again; an event happened once, so the step matches one that arrived
+/// inside its window and consumes it the way an exception expectation does.
+/// </remarks>
+public sealed record ExpectEventFieldStep(
+    SourceLocation Location,
+    byte Code,
+    string EventName,
+    string Field,
+    SasComparison Comparison,
+    long? ExpectedNumber,
+    string? ExpectedText,
+    TimeSpan Within) : ScriptStep(Location)
+{
+    public override string Describe()
+    {
+        string expected = ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
+        return $"expect field {Field} of event {EventName} {Comparison} {expected}";
+    }
+}
+
+/// <summary>
 /// Leaves every exception reported so far out of the assertions that follow.
 /// </summary>
 /// <remarks>

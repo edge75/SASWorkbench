@@ -189,6 +189,7 @@ internal static class RunCommand
             PollInterval = interval,
             AskPerson = backend == StimulusBackend.Manual ? AskAtTheConsole : null,
             PromptDeadline = askFor,
+            RealTimeEventsAllowed = line.Flag("real-time-events"),
 
             // The software machine is only wired in when it was asked for. A run that quietly
             // substituted a fixture for the machine under test would be worthless.

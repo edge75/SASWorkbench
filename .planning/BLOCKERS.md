@@ -205,6 +205,40 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 
 **Address both by index from the EGM's config, never by the simulator's label.**
 
+### Trap D — the note-and-play stimulus stopped working, 2026-09-08
+
+**Measured, and not caused by anything on this side.** The M2 case that established the note path,
+`tests/regression/meters/note-moves-bill-meters.sas`, fails against `QSP_DemoOpenGL` today with
+*"nothing in 5000ms"* and both bill meters flat, with real-time event reporting nowhere near it.
+The machine's own log never writes a `$4F`, so `SAS_RegisterBillAccepted` is never called and the
+note never reaches the platform's money handler. Pressing the game menu and the play button
+produces nothing either.
+
+Everything on this side was checked and works: the door mask raises real door exceptions, the audit
+keyswitch opens and closes the machine's own menu, the note mask reaches the peripheral layer — its
+own `BV Link Down`/`Link Up` lines appear when the acceptor is cycled — and the auto-rebet long poll
+reaches the game (`Auto rebet enabled`).
+
+Ruled out on the way: a second demo left running, a corrupted memory image (one boot did
+master-reset; every run after it restored `golden.nvram.gz` first and the machine booted clean), the
+note being offered into the exception burst a cold start makes, the machine sitting on its game
+select screen, an attendant condition the reset keyswitch would clear, and the host having left the
+note acceptor disabled with `$07`.
+
+**What it costs:** four of the ten real-time event payloads cannot be produced — see
+`docs/M4-events.md` — and every test that needs money on the machine skips or fails against a real
+machine.
+
+### Trap E — the generator reads one libsas and the machine runs another
+
+`tools/protogen/protogen.py` reads `C:\Progetti\libsas`, which is **24 commits ahead** of the
+revision QSP fetches and the demo is built from. Measured on 2026-09-08: with reporting on and its
+queue empty, the machine answers a general poll with nothing at all, while the checkout's
+`d6fe417 IGS-271 answer a general poll with no activity in real time event mode` makes it answer in
+the event format. Every layout this project has established comes from the checkout; every byte one
+has been checked against comes from a machine behind it. Where they disagree, neither reading is
+wrong — they describe different machines, and a run has to say which.
+
 ### Other behaviours the orchestrator must reproduce
 * **Buttons are heartbeat-clocked**, not wall-clock: set the bit, wait `heartbeat+2`, clear,
   wait `heartbeat+4` (one 125 ms EGM poll gives one rising + one falling edge,

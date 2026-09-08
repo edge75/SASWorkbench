@@ -44,6 +44,10 @@ internal static class CatalogueCommand
                 Layouts();
                 return 0;
 
+            case "events":
+                Events();
+                return 0;
+
             case "diff":
                 return OverlayDiffCommand.Execute(line);
 
@@ -55,7 +59,7 @@ internal static class CatalogueCommand
             default:
                 Console.Error.WriteLine(
                     $"error: '{what}' is not something to list. Expected long-polls, exceptions, "
-                    + "meters, layouts, readable-meters or diff.");
+                    + "events, meters, layouts, readable-meters or diff.");
                 return 2;
         }
     }
@@ -74,12 +78,16 @@ internal static class CatalogueCommand
         // knowing what its reply means, and a runner has to be able to tell a test the difference.
         Console.WriteLine("Of those, what this build can decode field by field");
         Console.WriteLine($"  replies      {SasLayouts.All.Count} of {longPolls}");
+        Console.WriteLine($"  events       {SasEventLayouts.All.Count} exception payloads, and "
+                          + $"{SasEventLayouts.NeverQueued.Count} the library names and never "
+                          + "produces");
         Console.WriteLine($"  meters       {MeterIndex.All.Count} readable by name");
         Console.WriteLine();
         Console.WriteLine("A command in the catalogue with no layout is reported as undecoded, so a");
         Console.WriteLine("test that needs it is skipped with that reason rather than guessed at.");
         Console.WriteLine();
-        Console.WriteLine("Try 'sasctl catalogue layouts' for the replies, field by field.");
+        Console.WriteLine("Try 'sasctl catalogue layouts' for the replies, field by field, and");
+        Console.WriteLine("'sasctl catalogue events' for what an exception carries after its code.");
     }
 
     private static void Layouts()
@@ -117,6 +125,48 @@ internal static class CatalogueCommand
 
             Console.WriteLine();
         }
+    }
+
+    /// <summary>
+    /// What an exception carries after its code, when the machine is reporting in real time.
+    /// </summary>
+    /// <remarks>
+    /// Whether the bytes have been seen on a link is printed beside every payload, because it is
+    /// the difference between a layout read out of the library and one a machine has confirmed —
+    /// and for events that difference is larger than it is for replies: a reply can be asked for,
+    /// an event can only be waited for.
+    /// </remarks>
+    private static void Events()
+    {
+        Console.WriteLine(
+            $"{SasEventLayouts.All.Count} exceptions have a payload the machine library builds, "
+            + "and this build reads all of them.");
+        Console.WriteLine(
+            "Every other exception is the whole event in three bytes: the address, the marker "
+            + "and the code.");
+        Console.WriteLine();
+
+        foreach (SasEventLayout layout in SasEventLayouts.All.Values.OrderBy(e => e.Code))
+        {
+            string confirmed = layout.ConfirmedByCapture
+                ? "  [confirmed against a capture]"
+                : "  [read from source; no run here has produced one]";
+            Console.WriteLine($"${layout.Code:X2}  {layout.Name}{confirmed}");
+            Console.WriteLine($"     {layout.Description}");
+            Console.WriteLine($"     read from {layout.DerivedFrom}");
+            Console.WriteLine($"     machine sends, after the code:");
+            foreach (SasField field in layout.Payload)
+                Console.WriteLine($"       {Describe(field)}");
+
+            Console.WriteLine();
+        }
+
+        Console.WriteLine("Exceptions the library will only send in the event format:");
+        Console.WriteLine("  " + string.Join(' ',
+            SasEventLayouts.RealTimeOnly.Order().Select(c => $"${c:X2}")));
+        Console.WriteLine();
+        foreach ((byte code, string why) in SasEventLayouts.NeverQueued.OrderBy(e => e.Key))
+            Console.WriteLine($"  ${code:X2}  {why}");
     }
 
     private static string Describe(SasField field)

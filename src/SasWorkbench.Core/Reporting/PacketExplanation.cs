@@ -86,6 +86,17 @@ public sealed record PacketExplanation
     /// <summary>The exception code the machine reported, when it reported one.</summary>
     public byte? Exception { get; init; }
 
+    /// <summary>
+    /// True when the machine reported this exception in the real-time event format, so the
+    /// question of what it carries after the code arises at all.
+    /// </summary>
+    /// <remarks>
+    /// Kept apart from <see cref="Exception"/> on purpose. A one-byte exception carries nothing by
+    /// construction and there is no payload to have established; an event may carry a payload, so
+    /// only these are counted against the payloads this build holds.
+    /// </remarks>
+    public bool IsRealTimeEvent { get; init; }
+
     /// <summary>Why the host sent this itself, where no step of a script asked for it.</summary>
     public string? Purpose { get; init; }
 
@@ -150,6 +161,9 @@ public sealed record PacketExplanation
 /// <param name="CommandsExplained">The long polls whose bytes were read in full.</param>
 /// <param name="CommandsNamedOnly">The long polls that could only be named — what to model next.</param>
 /// <param name="CommandsUnknown">The long polls nothing in this build names.</param>
+/// <param name="EventsExplained">The real-time events whose bytes were read in full.</param>
+/// <param name="EventsNamedOnly">The real-time events that could only be named.</param>
+/// <param name="EventsUnknown">The real-time events nothing in this build names.</param>
 public sealed record PacketCoverage(
     int Packets,
     int Explained,
@@ -160,11 +174,25 @@ public sealed record PacketCoverage(
     int HostsOwn,
     IReadOnlyList<byte> CommandsExplained,
     IReadOnlyList<byte> CommandsNamedOnly,
-    IReadOnlyList<byte> CommandsUnknown)
+    IReadOnlyList<byte> CommandsUnknown,
+    IReadOnlyList<byte> EventsExplained,
+    IReadOnlyList<byte> EventsNamedOnly,
+    IReadOnlyList<byte> EventsUnknown)
 {
     /// <summary>How many distinct long polls the run exchanged.</summary>
     public int Commands =>
         CommandsExplained.Count + CommandsNamedOnly.Count + CommandsUnknown.Count;
+
+    /// <summary>
+    /// How many distinct exceptions the machine reported in the real-time event format.
+    /// </summary>
+    /// <remarks>
+    /// The third tally, and it moves for the same reason the second one does: an event carrying
+    /// bytes this build cannot read is a payload nobody has established. Zero over traffic in
+    /// which reporting was never enabled, which is most traffic, and that is not a gap.
+    /// </remarks>
+    public int Events =>
+        EventsExplained.Count + EventsNamedOnly.Count + EventsUnknown.Count;
 
     /// <summary>Counts a set of explanations.</summary>
     public static PacketCoverage Of(IEnumerable<PacketExplanation> packets)
@@ -186,8 +214,21 @@ public sealed record PacketCoverage(
                 : packet.Meaning;
         }
 
+        var worstEvent = new Dictionary<byte, PacketMeaning>();
+        foreach (PacketExplanation packet in all.Where(p => p.IsRealTimeEvent && p.Exception is not null))
+        {
+            byte code = packet.Exception!.Value;
+            worstEvent[code] = worstEvent.TryGetValue(code, out PacketMeaning seen)
+                               && Severity(seen) > Severity(packet.Meaning)
+                ? seen
+                : packet.Meaning;
+        }
+
         byte[] With(params PacketMeaning[] meanings) =>
             worst.Where(e => meanings.Contains(e.Value)).Select(e => e.Key).Order().ToArray();
+
+        byte[] WithEvent(params PacketMeaning[] meanings) =>
+            worstEvent.Where(e => meanings.Contains(e.Value)).Select(e => e.Key).Order().ToArray();
 
         return new PacketCoverage(
             all.Count,
@@ -199,7 +240,10 @@ public sealed record PacketCoverage(
             all.Count(p => p.IsHostsOwn),
             With(PacketMeaning.Explained),
             With(PacketMeaning.NamedOnly, PacketMeaning.LayoutDidNotFit),
-            With(PacketMeaning.Unknown));
+            With(PacketMeaning.Unknown),
+            WithEvent(PacketMeaning.Explained),
+            WithEvent(PacketMeaning.NamedOnly, PacketMeaning.LayoutDidNotFit),
+            WithEvent(PacketMeaning.Unknown));
     }
 
     /// <summary>How badly a packet went unexplained, worst first, stated rather than assumed.</summary>

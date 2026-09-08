@@ -89,8 +89,23 @@ public sealed record LongPollResult(
 /// <param name="Channel">Which channel it arrived on.</param>
 /// <param name="Elapsed">Time since the engine started.</param>
 /// <param name="Sequence">Monotonic index within the run.</param>
-public sealed record ExceptionReport(byte Code, SasChannel Channel, TimeSpan Elapsed, long Sequence)
+/// <param name="Data">
+/// What the exception carried after its code, when the machine was reporting in the real-time
+/// event format. Null when it answered with the bare code, which is a different thing from an
+/// empty payload: most exceptions carry nothing even in the event format, and those arrive with an
+/// empty array rather than with null.
+/// </param>
+public sealed record ExceptionReport(
+    byte Code, SasChannel Channel, TimeSpan Elapsed, long Sequence, byte[]? Data = null)
 {
-    public override string ToString() =>
-        $"exception ${Code:X2} ch{(int)Channel} at {Elapsed.TotalMilliseconds:F0}ms";
+    /// <summary>True when the machine reported this in the real-time event format.</summary>
+    public bool IsRealTimeEvent => Data is not null;
+
+    public override string ToString()
+    {
+        string carried = Data is { Length: > 0 }
+            ? " carrying " + Convert.ToHexString(Data)
+            : string.Empty;
+        return $"exception ${Code:X2} ch{(int)Channel} at {Elapsed.TotalMilliseconds:F0}ms{carried}";
+    }
 }

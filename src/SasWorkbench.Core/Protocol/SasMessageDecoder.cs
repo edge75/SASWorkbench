@@ -36,7 +36,37 @@ public static class SasMessageDecoder
                 $"The reply echoes command ${frame[1]:X2}, not ${layout.Command:X2}.");
 
         // The payload is everything between the echoed command and the check sequence.
-        return Decode(layout, layout.Response, frame[2..^2], startOffset: 2);
+        return Decode(layout, layout.Command, layout.Response, frame[2..^2], startOffset: 2);
+    }
+
+    /// <summary>
+    /// Decodes a real-time event message — address, the event marker, the exception code, the
+    /// payload and a check sequence — against the payload layout for that exception.
+    /// </summary>
+    /// <remarks>
+    /// Offsets are reported from the start of the frame, as they are for a reply, so a field's
+    /// position in the log is the position in the bytes somebody is reading.
+    /// </remarks>
+    public static SasDecoded DecodeEvent(SasEventLayout layout, ReadOnlySpan<byte> frame)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+
+        if (frame.Length < SasEventLayouts.HeaderLength + 2)
+            return new SasDecoded(layout.Code, null, [],
+                $"A real-time event of {frame.Length} byte(s) is too short to hold an address, "
+                + "the event marker, an exception code and a check sequence.");
+
+        if (frame[1] != SasEventLayouts.Marker)
+            return new SasDecoded(layout.Code, null, [],
+                $"The message carries ${frame[1]:X2} where a real-time event carries "
+                + $"${SasEventLayouts.Marker:X2}.");
+
+        if (frame[2] != layout.Code)
+            return new SasDecoded(layout.Code, null, [],
+                $"The event reports exception ${frame[2]:X2}, not ${layout.Code:X2}.");
+
+        return Decode(null, layout.Code, layout.Payload,
+            frame[SasEventLayouts.HeaderLength..^2], SasEventLayouts.HeaderLength);
     }
 
     /// <summary>
@@ -53,11 +83,12 @@ public static class SasMessageDecoder
 
         // A request with data carries a check sequence; one without carries none.
         int end = frame.Length > 2 ? frame.Length - 2 : frame.Length;
-        return Decode(layout, layout.Request, frame[2..end], startOffset: 2);
+        return Decode(layout, layout.Command, layout.Request, frame[2..end], startOffset: 2);
     }
 
     private static SasDecoded Decode(
-        SasMessageLayout layout,
+        SasMessageLayout? layout,
+        byte code,
         IReadOnlyList<SasField> fields,
         ReadOnlySpan<byte> payload,
         int startOffset)
@@ -83,7 +114,7 @@ public static class SasMessageDecoder
                 payload[cursor..].ToArray()));
         }
 
-        return new SasDecoded(layout.Command, layout, values, failure);
+        return new SasDecoded(code, layout, values, failure);
     }
 
     private static string? ReadFields(

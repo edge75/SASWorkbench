@@ -336,6 +336,31 @@ public sealed class ExtendedLogWriter : IReportWriter
         Tally(builder, "not named at all", coverage.CommandsUnknown.Count, coverage.Commands,
             coverage.CommandsUnknown);
 
+        // The third tally exists only where there is something to count. Reporting zero distinct
+        // events over a run in which reporting was never enabled would read as a coverage gap, and
+        // it is not one: the machine had no reason to send any.
+        if (coverage.Events > 0)
+        {
+            builder.AppendLine();
+            Pair(builder, "events", $"{coverage.Events} distinct exception(s) in real time");
+            Tally(builder, "explained in full", coverage.EventsExplained.Count, coverage.Events,
+                coverage.EventsExplained);
+            Tally(builder, "known but not decoded", coverage.EventsNamedOnly.Count,
+                coverage.Events, coverage.EventsNamedOnly);
+            Tally(builder, "not named at all", coverage.EventsUnknown.Count, coverage.Events,
+                coverage.EventsUnknown);
+        }
+
+        if (coverage.EventsNamedOnly.Count > 0)
+        {
+            builder.AppendLine();
+            Wrapped(builder,
+                "Each exception listed as known but not decoded carried bytes after its code that "
+                + "this build has established no payload for.");
+            foreach (byte code in coverage.EventsNamedOnly)
+                builder.AppendLine($"    ${code:X2}  {SasNames.DescribeException(code)}");
+        }
+
         if (coverage.CommandsNamedOnly.Count > 0)
         {
             builder.AppendLine();

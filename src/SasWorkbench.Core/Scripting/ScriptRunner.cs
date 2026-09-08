@@ -60,6 +60,17 @@ public sealed record ScriptRunnerOptions
     public string WalletDirectory { get; init; } = TicketWallet.DefaultDirectory;
 
     /// <summary>
+    /// Whether this run may ask the machine to report exceptions in the real-time event format.
+    /// </summary>
+    /// <remarks>
+    /// Off unless somebody asks for it. Long poll <c>$0E</c> changes how a machine answers every
+    /// general poll after it, so a run that turned it on to find out whether it could would have
+    /// changed what every case after that measured. The software machine offers the capability of
+    /// its own accord, because that machine is one this build made and knows.
+    /// </remarks>
+    public bool RealTimeEventsAllowed { get; init; }
+
+    /// <summary>
     /// The directory a ticket is dropped into to feed it to the machine's acceptor.
     /// </summary>
     /// <remarks>
@@ -209,6 +220,13 @@ public sealed class ScriptRunner
                 .With(CapabilityProbe.ForWallet(_options.WalletDirectory))
                 .With($"transport.{environment.HostTransport.Capabilities.Kind}"
                     .ToLowerInvariant(), "yes");
+
+            // Opted into by name rather than probed. Finding out whether a machine honours
+            // real-time event reporting means turning it on, and turning it on changes how that
+            // machine answers every general poll afterwards — so a run says so on the command
+            // line, and a run that does not leaves every case needing it skipping.
+            if (_options.RealTimeEventsAllowed)
+                capabilities = capabilities.With("stimulus.real_time_events", "yes");
 
             provenance = new RunProvenance(
                 environment.HostTransport.Description,
@@ -445,6 +463,8 @@ public sealed class ScriptRunner
                 ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
 
                 ExpectFieldStep expect => CheckField(expect, engine, answered, printed, at),
+
+                ExpectEventFieldStep expect => CheckEventField(expect, exceptions, consumed, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
@@ -686,6 +706,123 @@ public sealed class ScriptRunner
             Expected: SasNames.DescribeException(step.Code),
             Actual: $"arrived at {match.Elapsed.TotalMilliseconds:F0}ms",
             At: at) { IsAssertion = true };
+    }
+
+    /// <summary>
+    /// Waits for a real-time event and checks one field of what it carried.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Three failures that look alike are kept apart, because they need different fixes. The event
+    /// never arrived. It arrived as a bare exception code, which means the host never turned
+    /// reporting on — a machine reporting the old way carries no payload at all, and saying "the
+    /// field was missing" would send somebody looking at the layout. Or it arrived with bytes that
+    /// do not fit the established payload, which is a finding about the machine.
+    /// </para>
+    /// <para>
+    /// Unlike an exception expectation, a matched event is <em>not</em> consumed. The two steps ask
+    /// different questions: one asks whether the event happened, so reading it twice would be
+    /// reading two events, and this one asks what a payload held, so three assertions about three
+    /// fields of one event have to see the same event. A script that means the next event says so
+    /// with 'host forget exceptions' between the two, which is how it would separate two
+    /// exceptions as well.
+    /// </para>
+    /// </remarks>
+    private static StepResult CheckEventField(
+        ExpectEventFieldStep step,
+        List<ExceptionReport> exceptions,
+        HashSet<long> consumed,
+        TimeSpan at)
+    {
+        SasEventLayout? layout = SasEventLayouts.For(step.Code);
+        if (layout is null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                Reason: $"this build has established no payload for exception ${step.Code:X2}",
+                At: at);
+        }
+
+        long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
+        ExceptionReport? match = null;
+
+        while (true)
+        {
+            lock (exceptions)
+            {
+                match = exceptions.FirstOrDefault(
+                    e => e.Code == step.Code && !consumed.Contains(e.Sequence));
+            }
+
+            if (match is not null || Environment.TickCount64 >= deadline)
+                break;
+
+            Thread.Sleep(5);
+        }
+
+        if (match is null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(),
+                Actual: $"no {step.EventName} in {step.Within.TotalMilliseconds:F0}ms",
+                At: at) { IsAssertion = true };
+        }
+
+        if (match.Data is not { } payload)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                Reason: $"{step.EventName} arrived as a bare exception code, so it carried no "
+                    + "payload: real-time event reporting is not on, and long poll $0E turns it on",
+                At: at);
+        }
+
+        // Rebuilt into the message the decoder reads, so one reader covers a recorded event and a
+        // live one and the two cannot drift.
+        byte[] frame = new byte[SasEventLayouts.HeaderLength + payload.Length + 2];
+        frame[1] = SasEventLayouts.Marker;
+        frame[2] = step.Code;
+        payload.CopyTo(frame, SasEventLayouts.HeaderLength);
+
+        SasDecoded decoded = SasMessageDecoder.DecodeEvent(layout, frame);
+        if (!decoded.Succeeded)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(), Actual: Convert.ToHexString(payload),
+                Reason: decoded.Failure, At: at) { IsAssertion = true };
+        }
+
+        SasValue? value = decoded[step.Field];
+        if (value is null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(),
+                Actual: $"the event held no '{step.Field}'; it held "
+                        + string.Join(", ", decoded.Paths),
+                At: at) { IsAssertion = true };
+        }
+
+        bool held;
+        string actualText;
+        if (step.ExpectedText is not null)
+        {
+            actualText = value.Text ?? value.ToHex();
+            bool same = string.Equals(actualText, step.ExpectedText, StringComparison.Ordinal);
+            held = step.Comparison == SasComparison.Equal ? same : !same;
+        }
+        else if (value.Number is { } number)
+        {
+            actualText = number.ToString(CultureInfo.InvariantCulture);
+            held = Compare(number, step.Comparison, step.ExpectedNumber!.Value);
+        }
+        else
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(),
+                Actual: $"'{step.Field}' is {value.ToHex()}, which is not a number",
+                At: at) { IsAssertion = true };
+        }
+
+        return new StepResult(step.Location, step.Describe(), held ? Verdict.Pass : Verdict.Fail,
+            Expected: step.Describe(), Actual: actualText, At: at) { IsAssertion = true };
     }
 
     private static StepResult CheckMeter(

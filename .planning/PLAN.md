@@ -311,13 +311,26 @@ library's handler and checked against the bytes that machine sent: the catalogue
 explains **76 of its 83 distinct commands**. Both older bodies of traffic stay at 100% and could not
 move, because neither carries any of the forty-seven. The meter index deliberately did not move.
 
-Still to do in this milestone: the rest of the long-poll catalogue — 39 commands, of which the five
-tournament meters need a machine that advertises tournament mode and the AFT family needs a
-registered host ·
-the real-time event payloads for the eight exceptions the toolkit describes and this build does not
-decode · replay of a capture against a machine and a diff of the verdicts · splitting a capture into
-the transactions inside it · GUI session recording (D5) · second channel to prove D16 against
-GSA 10.1.4.
+✅ **The real-time event format is decoded, and measured on the wire** — see `docs/M4-events.md`.
+A machine reporting in real time answers a general poll with a whole message, and eleven distinct
+exceptions arrived in that format from `QSP_DemoOpenGL`, so the frame is established against a real
+machine. Ten payloads are established from the machine library's own builders — two more than the
+toolkit describes, because the library has two session events nobody else lists — and **none has
+been produced**: four because the note-and-play stimulus stopped working on this machine (measured
+with reporting off, so it is not caused by turning it on — `BLOCKERS.md` Trap D), four because
+nothing here drives them, and two because nothing in the platform ever raises them. Every one is
+recorded as unproduced with which of the three it is. Our own suite goes to **11 of 11 distinct long
+polls and 4 of 4 distinct events**; the corpus stays at 18 of 18 and carries no events at all,
+because nobody in it ever turned reporting on. The measurement also found, on the wire, a defect the
+machine library has already fixed in a revision the machine under test does not have —
+`BLOCKERS.md` Trap E.
+
+Still to do in this milestone: the software machine answering the 47 replies the sweep established,
+so a regression case can be written against any of them · the rest of the long-poll catalogue — 39
+commands, of which the five tournament meters need a machine that advertises tournament mode and the
+AFT family needs a registered host · the four event payloads Trap D blocks · replay of a capture
+against a machine and a diff of the verdicts · splitting a capture into the transactions inside it ·
+GUI session recording (D5) · second channel to prove D16 against GSA 10.1.4.
 
 ---
 

@@ -118,6 +118,17 @@ public sealed record FakeEgmOptions
     public int HopperLevel { get; init; }
 
     /// <summary>
+    /// Which currency this machine's note acceptor reports, as the protocol's own country code.
+    /// </summary>
+    /// <remarks>
+    /// Thirty-seven is the United States dollar in the platform's own table, and it is the default
+    /// for the same reason every other default here is what it is: the machine this fixture stands
+    /// in for was measured reporting it. Only the real-time note event carries this, so it is
+    /// invisible to a host that has not asked for reporting.
+    /// </remarks>
+    public byte BillCountryCode { get; init; } = 37;
+
+    /// <summary>
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>
     public TimeSpan ResponseDelay { get; init; } = TimeSpan.Zero;

@@ -33,6 +33,12 @@ Then the sweep: sasctl asks a real machine every command in the catalogue that c
 withheld by name with what each would have changed, and 47 of the backlog's 86 become layouts
 checked against the bytes that machine sent — the catalogue goes from 36 to 83 of 124 replies and
 the backlog from 86 to 39 (`docs/M4-sweep.md`).
+Then the real-time event format, decoded and measured: a machine reporting in real time answers a
+general poll with a whole message, eleven distinct exceptions arrived in that format from a real
+machine, and ten payloads are established from the library's own builders — none of which any run
+here has produced, each recorded as unproduced with the reason. Our own suite goes to 11 of 11
+distinct long polls and 4 of 4 distinct events; the corpus stays at 18 of 18 and carries no events.
+Two blockers came out of it (`docs/M4-events.md`, `BLOCKERS.md` Traps D and E).
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -76,3 +82,4 @@ PHASE:M4 WAVE:W2-backlog-layouts STATUS:complete TS:2026-09-07T22:10:00Z
 PHASE:M4 WAVE:W3-overlay-diff STATUS:complete TS:2026-09-07T22:44:48Z
 PHASE:M4 WAVE:W4-check-sequence STATUS:complete TS:2026-09-08T07:55:00Z
 PHASE:M4 WAVE:W5-catalogue-sweep STATUS:complete TS:2026-09-08T06:50:04Z
+PHASE:M4 WAVE:W6-real-time-events STATUS:complete TS:2026-09-08T12:19:10Z

@@ -28,6 +28,8 @@ internal static class Help
               sasctl explain <file> [options]    explain a recorded run, packet by packet
               sasctl import <path>... [options]  read traffic another tool recorded
               sasctl sweep [options]             ask a machine every command it may be asked
+              sasctl events [options]            make a machine report in real time, and read
+                                                 the payloads its exceptions carry
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -37,6 +39,9 @@ internal static class Help
               --channel <1-4>         which channel to drive
               --poll <duration>       poll interval, such as 200ms
               --stimulus <backend>    none, manual, software or qpm  (default: none)
+              --real-time-events      let cases ask the machine to report exceptions in the
+                                      real-time event format. Off by default: turning it on
+                                      changes how the machine answers every general poll
               --ask-for <duration>    how long a manual step waits for a person before it
                                       is skipped  (default: 2m)
               --egm-resources <dir>   the machine's own resource directory, which is where it
@@ -65,6 +70,7 @@ internal static class Help
               sasctl catalogue exceptions        every exception a machine can report
               sasctl catalogue meters            every meter
               sasctl catalogue layouts           the replies this build can decode, field by field
+              sasctl catalogue events            what an exception carries after its code
               sasctl catalogue diff [options]    compare this build's catalogue against two
                                                  descriptions of SAS written by other people
 
@@ -167,6 +173,34 @@ internal static class Help
 
               It asserts nothing, so like an import it comes back as a run in which nothing was
               tested rather than as a pass.
+
+            EVENTS
+              --tcp <host:port>       reach the machine over TCP, listening unless --dial
+              --serial <port>         reach it over a serial port
+              --address <hh>          poll address, in hex  (default: 01)
+              --list                  print what would be caused and what cannot be, and stop
+              --seconds <n>           how long to watch after the machine is set going
+                                      (default: 45)
+              --note <cents>          what note to offer the acceptor  (default: 2000)
+              --egm-resources <dir>   the machine's own resource directory, which is where it
+                                      declares its doors and buttons
+              --qpm-shm <file>        the peripheral shared region, if it is not in the usual
+                                      place for this platform
+              --out <directory>       where to write the record  (default: runs/<time>-events)
+              --report <formats>      which reports to write  (default: jsonl,extended)
+
+              Turns real-time event reporting on, makes the machine do the things that report an
+              event, and writes down what each one carried. A long poll can be asked for and an
+              event can only be caused, which is why this is a command of its own.
+
+              It sends two commands the sweep withholds and says so before opening the link: $0E,
+              because turning reporting on is the measurement, and $AA, because the machine
+              playing by itself is the only lever here that produces a game. Both are turned off
+              again at the end and the run says whether that was acknowledged.
+
+              An exception nothing here can cause is reported as unproduced with the reason,
+              never as a payload nobody checked. It asserts nothing, so it comes back as a run in
+              which nothing was tested rather than as a pass.
 
             NVRAM
               status                  what the machine holds, and what has been saved

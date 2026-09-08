@@ -140,6 +140,13 @@ public static class CapabilityProbe
         foreach (byte command in SasLayouts.All.Keys)
             values[$"decoder.lp{command:X2}"] = "yes";
 
+        // The same for what an exception carries. Named apart from the long polls because they are
+        // different things: 'lp7F' is the command that sets the machine's clock and 'event7F' is
+        // the exception that reports what a game paid, and a case naming one when it means the
+        // other skips for a reason that is true and not the one it meant.
+        foreach (byte code in SasEventLayouts.All.Keys)
+            values[$"decoder.event{code:X2}"] = "yes";
+
         return new CapabilitySet(values);
     }
 
@@ -375,6 +382,13 @@ public static class CapabilityProbe
             {
                 ["stimulus"] = "software",
                 ["stimulus.bill"] = "yes",
+
+                // This machine answers long poll $0E and reports in the event format afterwards.
+                // Claimed here and nowhere else: on a real machine the only way to find out is to
+                // turn reporting on, and turning it on changes how it answers every general poll
+                // after — which is the same reason the sweep withholds that command. A run against
+                // a real machine opts in by name with --real-time-events.
+                ["stimulus.real_time_events"] = "yes",
 
                 // A software machine is built to order, so a case can state the accounting
                 // denomination it assumes and get one, and can change it during a run. No real

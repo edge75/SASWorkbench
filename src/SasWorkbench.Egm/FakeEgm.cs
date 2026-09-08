@@ -29,7 +29,7 @@ public sealed class FakeEgm : IDisposable
     private readonly List<SasSymbol> _message = new(HostMessage.MaxSymbols);
     private readonly SasSymbol[] _outbound = new SasSymbol[HostMessage.MaxSymbols];
     private readonly byte[] _frame = new byte[HostMessage.MaxSymbols];
-    private readonly Queue<byte> _exceptions = new();
+    private readonly Queue<PendingEvent> _exceptions = new();
     private readonly HashSet<string> _openDoors = new(StringComparer.OrdinalIgnoreCase);
     private readonly TicketRedemption _redemption = new();
     private readonly Lock _gate = new();
@@ -37,6 +37,10 @@ public sealed class FakeEgm : IDisposable
     private Thread? _thread;
     private volatile bool _running;
     private bool _enabled = true;
+
+    // Whether the host has asked for exceptions in the real-time event format. Off until long
+    // poll $0E says otherwise, which is how a machine comes up.
+    private bool _rteEnabled;
 
     // Every denomination, until a host narrows it with long poll $08. Permissive to begin with
     // because the machine this fixture stands in for was measured accepting a note without ever
@@ -275,15 +279,41 @@ public sealed class FakeEgm : IDisposable
     public void RaiseException(SasExceptionCode code) => RaiseException((byte)code);
 
     /// <summary>Queues an exception code for the next general poll.</summary>
-    public void RaiseException(byte code)
+    public void RaiseException(byte code) => RaiseEvent(code, []);
+
+    /// <summary>
+    /// Queues an exception together with the data it carries.
+    /// </summary>
+    /// <remarks>
+    /// The payload is queued whether or not the host has asked for real-time event reporting,
+    /// which is what the machine library does: its builders fill the data in every time and the
+    /// transmit path decides what to do with it when the exception leaves. So turning reporting on
+    /// changes how an event is sent and never whether it happened.
+    /// </remarks>
+    public void RaiseEvent(byte code, params byte[] data)
     {
+        ArgumentNullException.ThrowIfNull(data);
+
         if (code == 0x00)
             throw new ArgumentOutOfRangeException(nameof(code), code,
                 "Zero means the queue is empty and cannot be queued as an exception.");
 
         lock (_gate)
-            _exceptions.Enqueue(code);
+            _exceptions.Enqueue(new PendingEvent(code, data));
     }
+
+    /// <summary>True when the host has asked for exceptions in the real-time event format.</summary>
+    public bool RealTimeEventsEnabled
+    {
+        get
+        {
+            lock (_gate)
+                return _rteEnabled;
+        }
+    }
+
+    /// <summary>One queued exception and whatever it carries.</summary>
+    private readonly record struct PendingEvent(byte Code, byte[] Data);
 
     /// <summary>
     /// Accepts a note, raising the exception for that denomination and moving the meters a real
@@ -294,15 +324,15 @@ public sealed class FakeEgm : IDisposable
     /// <exception cref="InvalidOperationException">The host has disabled that denomination.</exception>
     public void InsertBill(int cents)
     {
-        (SasExceptionCode exception, SasMeterCode countMeter, int denomination) = cents switch
+        (SasMeterCode countMeter, int denomination) = cents switch
         {
-            100 => (SasExceptionCode.USD1BillAccepted, SasMeterCode.TotalNumberOfUSD1BillsAccepted, 0),
-            200 => (SasExceptionCode.USD2BillAccepted, SasMeterCode.TotalNumberOfUSD2BillsAccepted, 1),
-            500 => (SasExceptionCode.USD5BillAccepted, SasMeterCode.TotalNumberOfUSD5BillsAccepted, 2),
-            1000 => (SasExceptionCode.USD10BillAccepted, SasMeterCode.TotalNumberOfUSD10BillsAccepted, 3),
-            2000 => (SasExceptionCode.USD20BillAccepted, SasMeterCode.TotalNumberOfUSD20BillsAccepted, 4),
-            5000 => (SasExceptionCode.USD50BillAccepted, SasMeterCode.TotalNumberOfUSD50BillsAccepted, 6),
-            10000 => (SasExceptionCode.USD100BillAccepted, SasMeterCode.TotalNumberOfUSD100BillsAccepted, 7),
+            100 => (SasMeterCode.TotalNumberOfUSD1BillsAccepted, 0),
+            200 => (SasMeterCode.TotalNumberOfUSD2BillsAccepted, 1),
+            500 => (SasMeterCode.TotalNumberOfUSD5BillsAccepted, 2),
+            1000 => (SasMeterCode.TotalNumberOfUSD10BillsAccepted, 3),
+            2000 => (SasMeterCode.TotalNumberOfUSD20BillsAccepted, 4),
+            5000 => (SasMeterCode.TotalNumberOfUSD50BillsAccepted, 6),
+            10000 => (SasMeterCode.TotalNumberOfUSD100BillsAccepted, 7),
             _ => throw new ArgumentOutOfRangeException(nameof(cents), cents,
                 "The protocol has no bill-accepted exception for that value."),
         };
@@ -320,7 +350,34 @@ public sealed class FakeEgm : IDisposable
         Meters.Increment(SasMeterCode.TotalCreditsFromBillsAccepted, credits);
         Meters.Increment(SasMeterCode.TotalDropIn_Crd, credits);
         Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
-        RaiseException(exception);
+
+        // Queued as the note exception carrying what the note was, which is what the machine
+        // library does; the per-denomination code the host sees when reporting is off is worked
+        // out on the way out. Nothing about the exception a host already sees changes — the same
+        // code leaves on the same poll — and a host that has asked for reporting now gets the
+        // country, the denomination and the count as well.
+        RaiseEvent((byte)SasExceptionCode.BillAccepted,
+        [
+            Bcd(_options.BillCountryCode),
+            Bcd((byte)denomination),
+            .. BcdBytes(Meters.Read(countMeter), 4),
+        ]);
+    }
+
+    /// <summary>One byte of binary coded decimal, the way the machine library writes one.</summary>
+    private static byte Bcd(byte value) => (byte)((value % 10) | ((value / 10) << 4));
+
+    /// <summary>A number as binary coded decimal, most significant byte first.</summary>
+    private static byte[] BcdBytes(long value, int bytes)
+    {
+        byte[] digits = new byte[bytes];
+        for (int i = bytes - 1; i >= 0; i--)
+        {
+            digits[i] = (byte)((value % 10) | (((value / 10) % 10) << 4));
+            value /= 100;
+        }
+
+        return digits;
     }
 
     /// <summary>
@@ -456,6 +513,43 @@ public sealed class FakeEgm : IDisposable
         }
 
         Meters.SetCurrentCredits(credits - wagered + won);
+
+        // A game start and a game end for each round, the way the platform above the machine
+        // library raises them: unconditionally, whether or not the host has asked for reporting.
+        // With reporting off a host sees the two bare codes it has always seen; with it on the
+        // same two events carry what was staked and what was won.
+        for (int round = 0; round < games; round++)
+        {
+            bool last = round == games - 1;
+            RaiseEvent((byte)SasExceptionCode.GameStarted,
+            [
+                .. BcdBytes(Math.Min(betCredits, 9999), 2),
+                .. BcdBytes(Meters.Read(SasMeterCode.TotalCoinInCredits), 4),
+                WagerType(betCredits),
+                _options.ProgressiveGroup,
+            ]);
+
+            // The whole win is attributed to the last round, because this fixture is told one
+            // total rather than one figure per round. Stated here rather than divided evenly,
+            // which would invent a distribution nobody asked for.
+            RaiseEvent((byte)SasExceptionCode.GameEnded,
+                BcdBytes(last ? winCredits * _options.CentsPerGameCredit : 0, 4));
+        }
+    }
+
+    /// <summary>
+    /// What kind of wager the game start event reports: the denomination a credit is worth, with
+    /// a bit for a multi-game machine and a bit for a bet at the machine's limit.
+    /// </summary>
+    /// <remarks>
+    /// The two bits are the platform's own construction rather than the machine library's. This
+    /// fixture has one game, so the multi-game bit is always clear here, and that is a fact about
+    /// the fixture rather than about the protocol.
+    /// </remarks>
+    private byte WagerType(long betCredits)
+    {
+        byte code = SasDenomination.CodeFor(_options.CentsPerGameCredit) ?? 0;
+        return betCredits >= _options.MaxBet ? (byte)(code | 0x80) : code;
     }
 
     /// <summary>Opens the slot door, raising the exception a real machine raises.</summary>
@@ -581,11 +675,99 @@ public sealed class FakeEgm : IDisposable
 
         Interlocked.Increment(ref _generalPolls);
 
-        byte code;
+        bool realTime;
+        PendingEvent? queued;
         lock (_gate)
-            code = _exceptions.Count > 0 ? _exceptions.Dequeue() : (byte)0x00;
+        {
+            realTime = _rteEnabled;
+            queued = _exceptions.Count > 0 ? _exceptions.Dequeue() : null;
+        }
 
-        Send([SasSymbol.Data8(code)]);
+        if (realTime)
+        {
+            SendRealTimeEvent(queued);
+            return;
+        }
+
+        if (queued is not { } event_)
+        {
+            Send([SasSymbol.Data8(0x00)]);
+            return;
+        }
+
+        // Four exceptions the machine library only ever sends in the event format. With reporting
+        // off it dequeues one and then sends nothing at all — not the code, and not the
+        // no-activity byte either — so this poll goes unanswered. Modelled rather than smoothed
+        // over: a host that treats silence as "nothing queued" is being told something false, and
+        // that is a property of the machine a test should be able to see.
+        if (SasEventLayouts.RealTimeOnly.Contains(event_.Code))
+            return;
+
+        Send([SasSymbol.Data8(WithoutReporting(event_))]);
+    }
+
+    /// <summary>
+    /// What code a payload-carrying exception is reduced to when reporting is off.
+    /// </summary>
+    /// <remarks>
+    /// Only the note exception changes: the library queues one <c>$4F</c> carrying the
+    /// denomination and, on the way out, turns it into the exception for that denomination. Every
+    /// other code goes out as itself with its payload dropped, which is why a host that never
+    /// enables reporting cannot see what a game staked.
+    /// </remarks>
+    private static byte WithoutReporting(PendingEvent queued)
+    {
+        if (queued.Code != (byte)SasExceptionCode.BillAccepted || queued.Data.Length < 2)
+            return queued.Code;
+
+        // The denomination is carried as binary coded decimal, so it is read back as a number
+        // before it selects the code, the way the library reads it.
+        int denomination = ((queued.Data[1] >> 4) * 10) + (queued.Data[1] & 0x0F);
+        return denomination switch
+        {
+            0 => (byte)SasExceptionCode.USD1BillAccepted,
+            1 => (byte)SasExceptionCode.USD2BillAccepted,
+            2 => (byte)SasExceptionCode.USD5BillAccepted,
+            3 => (byte)SasExceptionCode.USD10BillAccepted,
+            4 => (byte)SasExceptionCode.USD20BillAccepted,
+            6 => (byte)SasExceptionCode.USD50BillAccepted,
+            7 => (byte)SasExceptionCode.USD100BillAccepted,
+            8 => (byte)SasExceptionCode.USD200BillAccepted,
+            10 => (byte)SasExceptionCode.USD500BillAccepted,
+            _ => (byte)SasExceptionCode.BillAccepted,
+        };
+    }
+
+    /// <summary>
+    /// Answers a general poll in the real-time event format: address, marker, code, payload, check
+    /// sequence.
+    /// </summary>
+    /// <remarks>
+    /// A machine with nothing queued still answers, and answers in the same format — the code is
+    /// zero. That is what the library does, and it matters: a host that had to tell a bare
+    /// <c>$00</c> from an event would be reading two formats on the same link.
+    /// </remarks>
+    private void SendRealTimeEvent(PendingEvent? queued)
+    {
+        _frame[0] = _options.Address.Value;
+        _frame[1] = SasEventLayouts.Marker;
+        _frame[2] = queued?.Code ?? 0x00;
+
+        int length = SasEventLayouts.HeaderLength;
+        if (queued is { } event_)
+        {
+            foreach (byte value in event_.Data)
+                _frame[length++] = value;
+        }
+
+        ushort crc = SasCrc.Compute(_frame.AsSpan(0, length));
+        _frame[length++] = SasCrc.LowByte(crc);
+        _frame[length++] = SasCrc.HighByte(crc);
+
+        for (int i = 0; i < length; i++)
+            _outbound[i] = SasSymbol.Data8(_frame[i]);
+
+        Send(_outbound.AsSpan(0, length));
     }
 
     private void HandleLongPoll(ReadOnlySpan<byte> frame)
@@ -691,8 +873,16 @@ public sealed class FakeEgm : IDisposable
                 return true;
 
             case 0x0E:
-                // Real-time event reporting takes one data byte, which must be zero or one.
-                return frame.Length >= 3 && frame[2] is 0x00 or 0x01;
+                // Real-time event reporting takes one data byte, which must be zero or one. A
+                // value that is neither is refused rather than rounded to true, because a machine
+                // that accepted it would start answering in a format the host did not ask for.
+                if (frame.Length < 3 || frame[2] is not (0x00 or 0x01))
+                    return false;
+
+                lock (_gate)
+                    _rteEnabled = frame[2] == 0x01;
+
+                return true;
 
             default:
                 return false;

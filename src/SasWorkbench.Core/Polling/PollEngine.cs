@@ -319,17 +319,18 @@ public sealed class PollEngine : IDisposable
             return;
         }
 
-        // A reply of more than one byte to a general poll is the real-time event format, which this
-        // build does not decode. Naming it is the honest answer; reading its address byte as an
-        // exception code would invent a machine event out of a message about another one.
-        bool realTimeEvent = received > 1;
-        RecordReceive(received, wakeup, realTimeEvent
-            ? "known but not decoded: a general poll answered in the real-time event format"
-            : null);
-        MarkHeard();
-
-        if (realTimeEvent)
+        // A reply of more than one byte to a general poll is the real-time event format: the
+        // machine's address, the event marker, the exception code and whatever that exception
+        // carries. Read as a whole message or not at all — taking the first byte for an exception
+        // code would invent a machine event out of a message about another one.
+        if (received > 1)
+        {
+            ReportRealTimeEvent(received, wakeup);
             return;
+        }
+
+        RecordReceive(received, wakeup, null);
+        MarkHeard();
 
         byte code = _inbound[0];
         if (code == 0x00)
@@ -343,6 +344,70 @@ public sealed class PollEngine : IDisposable
 
         long sequence = Interlocked.Increment(ref _exceptions);
         ExceptionReported?.Invoke(new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence));
+    }
+
+    /// <summary>
+    /// Reads a general poll answered in the real-time event format, and reports the exception it
+    /// carries along with the bytes that came after the code.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The payload travels with the report and is not decoded here. What the bytes mean is a
+    /// question for the layout of that exception, and the engine's job is to say which exception
+    /// arrived and with what — so an exception whose payload nothing has established still reaches
+    /// a script as the exception it is, with its bytes intact for whoever can read them later.
+    /// </para>
+    /// <para>
+    /// A message that fails its check sequence, carries the wrong marker or is addressed elsewhere
+    /// is recorded and dropped rather than read. There is no assurance about any byte of a frame
+    /// that fails the check, the exception code included.
+    /// </para>
+    /// </remarks>
+    private void ReportRealTimeEvent(int received, bool wakeup)
+    {
+        ReadOnlySpan<byte> frame = _inbound.AsSpan(0, received);
+
+        if (frame[1] != SasEventLayouts.Marker)
+        {
+            RecordReceive(received, wakeup,
+                "not a real-time event: a general poll answered with more than one byte and "
+                + $"${frame[1]:X2} where the event marker belongs");
+            MarkHeard();
+            return;
+        }
+
+        if (received < SasEventLayouts.HeaderLength + 2 || !SasCrc.Verify(frame))
+        {
+            RecordReceive(received, wakeup,
+                "a real-time event whose check sequence does not check out, so no byte of it is "
+                + "established");
+            return;
+        }
+
+        if (frame[0] != _options.Address.Value)
+        {
+            RecordReceive(received, wakeup,
+                $"a real-time event addressed ${frame[0]:X2}, and the machine being polled is "
+                + $"${_options.Address.Value:X2}");
+            MarkHeard();
+            return;
+        }
+
+        byte code = frame[2];
+        byte[] data = frame[SasEventLayouts.HeaderLength..^2].ToArray();
+        RecordReceive(received, wakeup, code == 0x00
+            ? "no exception, in the real-time event format"
+            : $"real-time event ${code:X2}");
+        MarkHeard();
+
+        // Zero is the machine saying it has nothing queued, in the same format as everything else.
+        // It is not an exception and must not be reported as one.
+        if (code == 0x00)
+            return;
+
+        long sequence = Interlocked.Increment(ref _exceptions);
+        ExceptionReported?.Invoke(
+            new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence, data));
     }
 
     private void RunPendingLongPoll()
