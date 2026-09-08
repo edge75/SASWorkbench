@@ -44,6 +44,9 @@ internal static class CatalogueCommand
                 Layouts();
                 return 0;
 
+            case "diff":
+                return OverlayDiffCommand.Execute(line);
+
             case "readable-meters":
                 foreach (MeterSource source in MeterIndex.All.OrderBy(m => m.Name))
                     Console.WriteLine($"  {source.Name,-30}  lp ${source.Command:X2}  {source.Unit}");
@@ -52,7 +55,7 @@ internal static class CatalogueCommand
             default:
                 Console.Error.WriteLine(
                     $"error: '{what}' is not something to list. Expected long-polls, exceptions, "
-                    + "meters, layouts or readable-meters.");
+                    + "meters, layouts, readable-meters or diff.");
                 return 2;
         }
     }

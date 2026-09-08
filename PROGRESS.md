@@ -20,7 +20,12 @@ distinct long polls over our own suite to 9 of 21 over the corpus (`docs/M4-impo
 backlog that produced: eight layouts established from the library's own handlers and verified
 against named captures, and three commands that turned out never to have been sent — bytes read
 out of pieces of other messages, which are now named as unreadable rather than decoded. The corpus
-tally goes to 18 of 18 and the catalogue to 36 of 124 replies (`docs/M4-layouts.md`).
+tally goes to 18 of 18 and the catalogue to 36 of 124 replies (`docs/M4-layouts.md`). Then the
+overlay diff: the legacy tester's configuration and the conformance toolkit's templates are read as
+overlays over the header-derived catalogue and diffed, with nothing imported from either. No
+coverage figure moves, because a diff establishes no layout; it produces 86 commands for the backlog
+that no traffic here has carried, and closes two disagreements against the library — one of which
+is a defect here, in how a host message that carries no data is framed (`docs/M4-overlays.md`).
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -61,3 +66,4 @@ PHASE:M3 WAVE:W9-accounting-denomination STATUS:complete TS:2026-09-07T11:45:55Z
 PHASE:M4 WAVE:W0-attribution STATUS:complete TS:2026-09-07T18:05:00Z
 PHASE:M4 WAVE:W1-capture-import STATUS:complete TS:2026-09-07T19:20:00Z
 PHASE:M4 WAVE:W2-backlog-layouts STATUS:complete TS:2026-09-07T22:10:00Z
+PHASE:M4 WAVE:W3-overlay-diff STATUS:complete TS:2026-09-07T22:44:48Z

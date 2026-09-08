@@ -64,6 +64,16 @@ internal static class Help
               sasctl catalogue exceptions        every exception a machine can report
               sasctl catalogue meters            every meter
               sasctl catalogue layouts           the replies this build can decode, field by field
+              sasctl catalogue diff [options]    compare this build's catalogue against two
+                                                 descriptions of SAS written by other people
+
+              --legacy <file>         the legacy tester's configuration file
+              --toolkit <directory>   the conformance toolkit's directory, which must hold its
+                                      poll, response and event templates and their definition
+              --all                   print every code, not only the ones something disagrees on
+
+              The diff is read-only in both directions: their files are not changed and nothing
+              from them is written here. It reports what to model next, not what to copy.
 
             EGM
               --tcp <host:port>       listen for a host, or dial one with --dial

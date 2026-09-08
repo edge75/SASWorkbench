@@ -45,6 +45,11 @@ namespace SasWorkbench.Core.Protocol;
 """
 
 
+BLOCK_COMMENT = r"/\*.*?\*/"
+LINE_COMMENT = r"//[^\n]*"
+NOT_NEWLINE = r"[^\n]"
+
+
 @dataclass(frozen=True)
 class Entry:
     name: str
@@ -115,6 +120,62 @@ def parse_long_poll_handlers(lp_header: str) -> dict[int, str]:
     return handlers
 
 
+def parse_dispatch(threads_source: str, long_polls: list[Entry]) -> dict[int, str]:
+    """Maps each long poll code to the handler the library actually dispatches it to.
+
+    Read from the dispatcher rather than from the header's declarations, because the two do not
+    agree and the dispatcher is the one that decides. Nine commands share one handler whose name
+    carries no code at all, so a map built from names alone reports those as unhandled — and a
+    command reported as unhandled is one this project would go on to call unestablishable.
+
+    A case label with no call before its break belongs to a command the dispatcher lists and
+    answers inline, and is left out, so that "dispatched to a handler" means exactly that.
+    """
+    by_symbol = {entry.name: entry.value for entry in long_polls}
+    dispatch: dict[int, str] = {}
+    pending: list[str] = []
+    unmatched: set[str] = set()
+
+    for line in strip_comments(threads_source).splitlines():
+        label = re.search(r"\bcase\s+(LP_[A-Za-z0-9_]+)\s*:", line)
+        if label:
+            pending.append(label.group(1))
+            continue
+
+        call = re.search(r"\b(c?lp[0-9A-Fa-fX]{2}_[A-Za-z0-9_]+)\s*\(", line)
+        if call and pending:
+            for symbol in pending:
+                if symbol in by_symbol:
+                    dispatch.setdefault(by_symbol[symbol], call.group(1))
+                else:
+                    unmatched.add(symbol)
+            pending = []
+            continue
+
+        if "break;" in line:
+            pending = []
+
+    # A label whose symbol is not in the enumeration means the two have drifted apart. Dropped in
+    # silence it would be indistinguishable from a command the dispatcher genuinely does not
+    # handle, which is a fact this catalogue then states.
+    if unmatched:
+        print("dispatcher labels with no entry in the enumeration: "
+              + ", ".join(sorted(unmatched)), file=sys.stderr)
+
+    return dispatch
+
+
+def strip_comments(source: str) -> str:
+    """Blanks out comments, keeping the line structure so nothing shifts.
+
+    The dispatcher has a whole commented-out switch in it. Scanned as written, its case labels read
+    as live ones, and the only thing keeping the answer right today is that its breaks are
+    commented out too and the scan matches those as well. That is a coincidence, not a rule.
+    """
+    blanked = re.sub(BLOCK_COMMENT, lambda m: re.sub(NOT_NEWLINE, " ", m.group(0)), source, flags=re.S)
+    return re.sub(LINE_COMMENT, "", blanked)
+
+
 def spaced(identifier: str) -> str:
     """Turns SendGamingMachineIdAndInformation into 'Send gaming machine id and information'."""
     words = re.sub(r"(?<!^)(?=[A-Z])", " ", identifier).replace("_", " ").split()
@@ -170,6 +231,7 @@ def emit_enum(
 def emit_catalogue(
     long_polls: list[Entry],
     handlers: dict[int, str],
+    handlers_full: dict[int, str],
     exceptions: list[Entry],
     meters: list[Entry],
     sources: str,
@@ -188,9 +250,12 @@ def emit_catalogue(
     for entry in long_polls:
         handler = handlers.get(entry.value)
         description = spaced(handler) if handler else spaced(entry.name.removeprefix("LP_").title())
+        # The handler is carried as well as spelled out, because whether the dispatcher sends this
+        # command anywhere decides whether a layout for it can be read out of the library at all.
+        named = f'"{escape(handlers_full[entry.value])}"' if entry.value in handlers_full else "null"
         lines.append(
             f'            [0x{entry.value:02X}] = new(0x{entry.value:02X}, "{entry.name}", '
-            f'"{escape(description)}"),')
+            f'"{escape(description)}", {named}),')
     lines.append("        }.ToFrozenDictionary();")
     lines.append("")
 
@@ -230,7 +295,13 @@ def emit_info_types(sources: str) -> str:
 /// <param name="Code">The command byte.</param>
 /// <param name="Symbol">The library's own identifier for it.</param>
 /// <param name="Description">What it does, taken from the library's handler name.</param>
-public sealed record SasLongPollInfo(byte Code, string Symbol, string Description)
+/// <param name="Handler">
+/// The handler the library's own dispatcher sends this command to, or null when the dispatcher
+/// does not list it at all. A command with no handler is one whose layout cannot be read out of
+/// the library, however well another description of the protocol may name it.
+/// </param>
+public sealed record SasLongPollInfo(
+    byte Code, string Symbol, string Description, string? Handler = null)
 {
     public override string ToString() => $"${Code:X2} {Description}";
 }
@@ -267,12 +338,13 @@ def main() -> int:
     root = Path(args.libsas)
     libsas_h = root / "include" / "libsas.h"
     lp_h = root / "include" / "lp.h"
-    if not libsas_h.exists() or not lp_h.exists():
+    threads_cpp = root / "src" / "libsas_threads.cpp"
+    if not libsas_h.exists() or not lp_h.exists() or not threads_cpp.exists():
         print(f"headers not found under {root}", file=sys.stderr)
         return 2
 
     source = read(libsas_h)
-    sources = "include/libsas.h, include/lp.h"
+    sources = "include/libsas.h, include/lp.h, src/libsas_threads.cpp"
 
     long_polls = unique_names(parse_enum(source, "SasLongPollCode"))
     exceptions = unique_names(parse_enum(source, "SasExceptionCode"))
@@ -281,6 +353,7 @@ def main() -> int:
     transfer_codes = unique_names(parse_enum(source, "_LP_TICKET_TRANSFER_CODE"))
     machine_status = unique_names(parse_enum(source, "_LP_GAMING_MACHINE_STATUS_CODES"))
     handlers = parse_long_poll_handlers(read(lp_h))
+    handlers_full = parse_dispatch(read(threads_cpp), long_polls)
 
     files = {
         "SasLongPollCode.g.cs": emit_enum(
@@ -302,7 +375,8 @@ def main() -> int:
             "SasTicketMachineStatus", "byte", machine_status, sources,
             "What a gaming machine reports it did with a ticket."),
         "CatalogueInfo.g.cs": emit_info_types(sources),
-        "Catalogue.g.cs": emit_catalogue(long_polls, handlers, exceptions, meters, sources),
+        "Catalogue.g.cs": emit_catalogue(
+            long_polls, handlers, handlers_full, exceptions, meters, sources),
     }
 
     stale = []

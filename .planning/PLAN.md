@@ -273,12 +273,29 @@ corpus the tally goes from **9 of 21 (43%) to 18 of 18 (100%)**; over our own su
 **10 of 10**, because no script here sends any of the eight; the catalogue moves from **28 to 36
 of 124 replies** decoding field by field.
 
-Still to do in this milestone: the rest of the long-poll catalogue ·
-`sastest.ini` and GSA XML imported as overlays and **diffed** against the header-derived catalogue
-(the diff is itself a finding: 22 long polls in the INI have no decoder, and `$72`/`$6E`/`$B0` are
-absent from its command lists) · replay of a capture against a machine and a diff of the verdicts ·
-splitting a capture into the transactions inside it · GUI session recording (D5) · second channel to
-prove D16 against GSA 10.1.4.
+✅ **The overlays are read and diffed, and the diff is the deliverable** — see
+`docs/M4-overlays.md`. `sasctl catalogue diff` reads the legacy tester's configuration file and the
+conformance toolkit's templates as overlays over the header-derived catalogue and reports where the
+three disagree. Nothing is imported: no name, description or field of theirs reaches the catalogue,
+a layout or a run's record, and two tests hold that line. The four figures established by hand in
+the reverse-engineering pass all come back from code — 22 commands the legacy file can send and
+cannot read an answer to, the four it can read and cannot send, `$72`/`$6E`/`$B0` absent from its
+command lists, and 21 toolkit polls with no reply template. None of the three coverage figures
+moved, because a diff establishes no layout; what it produces is **86 commands for the backlog that
+no traffic here has ever carried**, 83 of them with a library handler to read a layout out of, three
+without, and twenty more that exist only in somebody else's model and are findings rather than
+layouts. Two disagreements are already closed against the library. The physical reel stop reply is
+eleven bytes, not seven. And **the host's own shutdown and startup messages must end in a check
+sequence and this build sends them without one** — the machine library's handler refuses a frame
+that fails the check, and a two-byte frame cannot pass it. Both peers here share the wrong
+assumption, so they agree with each other and neither would have caught it; fixing that is the
+first item of the next wave.
+
+Still to do in this milestone: the rest of the long-poll catalogue, starting from that backlog ·
+the real-time event payloads for the eight exceptions the toolkit describes and this build does not
+decode · replay of a capture against a machine and a diff of the verdicts · splitting a capture into
+the transactions inside it · GUI session recording (D5) · second channel to prove D16 against
+GSA 10.1.4.
 
 ---
 
