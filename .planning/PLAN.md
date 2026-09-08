@@ -335,6 +335,17 @@ the catalogue moved and none could — this wave establishes no layout, it fills
 to send one. **Eleven of the new replies are byte-identical to what the real machine sent**, which
 is D7's diff made concrete, and it found two length bytes one too small on this side.
 
+✅ **The note stimulus is diagnosed, and the cause is the machine's** — see
+`docs/M4-the-machine-takes-no-money.md` and `BLOCKERS.md` Trap D. The machine's developer licence is
+gone; a machine with no licence raises a lockup; a locked-up machine disables its bill validator and
+returns every note before the money handler sees it. Measured link by link, with the peripheral
+boundary and the platform's own refusals now reaching the log under `SASWB_QPM_TRACE=1` — which is
+the part that was ours and is fixed. Nothing here can clear it and no long poll can: only a person
+entering a key in the machine's audit menu. A second `sasctl events` run produced **0 of 10**
+payloads, so no `ConfirmedByCapture` moved. One thing was built and taken out again: an unattended
+run still cannot see that a machine is locked up, because the fault light the platform commands
+never reaches the shared region.
+
 Still to do in this milestone: the rest of the long-poll catalogue — 39
 commands, of which the five tournament meters need a machine that advertises tournament mode and the
 AFT family needs a registered host · the four event payloads Trap D blocks · replay of a capture

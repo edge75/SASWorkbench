@@ -157,6 +157,13 @@ different kinds.**
 
 ### The note-and-play stimulus stopped working, and it is not this wave's doing
 
+> **Diagnosed 2026-09-08, and it is the machine's.** The machine's developer licence is gone, and a
+> machine with no licence raises a lockup that disables its bill validator, so every note offered is
+> returned before the money handler sees it. Nothing here can clear it and no long poll can either —
+> only a person entering a key in the machine's own audit menu. The full chain, measured link by
+> link, is `BLOCKERS.md` Trap D. A second `sasctl events` run after the diagnosis produced **0 of 10**
+> payloads, so nothing below changes.
+
 `$4F`, `$7E`, `$7F` and `$88` all hang off one thing: the machine taking a note, which is the credit
 a game needs. It did not take one.
 

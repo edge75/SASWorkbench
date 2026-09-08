@@ -35,6 +35,10 @@
 #undef qpmBVActOnWaitingNoteOrTicket
 #undef qpmShutdown
 
+#if defined(_WIN32)
+#include <windows.h>
+#endif
+
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -228,6 +232,96 @@ void ReportPrintComplete()
 //	reached into.
 d2cCallback sBillValidatorCallback = nullptr;
 
+//	--- the instrument -------------------------------------------------------------------------
+//	Every message the peripheral manager hands the machine, and every call the machine makes back
+//	about a document in escrow, printed as it happens. Off unless SASWB_QPM_TRACE is set, because
+//	on a busy acceptor this is one line per report.
+//
+//	It exists because working out where the money path had broken cost a session: the peripheral
+//	manager says nothing about a note, the platform's own tracing does not reach this process's
+//	output, and the two ends of the boundary were the only thing left to guess at.
+bool Tracing()
+{
+	static const bool on = getenv("SASWB_QPM_TRACE") != nullptr;
+	return on;
+}
+
+void Trace(const char *what, unsigned long long argument)
+{
+	if (!Tracing())
+		return;
+
+	printf("[SasWorkbench] peripheral: %s %llu\n", what, argument);
+	fflush(stdout);
+}
+
+//	The platform writes its own account of why it refused a document - a denomination it does not
+//	know, a mask it is not in, a limit it would breach - at a level its logger drops unless a game
+//	asks for more, and the demo never asks. This asks for it.
+//
+//	Resolved by name at run time rather than linked. The peripheral manager does not depend on the
+//	platform and must not start to: inverting that dependency to read a log line would be a far
+//	worse trade than one lookup that says so and gives up when the platform's own name for the
+//	entry point changes.
+void AskThePlatformToSayMore()
+{
+#if defined(_WIN32)
+	HMODULE platform = GetModuleHandleA("qsp.dll");
+	if (platform == nullptr)
+	{
+		printf("[SasWorkbench] the platform is not loaded here, so its traces cannot be raised\n");
+		fflush(stdout);
+		return;
+	}
+
+	//	TraceHandler::SetLogConfiguration(LogConfiguration), whose eDisplayAll is 4.
+	using RaiseTraceLevel = void (*)(unsigned int);
+	auto raise = reinterpret_cast<RaiseTraceLevel>(GetProcAddress(platform,
+		"?SetLogConfiguration@TraceHandler@Qsp@@SAXW4LogConfiguration@12@@Z"));
+	if (raise == nullptr)
+	{
+		printf("[SasWorkbench] the platform does not export the entry point that raises its trace "
+			"level under the name this build looks for\n");
+		fflush(stdout);
+		return;
+	}
+
+	raise(4);
+	printf("[SasWorkbench] asked the platform to print every trace level\n");
+	fflush(stdout);
+#endif
+}
+
+const char *MessageName(int messageId)
+{
+	switch (messageId)
+	{
+		case D2C_ACCEPTOR_PENDING_NOTE:					return "note in escrow";
+		case D2C_ACCEPTOR_PENDING_TCKT:					return "ticket in escrow";
+		case D2C_ACCEPTOR_NOTE_ACCEPTED:				return "note stacked";
+		case D2C_ACCEPTOR_TCKT_ACCEPTED:				return "ticket stacked";
+		case D2C_ACCEPTOR_BILL_REJECTED_OR_RETURNED:	return "document returned";
+		default:										return "message";
+	}
+}
+
+//	Registered with the peripheral manager in the machine's place, so nothing reaches the machine
+//	without being seen. Forwarding is unconditional: the instrument observes and changes nothing.
+void BillValidatorTap(PD2C_MESSAGE message)
+{
+	d2cCallback callback = sBillValidatorCallback;
+	if (message != nullptr && Tracing())
+	{
+		printf("[SasWorkbench] peripheral -> machine: %s (id %d, argument %llu)\n",
+			MessageName(message->MessageId), message->MessageId,
+			static_cast<unsigned long long>(message->Argument));
+		fflush(stdout);
+	}
+
+	if (callback != nullptr)
+		callback(message);
+}
+
 std::mutex sTicketGate;
 Ticket sTicketInEscrow;
 bool sTicketIsInEscrow = false;
@@ -318,17 +412,38 @@ void WatchTheAcceptor()
 
 QPMAPI QRESULT qpmBVRegisterCallback(QPMHANDLE handle, const char *deviceId, d2cCallback callback)
 {
-	QRESULT result = qpmBVRegisterCallbackAsQpm2WroteIt(handle, deviceId, callback);
-	if (result != Q_SUCCESS)
-		return result;
-
+	//	The tap goes in the machine's place so every report can be seen; it forwards to the
+	//	machine's own callback and changes nothing else.
 	sBillValidatorCallback = callback;
+
+	QRESULT result = qpmBVRegisterCallbackAsQpm2WroteIt(handle, deviceId,
+		callback == nullptr ? nullptr : &BillValidatorTap);
+	if (result != Q_SUCCESS)
+	{
+		sBillValidatorCallback = nullptr;
+		return result;
+	}
 
 	//	Started here rather than at load time, because a report before anything is listening is a
 	//	ticket silently thrown away. Once only: the machine may register more than one validator.
 	bool expected = false;
 	if (callback != nullptr && sWatching.compare_exchange_strong(expected, true))
+	{
 		std::thread(WatchTheAcceptor).detach();
+
+		//	Twice: once now, so the platform's own account of coming up is not lost, and once after
+		//	it has finished, because its trace handler resets the level to errors-only as it is
+		//	constructed and that may happen after this point.
+		if (Tracing())
+		{
+			AskThePlatformToSayMore();
+			std::thread([]
+			{
+				std::this_thread::sleep_for(std::chrono::seconds(5));
+				AskThePlatformToSayMore();
+			}).detach();
+		}
+	}
 
 	return result;
 }
@@ -344,7 +459,12 @@ QPMAPI QRESULT qpmBVGetWaitingNoteOrTicketInfo(QPMHANDLE handle, const char *dev
 	//	A note is QPM2's to answer, and so is the case where nothing is waiting at all. Only a
 	//	ticket this file put into escrow is answered here.
 	if (!sTicketIsInEscrow)
+	{
+		Trace("the machine asked what is in escrow; it is a note or nothing", 0);
 		return qpmBVGetWaitingNoteOrTicketInfoAsQpm2WroteIt(handle, deviceId, pendingEntry);
+	}
+
+	Trace("the machine asked what is in escrow; it is the ticket this file put there", 0);
 
 	//	Exactly the digits the peripheral simulator prints as the barcode, and exactly the number
 	//	the machine will pass to its network layer: it reads SZ_BARCODE_LEN characters and turns
@@ -375,7 +495,13 @@ QPMAPI QRESULT qpmBVActOnWaitingNoteOrTicket(QPMHANDLE handle, const char *devic
 
 	//	A note, or nothing: QPM2 already does the right thing with both.
 	if (!wasTicket)
+	{
+		Trace(finalizationAction == QPM_BV_ACTION_ACCEPT
+			? "the machine said stack what is in escrow"
+			: "the machine said return what is in escrow",
+			static_cast<unsigned long long>(finalizationAction));
 		return qpmBVActOnWaitingNoteOrTicketAsQpm2WroteIt(handle, deviceId, finalizationAction);
+	}
 
 	if (finalizationAction == QPM_BV_ACTION_ACCEPT)
 	{

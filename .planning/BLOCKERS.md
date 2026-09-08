@@ -205,29 +205,66 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 
 **Address both by index from the EGM's config, never by the simulator's label.**
 
-### Trap D — the note-and-play stimulus stopped working, 2026-09-08
+### Trap D — the machine has no licence, so it takes no money  ✅ diagnosed 2026-09-08
 
-**Measured, and not caused by anything on this side.** The M2 case that established the note path,
-`tests/regression/meters/note-moves-bill-meters.sas`, fails against `QSP_DemoOpenGL` today with
-*"nothing in 5000ms"* and both bill meters flat, with real-time event reporting nowhere near it.
-The machine's own log never writes a `$4F`, so `SAS_RegisterBillAccepted` is never called and the
-note never reaches the platform's money handler. Pressing the game menu and the play button
-produces nothing either.
+**The cause is the machine's, not ours, and it cannot be fixed from here.** The M2 case that
+established the note path, `tests/regression/meters/note-moves-bill-meters.sas`, fails against
+`QSP_DemoOpenGL` with *"nothing in 5000ms"* and both bill meters flat. The chain, measured link by
+link with the peripheral boundary and the platform's own tracing turned on:
 
-Everything on this side was checked and works: the door mask raises real door exceptions, the audit
-keyswitch opens and closes the machine's own menu, the note mask reaches the peripheral layer — its
-own `BV Link Down`/`Link Up` lines appear when the acceptor is cycled — and the auto-rebet long poll
-reaches the game (`Auto rebet enabled`).
+1. The peripheral manager reports the note to the platform. Measured — the note reaches the
+   machine as `note in escrow (id 14, argument 2000)`, so nothing on this side is at fault.
+2. The platform answers *"return what is in escrow"*, and says why: **`[BillValidatorHandler]
+   Pending banknote while BV disabled`**.
+3. Its bill validator is disabled because `ConditionHandler::UpdateMoneyInputDevices` refuses money
+   while any active condition has the interrupt-game flag, and it calls
+   `AsyncEnableBillValidator(0)` on **every** evaluation of this machine — never once `(1)`, in any
+   run, including one with no door touched, no audit cycle and an otherwise empty condition set.
+4. The condition is **`Quixant License`**, raised by the platform's licence handler at powerup and
+   never removed. Its condition-defaults entry has the interrupt-game flag set.
+5. The licence key lives in the peripheral manager's own secure storage file — not in NVRAM — so
+   restoring `golden.nvram.gz` cannot restore it. `C:\ProgramData\quixant\launchpad\qpm_storage.bin`
+   was last written **2026-09-07 16:32**, which is when the master reset noted below happened, and
+   the platform's own comment says a master reset clears the licence key and the machine secret.
+   *(The file is encrypted and was not read: the timestamp and the code path agree, which is
+   evidence and not a reading.)*
 
-Ruled out on the way: a second demo left running, a corrupted memory image (one boot did
-master-reset; every run after it restored `golden.nvram.gz` first and the machine booted clean), the
-note being offered into the exception burst a cold start makes, the machine sitting on its game
-select screen, an attendant condition the reset keyswitch would clear, and the host having left the
-note acceptor disabled with `$07`.
+**The master reset was the cause, not a red herring.** The earlier note here listed it among the
+things ruled out — "one boot did master-reset; every run after it restored `golden.nvram.gz` first
+and the machine booted clean". The memory image was indeed clean. The licence is not in the memory
+image.
 
-**What it costs:** four of the ten real-time event payloads cannot be produced — see
-`docs/M4-events.md` — and every test that needs money on the machine skips or fails against a real
-machine.
+**How to clear it, and only a person can.** The machine's audit menu, Licensing → Quixant License →
+*Enter New Key*, with a key from Quixant. The platform clears the lockup only when a stored key
+validates. No long poll does it: `$06` and `$08` were both sent and both acknowledged, and the
+machine still answered `AsyncEnableBillValidator(0)`.
+
+**A host cannot see any of this, and neither can the shared region.** The licence condition maps to
+`SasExceptionCode::NoActivity`, so nothing goes out on the wire — and the fault light the platform
+commands for a lockup does not arrive either: with the condition active and the platform tracing
+`UpdateCandles() fault dout(14) state(1)`, every one of the shared region's thirty-two lamp words
+reads zero, checked from the raw bytes and over ten samples. So `BLOCKERS §5`'s "lamps are a
+read-back channel into EGM intent" does not hold for the candles on this build. **An unattended run
+has no way to tell a locked-up machine from a broken stimulus**, which is why this cost a session,
+and it is a finding rather than something to fix here.
+
+**What was ruled out on the way**, all measured rather than reasoned: a second demo left running ·
+the memory image (the machine's memory is byte-identical to `golden.nvram.gz`) · the note being
+offered into the exception burst a cold start makes · the machine sitting on its game select screen
+· the host having disabled the acceptor (`$06` re-enables it and changes nothing) · the host having
+narrowed the denominations (`$08` with every bit set changes nothing) · the note's value (a dollar,
+five and twenty are all returned) · a door left open (the condition ledger balances) · our own door
+sweep (a boot with no sweep at all behaves the same).
+
+**What it costs:** four of the ten real-time event payloads still cannot be produced — see
+`docs/M4-events.md` — and every test that needs money on this machine fails against it. A run of
+`sasctl events` on 2026-09-08 after the diagnosis produced **0 of 10** payloads, and
+`ConfirmedByCapture` is still false on all ten.
+
+**What was built out of it**, and it is the part that is ours: `SASWB_QPM_TRACE=1` makes the
+substituted peripheral manager print every message crossing into the machine and every escrow
+decision coming back, and asks the platform to raise its own trace level so its account of a refusal
+reaches the log. Without both, this failure is a five-second timeout and nothing else.
 
 ### Trap E — the generator reads one libsas and the machine runs another
 
@@ -358,7 +395,10 @@ name any more, at any load** — which is the property the suite needed before M
 * **Long poll `AA` (auto rebet)** already makes the demo play rounds by itself — a real
   automation lever, driven from the SAS side.
 * **`lamps[32]`** is a read-back channel into EGM intent, so the orchestrator can observe
-  what the EGM is trying to do.
+  what the EGM is trying to do — **but not the light towers, measured 2026-09-08.** With a
+  lockup active and the platform tracing that it commanded the fault candle to blink, all
+  thirty-two lamp words read zero, from the raw bytes and over ten samples. See Trap D: it
+  means an unattended run cannot see that a machine is locked up.
 * **`sasSetSerialCallbacks()`** is a public libsas export, and
   `libsas/test/blackbox/sas_blackbox.h` already runs libsas as a complete software EGM over
   an in-memory 9-bit mock bus — in-process only today.
