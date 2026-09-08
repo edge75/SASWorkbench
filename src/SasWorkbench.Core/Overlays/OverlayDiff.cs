@@ -612,9 +612,9 @@ public static class OverlayDiff
         new("which fields are meters a test may read by name", true, false, false,
             "SasField.IsMeter; both other models describe a display, which has no such notion"),
         new("whether the host's own message ends in a check sequence", true, true, true,
-            "HostMessage.WriteLongPoll appends one exactly when the message carries data; the "
-            + "legacy tester has a check-sequence flag per command; the toolkit has a crc "
-            + "attribute per template"),
+            "SasCommandFraming reads the rule out of the machine library's own handler, command "
+            + "by command, and HostMessage.WriteLongPoll honours it; the legacy tester has a "
+            + "check-sequence flag per command; the toolkit has a crc attribute per template"),
         new("a description of the message in prose", false, true, true,
             "deliberately not carried: what the other two hold is their words, and decision D4 "
             + "keeps them out of anything this product ships"),

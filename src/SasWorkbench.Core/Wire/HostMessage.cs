@@ -63,18 +63,27 @@ public static class HostMessage
     }
 
     /// <summary>
-    /// Writes a long poll. A command with no data is two symbols and carries no check sequence;
-    /// a command with data always carries one, because that is the rule the machine applies when
-    /// it decides whether to answer.
+    /// Writes a long poll. A message carrying data always ends in a check sequence, because any
+    /// message longer than two bytes is checked on arrival; a command with no data ends in one
+    /// only when that command requires it, which is a property of the command and not of the
+    /// message's length.
     /// </summary>
+    /// <param name="checkSequence">
+    /// True when this command's own handler in the machine refuses a message with no check
+    /// sequence, so a two-byte poll of it would be rejected. Ask
+    /// <see cref="Protocol.SasCommandFraming"/> rather than deciding here: the rule is read out
+    /// of the machine library, command by command, and the default of false is the protocol's
+    /// own — never a stand-in for not having looked.
+    /// </param>
     public static int WriteLongPoll(
         Span<SasSymbol> destination,
         SasAddress address,
         byte command,
-        ReadOnlySpan<byte> data = default)
+        ReadOnlySpan<byte> data = default,
+        bool checkSequence = false)
     {
         int bodyLength = 2 + data.Length;
-        bool needsCrc = data.Length > 0;
+        bool needsCrc = data.Length > 0 || checkSequence;
         int total = needsCrc ? bodyLength + 2 : bodyLength;
 
         if (destination.Length < total)
@@ -102,8 +111,10 @@ public static class HostMessage
     }
 
     /// <summary>
-    /// True when a host message this long is one the machine will check a frame check sequence on.
-    /// Messages of two symbols or fewer carry none.
+    /// True when a message this long ends in two check bytes, so a reader has a check sequence to
+    /// verify. This is a fact about a run of bytes, not a rule about a command: whether a command
+    /// <em>requires</em> one is <see cref="Protocol.SasCommandFraming"/>'s question, and a
+    /// two-byte message that should have carried one fails here by having nothing to check.
     /// </summary>
     public static bool CarriesCrc(int symbolCount) => symbolCount > 2;
 }

@@ -349,12 +349,47 @@ public class OverlayDiffTests
     [Fact]
     public void Sources_disagreeing_about_a_check_sequence_are_reported()
     {
-        // The real case this exists for: both overlays say the host's own shutdown message ends in
-        // a check sequence, this build says it does not, and the library's handler refuses a frame
-        // without one. A comparison that is collected and never made would have hidden it.
-        CommandComparison shutdown = Command(Diff(), 0x01);
+        // The comparison itself, on a fixture rather than on the real files, because the one real
+        // disagreement it found has since been fixed and the check would otherwise go with it.
+        var overlay = new ProtocolOverlay
+        {
+            Source = OverlaySource.LegacyTester,
+            Description = "a fixture",
+            Commands = new Dictionary<byte, OverlayCommand>
+            {
+                [0x01] = new()
+                {
+                    Code = 0x01, Name = "Stop play", HasCheckSequence = false, Origin = "a fixture",
+                },
+            },
+        };
 
-        Assert.Contains(shutdown.Disagreements, d => d.Kind == DisagreementKind.CheckSequence);
+        Disagreement found = Assert.Single(
+            OverlayDiff.Compare(CatalogueOverlay.Build(), overlay, null)
+                .Commands.Single(c => c.Code == 0x01).Disagreements,
+            d => d.Kind == DisagreementKind.CheckSequence);
+
+        Assert.Contains("this build", found.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_shutdown_and_startup_messages_now_agree_with_both_overlays()
+    {
+        // The disagreement this diff was built to find, closed. Both overlays say the host's own
+        // shutdown and startup messages end in a check sequence; this build used to decide that
+        // from the message's length and so said they do not. The rule is now read out of the
+        // machine library's handler, per command, and the three agree. Held as a test because the
+        // two peers here would otherwise agree with each other again and neither would notice.
+        OverlayDiffReport report = Diff();
+
+        foreach (byte code in new byte[] { 0x01, 0x02 })
+        {
+            CommandComparison command = Command(report, code);
+
+            Assert.True(SasCommandFraming.RequiresCheckSequence(code), $"${code:X2}");
+            Assert.DoesNotContain(
+                command.Disagreements, d => d.Kind == DisagreementKind.CheckSequence);
+        }
     }
 
     [Fact]

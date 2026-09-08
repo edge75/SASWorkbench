@@ -99,6 +99,7 @@ public sealed class PacketExplainer
         _address ??= Poll(bytes[0]) is { } learned ? learned : _address;
 
         CheckCheckSequence(bytes, findings);
+        CheckCheckSequenceRequired(bytes, findings);
 
         if (!StandsAsAMessage(bytes, fromMachine: false))
             return NotAMessage(bytes, "host", fromMachine: false);
@@ -450,6 +451,30 @@ public sealed class PacketExplainer
     /// applies when it decides whether to answer — so checking one there would report every bare
     /// long poll as corrupt.
     /// </remarks>
+    /// <summary>
+    /// Reports a host message that ends where its command requires a check sequence.
+    /// </summary>
+    /// <remarks>
+    /// A two-byte poll of a command whose handler checks the sequence is refused by the machine,
+    /// however well formed it looks, so this is a finding about the traffic rather than about the
+    /// decoding. It is reported over anybody's traffic, ours included: this build sent such
+    /// messages until the overlay diff said so.
+    /// </remarks>
+    private static void CheckCheckSequenceRequired(byte[] bytes, List<string> findings)
+    {
+        if (HostMessage.CarriesCrc(bytes.Length) || bytes.Length < 2)
+            return;
+
+        byte command = bytes[1];
+        if (!SasCommandFraming.RequiresCheckSequence(command))
+            return;
+
+        findings.Add(
+            "this message ends after the command byte and carries no check sequence, and "
+            + SasCommandFraming.Explain(command)
+            + " - so a machine refuses it rather than acting on it");
+    }
+
     private static void CheckCheckSequence(byte[] bytes, List<string> findings)
     {
         if (!HostMessage.CarriesCrc(bytes.Length))

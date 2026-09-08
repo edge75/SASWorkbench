@@ -230,6 +230,46 @@ public class FakeEgmTests
     }
 
     /// <summary>
+    /// Shutdown sent the way this build used to send it — two bytes and no check sequence — and
+    /// refused, because the command's handler in the machine library checks one and cannot pass
+    /// on a message that short. The machine stays enabled, which is the part that matters: a host
+    /// that sent the two-byte form believed it had stopped a machine that was still playing.
+    /// </summary>
+    [Fact]
+    public void Shutdown_with_no_check_sequence_is_refused_and_changes_nothing()
+    {
+        using var rig = new Rig();
+
+        Assert.True(rig.Machine.IsEnabled);
+
+        LongPollResult bare = rig.Host.Execute(0x01, default, null, null, checkSequence: false);
+
+        Assert.Equal(LongPollOutcome.Rejected, bare.Outcome);
+        Assert.True(rig.Machine.IsEnabled);
+        Assert.Equal(1, rig.Machine.Rejections);
+
+        // And the same command framed as the rule says, on the same machine, is honoured.
+        Assert.Equal(LongPollOutcome.Acknowledged, rig.Host.Execute(0x01).Outcome);
+        Assert.False(rig.Machine.IsEnabled);
+    }
+
+    /// <summary>
+    /// The counterpart: a command whose handler checks nothing is answered as two bytes. Refusing
+    /// every short message would have been the easy over-correction and would have broken the one
+    /// exchange this project has measured on a real machine since M0.
+    /// </summary>
+    [Fact]
+    public void A_command_that_needs_no_check_sequence_is_answered_as_two_bytes()
+    {
+        using var rig = new Rig();
+
+        LongPollResult result = rig.Host.Execute(0x1F);
+
+        Assert.Equal(LongPollOutcome.Answered, result.Outcome);
+        Assert.Equal(0, rig.Machine.Rejections);
+    }
+
+    /// <summary>
     /// A fixture that invented a reply for a command it does not implement would be worse than
     /// useless: a test would come to depend on the invention. Refusing is the only honest answer.
     /// </summary>

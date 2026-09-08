@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using SasWorkbench.Core.Diagnostics;
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -48,6 +49,7 @@ public sealed class PollEngine : IDisposable
     private volatile bool _pendingReady;
     private byte _pendingCommand;
     private string? _pendingPurpose;
+    private bool _pendingCheckSequence;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
     private long _pendingTicket;
@@ -176,11 +178,18 @@ public sealed class PollEngine : IDisposable
     /// a step asked. It goes onto the record with the message, so a log can say which packets no
     /// step accounts for instead of leaving a reader to work it out from where they sit.
     /// </param>
+    /// <param name="checkSequence">
+    /// Whether to end the message in a check sequence, overriding what the command requires.
+    /// Left null the command decides, which is what every ordinary caller wants. It is set only
+    /// to measure the requirement itself — sending a command the wrong way on purpose, so that
+    /// what a machine does about it is observed rather than reasoned about.
+    /// </param>
     public LongPollResult Execute(
         byte command,
         ReadOnlySpan<byte> data = default,
         TimeSpan? timeout = null,
-        string? purpose = null)
+        string? purpose = null,
+        bool? checkSequence = null)
     {
         if (data.Length > _pendingData.Length)
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
@@ -201,6 +210,8 @@ public sealed class PollEngine : IDisposable
                 _pendingDataLength = data.Length;
                 _pendingCommand = command;
                 _pendingPurpose = purpose;
+                _pendingCheckSequence = checkSequence
+                    ?? SasCommandFraming.RequiresCheckSequence(command);
                 _pendingResult = null;
                 _pendingTicket++;
                 _pendingDone.Reset();
@@ -340,12 +351,14 @@ public sealed class PollEngine : IDisposable
         int dataLength;
         long ticket;
         string? purpose;
+        bool checkSequence;
         lock (_submitGate)
         {
             command = _pendingCommand;
             dataLength = _pendingDataLength;
             ticket = _pendingTicket;
             purpose = _pendingPurpose;
+            checkSequence = _pendingCheckSequence;
             _pendingReady = false;
         }
 
@@ -360,7 +373,7 @@ public sealed class PollEngine : IDisposable
         }
 
         int length = HostMessage.WriteLongPoll(
-            _outbound, _options.Address, command, _pendingData.AsSpan(0, dataLength));
+            _outbound, _options.Address, command, _pendingData.AsSpan(0, dataLength), checkSequence);
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();

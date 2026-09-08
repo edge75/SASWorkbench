@@ -594,9 +594,19 @@ public sealed class FakeEgm : IDisposable
         Interlocked.Increment(ref _longPolls);
         LongPollReceived?.Invoke(command);
 
-        // A host message longer than two bytes carries a check sequence, and a machine that
-        // answered one that failed would hide a broken link.
+        // Two separate refusals, because a real machine has two. Any message longer than two
+        // bytes is checked on arrival, and one that fails is refused whatever the command.
         if (frame.Length > 2 && !SasCrc.Verify(frame))
+        {
+            Reject();
+            return;
+        }
+
+        // And a command whose handler checks the sequence itself refuses a bare two-byte poll,
+        // because on a message that short the check reads the address and the command byte as
+        // the sequence and cannot pass. Deciding this from the length instead was a defect here
+        // that this host shared, so the two peers agreed and both were wrong.
+        if (frame.Length <= 2 && SasCommandFraming.RequiresCheckSequence(command))
         {
             Reject();
             return;

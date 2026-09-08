@@ -43,11 +43,17 @@ public static class CatalogueOverlay
                 AcknowledgementOnly = layout is null
                     ? null
                     : layout.Shape == SasResponseShape.Acknowledgement,
-                // Not a proxy for the field count: this build frames a host message with a check
-                // sequence exactly when it carries data, in HostMessage.WriteLongPoll, and a bare
-                // poll goes out as two symbols with none. Both overlays state the same thing about
-                // the same message, which is what makes the three comparable.
-                HasCheckSequence = layout is null ? null : request.Count > 0,
+                // Read from the command, not from the field count. A command whose handler in
+                // the library checks the sequence itself refuses a bare two-byte poll, so this
+                // host ends its message in one whatever the command carries; otherwise the data
+                // decides. A command with no handler, or none with a layout to say whether it
+                // carries data, states nothing here rather than stating the convenient thing.
+                HasCheckSequence = info.RequiresCheckSequence switch
+                {
+                    true => true,
+                    false when layout is not null => request.Count > 0,
+                    _ => null,
+                },
                 Origin = info.Handler is null
                     ? "the library's long poll enumeration"
                     : "the library's handler " + info.Handler,

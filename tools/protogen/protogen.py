@@ -165,6 +165,195 @@ def parse_dispatch(threads_source: str, long_polls: list[Entry]) -> dict[int, st
     return dispatch
 
 
+def parse_function_bodies(source: str) -> dict[str, str]:
+    """Reads every top-level function in a source file, by name.
+
+    The library's own style puts the opening brace of a function definition alone in column
+    zero and indents everything inside it, which is what makes this possible without a C
+    parser. Anything that does not match that shape is not read as a function at all, rather
+    than half-read.
+    """
+    text = strip_comments(source)
+    lines = text.split("\n")
+    offsets: list[int] = []
+    position = 0
+    for line in lines:
+        offsets.append(position)
+        position += len(line) + 1
+
+    bodies: dict[str, str] = {}
+    for index, line in enumerate(lines):
+        if not line.startswith("{") or index == 0:
+            continue
+
+        signature: list[str] = []
+        back = index - 1
+        while back >= 0 and lines[back].strip() and len(signature) < 8:
+            signature.insert(0, lines[back])
+            back -= 1
+
+        named = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\([^()]*\)\s*$", " ".join(signature).strip())
+        if not named:
+            continue
+
+        start = offsets[index]
+        depth = 0
+        cursor = start
+        while cursor < len(text):
+            if text[cursor] == "{":
+                depth += 1
+            elif text[cursor] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            cursor += 1
+        bodies[named.group(1)] = text[start:cursor + 1]
+
+    return bodies
+
+
+HANDLER_NAME = r"^(?:c?lp[0-9A-Fa-fX]{2}_)"
+CRC_CHECK = r"[{}]|crcCheck\s*\("
+
+
+def check_sequence_requirement(bodies: dict[str, str], handler: str,
+                               seen: set[str] | None = None) -> str:
+    """Says whether the library's handler refuses a host message with no check sequence.
+
+    The library checks a received message in two places and only one of them is a rule about
+    the command. Its receive thread checks the sequence on any message longer than two bytes;
+    a handler that calls crcCheck itself checks it again, and on a two-byte message that call
+    reads the address and the command byte *as* the sequence and can never pass. So a command
+    whose handler calls crcCheck refuses a bare two-byte poll, and one whose handler does not
+    answers it.
+
+    Returned as three values rather than two. 'always' and 'never' are facts about the
+    handler; 'conditional' is a handler that checks only down some branch, which is a thing
+    this reader cannot settle and must not average out. Nesting is how the three are told
+    apart: a call at statement level of the function runs on every path through it.
+    """
+    if seen is None:
+        seen = set()
+    if handler in seen or handler not in bodies:
+        return "unknown"
+    seen.add(handler)
+
+    body = bodies[handler]
+    depth = 0
+    depths: list[int] = []
+    for token in re.finditer(CRC_CHECK, body):
+        text = token.group(0)
+        if text == "{":
+            depth += 1
+        elif text == "}":
+            depth -= 1
+        else:
+            depths.append(depth)
+
+    if depths:
+        return "always" if min(depths) == 1 else "conditional"
+
+    # Eleven commands answer through a shared helper and check nothing themselves, so a reader
+    # that stopped at the dispatched handler would report every bill-count poll as checking
+    # when its helper does not, or the reverse.
+    for callee in sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", body))):
+        if callee != handler and re.match(HANDLER_NAME, callee):
+            answer = check_sequence_requirement(bodies, callee, seen)
+            if answer != "never":
+                return answer
+
+    return "never"
+
+
+def parse_check_sequences(lp_source: str, dispatch: dict[int, str]) -> dict[int, bool]:
+    """Maps each dispatched long poll to whether the host must end its message in a check
+    sequence, read from the handler the dispatcher sends it to."""
+    bodies = parse_function_bodies(lp_source)
+    required: dict[int, bool] = {}
+    undecided: list[str] = []
+
+    for code, handler in sorted(dispatch.items()):
+        answer = check_sequence_requirement(bodies, handler)
+        if answer == "always":
+            required[code] = True
+        elif answer == "never":
+            required[code] = False
+        else:
+            undecided.append(f"${code:02X} {handler} ({answer})")
+
+    # A handler this reader cannot settle is left out of the map and named, because a command
+    # recorded as not needing a check sequence is one this host would then frame without one.
+    if undecided:
+        print("check sequence undecided for: " + ", ".join(undecided), file=sys.stderr)
+
+    return required
+
+
+# The receiver's table spells a variable-length command as -1, which is the value that sends it
+# down the read-a-length-byte path rather than the read-this-many-bytes one.
+VARIABLE_LENGTH = -1
+
+
+def parse_host_message_lengths(uart_source: str) -> dict[int, int]:
+    """Reads the receiver's own table of how long each host message is.
+
+    This is the second and better statement of the same rule, and it is the one that decides what
+    a machine actually does. The receive path reads the address and the command byte, looks the
+    command up here, and then either stops (a total of two), reads exactly this many more bytes
+    (a total above two), or reads a length byte and follows it (-1). A message shorter than the
+    table says is dropped as incomplete before any handler sees it — which is why a real machine
+    answers a two-byte poll of a four-byte command with silence rather than with a refusal.
+
+    It also covers commands the dispatcher answers nowhere, and commands the long poll
+    enumeration does not carry at all, so it says more than the handlers can.
+    """
+    lengths: dict[int, int] = {}
+    for match in re.finditer(
+            r"long_poll_size\[0x([0-9A-Fa-f]{2})\]\s*=\s*(-?\d+)\s*;", strip_comments(uart_source)):
+        lengths[int(match.group(1), 16)] = int(match.group(2))
+
+    if not lengths:
+        raise SystemExit("the receiver's long poll size table was not found")
+
+    return lengths
+
+
+def reconcile_check_sequences(
+        lengths: dict[int, int], from_handlers: dict[int, bool]) -> dict[int, bool]:
+    """Settles the check-sequence rule from both statements, and reports any disagreement.
+
+    Two readings of two different files: what each handler checks, and what the receiver frames.
+    They are combined rather than one being preferred, because a disagreement between them would
+    be a fact about the library worth knowing and averaging them would hide it. There are none
+    today, over every command where both speak.
+    """
+    settled: dict[int, bool] = {}
+    conflicts: list[str] = []
+
+    for code, length in sorted(lengths.items()):
+        # A variable-length message is address, command, a length byte, its data and a check
+        # sequence, so it is always longer than two bytes and always carries one.
+        framed = length != 2
+
+        if code in from_handlers and from_handlers[code] != framed:
+            conflicts.append(
+                f"${code:02X}: the receiver frames {length} byte(s) and the handler "
+                f"{'checks' if from_handlers[code] else 'does not check'} a sequence")
+
+        settled[code] = framed
+
+    # A command the receiver's table does not mention is framed by a length byte, so it carries a
+    # check sequence too; the handler reading is what says so, and it is kept.
+    for code, required in from_handlers.items():
+        settled.setdefault(code, required)
+
+    if conflicts:
+        print("the library's two statements of the check sequence rule disagree:\n  "
+              + "\n  ".join(conflicts), file=sys.stderr)
+
+    return settled
+
+
 def strip_comments(source: str) -> str:
     """Blanks out comments, keeping the line structure so nothing shifts.
 
@@ -232,6 +421,8 @@ def emit_catalogue(
     long_polls: list[Entry],
     handlers: dict[int, str],
     handlers_full: dict[int, str],
+    check_sequences: dict[int, bool],
+    host_lengths: dict[int, int],
     exceptions: list[Entry],
     meters: list[Entry],
     sources: str,
@@ -253,12 +444,36 @@ def emit_catalogue(
         # The handler is carried as well as spelled out, because whether the dispatcher sends this
         # command anywhere decides whether a layout for it can be read out of the library at all.
         named = f'"{escape(handlers_full[entry.value])}"' if entry.value in handlers_full else "null"
+        checked = "null"
+        if entry.value in check_sequences:
+            checked = "true" if check_sequences[entry.value] else "false"
+        framed = "null"
+        if entry.value in host_lengths:
+            framed = str(host_lengths[entry.value])
         lines.append(
             f'            [0x{entry.value:02X}] = new(0x{entry.value:02X}, "{entry.name}", '
-            f'"{escape(description)}", {named}),')
+            f'"{escape(description)}", {named}, {checked}, {framed}),')
     lines.append("        }.ToFrozenDictionary();")
     lines.append("")
 
+    lines.append("    /// <summary>")
+    lines.append("    /// How many bytes the gaming machine library's receiver frames a host")
+    lines.append("    /// message at, command by command, or -1 where it follows a length byte.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// Read from the receive path rather than from a handler, and it says more")
+    lines.append("    /// than the handlers can: it carries commands the dispatcher answers")
+    lines.append("    /// nowhere, and commands the long poll enumeration does not name at all. A")
+    lines.append("    /// message shorter than this is dropped as incomplete before a handler sees")
+    lines.append("    /// it, which is why such a poll is met with silence and not a refusal.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<byte, int> HostMessageLengths { get; } =")
+    lines.append("        new Dictionary<byte, int>")
+    lines.append("        {")
+    for code in sorted(host_lengths):
+        lines.append(f'            [0x{code:02X}] = {host_lengths[code]},')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
     lines.append("    /// <summary>Exception codes, by code.</summary>")
     lines.append("    public static FrozenDictionary<byte, SasExceptionInfo> Exceptions { get; } =")
     lines.append("        new Dictionary<byte, SasExceptionInfo>")
@@ -300,8 +515,20 @@ def emit_info_types(sources: str) -> str:
 /// does not list it at all. A command with no handler is one whose layout cannot be read out of
 /// the library, however well another description of the protocol may name it.
 /// </param>
+/// <param name="RequiresCheckSequence">
+/// True when the library's handler for this command refuses a host message that does not end in a
+/// frame check sequence, so a two-byte poll of it is rejected however well formed it looks. Null
+/// when neither the receiver's own framing table nor a handler says.
+/// </param>
+/// <param name="HostMessageLength">
+/// How many bytes the library's receiver frames the host's message at, including the address, the
+/// command and any check sequence; -1 where it follows a length byte in the message instead, and
+/// null where the table does not carry this command. A shorter message is dropped as incomplete
+/// before any handler sees it.
+/// </param>
 public sealed record SasLongPollInfo(
-    byte Code, string Symbol, string Description, string? Handler = null)
+    byte Code, string Symbol, string Description, string? Handler = null,
+    bool? RequiresCheckSequence = null, int? HostMessageLength = null)
 {
     public override string ToString() => $"${Code:X2} {Description}";
 }
@@ -339,12 +566,16 @@ def main() -> int:
     libsas_h = root / "include" / "libsas.h"
     lp_h = root / "include" / "lp.h"
     threads_cpp = root / "src" / "libsas_threads.cpp"
-    if not libsas_h.exists() or not lp_h.exists() or not threads_cpp.exists():
+    lp_cpp = root / "src" / "lp.cpp"
+    uart_cpp = root / "src" / "libsas_uart.cpp"
+    if (not libsas_h.exists() or not lp_h.exists() or not threads_cpp.exists()
+            or not lp_cpp.exists() or not uart_cpp.exists()):
         print(f"headers not found under {root}", file=sys.stderr)
         return 2
 
     source = read(libsas_h)
-    sources = "include/libsas.h, include/lp.h, src/libsas_threads.cpp"
+    sources = ("include/libsas.h, include/lp.h, src/libsas_threads.cpp, src/lp.cpp, "
+               "src/libsas_uart.cpp")
 
     long_polls = unique_names(parse_enum(source, "SasLongPollCode"))
     exceptions = unique_names(parse_enum(source, "SasExceptionCode"))
@@ -354,6 +585,9 @@ def main() -> int:
     machine_status = unique_names(parse_enum(source, "_LP_GAMING_MACHINE_STATUS_CODES"))
     handlers = parse_long_poll_handlers(read(lp_h))
     handlers_full = parse_dispatch(read(threads_cpp), long_polls)
+    from_handlers = parse_check_sequences(read(lp_cpp), handlers_full)
+    host_lengths = parse_host_message_lengths(read(uart_cpp))
+    check_sequences = reconcile_check_sequences(host_lengths, from_handlers)
 
     files = {
         "SasLongPollCode.g.cs": emit_enum(
@@ -376,7 +610,8 @@ def main() -> int:
             "What a gaming machine reports it did with a ticket."),
         "CatalogueInfo.g.cs": emit_info_types(sources),
         "Catalogue.g.cs": emit_catalogue(
-            long_polls, handlers, handlers_full, exceptions, meters, sources),
+            long_polls, handlers, handlers_full, check_sequences, host_lengths,
+            exceptions, meters, sources),
     }
 
     stale = []
