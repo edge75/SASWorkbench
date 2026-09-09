@@ -30,6 +30,10 @@ internal static class Help
               sasctl sweep [options]             ask a machine every command it may be asked
               sasctl events [options]            make a machine report in real time, and read
                                                  the payloads its exceptions carry
+              sasctl transactions <file>         split a recording into the exchanges and the
+                                                 transactions inside it
+              sasctl replay <file> [options]     send a recording's host messages to a machine
+                                                 and say what the differences mean
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -204,6 +208,65 @@ internal static class Help
               never as a payload nobody checked. It asserts nothing, so it comes back as a run in
               which nothing was tested rather than as a pass.
 
+            TRANSACTIONS
+              --exchanges             print every exchange, not only the episodes
+              --limit <n>             read only the first n packets of each session
+              --address <hh>          the machine's address, which tells an acknowledgement from
+                                      an exception of the same value
+              --rules                 print how each level is split, and stop
+
+              Reads either a run written with --report jsonl or a capture another tool wrote, and
+              prints the two levels a session actually has. A capture is a flat list of packets
+              and no question worth asking is about one packet.
+
+              Level one is the exchange - one host message and the machine messages that answer
+              it. A reply is attributed to the poll whose command it echoes, never to whatever
+              happened to precede it, because attributing by position reports one command's
+              answer under another command's name.
+
+              Level two is the episode - a ticket printed and read, a note taken and metered, a
+              handpay raised and reset. That is a judgement about what a person means by a
+              transaction, so '--rules' prints every rule rather than leaving it implied.
+
+              Where the split is not in the bytes it says so. Nothing in a bill meter's reply
+              names which note it is about, so two notes taken close together genuinely cannot be
+              told apart, and the honest form of that is to say so rather than to present the
+              adjacency guess as a reading.
+
+            REPLAY
+              --tcp <host:port>       reach the machine over TCP, listening unless --dial
+              --serial <port>         reach it over a serial port
+              --loopback              replay against the software machine in this process
+              --address <hh>          poll address, in hex  (default: 01)
+              --limit <n>             replay only the first n distinct requests
+              --packets <n>           read only the first n packets of the recording
+              --test <word>           replay only the cases of a run whose name carries this
+                                      word. Worth using on a suite: a run of a whole suite holds
+                                      a machine that was reconfigured between cases, so read as
+                                      one recording its features reply may not describe the
+                                      machine that answered a given poll
+              --once                  send each request once instead of twice, giving up the
+                                      measurement of which fields move on their own
+              --causes                print what a replay can conclude from a difference, and stop
+              --out <directory>       where to write the record  (default: runs/<time>-replay)
+              --report <formats>      which reports to write  (default: jsonl,extended)
+
+              Sends a recorded session's host messages to a machine and diffs the answers against
+              what the recording says came back. The only expectation in this tool that somebody
+              else wrote.
+
+              A bare diff of that would be worthless, because two machines are never in the same
+              configuration and have never done the same things. So every difference is classified
+              and the row says which it is: a machine in another configuration, a machine of
+              another revision, the same kind of machine having lived a different life, or a
+              difference nothing here explains. Only the last makes a replay red.
+
+              Nothing that changes the machine is sent - every such command is withheld by name
+              with what it would have changed, out of the same plan the sweep uses - and general
+              polls are not replayed, because what one returns is whichever exception that machine
+              had queued. Each request is sent twice, so a field that moves on its own is measured
+              rather than assumed.
+
             NVRAM
               status                  what the machine holds, and what has been saved
               show                    what each is configured to be, side by side
@@ -237,6 +300,11 @@ internal static class Help
               sasctl explain runs/20260907-101500/run.jsonl
               sasctl sweep --list
               sasctl sweep --tcp 127.0.0.1:9760
+              sasctl transactions --rules
+              sasctl transactions runs/20260909-101500/run.jsonl --exchanges
+              sasctl replay --causes
+              sasctl replay "<toolkit>/10.1/10.1.1/step2.trc" --loopback
+              sasctl replay runs/20260909-101500/run.jsonl --tcp 127.0.0.1:9760
               sasctl nvram show
               sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
               sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz

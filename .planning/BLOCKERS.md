@@ -468,6 +468,18 @@ level with its own IRQ handlers, over a *second* serial link using a private "GE
 why it is unfixable.** Also no automation entry point. `SASHostSim.RPT` is an
 `ACCESS_VIOLATION` crash dump, not a report.
 
+**The traces are filtered, and the session log holds no replies** — measured 2026-09-09 while
+building the replay, and both matter to anyone reading that corpus. The `.trc` tracer writes only
+the polls its trace filters name, so a file holds machine answers to polls that are not in it:
+`10.1/10.1.3/step10.trc` carries thirteen such answers, and the blocks it is written in are
+separated by a rule with the first message of each carrying no timestamp. So **silence in a trace
+is not a machine having answered nothing**, and neither is an unanswered poll — the traces also
+poll a machine at `$7F` that never answers alongside the one at `$01` that does. The binary
+session log is worse for this purpose: every machine message in it is exactly one byte, so it holds
+no data reply at all and is **useless for replay**, the way the 39 MB legacy capture turned out to
+be useless for breadth. The `.trc` traces and our own runs are the only recordings here a replay
+can use.
+
 **But GSA's assets are excellent and importable:** `SASTemplates.dtd` + `PollTemplates.xml`
 + `ResponseTemplates.xml` + `EventTemplates.xml` define **369 messages with zero
 per-message code**, covering **119/120 long polls and 116/122 exceptions** vs libsas. Its

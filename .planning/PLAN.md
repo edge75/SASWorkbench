@@ -360,11 +360,30 @@ the arithmetic. Our own suite goes from **37 to 57 distinct long polls** explain
 `tests/regression` from 28 cases to **33, still with no skips**; no catalogue or corpus figure moved
 and none could.
 
+✅ **A capture is replayed against a machine and the verdicts are diffed, and a capture is split
+into the transactions inside it** — see `docs/M4-replay-and-transactions.md`. `sasctl replay` sends a
+recording's host messages to a machine and says which of four things each difference is: a machine in
+another configuration, a machine of another revision, the same kind of machine having lived a
+different life, or a difference nothing here explains — and only the last makes a run red, so a
+machine answering differently for a good reason does not read as a failure. Nothing that changes the
+machine is sent, out of the same table the sweep uses; each request is sent twice so that "this field
+moves on its own" is measured rather than asserted; and one poll of the machine's own features lets a
+silence the library gates be read against what the machine says it is. Our own suite replayed against
+`QSP_DemoOpenGL` comes back **36 identical replies, 6 configurations, 19 fields that move on their
+own and nothing unexplained**, with the same recording against a fresh copy of the machine that
+produced it giving 44 identical and nothing unexplained as the control. `sasctl transactions` splits a
+recording into exchanges — mechanical, a reply placed by the command it echoes — and episodes — a
+judgement, stated in a table `--rules` prints — and says at every point where the split is not in the
+bytes, which for a note taken and metered is by construction. No coverage figure moved and none
+could: this establishes no layout. Three findings about the corpus came out of it — the toolkit's
+traces are **filtered**, so they hold answers to polls nobody wrote down; its session log holds no
+data replies at all and is **useless for replay**; and a recording can carry traffic to more than one
+machine.
+
 Still to do in this milestone: the rest of the long-poll catalogue — 39
 commands, of which the five tournament meters need a machine that advertises tournament mode and the
-AFT family needs a registered host · the four event payloads Trap D blocks · replay of a capture
-against a machine and a diff of the verdicts · splitting a capture into the transactions inside it ·
-GUI session recording (D5) · second channel to prove D16 against GSA 10.1.4.
+AFT family needs a registered host · the four event payloads Trap D blocks · GUI session recording
+(D5) · second channel to prove D16 against GSA 10.1.4.
 
 ---
 

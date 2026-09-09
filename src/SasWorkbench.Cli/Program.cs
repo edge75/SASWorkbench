@@ -29,6 +29,8 @@ try
         "explain" => ExplainCommand.Execute(line),
         "import" => ImportCommand.Execute(line),
         "sweep" => SweepCommand.Execute(line),
+        "replay" => ReplayCommand.Execute(line),
+        "transactions" => TransactionsCommand.Execute(line),
         "events" => EventsCommand.Execute(line),
         _ => Unknown(line.Command),
     };
