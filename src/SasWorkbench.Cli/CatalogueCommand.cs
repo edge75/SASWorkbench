@@ -30,14 +30,7 @@ internal static class CatalogueCommand
                 return 0;
 
             case "meters":
-                foreach (SasMeterInfo info in SasCatalogue.Meters.Values.OrderBy(i => i.Code))
-                {
-                    string readable = MeterIndex.All.Any(m => m.Name == SasNames.Underscore(info.Symbol))
-                        ? "readable"
-                        : "-";
-                    Console.WriteLine($"  ${info.Code:X4}  {readable,-9}  {info.Symbol,-46}  {info.Description}");
-                }
-
+                Meters();
                 return 0;
 
             case "layouts":
@@ -52,8 +45,7 @@ internal static class CatalogueCommand
                 return OverlayDiffCommand.Execute(line);
 
             case "readable-meters":
-                foreach (MeterSource source in MeterIndex.All.OrderBy(m => m.Name))
-                    Console.WriteLine($"  {source.Name,-30}  lp ${source.Command:X2}  {source.Unit}");
+                ReadableMeters();
                 return 0;
 
             default:
@@ -62,6 +54,67 @@ internal static class CatalogueCommand
                     + "events, meters, layouts, readable-meters or diff.");
                 return 2;
         }
+    }
+
+    /// <summary>
+    /// Every meter the library keeps, and whether a script can ask for it by name.
+    /// </summary>
+    /// <remarks>
+    /// The readable column is answered by meter code rather than by comparing names, which is what
+    /// it used to do. Only five of the sixteen names then offered are spelled the way the library
+    /// spells its meter, so eleven readable meters were printed as unreadable.
+    /// </remarks>
+    private static void Meters()
+    {
+        var readable = MeterIndex.All
+            .Where(m => m.Meter is not null)
+            .ToLookup(m => (ushort)m.Meter!.Value);
+
+        foreach (SasMeterInfo info in SasCatalogue.Meters.Values.OrderBy(i => i.Code))
+        {
+            string mark = readable.Contains(info.Code) ? "readable" : "-";
+            Console.WriteLine($"  ${info.Code:X4}  {mark,-9}  {info.Symbol,-46}  {info.Description}");
+        }
+    }
+
+    /// <summary>
+    /// Every name a script may read, the command it is read from, and the commands it is not.
+    /// </summary>
+    /// <remarks>
+    /// The second line of an entry is the part worth printing. Where two commands report one
+    /// meter they need not answer the same number, so which one a name is attached to is a
+    /// decision, and a decision nobody can see is one nobody can check.
+    /// </remarks>
+    private static void ReadableMeters()
+    {
+        foreach (MeterSource source in MeterIndex.All.OrderBy(m => m.Name, StringComparer.Ordinal))
+        {
+            string meter = source.Meter is null
+                ? "computed from 24 meters"
+                : $"meter ${(ushort)source.Meter.Value:X4}";
+            string scaled = source.ScaledByAccountingDenomination
+                ? "  scaled by the accounting denomination"
+                : string.Empty;
+            Console.WriteLine(
+                $"  {source.Name,-30}  lp ${source.Command:X2}  {source.Unit,-8}  {meter}{scaled}");
+
+            IReadOnlyList<MeterSource> others = MeterIndex.SourcesFor(source.Name).Skip(1).ToList();
+            if (others.Count > 0)
+            {
+                Console.WriteLine("                                  also reported by "
+                                  + string.Join(", ", others.Select(o =>
+                                      $"lp ${o.Command:X2}"
+                                      + (o.ScaledByAccountingDenomination ? " (scaled)" : string.Empty))));
+            }
+        }
+
+        int scaledCount = MeterIndex.All.Count(m => m.ScaledByAccountingDenomination);
+        Console.WriteLine();
+        Console.WriteLine($"  {MeterIndex.All.Count} name(s), {scaledCount} of which are read from a "
+                          + "command the library scales.");
+        Console.WriteLine("  A scaled reading is divided by the accounting denomination when the");
+        Console.WriteLine("  machine is in either of its two default meter modes, so it can differ");
+        Console.WriteLine("  from what another command reports for the same meter.");
     }
 
     private static void Summary()

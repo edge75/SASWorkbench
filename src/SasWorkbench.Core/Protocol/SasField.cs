@@ -234,7 +234,7 @@ public sealed record SasField
     public SasCondition? PresentWhen { get; init; }
 
     /// <summary>
-    /// True when this field is an accumulating meter a test may read by name.
+    /// True when this field is a meter a test may read by name.
     /// </summary>
     /// <remarks>
     /// Stated rather than inferred. A unit of credits does not make a field a meter: the amount
@@ -243,6 +243,22 @@ public sealed record SasField
     /// outstanding.
     /// </remarks>
     public bool IsMeter { get; init; }
+
+    /// <summary>
+    /// Which meter of the gaming machine library's own catalogue this field reports.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="IsMeter"/>, because the two answer different questions. This one
+    /// says what the number is; <see cref="IsMeter"/> says whether a script may ask for it by
+    /// name. Several replies report a meter and are not readable by name — the per-game ones,
+    /// whose answer depends on which game was asked about — and one field is readable by name and
+    /// reports no single meter, because the machine computes it from twenty-four of them.
+    ///
+    /// It is what makes "these two commands report the same meter" a fact this build can check
+    /// rather than a claim in a comment: <see cref="SasCatalogue.MeterReads"/> is generated from
+    /// the library's own handlers, and a layout whose fields disagree with it fails a test.
+    /// </remarks>
+    public SasMeterCode? Meter { get; init; }
 
     /// <summary>True when this field is a repeating group rather than a scalar.</summary>
     public bool IsGroup => Fields.Count > 0;

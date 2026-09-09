@@ -77,8 +77,6 @@ public sealed partial class FakeEgm : IDisposable
 
     // Games played since the machine came up and since the slot door was last shut. Kept here
     // rather than as meters because the protocol keeps no meter code for either.
-    private long _gamesSincePowerUp;
-    private long _gamesSinceDoorClosure;
 
     // What a host set with the secure enhanced validation identifier command, which a machine
     // performing that validation echoes back. Held only by a machine configured for it.
@@ -536,13 +534,10 @@ public sealed partial class FakeEgm : IDisposable
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
 
-        // Neither of these is a meter - the protocol keeps no code for either - and both are
-        // things this machine's own stimulus moves, so it counts them.
-        lock (_gate)
-        {
-            _gamesSincePowerUp += games;
-            _gamesSinceDoorClosure += games;
-        }
+        // Both are meters, and the library reads them by code in its own handler for long poll
+        // $18: games since the last reset, and games since the slot door last closed.
+        Meters.Increment(SasMeterCode.GamesSinceLastReset, games);
+        Meters.Increment(SasMeterCode.GamesSinceSlotDoorClosure, games);
         if (winCredits > 0)
         {
             Meters.Increment(SasMeterCode.GamesWon, 1);
@@ -635,8 +630,7 @@ public sealed partial class FakeEgm : IDisposable
             }
             else
             {
-                lock (_gate)
-                    _gamesSinceDoorClosure = 0;
+                Meters.Restart(SasMeterCode.GamesSinceSlotDoorClosure);
             }
         }
 

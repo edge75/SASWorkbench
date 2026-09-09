@@ -39,6 +39,15 @@ machine, and ten payloads are established from the library's own builders — no
 here has produced, each recorded as unproduced with the reason. Our own suite goes to 11 of 11
 distinct long polls and 4 of 4 distinct events; the corpus stays at 18 of 18 and carries no events.
 Two blockers came out of it (`docs/M4-events.md`, `BLOCKERS.md` Traps D and E).
+Then the meter index, widened: a script reads forty meters by name rather than sixteen, and no name
+that already existed changed the command it comes from. The reason three waves deferred it was
+discharged by measuring rather than by reasoning - the generator now reads out of the library which
+commands report which meters and which of two reading paths each takes, and the software machine
+models the rule, so one note reads as 1 through the bulk reply and 0 through the dedicated count on
+a machine in the library's default meter mode. On the machine under test it cannot arise: the
+platform sets full manual. Our own suite goes from 37 to 57 distinct long polls explained and
+`tests/regression` from 28 cases to 33, still with no skips (`docs/M4-meter-index.md`).
+
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -85,3 +94,4 @@ PHASE:M4 WAVE:W5-catalogue-sweep STATUS:complete TS:2026-09-08T06:50:04Z
 PHASE:M4 WAVE:W6-real-time-events STATUS:complete TS:2026-09-08T12:19:10Z
 PHASE:M4 WAVE:W7-software-machine-values STATUS:complete TS:2026-09-08T18:04:18Z
 PHASE:M4 WAVE:W8-note-stimulus-diagnosis STATUS:complete TS:2026-09-08T19:00:32Z
+PHASE:M4 WAVE:W9-meter-index STATUS:complete TS:2026-09-09T00:39:17Z

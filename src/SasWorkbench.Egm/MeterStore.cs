@@ -63,6 +63,27 @@ public sealed class MeterStore
             _values[(ushort)SasMeterCode.CurrentCredits] = credits;
     }
 
+    /// <summary>
+    /// Starts a since-an-event meter again, which is what that event does to it.
+    /// </summary>
+    /// <remarks>
+    /// The library keeps two meters counted since something happened rather than since the
+    /// machine was built - games since the last power up, and games since the slot door last
+    /// closed - and each starts again when the thing it is counted from happens. That is the
+    /// meter behaving correctly, not a fixture cheating, so it is a named operation with two
+    /// permitted meters rather than a general way round the no-decrement rule.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">The meter is not one of the two.</exception>
+    public void Restart(SasMeterCode meter)
+    {
+        if (meter is not (SasMeterCode.GamesSinceLastReset or SasMeterCode.GamesSinceSlotDoorClosure))
+            throw new ArgumentOutOfRangeException(
+                nameof(meter), meter, "Only a meter counted since an event starts again.");
+
+        lock (_gate)
+            _values[(ushort)meter] = 0;
+    }
+
     /// <summary>A copy of every meter that has been touched, for a baseline or a report.</summary>
     public IReadOnlyDictionary<ushort, long> Snapshot()
     {

@@ -276,6 +276,30 @@ the event format. Every layout this project has established comes from the check
 has been checked against comes from a machine behind it. Where they disagree, neither reading is
 wrong — they describe different machines, and a run has to say which.
 
+**Measured again on 2026-09-09, for the meter handlers, and there they agree.** Every handler that
+reads a meter - the shared single-meter helper, the six bulk replies, the twenty dedicated bill
+counts and the selected-meter polls - is byte-identical between the checkout the generator reads and
+the revision the machine runs. So Trap E is real and is not universal: it has to be checked per
+question rather than assumed either way.
+
+### The machine under test is in full manual, so its meters cannot disagree with themselves
+
+Measured 2026-09-09, in the copy of QSP the demo is actually built from and not only in the
+checkout. `SasNetwork.cpp` calls `sasSetImmediateModeMeter(fSasHandle, eMeterMode::FULL_MANUAL)` at
+startup and the library writes that to the machine's memory.
+
+It matters because the library reads a meter two ways. Its shared single-meter helper divides a
+meter it does not call multigame by the accounting denomination, **in the two default meter modes
+only**; every other handler writes the meter as it stands. In full manual it divides nothing, so on
+this machine long poll `$35` and long poll `$1E` answer the same number for the same note at any
+denomination - and a host that reads a bill count from either gets the same answer.
+
+**On a platform that leaves the library in a default mode they differ**, and a number of notes is
+then divided by a currency unit, which converts nothing: one note on a nickel machine reads as
+nought. Produced on a wire against the software machine and recorded in `docs/M4-meter-index.md`.
+Every meter name read from a command that scales it is marked, and `sasctl catalogue
+readable-meters` prints the mark.
+
 ### Other behaviours the orchestrator must reproduce
 * **Buttons are heartbeat-clocked**, not wall-clock: set the bit, wait `heartbeat+2`, clear,
   wait `heartbeat+4` (one 125 ms EGM poll gives one rising + one falling edge,

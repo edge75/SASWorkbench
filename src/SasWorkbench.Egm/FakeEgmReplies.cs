@@ -199,22 +199,19 @@ public sealed partial class FakeEgm
     /// Games played since this machine came up, and since its slot door was last shut.
     /// </summary>
     /// <remarks>
-    /// Neither is a meter - the protocol keeps no code for either - and both are counters this
-    /// machine's own stimuli move, so it keeps them itself. Each field is two bytes of binary
-    /// coded decimal, so a count past 9999 is held there rather than written into a field that
-    /// cannot hold it.
+    /// Both are meters the library keeps a code for, and its own handler for this command reads
+    /// them by code like any other - which an earlier note here denied. They are kept in the meter
+    /// store for that reason, so a selected-meter poll asking for either by code gets the same
+    /// number this reply gives. Each field is two bytes of binary coded decimal, so a count past
+    /// 9999 is capped here rather than written into a field that cannot hold it.
     /// </remarks>
-    private Dictionary<string, object> GamesSince()
+    private Dictionary<string, object> GamesSince() => new()
     {
-        lock (_gate)
-        {
-            return new Dictionary<string, object>
-            {
-                ["games_since_power_up"] = Math.Min(_gamesSincePowerUp, 9999),
-                ["games_since_door_closure"] = Math.Min(_gamesSinceDoorClosure, 9999),
-            };
-        }
-    }
+        ["games_since_power_up"] =
+            Math.Min(Meters.Read(SasMeterCode.GamesSinceLastReset), 9999),
+        ["games_since_door_closure"] =
+            Math.Min(Meters.Read(SasMeterCode.GamesSinceSlotDoorClosure), 9999),
+    };
 
     /// <summary>
     /// The handpay this machine is holding, which is never one.
@@ -968,8 +965,31 @@ public sealed partial class FakeEgm
         return Math.Max(floor, (digits + 1) / 2);
     }
 
-    private Dictionary<string, object> Single(string field, SasMeterCode meter) =>
-        new() { [field] = Meters.Read(meter) };
+    /// <summary>
+    /// A reply carrying one meter, answered the way the library's shared single-meter helper does.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The division is not decoration and it is not this machine inventing a behaviour. Every
+    /// command answered through here goes through <c>lpXX_SendMeter</c> in the library, which
+    /// divides the meter by the accounting denomination in cents when the machine is in either of
+    /// its two default meter modes and the meter is not one the library calls multigame. The bulk
+    /// replies read the same meter and write it as it stands, so the two answer different numbers
+    /// — which is the whole reason a name is attached to one command rather than the other.
+    /// </para>
+    /// <para>
+    /// This machine is in full manual by default, which is the mode the gaming machine under test
+    /// is in, so by default nothing is divided and every reply is what it always was.
+    /// </para>
+    /// </remarks>
+    private Dictionary<string, object> Single(string field, SasMeterCode meter)
+    {
+        long value = Meters.Read(meter);
+        if (_options.MeterMode.Divides() && !SasCatalogue.MultigameMeters.Contains((ushort)meter))
+            value /= AccountingCents;
+
+        return new Dictionary<string, object> { [field] = value };
+    }
 
     private static Dictionary<string, object> DateAndTime()
     {

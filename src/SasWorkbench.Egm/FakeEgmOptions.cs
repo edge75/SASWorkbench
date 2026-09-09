@@ -87,6 +87,19 @@ public sealed record FakeEgmOptions
     public byte? AccountingDenomination { get; init; }
 
     /// <summary>
+    /// Which of the machine library's five meter modes this machine is in.
+    /// </summary>
+    /// <remarks>
+    /// The default is the mode the gaming machine under test is actually in: the platform above
+    /// the library sets full manual at startup and writes it to memory. That matters, because in
+    /// full manual the library never divides a meter by the accounting denomination, so on that
+    /// machine the single-meter commands and the bulk replies cannot disagree however the
+    /// denomination is set. A case that wants to see them disagree asks for one of the two default
+    /// modes, and it is the only way to see it here.
+    /// </remarks>
+    public SasMeterMode MeterMode { get; init; } = SasMeterMode.FullManual;
+
+    /// <summary>
     /// The denominations a player may choose, in cents.
     /// </summary>
     /// <remarks>

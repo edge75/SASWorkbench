@@ -68,7 +68,9 @@ internal static class Help
               sasctl catalogue                   a count of each kind
               sasctl catalogue long-polls        every long poll the machine library implements
               sasctl catalogue exceptions        every exception a machine can report
-              sasctl catalogue meters            every meter
+              sasctl catalogue meters            every meter, and which are readable by name
+              sasctl catalogue readable-meters   every meter a script can name, the command it
+                                                 is read from, and the commands it is not
               sasctl catalogue layouts           the replies this build can decode, field by field
               sasctl catalogue events            what an exception carries after its code
               sasctl catalogue diff [options]    compare this build's catalogue against two

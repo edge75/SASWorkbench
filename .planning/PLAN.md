@@ -346,6 +346,20 @@ payloads, so no `ConfirmedByCapture` moved. One thing was built and taken out ag
 run still cannot see that a machine is locked up, because the fault light the platform commands
 never reaches the shared region.
 
+✅ **The meter index is widened, and the reason three waves deferred it is discharged** — see
+`docs/M4-meter-index.md`. A script reads **40 meters by name** rather than 16, and no name that
+already existed changed the command it is read from. What settled it was measuring rather than
+reasoning: the machine library reads a meter two ways, the generator now reads out of the library
+which commands take which path and which meters the scaling leaves alone, and the software machine
+models the rule so the disagreement could be produced on a wire — one note read as **1** through
+the bulk reply and **0** through the dedicated count, on a nickel machine in the library's default
+meter mode. On the machine this project tests against it cannot arise at all, because the platform
+above the library sets full manual and writes it to memory. A real machine was swept again and
+every meter two commands report agrees, at nought, which is said to establish the offsets and not
+the arithmetic. Our own suite goes from **37 to 57 distinct long polls** explained and
+`tests/regression` from 28 cases to **33, still with no skips**; no catalogue or corpus figure moved
+and none could.
+
 Still to do in this milestone: the rest of the long-poll catalogue — 39
 commands, of which the five tournament meters need a machine that advertises tournament mode and the
 AFT family needs a registered host · the four event payloads Trap D blocks · replay of a capture

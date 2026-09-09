@@ -341,15 +341,23 @@ public class SweepLayoutTests
     }
 
     /// <summary>
-    /// The meter index deliberately did not move. Every new layout's fields are assertable by
-    /// name on the reply they belong to, and none is offered as a meter a script may ask for by
-    /// name — because several of them report the same library meter as an existing command through
-    /// a handler that scales it differently, and quietly changing what an existing test measures
-    /// is the one outcome that must not happen while adding coverage.
+    /// The meter index did not move when these forty-seven layouts arrived, and it has since,
+    /// without moving any name that was already in it.
     /// </summary>
+    /// <remarks>
+    /// The reason it waited is in <see cref="MeterIndexTests"/> and was discharged there rather
+    /// than dropped: several of these commands report the same library meter as a command a name
+    /// already came from, through a helper that scales it differently, so which command each name
+    /// is read from had to be decided before any of them could be offered.
+    /// </remarks>
     [Fact]
-    public void Adding_forty_seven_layouts_moved_no_meter_a_script_can_name()
+    public void Every_layout_this_sweep_added_that_carries_a_meter_says_which_meter_it_is()
     {
-        Assert.Equal(16, MeterIndex.All.Count);
+        foreach (byte command in (byte[])[0x31, 0x38, 0x45, 0x2A, 0x2B, 0x46, 0x47, 0x49, 0x4A])
+        {
+            SasField field = SasLayouts.For(command)!.Response.Single();
+            Assert.NotNull(field.Meter);
+            Assert.True(field.IsMeter);
+        }
     }
 }

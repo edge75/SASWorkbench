@@ -471,45 +471,6 @@ public class ScriptLocationTests
         Assert.IsType<ExpectLinkStep>(document.Tests[0].Steps[index]).Expected;
 }
 
-public class MeterIndexTests
-{
-    /// <summary>
-    /// The index is built from the layouts, so a dedicated single-meter command must win over the
-    /// bulk one. A reply carrying one number is far easier to explain when it disagrees.
-    /// </summary>
-    [Fact]
-    public void A_dedicated_command_is_preferred_over_a_bulk_one()
-    {
-        Assert.True(MeterIndex.TryResolve("total_coin_in", out MeterSource source));
-
-        Assert.Equal(0x11, source.Command);
-    }
-
-    [Fact]
-    public void A_meter_only_a_bulk_command_returns_is_still_readable()
-    {
-        Assert.True(MeterIndex.TryResolve("bills_20", out MeterSource source));
-
-        Assert.Equal(0x1E, source.Command);
-        Assert.Equal("bills_20", source.Field);
-    }
-
-    [Fact]
-    public void Friendly_names_resolve_to_a_real_field()
-    {
-        Assert.True(MeterIndex.TryResolve("total_bill_in", out MeterSource source));
-
-        Assert.Equal("total_bill_value", source.Field);
-        Assert.Equal(0x20, source.Command);
-    }
-
-    [Fact]
-    public void A_meter_no_layout_returns_is_not_readable()
-    {
-        Assert.False(MeterIndex.TryResolve("total_widgets", out _));
-    }
-}
-
 public class SasNamesTests
 {
     [Theory]

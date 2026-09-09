@@ -265,6 +265,131 @@ def check_sequence_requirement(bodies: dict[str, str], handler: str,
     return "never"
 
 
+# The multi-denomination preamble carries another command inside it, so the meters it reports are
+# whichever command it was given rather than a property of $B0. Read like any other handler it
+# reports the first base command its switch happens to name, which would be a fact about the
+# switch's order and nothing else.
+CARRIES_ANOTHER_COMMAND = {0xB0}
+
+METER_CODE_ARRAY = re.compile(r"meterCodes\s*\[\s*\]\s*=\s*\{([^}]*)\}", re.S)
+SHARED_METER_CALL = re.compile(r"\blpXX_SendMeter\s*\(([^;]*?)\)\s*;", re.S)
+DIRECT_METER_CALL = re.compile(r"\binternalReadMeter\s*\(([^;]*?)\)\s*;", re.S)
+
+
+def _arguments(text: str) -> list[str]:
+    """Splits a call's arguments on the commas that are not inside brackets."""
+    parts: list[str] = []
+    depth = 0
+    current = ""
+    for character in text:
+        if character in "([":
+            depth += 1
+        elif character in ")]":
+            depth -= 1
+        if character == "," and depth == 0:
+            parts.append(current.strip())
+            current = ""
+        else:
+            current += character
+    if current.strip():
+        parts.append(current.strip())
+    return parts
+
+
+def meters_read_by(bodies: dict[str, str], handler: str, meter_names: set[str],
+                   seen: set[str] | None = None) -> tuple[list[str], bool]:
+    """Which meters one handler reports, in the order it writes them, and how it reads them.
+
+    Two ways of reading a meter live in this library and they do not answer the same number.
+    The shared single-meter helper divides the value by the accounting denomination for a meter
+    that is not one of the multigame ones, under two of the machine's meter modes; every other
+    handler reads the meter and writes it as it stands. So which helper a command goes through is
+    a property of the command, and it decides which of two commands reporting one meter a test
+    should be reading it from.
+
+    Read the same way the check-sequence rule is: from the dispatched handler, following one
+    named helper where the handler is only a call to one.
+    """
+    if seen is None:
+        seen = set()
+    if handler in seen or handler not in bodies:
+        return ([], False)
+    seen.add(handler)
+
+    body = bodies[handler]
+    found: list[str] = []
+    shared = False
+
+    for call in SHARED_METER_CALL.finditer(body):
+        arguments = _arguments(call.group(1))
+        if len(arguments) >= 3 and arguments[2] in meter_names:
+            found.append(arguments[2])
+            shared = True
+
+    for array in METER_CODE_ARRAY.finditer(body):
+        items = [item.strip() for item in array.group(1).split(",") if item.strip()]
+        if items and all(item in meter_names for item in items):
+            found.extend(items)
+
+    for call in DIRECT_METER_CALL.finditer(body):
+        arguments = _arguments(call.group(1))
+        if len(arguments) >= 3 and arguments[2] in meter_names and arguments[2] not in found:
+            found.append(arguments[2])
+
+    if found:
+        return (found, shared)
+
+    for callee in sorted(set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", body))):
+        if callee != handler and re.match(HANDLER_NAME, callee):
+            meters, through_shared = meters_read_by(bodies, callee, meter_names, seen)
+            if meters:
+                return (meters, through_shared)
+
+    return ([], False)
+
+
+def parse_meter_reads(lp_source: str, dispatch: dict[int, str],
+                      meters: list[Entry]) -> dict[int, tuple[list[int], bool]]:
+    """Maps each dispatched long poll to the meters it reports and how it reads them."""
+    bodies = parse_function_bodies(lp_source)
+    by_name = {entry.name: entry.value for entry in meters}
+    reads: dict[int, tuple[list[int], bool]] = {}
+
+    for code, handler in sorted(dispatch.items()):
+        if code in CARRIES_ANOTHER_COMMAND:
+            continue
+        found, shared = meters_read_by(bodies, handler, set(by_name))
+        if found:
+            reads[code] = ([by_name[name] for name in found], shared)
+
+    return reads
+
+
+def parse_multigame_meters(utils_source: str, meters: list[Entry]) -> list[int]:
+    """The meters the library calls multigame, read from the predicate that decides it.
+
+    It matters here for one reason: the shared single-meter helper divides every meter that is
+    *not* in this set by the accounting denomination. So the set is half of the rule that says
+    whether two commands reporting one meter can disagree, and copying it by hand would be the
+    half that goes stale.
+    """
+    bodies = parse_function_bodies(utils_source)
+    body = bodies.get("isMultigameMeter")
+    if body is None:
+        raise SystemExit("isMultigameMeter not found")
+
+    by_name = {entry.name: entry.value for entry in meters}
+    found: list[int] = []
+    for name in re.findall(r"meter\s*==\s*([A-Za-z_][A-Za-z0-9_]*)", body):
+        if name in by_name and by_name[name] not in found:
+            found.append(by_name[name])
+
+    if not found:
+        raise SystemExit("isMultigameMeter named no meter this catalogue knows")
+
+    return found
+
+
 def parse_check_sequences(lp_source: str, dispatch: dict[int, str]) -> dict[int, bool]:
     """Maps each dispatched long poll to whether the host must end its message in a check
     sequence, read from the handler the dispatcher sends it to."""
@@ -425,6 +550,8 @@ def emit_catalogue(
     host_lengths: dict[int, int],
     exceptions: list[Entry],
     meters: list[Entry],
+    meter_reads: dict[int, tuple[list[int], bool]],
+    multigame_meters: list[int],
     sources: str,
 ) -> str:
     lines = [header(sources, "\nusing System.Collections.Frozen;\n"),
@@ -497,6 +624,42 @@ def emit_catalogue(
             f'"{escape(description)}"),')
     lines.append("        }.ToFrozenDictionary();")
     lines.append("")
+    lines.append("    /// <summary>")
+    lines.append("    /// Which meters each long poll reports, in the order its reply writes them,")
+    lines.append("    /// and whether it reads them through the library's shared single-meter helper.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// Read from the handler the dispatcher sends the command to. The distinction")
+    lines.append("    /// the second half draws is not cosmetic: the shared helper divides a meter")
+    lines.append("    /// that is not one of the multigame meters by the accounting denomination,")
+    lines.append("    /// under two of the machine's five meter modes, and every other handler")
+    lines.append("    /// writes the meter as it stands. So two commands reporting one meter can")
+    lines.append("    /// answer two different numbers, and which of them a test should be reading")
+    lines.append("    /// is decided here rather than guessed at.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<byte, SasMeterReadInfo> MeterReads { get; } =")
+    lines.append("        new Dictionary<byte, SasMeterReadInfo>")
+    lines.append("        {")
+    for code in sorted(meter_reads):
+        codes, shared = meter_reads[code]
+        written = ", ".join(f"0x{value:04X}" for value in codes)
+        lines.append(
+            f'            [0x{code:02X}] = new(0x{code:02X}, [{written}], '
+            f'{"true" if shared else "false"}),')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
+    lines.append("    /// <summary>")
+    lines.append("    /// The meters the library calls multigame, read from the predicate that")
+    lines.append("    /// decides it. The shared single-meter helper leaves these alone and divides")
+    lines.append("    /// every other meter by the accounting denomination.")
+    lines.append("    /// </summary>")
+    lines.append("    public static FrozenSet<ushort> MultigameMeters { get; } =")
+    lines.append("        new ushort[]")
+    lines.append("        {")
+    for value in multigame_meters:
+        lines.append(f'            0x{value:04X},')
+    lines.append("        }.ToFrozenSet();")
+    lines.append("")
     lines.append("    /// <summary>How many of each the catalogue holds, for a report header.</summary>")
     lines.append("    public static (int LongPolls, int Exceptions, int Meters) Counts =>")
     lines.append("        (LongPolls.Count, Exceptions.Count, Meters.Count);")
@@ -542,6 +705,24 @@ public sealed record SasExceptionInfo(byte Code, string Symbol, string Descripti
     public override string ToString() => $"${Code:X2} {Description}";
 }
 
+/// <summary>Which meters one long poll reports, and how the library reads them.</summary>
+/// <param name="Command">The command byte.</param>
+/// <param name="Meters">
+/// The meters its reply carries, in the order the handler writes them. A command whose reply
+/// carries one number computed from several meters lists all of them.
+/// </param>
+/// <param name="ThroughSharedHandler">
+/// True when the library answers this command through its shared single-meter helper, which
+/// divides a meter that is not multigame by the accounting denomination under two of the five
+/// meter modes. False when the handler writes the meter as it stands.
+/// </param>
+public sealed record SasMeterReadInfo(
+    byte Command, IReadOnlyList<ushort> Meters, bool ThroughSharedHandler)
+{
+    public override string ToString() =>
+        $"${Command:X2} {Meters.Count} meter(s)" + (ThroughSharedHandler ? ", scaled" : string.Empty);
+}
+
 /// <summary>One meter.</summary>
 /// <param name="Code">The meter code.</param>
 /// <param name="Symbol">The library's own identifier for it.</param>
@@ -568,14 +749,15 @@ def main() -> int:
     threads_cpp = root / "src" / "libsas_threads.cpp"
     lp_cpp = root / "src" / "lp.cpp"
     uart_cpp = root / "src" / "libsas_uart.cpp"
+    utils_cpp = root / "src" / "libsas_utils.cpp"
     if (not libsas_h.exists() or not lp_h.exists() or not threads_cpp.exists()
-            or not lp_cpp.exists() or not uart_cpp.exists()):
+            or not lp_cpp.exists() or not uart_cpp.exists() or not utils_cpp.exists()):
         print(f"headers not found under {root}", file=sys.stderr)
         return 2
 
     source = read(libsas_h)
     sources = ("include/libsas.h, include/lp.h, src/libsas_threads.cpp, src/lp.cpp, "
-               "src/libsas_uart.cpp")
+               "src/libsas_uart.cpp, src/libsas_utils.cpp")
 
     long_polls = unique_names(parse_enum(source, "SasLongPollCode"))
     exceptions = unique_names(parse_enum(source, "SasExceptionCode"))
@@ -588,6 +770,8 @@ def main() -> int:
     from_handlers = parse_check_sequences(read(lp_cpp), handlers_full)
     host_lengths = parse_host_message_lengths(read(uart_cpp))
     check_sequences = reconcile_check_sequences(host_lengths, from_handlers)
+    meter_reads = parse_meter_reads(read(lp_cpp), handlers_full, meters)
+    multigame_meters = parse_multigame_meters(read(utils_cpp), meters)
 
     files = {
         "SasLongPollCode.g.cs": emit_enum(
@@ -611,7 +795,7 @@ def main() -> int:
         "CatalogueInfo.g.cs": emit_info_types(sources),
         "Catalogue.g.cs": emit_catalogue(
             long_polls, handlers, handlers_full, check_sequences, host_lengths,
-            exceptions, meters, sources),
+            exceptions, meters, meter_reads, multigame_meters, sources),
     }
 
     stale = []

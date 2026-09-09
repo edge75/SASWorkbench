@@ -110,9 +110,23 @@ public static class SasLayouts
         DerivedFrom = "lp6F_SendExtendedMetersForGameN",
     };
 
-    /// <summary>An accumulating meter a test may read by name.</summary>
-    private static SasField Meter(string name, int bytes, SasUnit unit, string description) =>
-        Bcd(name, bytes, unit, description) with { IsMeter = true };
+    /// <summary>A meter a test may read by name, carrying the library meter it reports.</summary>
+    private static SasField Meter(
+        string name, int bytes, SasUnit unit, string description, SasMeterCode meter) =>
+        Bcd(name, bytes, unit, description) with { IsMeter = true, Meter = meter };
+
+    /// <summary>
+    /// A field reporting a meter that no script may ask for by name.
+    /// </summary>
+    /// <remarks>
+    /// Every one of these is a per-game reply. Which number comes back depends on the game the
+    /// host asked about, so a name resolving to one would mean something different depending on
+    /// what the script had just sent - and a meter reading is taken by sending the command with
+    /// nothing in it. The field is still assertable on the reply it belongs to.
+    /// </remarks>
+    private static SasField GameKeptMeter(
+        string name, int bytes, SasUnit unit, string description, SasMeterCode meter) =>
+        Bcd(name, bytes, unit, description) with { Meter = meter };
 
     private static SasField Byte(string name, SasUnit unit, string description,
         SasConstraint? constraint = null) => new()
@@ -146,34 +160,24 @@ public static class SasLayouts
         Description = description,
     };
 
-    /// <summary>
-    /// One of the dedicated bill-count commands, whose field is deliberately not a readable meter.
-    /// </summary>
+    /// <summary>One of the dedicated bill-count commands.</summary>
     /// <remarks>
-    /// The count is genuinely a meter, and it is not offered under a meter name because long poll
-    /// <c>$1E</c> already answers the same six meters and the two commands do not always agree —
-    /// the library divides this one by the accounting denomination under two of its meter modes
-    /// and does not divide <c>$1E</c>. A test can still assert on the field of this reply; what it
-    /// cannot do is ask for the twenty-unit bill meter by name and silently be given a different
-    /// number than it used to get.
+    /// The count is a meter and is marked as one. Which command a script's <c>bills_20</c> is
+    /// read from is not decided here but in <see cref="MeterIndex"/>, which knows that this
+    /// family answers through the library's shared single-meter helper and that long poll
+    /// <c>$1E</c> does not.
     /// </remarks>
     private static SasMessageLayout BillCountLayout(
-        byte command, string name, string field, int denomination, string handler) => new()
+        byte command, string name, string field, int denomination, string handler,
+        SasMeterCode meter) => new()
         {
             Command = command,
             Name = name,
             Description = $"How many {denomination}-unit bills the machine has taken.",
             Response =
             [
-                new()
-                {
-                    Name = field,
-                    Length = 4,
-                    Encoding = SasFieldEncoding.Bcd,
-                    ByteOrder = SasByteOrder.BigEndian,
-                    Unit = SasUnit.Count,
-                    Description = $"Number of {denomination}-unit bills accepted.",
-                },
+                Meter(field, 4, SasUnit.Count,
+                    $"Number of {denomination}-unit bills accepted.", meter),
             ],
             DerivedFrom = handler,
             ConfirmedByCapture = true,
@@ -181,37 +185,57 @@ public static class SasLayouts
 
     /// <summary>A four-byte accumulating meter, the shape most meter commands answer with.</summary>
     private static SasMessageLayout MeterLayout(
+        byte command, string name, string field, SasUnit unit, string description, string handler,
+        SasMeterCode meter)
+        => new()
+        {
+            Command = command,
+            Name = name,
+            Description = description,
+            Response = [Meter(field, 4, unit, description, meter)],
+            DerivedFrom = handler,
+        };
+
+    /// <summary>
+    /// A reply whose one number the machine computes from several meters rather than reading one.
+    /// </summary>
+    /// <remarks>
+    /// Long poll <c>$20</c> is the only such reply this build decodes: its handler reads
+    /// twenty-four bill counts and adds each one multiplied by its face value. So the field is a
+    /// meter a script may read and there is no single meter code behind it, which is why being a
+    /// meter and reporting one are two properties rather than one.
+    /// </remarks>
+    private static SasMessageLayout ComputedMeterLayout(
         byte command, string name, string field, SasUnit unit, string description, string handler)
         => new()
         {
             Command = command,
             Name = name,
             Description = description,
-            Response = [Meter(field, 4, unit, description)],
+            Response = [Bcd(field, 4, unit, description) with { IsMeter = true }],
             DerivedFrom = handler,
         };
 
 
     /// <summary>
-    /// A single four-byte meter answered through the library's shared meter handler, offered as a
-    /// field rather than as a meter a script may name.
+    /// A single four-byte meter answered through the library's shared single-meter helper.
     /// </summary>
     /// <remarks>
-    /// The same reasoning the dedicated bill-count commands already carry, and it applies to every
-    /// command answering through <c>lpXX_SendMeter</c>: that handler divides the value by the
-    /// accounting denomination under two of the machine's meter modes and the bulk commands do
-    /// not, so two commands reporting the same meter do not always report the same number. A test
-    /// asserts on the field of whichever reply it asked for; what it cannot do is ask for a meter
-    /// by name and be given a different number than it used to get.
+    /// That helper divides the value by the accounting denomination, under two of the machine's
+    /// five meter modes, for any meter the library does not call multigame - and the bulk replies
+    /// do not. So two commands reporting one meter do not always report one number. The fact is
+    /// recorded per command in the generated catalogue and acted on in <see cref="MeterIndex"/>,
+    /// which is the one place that decides which command a name is read from.
     /// </remarks>
     private static SasMessageLayout SharedMeterLayout(
-        byte command, string name, string field, SasUnit unit, string description, string handler)
+        byte command, string name, string field, SasUnit unit, string description, string handler,
+        SasMeterCode meter)
         => new()
         {
             Command = command,
             Name = name,
             Description = description,
-            Response = [Bcd(field, 4, unit, description)],
+            Response = [Meter(field, 4, unit, description, meter)],
             DerivedFrom = handler,
             ConfirmedByCapture = true,
         };
@@ -318,33 +342,39 @@ public static class SasLayouts
                 Description = "Six accumulating meters in one reply.",
                 Response =
                 [
-                    Meter("total_cancelled_credits", 4, SasUnit.Credits, "Credits cancelled by a handpay."),
-                    Meter("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
-                    Meter("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
-                    Meter("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine."),
-                    Meter("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
-                    Meter("games_played", 4, SasUnit.Count, "Games played."),
+                    Meter("total_cancelled_credits", 4, SasUnit.Credits,
+                        "Credits cancelled by a handpay.", SasMeterCode.TotalCancelledCredits),
+                    Meter("total_coin_in", 4, SasUnit.Credits, "Credits wagered.",
+                        SasMeterCode.TotalCoinInCredits),
+                    Meter("total_coin_out", 4, SasUnit.Credits, "Credits paid out.",
+                        SasMeterCode.TotalCoinOutCredits),
+                    Meter("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine.",
+                        SasMeterCode.TotalDropIn_Crd),
+                    Meter("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots.",
+                        SasMeterCode.TotalJackpotCredits),
+                    Meter("games_played", 4, SasUnit.Count, "Games played.",
+                        SasMeterCode.GamesPlayed),
                 ],
                 DerivedFrom = "lp0F_SendMeters",
             },
             MeterLayout(0x10, "total_cancelled_credits", "total_cancelled_credits", SasUnit.Credits,
-                "Credits cancelled by a handpay.", "lp10_SendTotalCancelledCredits"),
+                "Credits cancelled by a handpay.", "lp10_SendTotalCancelledCredits", SasMeterCode.TotalCancelledCredits),
             MeterLayout(0x11, "total_coin_in", "total_coin_in", SasUnit.Credits,
-                "Credits wagered.", "lp11_SendTotalCoinInCredits"),
+                "Credits wagered.", "lp11_SendTotalCoinInCredits", SasMeterCode.TotalCoinInCredits),
             MeterLayout(0x12, "total_coin_out", "total_coin_out", SasUnit.Credits,
-                "Credits paid out.", "lp12_SendTotalCoinOutCredits"),
+                "Credits paid out.", "lp12_SendTotalCoinOutCredits", SasMeterCode.TotalCoinOutCredits),
             MeterLayout(0x13, "total_drop", "total_drop", SasUnit.Credits,
-                "Credits dropped into the machine.", "lp13_SendTotalDropInCredits"),
+                "Credits dropped into the machine.", "lp13_SendTotalDropInCredits", SasMeterCode.TotalDropIn_Crd),
             MeterLayout(0x14, "total_jackpot", "total_jackpot", SasUnit.Credits,
-                "Credits paid as jackpots.", "lp14_SendTotalJackpot"),
+                "Credits paid as jackpots.", "lp14_SendTotalJackpot", SasMeterCode.TotalJackpotCredits),
             MeterLayout(0x15, "games_played", "games_played", SasUnit.Count,
-                "Games played.", "lp15_SendGamesPlayed"),
+                "Games played.", "lp15_SendGamesPlayed", SasMeterCode.GamesPlayed),
             MeterLayout(0x16, "games_won", "games_won", SasUnit.Count,
-                "Games won.", "lp16_SendGamesWon"),
+                "Games won.", "lp16_SendGamesWon", SasMeterCode.GamesWon),
             MeterLayout(0x17, "games_lost", "games_lost", SasUnit.Count,
-                "Games lost.", "lp17_SendGamesLost"),
+                "Games lost.", "lp17_SendGamesLost", SasMeterCode.GamesLost),
             MeterLayout(0x1A, "current_credits", "current_credits", SasUnit.Credits,
-                "Credits currently on the machine.", "lp1A_SendCurrentCredits"),
+                "Credits currently on the machine.", "lp1A_SendCurrentCredits", SasMeterCode.CurrentCredits),
             new()
             {
                 Command = 0x1B,
@@ -369,12 +399,18 @@ public static class SasLayouts
                 Description = "How many bills of each of six denominations the machine has taken.",
                 Response =
                 [
-                    Meter("bills_1", 4, SasUnit.Count, "Number of one-unit bills accepted."),
-                    Meter("bills_5", 4, SasUnit.Count, "Number of five-unit bills accepted."),
-                    Meter("bills_10", 4, SasUnit.Count, "Number of ten-unit bills accepted."),
-                    Meter("bills_20", 4, SasUnit.Count, "Number of twenty-unit bills accepted."),
-                    Meter("bills_50", 4, SasUnit.Count, "Number of fifty-unit bills accepted."),
-                    Meter("bills_100", 4, SasUnit.Count, "Number of hundred-unit bills accepted."),
+                    Meter("bills_1", 4, SasUnit.Count, "Number of one-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD1BillsAccepted),
+                    Meter("bills_5", 4, SasUnit.Count, "Number of five-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD5BillsAccepted),
+                    Meter("bills_10", 4, SasUnit.Count, "Number of ten-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD10BillsAccepted),
+                    Meter("bills_20", 4, SasUnit.Count, "Number of twenty-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD20BillsAccepted),
+                    Meter("bills_50", 4, SasUnit.Count, "Number of fifty-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD50BillsAccepted),
+                    Meter("bills_100", 4, SasUnit.Count, "Number of hundred-unit bills accepted.",
+                        SasMeterCode.TotalNumberOfUSD100BillsAccepted),
                 ],
                 DerivedFrom = "lp1E_SendBillMeters",
             },
@@ -426,7 +462,7 @@ public static class SasLayouts
             SelectedMeters(0xAF, "selected_meters_alternate"),
             // Whole currency units, not credits: this is the one bill meter the specification
             // fixes in dollars, so it does not scale with the accounting denomination.
-            MeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Dollars,
+            ComputedMeterLayout(0x20, "total_bill_value", "total_bill_value", SasUnit.Dollars,
                 "Total value of bills accepted, in whole currency units.",
                 "lp20_SendTotalDollarValueOfBills"),
             new()
@@ -787,9 +823,9 @@ public static class SasLayouts
             // answers the same six meters undivided. The two commands therefore do not always
             // agree, so a script that has always read bills_20 from $1E keeps reading it from $1E
             // rather than being moved to a command that may answer something else.
-            BillCountLayout(0x35, "bills_20_meter", "bills_20", 20, "lp35_Send20BillsInMeter"),
-            BillCountLayout(0x36, "bills_50_meter", "bills_50", 50, "lp36_Send50BillsInMeter"),
-            BillCountLayout(0x37, "bills_100_meter", "bills_100", 100, "lp37_Send100BillsInMeter"),
+            BillCountLayout(0x35, "bills_20_meter", "bills_20", 20, "lp35_Send20BillsInMeter", SasMeterCode.TotalNumberOfUSD20BillsAccepted),
+            BillCountLayout(0x36, "bills_50_meter", "bills_50", 50, "lp36_Send50BillsInMeter", SasMeterCode.TotalNumberOfUSD50BillsAccepted),
+            BillCountLayout(0x37, "bills_100_meter", "bills_100", 100, "lp37_Send100BillsInMeter", SasMeterCode.TotalNumberOfUSD100BillsAccepted),
 
             // Both halves of this message are the same six bytes, because the machine answers with
             // what it now holds - which is what the host just sent unless the host sent a zero
@@ -946,55 +982,55 @@ public static class SasLayouts
 
             // The rest of the dedicated bill counts. The previous wave left $31 to $34 undecoded
             // on purpose, because no capture here carried one; the sweep carries all seventeen.
-            BillCountLayout(0x31, "bills_1_meter", "bills_1", 1, "lp31_Send1BillsInMeter"),
-            BillCountLayout(0x32, "bills_2_meter", "bills_2", 2, "lp32_Send2BillsInMeter"),
+            BillCountLayout(0x31, "bills_1_meter", "bills_1", 1, "lp31_Send1BillsInMeter", SasMeterCode.TotalNumberOfUSD1BillsAccepted),
+            BillCountLayout(0x32, "bills_2_meter", "bills_2", 2, "lp32_Send2BillsInMeter", SasMeterCode.TotalNumberOfUSD2BillsAccepted),
             BillCountLayout(0x33, "bills_5_meter", "bills_5", 5,
-                "lp33_Send5BillsInMeter"),
-            BillCountLayout(0x34, "bills_10_meter", "bills_10", 10, "lp34_Send10BillsInMeter"),
-            BillCountLayout(0x38, "bills_500_meter", "bills_500", 500, "lp38_Send500BillsInMeter"),
+                "lp33_Send5BillsInMeter", SasMeterCode.TotalNumberOfUSD5BillsAccepted),
+            BillCountLayout(0x34, "bills_10_meter", "bills_10", 10, "lp34_Send10BillsInMeter", SasMeterCode.TotalNumberOfUSD10BillsAccepted),
+            BillCountLayout(0x38, "bills_500_meter", "bills_500", 500, "lp38_Send500BillsInMeter", SasMeterCode.TotalNumberOfUSD500BillsAccepted),
             BillCountLayout(0x39, "bills_1000_meter", "bills_1000", 1000,
-                "lp39_Send1000BillsInMeter"),
-            BillCountLayout(0x3A, "bills_200_meter", "bills_200", 200, "lp3A_Send200BillsInMeter"),
-            BillCountLayout(0x3B, "bills_25_meter", "bills_25", 25, "lp3B_Send25BillsInMeter"),
+                "lp39_Send1000BillsInMeter", SasMeterCode.TotalNumberOfUSD1000BillsAccepted),
+            BillCountLayout(0x3A, "bills_200_meter", "bills_200", 200, "lp3A_Send200BillsInMeter", SasMeterCode.TotalNumberOfUSD200BillsAccepted),
+            BillCountLayout(0x3B, "bills_25_meter", "bills_25", 25, "lp3B_Send25BillsInMeter", SasMeterCode.TotalNumberOfUSD25BillsAccepted),
             BillCountLayout(0x3C, "bills_2000_meter", "bills_2000", 2000,
-                "lp3C_Send2000BillsInMeter"),
+                "lp3C_Send2000BillsInMeter", SasMeterCode.TotalNumberOfUSD2000BillsAccepted),
             BillCountLayout(0x3E, "bills_2500_meter", "bills_2500", 2500,
-                "lp3E_Send2500BillsInMeter"),
+                "lp3E_Send2500BillsInMeter", SasMeterCode.TotalNumberOfUSD2500BillsAccepted),
             BillCountLayout(0x3F, "bills_5000_meter", "bills_5000", 5000,
-                "lp3F_Send5000BillsInMeter"),
+                "lp3F_Send5000BillsInMeter", SasMeterCode.TotalNumberOfUSD5000BillsAccepted),
             BillCountLayout(0x40, "bills_10000_meter", "bills_10000", 10000,
-                "lp40_Send10KBillsInMeter"),
+                "lp40_Send10KBillsInMeter", SasMeterCode.TotalNumberOfUSD10KBillsAccepted),
             BillCountLayout(0x41, "bills_20000_meter", "bills_20000", 20000,
-                "lp41_Send20KBillsInMeter"),
+                "lp41_Send20KBillsInMeter", SasMeterCode.TotalNumberOfUSD20KBillsAccepted),
             BillCountLayout(0x42, "bills_25000_meter", "bills_25000", 25000,
-                "lp42_Send25KBillsInMeter"),
+                "lp42_Send25KBillsInMeter", SasMeterCode.TotalNumberOfUSD25KBillsAccepted),
             BillCountLayout(0x43, "bills_50000_meter", "bills_50000", 50000,
-                "lp43_Send50KBillsInMeter"),
+                "lp43_Send50KBillsInMeter", SasMeterCode.TotalNumberOfUSD50KBillsAccepted),
             BillCountLayout(0x44, "bills_100000_meter", "bills_100000", 100000,
-                "lp44_Send100KBillsInMeter"),
-            BillCountLayout(0x45, "bills_250_meter", "bills_250", 250, "lp45_Send250BillsInMeter"),
+                "lp44_Send100KBillsInMeter", SasMeterCode.TotalNumberOfUSD100KBillsAccepted),
+            BillCountLayout(0x45, "bills_250_meter", "bills_250", 250, "lp45_Send250BillsInMeter", SasMeterCode.TotalNumberOfUSD250BillsAccepted),
 
             // The other single meters that answer through the same shared handler. $47 reports
             // the very meter $2A does - TotalCreditsFromCoinAcceptor - so on this library the
             // external coin acceptor and the coin acceptor can never disagree. Recorded because a
             // test written against one of them is really written against both.
             SharedMeterLayout(0x2A, "true_coin_in", "true_coin_in", SasUnit.Credits,
-                "Credits taken by the coin acceptor.", "lp2A_SendTrueCoinIn"),
+                "Credits taken by the coin acceptor.", "lp2A_SendTrueCoinIn", SasMeterCode.TotalCreditsFromCoinAcceptor),
             SharedMeterLayout(0x2B, "true_coin_out", "true_coin_out", SasUnit.Credits,
-                "Credits paid out of the hopper.", "lp2B_SendTrueCoinOut"),
+                "Credits paid out of the hopper.", "lp2B_SendTrueCoinOut", SasMeterCode.TotalCreditsPaidFromHopper),
             SharedMeterLayout(0x46, "bills_accepted_credits", "bills_accepted_credits",
                 SasUnit.Credits, "Credit value of every note the machine has taken.",
-                "lp46_SendCreditAmountOfAllBillsAccepted"),
+                "lp46_SendCreditAmountOfAllBillsAccepted", SasMeterCode.TotalCreditsFromBillsAccepted),
             SharedMeterLayout(0x47, "external_coin_acceptor_credits",
                 "external_coin_acceptor_credits", SasUnit.Credits,
                 "Credits taken by the external coin acceptor.",
-                "lp47_SendCoinAmountAcceptedFromExternalCoinAcceptor"),
+                "lp47_SendCoinAmountAcceptedFromExternalCoinAcceptor", SasMeterCode.TotalCreditsFromCoinAcceptor),
             SharedMeterLayout(0x49, "bills_in_stacker", "bills_in_stacker", SasUnit.Count,
                 "How many notes are in the stacker now.",
-                "lp49_SendNumberOfBillsCurrentlyInTheStacker"),
+                "lp49_SendNumberOfBillsCurrentlyInTheStacker", SasMeterCode.NumberOfBillsCurrentlyInTheStacker),
             SharedMeterLayout(0x4A, "stacker_credits", "stacker_credits", SasUnit.Credits,
                 "Credit value of the notes in the stacker now.",
-                "lp4A_SendTotalCreditAmountOfAllBillsCurrentlyInTheStacker"),
+                "lp4A_SendTotalCreditAmountOfAllBillsCurrentlyInTheStacker", SasMeterCode.TotalValueOfBillsCurrentlyInTheStacker_Crd),
 
             // Two two-byte counts rather than the usual four-byte meter, which is the whole
             // reason this command exists separately from the ones either side of it.
@@ -1006,10 +1042,12 @@ public static class SasLayouts
                               + "last closed.",
                 Response =
                 [
-                    Bcd("games_since_power_up", 2, SasUnit.Count,
-                        "Games played since the last power up."),
-                    Bcd("games_since_door_closure", 2, SasUnit.Count,
-                        "Games played since the slot door last closed."),
+                    Meter("games_since_power_up", 2, SasUnit.Count,
+                        "Games played since the last power up.",
+                        SasMeterCode.GamesSinceLastReset),
+                    Meter("games_since_door_closure", 2, SasUnit.Count,
+                        "Games played since the slot door last closed.",
+                        SasMeterCode.GamesSinceSlotDoorClosure),
                 ],
                 DerivedFrom = "lp18_SendGamesPlayedSinceLastPowerUpAndSlotDoorClosure",
                 ConfirmedByCapture = true,
@@ -1021,11 +1059,16 @@ public static class SasLayouts
                 Description = "Five accounting meters in one reply.",
                 Response =
                 [
-                    Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
-                    Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
-                    Bcd("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine."),
-                    Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
-                    Bcd("games_played", 4, SasUnit.Count, "Games played."),
+                    Meter("total_coin_in", 4, SasUnit.Credits, "Credits wagered.",
+                        SasMeterCode.TotalCoinInCredits),
+                    Meter("total_coin_out", 4, SasUnit.Credits, "Credits paid out.",
+                        SasMeterCode.TotalCoinOutCredits),
+                    Meter("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine.",
+                        SasMeterCode.TotalDropIn_Crd),
+                    Meter("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots.",
+                        SasMeterCode.TotalJackpotCredits),
+                    Meter("games_played", 4, SasUnit.Count, "Games played.",
+                        SasMeterCode.GamesPlayed),
                 ],
                 DerivedFrom = "lp19_SendMeters",
                 ConfirmedByCapture = true,
@@ -1037,15 +1080,21 @@ public static class SasLayouts
                 Description = "Eight accounting meters in one reply.",
                 Response =
                 [
-                    Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered."),
-                    Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out."),
-                    Bcd("total_drop", 4, SasUnit.Credits,
-                        "Credits dropped into the machine."),
-                    Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots."),
-                    Bcd("games_played", 4, SasUnit.Count, "Games played."),
-                    Bcd("games_won", 4, SasUnit.Count, "Games won."),
-                    Bcd("slot_door_opened", 4, SasUnit.Count, "Times the slot door was opened."),
-                    Bcd("power_reset", 4, SasUnit.Count, "Times mains power was reset."),
+                    Meter("total_coin_in", 4, SasUnit.Credits, "Credits wagered.",
+                        SasMeterCode.TotalCoinInCredits),
+                    Meter("total_coin_out", 4, SasUnit.Credits, "Credits paid out.",
+                        SasMeterCode.TotalCoinOutCredits),
+                    Meter("total_drop", 4, SasUnit.Credits, "Credits dropped into the machine.",
+                        SasMeterCode.TotalDropIn_Crd),
+                    Meter("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots.",
+                        SasMeterCode.TotalJackpotCredits),
+                    Meter("games_played", 4, SasUnit.Count, "Games played.",
+                        SasMeterCode.GamesPlayed),
+                    Meter("games_won", 4, SasUnit.Count, "Games won.", SasMeterCode.GamesWon),
+                    Meter("slot_door_opened", 4, SasUnit.Count,
+                        "Times the slot door was opened.", SasMeterCode.NumberSlotDoorOpened),
+                    Meter("power_reset", 4, SasUnit.Count, "Times mains power was reset.",
+                        SasMeterCode.NumberACPowerLost),
                 ],
                 DerivedFrom = "lp1C_SendMeters",
                 ConfirmedByCapture = true,
@@ -1053,14 +1102,19 @@ public static class SasLayouts
             GameMeterLayout(0x2D, "handpay_cancelled_credits",
                 "Credits cancelled by a handpay, for one game.",
                 "lp2D_SendTotalHandpayCancelledCredits",
-                Bcd("handpay_cancelled_credits", 4, SasUnit.Credits,
-                    "Credits cancelled by a handpay.")),
+                GameKeptMeter("handpay_cancelled_credits", 4, SasUnit.Credits,
+                    "Credits cancelled by a handpay.",
+                    SasMeterCode.TotalHandPaidCancelledCredits)),
             GameMeterLayout(0x52, "game_n_meters", "Four accounting meters for one game.",
                 "lp52_SendGameNMeters",
-                Bcd("total_coin_in", 4, SasUnit.Credits, "Credits wagered on this game."),
-                Bcd("total_coin_out", 4, SasUnit.Credits, "Credits paid out by this game."),
-                Bcd("total_jackpot", 4, SasUnit.Credits, "Credits paid as jackpots by this game."),
-                Bcd("games_played", 4, SasUnit.Count, "Times this game was played.")),
+                GameKeptMeter("total_coin_in", 4, SasUnit.Credits,
+                    "Credits wagered on this game.", SasMeterCode.TotalCoinInCredits),
+                GameKeptMeter("total_coin_out", 4, SasUnit.Credits,
+                    "Credits paid out by this game.", SasMeterCode.TotalCoinOutCredits),
+                GameKeptMeter("total_jackpot", 4, SasUnit.Credits,
+                    "Credits paid as jackpots by this game.", SasMeterCode.TotalJackpotCredits),
+                GameKeptMeter("games_played", 4, SasUnit.Count, "Times this game was played.",
+                    SasMeterCode.GamesPlayed)),
             GameMeterLayout(0x83, "cumulative_progressive_wins",
                 "Progressive wins for one game, deductible and non-deductible added together.",
                 "lp83_SendCumulativeProgressiveWins",
