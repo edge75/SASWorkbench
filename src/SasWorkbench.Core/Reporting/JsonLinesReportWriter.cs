@@ -108,6 +108,11 @@ public sealed class JsonLinesReportWriter : IReportWriter
                     sequence = record.Sequence,
                     direction = record.Direction.ToString(),
                     channel = (int)record.Channel,
+
+                    // Which machine, not only which host. A general poll's answer is a bare
+                    // exception byte with no address in it, so across a round this is the only
+                    // thing that says who spoke. Absent means not known, never machine one.
+                    address = record.Address?.Value,
                     atMs = record.Elapsed.TotalMilliseconds,
                     symbols = record.ToHex(),
                     note = record.Note,

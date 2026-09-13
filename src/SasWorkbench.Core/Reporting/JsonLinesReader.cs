@@ -346,6 +346,25 @@ public static class JsonLinesReader
             channel = 1;
         }
 
+        // Read as written or left unknown. A record with no address is one whose recorder did not
+        // know which machine it was, and filling it in here would attribute a floor's traffic to
+        // whichever machine happened to be first.
+        SasAddress? machine = null;
+        if (element.TryGetProperty("address", out JsonElement at)
+            && at.ValueKind == JsonValueKind.Number
+            && at.TryGetInt32(out int machineValue))
+        {
+            if (machineValue is >= 0 and <= SasAddress.MaxValue)
+            {
+                machine = SasAddress.Of((byte)machineValue);
+            }
+            else
+            {
+                problems.Add($"line {number} names machine address {machineValue}, which SAS does "
+                             + "not define; the message is read as belonging to no known machine");
+            }
+        }
+
         return new WireRecord(
             element.TryGetProperty("sequence", out JsonElement sequence)
             && sequence.TryGetInt64(out long recorded)
@@ -357,7 +376,10 @@ public static class JsonLinesReader
             (SasChannel)channel,
             Duration(element, "atMs"),
             symbols,
-            Text(element, "note"));
+            Text(element, "note"))
+        {
+            Address = machine,
+        };
     }
 
     private static SourceLocation Where(JsonElement element) =>

@@ -193,6 +193,11 @@ internal static class Help
             FLOOR
               --machines <n>          how many software machines to bring up, 1 to 127
                                       (default: 8)
+              --tcp <host:port>       measure a real link instead, listening unless --dial
+              --serial <port>         measure a real serial link instead
+              --addresses <round>     which machines the round polls on a real link, as ranges
+                                      and lists: 01-64, or 01,05,09-0B  (default: 01)
+              --out <directory>       where to write the round's own record
               --rounds <n>            how many complete rounds to time  (default: 10)
               --poll <duration>       the interval between polls  (default: 0, so the round's own
                                       cost is what is measured rather than an interval a host was

@@ -79,10 +79,24 @@ public sealed record RoundMeasurement(
                 continue;
             }
 
+            if (record.Symbols.Length == 0)
+                continue;
+
+            // The record's own address where it has one, and otherwise the machine whose poll was
+            // outstanding. The second is what a reading of an older record or an import falls back
+            // to; the first is what a round records, and it is the only one that survives a file
+            // being filtered or reordered.
+            if (record.Address is { } stated)
+            {
+                answered.Add(stated.Value);
+                awaiting = null;
+                continue;
+            }
+
             // Anything at all coming back while a machine's poll is outstanding is that machine
             // having spoken. What it said is a question for the decoder; that it answered is the
             // only thing a round needs, and a silent address is the finding worth surfacing.
-            if (awaiting is { } machine && record.Symbols.Length > 0)
+            if (awaiting is { } machine)
             {
                 answered.Add(machine.Value);
                 awaiting = null;

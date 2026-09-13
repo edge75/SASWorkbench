@@ -125,6 +125,12 @@ public static class SoftwareMachineEnvironment
             if (step.Transport != ScriptTransport.Loopback)
                 return DefaultEnvironment.Create(step, options, declared, channels);
 
+            //  A case that names a round gets a floor of machines on one line rather than one
+            //  machine. It is the other axis, so what it can do is different and is not smoothed
+            //  over: see Floor below for what a floor deliberately does not provide.
+            if (step.Round.Count > 1)
+                return Floor(step, channels);
+
             var bus = new LoopbackBus();
             FakeEgmOptions settings = (machineOptions ?? new FakeEgmOptions()) with
             {
@@ -199,6 +205,45 @@ public static class SoftwareMachineEnvironment
                 },
             };
         };
+
+    /// <summary>
+    /// A floor of software machines on one multi-drop line, for a case that names a round.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately without stimulus. A floor has no "the machine" to drive, and driving the first
+    /// one because it is first is exactly the silent choice this project refuses everywhere else —
+    /// a case would pass having stimulated a machine it never named. So a step that needs stimulus
+    /// skips with that reason until driving a named machine on a floor exists.
+    /// </para>
+    /// <para>
+    /// Also without a second channel. A channel splits one machine between hosts and a round
+    /// splits one host between machines; a case that wants both is asking for something nothing
+    /// here builds yet, and it is told so rather than given one of the two.
+    /// </para>
+    /// </remarks>
+    private static ScriptEnvironment Floor(ConnectStep step, MachineChannelDeclaration? channels)
+    {
+        if (channels is not null)
+        {
+            throw new TransportRefusedException(
+                "a case cannot both name a round of machines and divide one machine between "
+                + "channels: the first splits a host between machines and the second splits a "
+                + "machine between hosts, and nothing here builds both at once yet.");
+        }
+
+        SoftwareFloor floor = SoftwareFloor.Of(step.Round.Count, step.Round[0]);
+        var stimulus = new NoStimulusBackend();
+
+        return new ScriptEnvironment(
+            floor.Host, stimulus, stimulus.Capabilities, floor)
+        {
+            //  Every machine on this floor answers everything on the one channel it has, which is
+            //  what SoftwareFloor builds. Reported for the first, because that is the arrangement
+            //  the host's provenance describes and they are all alike.
+            Channels = floor.Machines[0].Channels,
+        };
+    }
 
     /// <summary>Closes the extra buses a second and third host needed.</summary>
     private sealed class Closing(List<LoopbackBus> buses) : IDisposable

@@ -272,8 +272,13 @@ public sealed class ExtendedLogWriter : IReportWriter
         string channel = packet.Channel == SasChannel.One ? "  " : $"c{(int)packet.Channel}";
         string margin = packet.Purpose is null ? string.Empty : $"   [host's own: {packet.Purpose}]";
 
+        // Which machine, in the same column whether or not the record knows. A blank here is a
+        // record that did not carry one, and it must not be mistaken for machine $01 - across a
+        // round that is the difference between a log and a pile of bytes.
+        string machine = packet.Address is { } at ? $"${at}" : "   ";
+
         builder.AppendLine(
-            $"  #{packet.Sequence,-5} {arrow} {channel} {packet.At.TotalMilliseconds,9:F1}ms  "
+            $"  #{packet.Sequence,-5} {arrow} {channel} {machine} {packet.At.TotalMilliseconds,9:F1}ms  "
             + $"{packet.Hex}{margin}");
         builder.AppendLine($"        {packet.Headline}");
 

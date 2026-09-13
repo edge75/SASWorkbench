@@ -47,6 +47,7 @@ public sealed class WireLog
     public void Record(
         WireDirection direction,
         SasChannel channel,
+        SasAddress? address,
         ReadOnlySpan<SasSymbol> symbols,
         TimeSpan elapsed,
         string? note)
@@ -60,6 +61,7 @@ public sealed class WireLog
             slot.Sequence = _sequence++;
             slot.Direction = direction;
             slot.Channel = channel;
+            slot.Address = address;
             slot.Elapsed = elapsed;
             slot.Note = note;
             slot.Length = Math.Min(symbols.Length, slot.Symbols.Length);
@@ -88,7 +90,10 @@ public sealed class WireLog
                     slot.Channel,
                     slot.Elapsed,
                     slot.Symbols[..slot.Length].ToArray(),
-                    slot.Truncated ? $"{slot.Note} (truncated)".TrimStart() : slot.Note));
+                    slot.Truncated ? $"{slot.Note} (truncated)".TrimStart() : slot.Note)
+                {
+                    Address = slot.Address,
+                });
             }
 
             return records;
@@ -111,6 +116,7 @@ public sealed class WireLog
         public long Sequence;
         public WireDirection Direction;
         public SasChannel Channel;
+        public SasAddress? Address;
         public TimeSpan Elapsed;
         public int Length;
         public bool Truncated;

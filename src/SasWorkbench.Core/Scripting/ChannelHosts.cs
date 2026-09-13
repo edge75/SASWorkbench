@@ -57,6 +57,38 @@ public sealed class ChannelHosts : IDisposable
     /// <summary>Records that the arrangement this case needs is not available.</summary>
     public void Block(string reason) => Blocked ??= reason;
 
+    /// <summary>
+    /// Which machine of the current host's round the steps that follow are talking to, or null
+    /// while a round of more than one has not been told.
+    /// </summary>
+    /// <remarks>
+    /// Null is not a default to be filled in. On a round, a command sent to whichever machine the
+    /// cycle had reached would be answered correctly by the wrong machine, so the case is refused
+    /// until it says which — the same rule the poll engine enforces, kept here too so a script
+    /// hears it as a step that skipped rather than as a poll that was not sent.
+    /// </remarks>
+    public SasAddress? Machine { get; private set; }
+
+    /// <summary>
+    /// Moves to another machine in the current host's round, or says why it cannot.
+    /// </summary>
+    public bool TryUseMachine(SasAddress address, out string? refusal)
+    {
+        refusal = null;
+        IReadOnlyList<SasAddress> round = Engine.Round;
+
+        if (round.Contains(address))
+        {
+            Machine = address;
+            return true;
+        }
+
+        refusal = $"this host does not poll ${address}; it polls "
+                  + string.Join(", ", round.Select(a => $"${a}"))
+                  + ". Name one of those, or widen the round on 'host connect'.";
+        return false;
+    }
+
     /// <summary>Takes a host that has already been built, and makes it the current one.</summary>
     public void Add(SasChannel channel, PollEngine engine, ClockBase clock)
     {
@@ -64,6 +96,12 @@ public sealed class ChannelHosts : IDisposable
 
         _hosts[channel] = new Host(engine, clock);
         Current = channel;
+
+        // A host on one machine has nothing to choose between, so the steps that follow talk to it
+        // without saying so — which is every case written before rounds existed. A host on several
+        // starts with none chosen, so the first step that needs one is refused rather than sent
+        // somewhere arbitrary.
+        Machine = engine.Round.Count == 1 ? engine.Round[0] : null;
     }
 
     /// <summary>
@@ -80,6 +118,11 @@ public sealed class ChannelHosts : IDisposable
         if (_hosts.ContainsKey(channel))
         {
             Current = channel;
+
+            // The machine is a property of the host, not of the case, so moving between hosts
+            // moves to that host's own choice rather than carrying one host's machine to another.
+            IReadOnlyList<SasAddress> round = _hosts[channel].Engine.Round;
+            Machine = round.Count == 1 ? round[0] : null;
             return true;
         }
 

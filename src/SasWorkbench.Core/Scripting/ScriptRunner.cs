@@ -321,6 +321,7 @@ public sealed class ScriptRunner
         var engineOptions = new PollEngineOptions
         {
             Address = connect.Address,
+            Addresses = connect.Round,
             Channel = connect.Channel,
             PollInterval = interval,
             ResponseTimeout = _options.ResponseTimeout,
@@ -340,7 +341,12 @@ public sealed class ScriptRunner
             {
                 opened = new PollEngine(
                     transport,
-                    engineOptions with { Address = step.Address, Channel = step.Channel });
+                    engineOptions with
+                    {
+                        Address = step.Address,
+                        Addresses = step.Round,
+                        Channel = step.Channel,
+                    });
             }
             catch (TransportRefusedException refusal)
             {
@@ -350,8 +356,8 @@ public sealed class ScriptRunner
             //  The engine keeps its own clock, so its zero is marked on the session clock before
             //  it starts and every record it produces is converted before joining the stream.
             ClockBase clock = Log.Clock.Mark();
-            opened.Wire += (direction, channel, symbols, elapsed, note) =>
-                Log.Wire(direction, channel, symbols, elapsed, clock, note);
+            opened.Wire += (direction, channel, address, symbols, elapsed, note) =>
+                Log.Wire(direction, channel, address, symbols, elapsed, clock, note);
             opened.LinkStateChanged += state =>
                 Log.Link(state, step.Channel, clock, opened.Elapsed);
             opened.ExceptionReported += report =>
@@ -500,6 +506,27 @@ public sealed class ScriptRunner
                             ? new StepResult(use.Location, use.Describe(), Verdict.Pass,
                                 At: stopwatch.Elapsed)
                             : Unavailable(use, stopwatch.Elapsed, refusal!),
+
+                        UseMachineStep onto =>
+                            hosts.TryUseMachine(onto.Address, out string? notPolled)
+                                ? new StepResult(onto.Location, onto.Describe(), Verdict.Pass,
+                                    At: stopwatch.Elapsed)
+                                : Unavailable(onto, stopwatch.Elapsed, notPolled!),
+
+                        //  A send names its machine, or takes the one the case moved to. On a round
+                        //  of more than one with neither, it is refused rather than sent to
+                        //  whichever machine the cycle had reached.
+                        SendLongPollStep send when send.To is null && hosts.Machine is null =>
+                            Unavailable(send, stopwatch.Elapsed,
+                                $"this host polls {hosts.Engine.Round.Count} machines and this "
+                                + "case has not said which one to send to. Add 'host machine "
+                                + $"<address>' before it, or 'to <address>' after it. It polls "
+                                + string.Join(", ", hosts.Engine.Round.Select(a => $"${a}")) + "."),
+
+                        SendLongPollStep send =>
+                            RunStep(send with { To = send.To ?? hosts.Machine }, hosts.Engine,
+                                environment, exceptions, test, baselines, window, answered, printed,
+                                stopwatch.Elapsed),
 
                         _ => RunStep(step, hosts.Engine, environment, exceptions,
                             test, baselines, window, answered, printed, stopwatch.Elapsed),
@@ -775,7 +802,7 @@ public sealed class ScriptRunner
     private static StepResult Send(
         SendLongPollStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
     {
-        LongPollResult result = engine.Execute(step.Command, step.Data);
+        LongPollResult result = engine.Execute(step.Command, step.Data, to: step.To);
         Verdict verdict = result.Succeeded ? Verdict.Pass : Verdict.Fail;
 
         if (result.Succeeded)

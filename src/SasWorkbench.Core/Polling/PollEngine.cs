@@ -60,6 +60,14 @@ public sealed class PollEngine : IDisposable
     // transaction — the poll, the reply, the rejection, the event — is against this and not
     // against whichever machine the options happen to name first.
     private SasAddress _polling;
+
+    // Which machine the record being written belongs to, which is not always the one being polled.
+    // A synchronisation poll is addressed to nobody, and symbols drained off the line before a poll
+    // answered some earlier transaction — attributing either to the machine about to be polled
+    // would put another machine's traffic under its name, which is the one thing a floor log must
+    // not do. Null means not known, and a reader must read it that way.
+    private SasAddress? _attributed;
+
     private int _next;
     private long _rounds;
 
@@ -357,6 +365,8 @@ public sealed class PollEngine : IDisposable
 
     private void RunPollCycle()
     {
+        _attributed = null;
+
         if (_options.SyncPollEvery > 0 && _pollsSinceSync % _options.SyncPollEvery == 0)
         {
             int length = HostMessage.WriteSyncPoll(_outbound);
@@ -383,6 +393,7 @@ public sealed class PollEngine : IDisposable
 
         int pollLength = HostMessage.WriteGeneralPoll(_outbound, _polling);
         Resynchronise();
+        _attributed = _polling;
         SendAndRecord(pollLength, "general poll");
         Interlocked.Increment(ref _generalPolls);
 
@@ -502,6 +513,8 @@ public sealed class PollEngine : IDisposable
             _pendingReady = false;
         }
 
+        _attributed = null;
+
         // A machine that has not been resynchronised ignores an addressed poll, so keep sending
         // the synchronisation poll ahead of long polls too.
         if (_options.SyncPollEvery > 0)
@@ -517,6 +530,7 @@ public sealed class PollEngine : IDisposable
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();
+        _attributed = _polling;
         SendAndRecord(length, WirePurpose.Label($"long poll ${command:X2}", purpose)!);
         Interlocked.Increment(ref _longPolls);
 
@@ -605,8 +619,8 @@ public sealed class PollEngine : IDisposable
     {
         ReadOnlySpan<SasSymbol> message = _outbound.AsSpan(0, length);
         _link.Send(message);
-        WireLog.Record(WireDirection.Transmit, _options.Channel, message, _clock.Elapsed, note);
-        Wire?.Invoke(WireDirection.Transmit, _options.Channel, message, _clock.Elapsed, note);
+        WireLog.Record(WireDirection.Transmit, _options.Channel, _attributed, message, _clock.Elapsed, note);
+        Wire?.Invoke(WireDirection.Transmit, _options.Channel, _attributed, message, _clock.Elapsed, note);
     }
 
     private void RecordReceive(int received, bool wakeup, string? note)
@@ -618,8 +632,8 @@ public sealed class PollEngine : IDisposable
             _outbound[i] = wakeup ? SasSymbol.Address(_inbound[i]) : SasSymbol.Data8(_inbound[i]);
 
         ReadOnlySpan<SasSymbol> message = _outbound.AsSpan(0, length);
-        WireLog.Record(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
-        Wire?.Invoke(WireDirection.Receive, _options.Channel, message, _clock.Elapsed, note);
+        WireLog.Record(WireDirection.Receive, _options.Channel, _attributed, message, _clock.Elapsed, note);
+        Wire?.Invoke(WireDirection.Receive, _options.Channel, _attributed, message, _clock.Elapsed, note);
     }
 
     /// <summary>
@@ -736,8 +750,8 @@ public sealed class PollEngine : IDisposable
         ReadOnlySpan<SasSymbol> kept = _discardScratch.AsSpan(0, Math.Min(discarded, _discardScratch.Length));
         string note = $"discarded {discarded} symbol{(discarded == 1 ? string.Empty : "s")} "
                       + "left on the line by an answer that came too late";
-        WireLog.Record(WireDirection.Receive, _options.Channel, kept, _clock.Elapsed, note);
-        Wire?.Invoke(WireDirection.Receive, _options.Channel, kept, _clock.Elapsed, note);
+        WireLog.Record(WireDirection.Receive, _options.Channel, _attributed, kept, _clock.Elapsed, note);
+        Wire?.Invoke(WireDirection.Receive, _options.Channel, _attributed, kept, _clock.Elapsed, note);
     }
 
     private void MarkHeard()

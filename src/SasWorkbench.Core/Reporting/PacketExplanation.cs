@@ -68,6 +68,14 @@ public sealed record PacketExplanation
     /// <summary>Which channel carried it.</summary>
     public required SasChannel Channel { get; init; }
 
+    /// <summary>Which machine it was to or from, when the record says.</summary>
+    /// <remarks>
+    /// Null means the record did not carry one, which is what an imported capture and an older
+    /// run look like. It is never filled in from the bytes: a general poll's answer has no address
+    /// in it at all.
+    /// </remarks>
+    public SasAddress? Address { get; init; }
+
     /// <summary>When, on whichever clock the record measures.</summary>
     public required TimeSpan At { get; init; }
 

@@ -62,7 +62,7 @@ public class SessionLogTests
         var log = new SessionLog();
         SasSymbol[] symbols = [SasSymbol.Address(0x01), SasSymbol.Data8(0x1F)];
 
-        log.Wire(WireDirection.Transmit, SasChannel.One, symbols, TimeSpan.FromMilliseconds(100),
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, symbols, TimeSpan.FromMilliseconds(100),
             ClockBase.Session, "long poll $1F");
 
         SessionEvent record = Assert.Single(log.Snapshot());
@@ -79,8 +79,8 @@ public class SessionLogTests
         var log = new SessionLog();
         SasSymbol[] symbols = [SasSymbol.Address(0x01)];
 
-        log.Wire(WireDirection.Transmit, SasChannel.One, symbols, TimeSpan.Zero, ClockBase.Session);
-        log.Wire(WireDirection.Transmit, SasChannel.Two, symbols, TimeSpan.FromMilliseconds(1),
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, symbols, TimeSpan.Zero, ClockBase.Session);
+        log.Wire(WireDirection.Transmit, SasChannel.Two, null, symbols, TimeSpan.FromMilliseconds(1),
             ClockBase.Session);
 
         Assert.Equal(
@@ -126,7 +126,7 @@ public class SessionLogTests
     public void EventsOutsideATestCarryNoTestName()
     {
         var log = new SessionLog();
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)], TimeSpan.Zero,
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(1)], TimeSpan.Zero,
             ClockBase.Session);
         log.TestStarted("a test", SourceLocation.None, SasChannel.One,
             TimeSpan.FromMilliseconds(1));
@@ -138,7 +138,7 @@ public class SessionLogTests
                 Verdict = Verdict.Pass,
             },
             SasChannel.One);
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(1)],
             TimeSpan.FromSeconds(30), ClockBase.Session);
 
         IReadOnlyList<SessionEvent> events = log.Snapshot();
@@ -168,9 +168,9 @@ public class SessionLogTests
     public void AnEventThatHappenedEarlierIsPlacedBeforeOneAlreadyHeld()
     {
         var log = new SessionLog();
-        SessionEvent held = log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)],
+        SessionEvent held = log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(1)],
             TimeSpan.FromMilliseconds(100), ClockBase.Session);
-        SessionEvent arrivedLate = log.Wire(WireDirection.Receive, SasChannel.One,
+        SessionEvent arrivedLate = log.Wire(WireDirection.Receive, SasChannel.One, null,
             [SasSymbol.Data8(2)], TimeSpan.FromMilliseconds(40), ClockBase.Session);
 
         IReadOnlyList<SessionEvent> ordered = log.Snapshot();
@@ -184,7 +184,7 @@ public class SessionLogTests
     public void ALaneFilterKeepsOnlyTheLanesAsked()
     {
         var log = new SessionLog();
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(1)], TimeSpan.Zero,
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(1)], TimeSpan.Zero,
             ClockBase.Session);
         log.Prompt("insert a note", SasChannel.One, at: TimeSpan.FromMilliseconds(1));
 
@@ -206,11 +206,11 @@ public class SessionStamperTests
     {
         var log = new SessionLog();
         log.TestStarted("a loop", SourceLocation.None, SasChannel.One, TimeSpan.FromSeconds(1));
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1000), ClockBase.Session);
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1200), ClockBase.Session);
-        log.Wire(WireDirection.Receive, SasChannel.One, [SasSymbol.Data8(0x18)],
+        log.Wire(WireDirection.Receive, SasChannel.One, null, [SasSymbol.Data8(0x18)],
             TimeSpan.FromMilliseconds(1230.7), ClockBase.Session);
         return log.Snapshot();
     }
@@ -245,11 +245,11 @@ public class SessionStamperTests
         // The reply sits between the two polls, so the poll period the next poll reports still
         // measures 200 ms while the message gap it reports is only the remainder.
         var log = new SessionLog();
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1000), ClockBase.Session);
-        log.Wire(WireDirection.Receive, SasChannel.One, [SasSymbol.Data8(0x18)],
+        log.Wire(WireDirection.Receive, SasChannel.One, null, [SasSymbol.Data8(0x18)],
             TimeSpan.FromMilliseconds(1030), ClockBase.Session);
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1200), ClockBase.Session);
         IReadOnlyList<SessionEvent> events = log.Snapshot();
 
@@ -276,7 +276,7 @@ public class SessionStamperTests
     public void TheFirstEventReadsItsOwnTimeRatherThanZero()
     {
         var log = new SessionLog();
-        log.Wire(WireDirection.Receive, SasChannel.One, [SasSymbol.Data8(0x18)],
+        log.Wire(WireDirection.Receive, SasChannel.One, null, [SasSymbol.Data8(0x18)],
             TimeSpan.FromMilliseconds(42), ClockBase.Session);
 
         Assert.Equal(
@@ -288,11 +288,11 @@ public class SessionStamperTests
     public void ThePollPeriodIsPerChannel()
     {
         var log = new SessionLog();
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1000), ClockBase.Session);
-        log.Wire(WireDirection.Transmit, SasChannel.Two, [SasSymbol.Address(0x82)],
+        log.Wire(WireDirection.Transmit, SasChannel.Two, null, [SasSymbol.Address(0x82)],
             TimeSpan.FromMilliseconds(1100), ClockBase.Session);
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1200), ClockBase.Session);
 
         IReadOnlyList<(SessionEvent Event, TimeSpan Offset)> stamped =
@@ -317,7 +317,7 @@ public class SessionStamperTests
     {
         var origin = new DateTimeOffset(2026, 9, 7, 21, 48, 51, TimeSpan.Zero);
         var log = new SessionLog();
-        log.Wire(WireDirection.Transmit, SasChannel.One, [SasSymbol.Address(0x81)],
+        log.Wire(WireDirection.Transmit, SasChannel.One, null, [SasSymbol.Address(0x81)],
             TimeSpan.FromMilliseconds(1230.7), ClockBase.Session);
 
         TimeSpan offset =

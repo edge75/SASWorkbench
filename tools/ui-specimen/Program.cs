@@ -294,7 +294,7 @@ internal static class Program
         foreach ((double at, WireDirection direction, string hex, string note) in Frames)
         {
             SasSymbol[] symbols = [.. hex.Split(' ').Select(Parse)];
-            log.Wire(direction, SasChannel.One, symbols, TimeSpan.FromMilliseconds(at),
+            log.Wire(direction, SasChannel.One, null, symbols, TimeSpan.FromMilliseconds(at),
                 ClockBase.Session, note.Length == 0 ? null : note);
 
             if (at == 5985)

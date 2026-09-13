@@ -96,9 +96,40 @@ public sealed record ConnectStep(
     SasAddress Address,
     SasChannel Channel) : ScriptStep(Location)
 {
-    public override string Describe() =>
-        $"connect {Transport.ToString().ToLowerInvariant()} {Target} address {Address} "
-        + $"channel {(int)Channel}";
+    /// <summary>
+    /// Every machine this host polls, in the order the round visits them.
+    /// </summary>
+    /// <remarks>
+    /// Empty for a host bound to one machine, which is what <see cref="Address"/> alone means and
+    /// what every case written before rounds existed says. A round names its machines as ranges
+    /// and lists, because a hundred of them written on a hundred lines is not a script anybody
+    /// reads.
+    /// </remarks>
+    public IReadOnlyList<SasAddress> Round { get; init; } = [];
+
+    public override string Describe()
+    {
+        string machines = Round.Count > 1
+            ? $"addresses {SasAddressRound.Describe(Round)}"
+            : $"address {Address}";
+
+        return $"connect {Transport.ToString().ToLowerInvariant()} {Target} {machines} "
+               + $"channel {(int)Channel}";
+    }
+}
+
+/// <summary>
+/// Moves the host to another machine in its round, for the steps that follow.
+/// </summary>
+/// <remarks>
+/// The address twin of <see cref="UseChannelStep"/>, and it exists for the same reason: a floor
+/// case is one sequence — read this machine's meters, move to that one, read its meters, compare —
+/// and two scripts could not express "the other machine on the same line" at all.
+/// </remarks>
+public sealed record UseMachineStep(SourceLocation Location, SasAddress Address)
+    : ScriptStep(Location)
+{
+    public override string Describe() => $"use machine {Address}";
 }
 
 /// <summary>
@@ -138,6 +169,16 @@ public sealed record SendLongPollStep(SourceLocation Location, byte Command, byt
     : ScriptStep(Location)
 {
     /// <summary>
+    /// Which machine to send it to, when the step names one rather than the case having moved.
+    /// </summary>
+    /// <remarks>
+    /// Null on a host bound to one machine, which is every case written before rounds existed. On
+    /// a round it is either this or a preceding <see cref="UseMachineStep"/>: a command sent to
+    /// whichever machine the round had reached would be answered correctly by the wrong machine.
+    /// </remarks>
+    public SasAddress? To { get; init; }
+
+    /// <summary>
     /// How the data was written, when it was written as named fields rather than as bytes.
     /// </summary>
     /// <remarks>
@@ -148,11 +189,16 @@ public sealed record SendLongPollStep(SourceLocation Location, byte Command, byt
     /// </remarks>
     public string? NamedData { get; init; }
 
-    public override string Describe() => NamedData is not null
-        ? $"send lp {Command:X2} with {NamedData}"
-        : Data.Length == 0
-            ? $"send lp {Command:X2}"
-            : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
+    public override string Describe()
+    {
+        string what = NamedData is not null
+            ? $"send lp {Command:X2} with {NamedData}"
+            : Data.Length == 0
+                ? $"send lp {Command:X2}"
+                : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
+
+        return To is { } machine ? $"{what} to {machine}" : what;
+    }
 }
 
 /// <summary>

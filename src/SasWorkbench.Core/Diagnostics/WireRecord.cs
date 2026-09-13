@@ -19,6 +19,7 @@ public enum WireDirection
 public delegate void WireObserver(
     WireDirection direction,
     SasChannel channel,
+    SasAddress? address,
     ReadOnlySpan<SasSymbol> symbols,
     TimeSpan elapsed,
     string? note);
@@ -40,13 +41,34 @@ public sealed record WireRecord(
     SasSymbol[] Symbols,
     string? Note)
 {
+    /// <summary>
+    /// Which machine this message was to or from, when the host that recorded it knew.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Recorded rather than derived, because for the traffic that matters most it cannot be
+    /// derived. A host's own message carries the address in its first byte, and so does a reply to
+    /// a long poll — but a reply to a general poll is a bare exception code and nothing else, one
+    /// byte with no address in it. Across a round of a hundred machines that is most of the
+    /// traffic, and which machine sent it is answerable only from the poll it answered.
+    /// </para>
+    /// <para>
+    /// Null where nothing established it: an imported capture whose recorder kept no address, or a
+    /// record written by a build that did not carry one. Null means <em>not known</em> and never
+    /// <em>machine one</em>, because a reader that filled it in would attribute a floor's traffic
+    /// to whichever machine happened to be first.
+    /// </para>
+    /// </remarks>
+    public SasAddress? Address { get; init; }
+
     /// <summary>Renders as the captures do: <c>1.01 0.1F</c>.</summary>
     public string ToHex() => string.Join(' ', Symbols.Select(s => s.ToString()));
 
     public override string ToString()
     {
         string arrow = Direction == WireDirection.Transmit ? "TX" : "RX";
+        string machine = Address is { } at ? $" ${at}" : string.Empty;
         string suffix = Note is null ? string.Empty : $"   {Note}";
-        return $"[{Elapsed.TotalMilliseconds,9:F2}ms] {arrow} {ToHex()}{suffix}";
+        return $"[{Elapsed.TotalMilliseconds,9:F2}ms] {arrow}{machine} {ToHex()}{suffix}";
     }
 }

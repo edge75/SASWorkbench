@@ -102,3 +102,4 @@ PHASE:M4 WAVE:W12-catalogue-breadth STATUS:complete TS:2026-09-12T23:32:47Z
 PHASE:M5 WAVE:W0-readiness-and-poll-cycle STATUS:complete TS:2026-09-13T19:06:23Z
 PHASE:M5 WAVE:W1-map-into-the-record STATUS:complete TS:2026-09-13T20:42:49Z
 PHASE:M5 WAVE:W2-round-of-addresses STATUS:complete TS:2026-09-13T21:05:37Z
+PHASE:M5 WAVE:W3-machine-on-the-record STATUS:complete TS:2026-09-13T21:56:28Z

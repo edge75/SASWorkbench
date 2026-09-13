@@ -60,6 +60,13 @@ public sealed record SessionEvent(
     /// <summary>The symbols, wakeup bits included, for a wire event.</summary>
     public IReadOnlyList<SasSymbol> Symbols { get; init; } = [];
 
+    /// <summary>Which machine this was to or from, when the host knew.</summary>
+    /// <remarks>
+    /// Null means not known, never machine one. See <see cref="Diagnostics.WireRecord.Address"/>
+    /// for why it is carried rather than worked out from the bytes.
+    /// </remarks>
+    public SasAddress? Address { get; init; }
+
     /// <summary>What the engine called this message, when it knew.</summary>
     public string? Note { get; init; }
 

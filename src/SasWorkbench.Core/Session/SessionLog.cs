@@ -63,6 +63,7 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     public SessionEvent Wire(
         WireDirection direction,
         SasChannel channel,
+        SasAddress? address,
         ReadOnlySpan<SasSymbol> symbols,
         TimeSpan sourceElapsed,
         ClockBase clockBase,
@@ -77,6 +78,7 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
             string.Join(' ', copy.Select(s => s.ToString())))
         {
             Symbols = copy,
+            Address = address,
             Note = note,
         });
     }

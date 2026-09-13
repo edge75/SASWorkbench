@@ -74,10 +74,10 @@ public sealed class HostSession : IDisposable
         // and every record it produces is converted before it joins the stream.
         _base = log.Clock.Mark();
 
-        _engine.Wire += (direction, channel, symbols, elapsed, note) =>
+        _engine.Wire += (direction, channel, address, symbols, elapsed, note) =>
         {
-            Log.Wire(direction, channel, symbols, elapsed, _base, note);
-            Wire?.Invoke(direction, channel, symbols, elapsed, note);
+            Log.Wire(direction, channel, address, symbols, elapsed, _base, note);
+            Wire?.Invoke(direction, channel, address, symbols, elapsed, note);
         };
 
         _engine.ExceptionReported += report =>

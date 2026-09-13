@@ -74,6 +74,7 @@ public sealed class PacketExplainer
             Sequence = record.Sequence,
             Direction = record.Direction,
             Channel = record.Channel,
+            Address = record.Address,
             At = record.Elapsed,
             Hex = record.ToHex(),
             Note = record.Note,

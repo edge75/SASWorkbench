@@ -417,6 +417,18 @@ public static class ScriptParser
                 test.Steps.Add(new UseChannelStep(location, moved));
                 return;
 
+            case "machine":
+                if (words.Length != 3 || !SasAddress.TryParse(words[2], out SasAddress onto)
+                    || onto.IsSync)
+                {
+                    throw new ScriptParseException(location,
+                        "expected: host machine <address>, naming one of the machines this host "
+                        + "polls. Address 00 is the synchronisation address and is not a machine.");
+                }
+
+                test.Steps.Add(new UseMachineStep(location, onto));
+                return;
+
             case "forget":
                 if (words.Length < 3 || !words[2].Equals("exceptions",
                         StringComparison.OrdinalIgnoreCase))
@@ -435,8 +447,8 @@ public static class ScriptParser
 
             default:
                 throw new ScriptParseException(location,
-                    $"'host {words[1]}' is not a host action. Expected connect, channel, poll, "
-                    + "wait, send, forget or expect");
+                    $"'host {words[1]}' is not a host action. Expected connect, channel, machine, "
+                    + "poll, wait, send, forget or expect");
         }
     }
 
@@ -460,6 +472,7 @@ public static class ScriptParser
 
         SasAddress address = SasAddress.Of(1);
         SasChannel channel = SasChannel.One;
+        IReadOnlyList<SasAddress> round = [];
         bool addressGiven = false;
 
         while (cursor < words.Length)
@@ -480,6 +493,15 @@ public static class ScriptParser
                     addressGiven = true;
                     break;
 
+                case "addresses":
+                    // A round, written as ranges and lists rather than as one line per machine.
+                    if (!SasAddressRound.TryParse(value, out round, out string? why))
+                        throw new ScriptParseException(location, why!);
+
+                    address = round[0];
+                    addressGiven = true;
+                    break;
+
                 case "channel":
                     if (!SasChannels.TryParse(value, out channel))
                         throw new ScriptParseException(location,
@@ -488,14 +510,16 @@ public static class ScriptParser
 
                 default:
                     throw new ScriptParseException(location,
-                        $"'{keyword}' is not a connect option. Expected address or channel");
+                        $"'{keyword}' is not a connect option. Expected address, addresses or "
+                        + "channel");
             }
         }
 
         if (!addressGiven)
             throw new ScriptParseException(location,
-                "host connect needs 'address <address>': a host that does not know the machine's "
-                + "address gets silence, and silence is indistinguishable from a fault");
+                "host connect needs 'address <address>' or 'addresses <round>': a host that does "
+                + "not know the machine's address gets silence, and silence is indistinguishable "
+                + "from a fault");
 
         if (transport != ScriptTransport.Loopback && target.Length == 0)
             throw new ScriptParseException(location,
@@ -506,7 +530,7 @@ public static class ScriptParser
             throw new ScriptParseException(location,
                 $"'{target}' is not an endpoint. Expected something like 127.0.0.1:7200");
 
-        return new ConnectStep(location, transport, target, address, channel);
+        return new ConnectStep(location, transport, target, address, channel) { Round = round };
     }
 
     /// <summary>
@@ -571,19 +595,49 @@ public static class ScriptParser
             throw new ScriptParseException(location,
                 $"long poll ${command:X2} is not one the gaming machine library implements");
 
+        // 'to <address>' may close any form of the step, so it is taken off the end first and the
+        // rest is read as it always was.
+        words = TakeTarget(words, location, out SasAddress? to);
+
         if (words.Length > 4 && words[4].Equals("with", StringComparison.OrdinalIgnoreCase))
-            return ReadSendWithFields(words, location, command);
+            return ReadSendWithFields(words, location, command) with { To = to };
 
         byte[] data = [];
         if (words.Length > 4)
         {
             if (words.Length != 6 || !words[4].Equals("data", StringComparison.OrdinalIgnoreCase))
                 throw new ScriptParseException(location,
-                    "expected: host send lp <code> [data <hex> | with <field>=<value> ...]");
+                    "expected: host send lp <code> [data <hex> | with <field>=<value> ...] "
+                    + "[to <address>]");
             data = ParseHex(words[5], location);
         }
 
-        return new SendLongPollStep(location, command, data);
+        return new SendLongPollStep(location, command, data) { To = to };
+    }
+
+    /// <summary>
+    /// Takes a closing <c>to &lt;address&gt;</c> off a send, leaving the rest of the step as it was.
+    /// </summary>
+    /// <remarks>
+    /// At the end rather than after the code, so a step reads as a sentence — send this, with
+    /// these fields, to that machine — and so every form of the step gains it without any of them
+    /// being reordered.
+    /// </remarks>
+    private static string[] TakeTarget(string[] words, SourceLocation location, out SasAddress? to)
+    {
+        to = null;
+        if (words.Length < 2 || !words[^2].Equals("to", StringComparison.OrdinalIgnoreCase))
+            return words;
+
+        if (!SasAddress.TryParse(words[^1], out SasAddress named) || named.IsSync)
+        {
+            throw new ScriptParseException(location,
+                $"'{words[^1]}' is not a machine this host could send to. Expected 01 to 7F; "
+                + "address 00 is the synchronisation address and no machine answers to it.");
+        }
+
+        to = named;
+        return words[..^2];
     }
 
     /// <summary>
@@ -1369,6 +1423,7 @@ public static class ScriptParser
 
     private static bool IsKeyword(string word) =>
         word.Equals("address", StringComparison.OrdinalIgnoreCase)
+        || word.Equals("addresses", StringComparison.OrdinalIgnoreCase)
         || word.Equals("channel", StringComparison.OrdinalIgnoreCase);
 
     private static string StripComment(string line)
