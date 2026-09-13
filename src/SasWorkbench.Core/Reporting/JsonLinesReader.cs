@@ -35,11 +35,40 @@ public static class JsonLinesReader
         public bool IsEmpty => Report.Tests.Count == 0;
     }
 
-    /// <summary>Reads a run from a file.</summary>
+    /// <summary>
+    /// Reads a run from a file, whether it is plain JSON lines or a session container.
+    /// </summary>
+    /// <remarks>
+    /// Decided by what is in the file rather than by its name, and here rather than in each
+    /// command, so every reader of a run — the extended log, a replay, a recording turned into a
+    /// script — takes a container without any of them knowing the format exists. That is what
+    /// keeps the container a framing over the canonical record instead of a second kind of run.
+    /// </remarks>
     public static Result ReadFile(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        return Read(File.ReadLines(path));
+        return IsContainer(path) ? ReadContainer(path) : Read(File.ReadLines(path));
+    }
+
+    /// <summary>Whether a file begins with the container's own mark.</summary>
+    public static bool IsContainer(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        using FileStream file = File.OpenRead(path);
+        if (file.Length < SessionContainer.Magic.Length)
+            return false;
+
+        Span<byte> head = stackalloc byte[SessionContainer.Magic.Length];
+        file.ReadExactly(head);
+        return head.SequenceEqual(SessionContainer.Magic);
+    }
+
+    private static Result ReadContainer(string path)
+    {
+        using FileStream file = File.OpenRead(path);
+        SessionContainer.Directory directory = SessionContainer.ReadDirectory(file);
+        return Read(SessionContainer.ReadAll(file, directory));
     }
 
     /// <summary>Reads a run from the lines of one.</summary>

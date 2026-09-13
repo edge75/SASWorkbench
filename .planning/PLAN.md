@@ -508,7 +508,9 @@ See `docs/releasing.md`.
 be tested; this one turns that into a suite that validates an entire gaming machine across
 **every** SAS feature, from the test-case documents the user holds.
 
-**The documents arrive when this milestone starts, not before.** The user has several PDFs
+**The documents arrived on 2026-09-13**, in `SAS test script/` — eleven GSA EGM test-script PDFs,
+gitignored so they stay on the user's machine. They are read when this milestone starts and not
+before, which is what the rest of this paragraph is about. The user has several PDFs
 enumerating the cases. Writing scripts against a guess at them and reconciling later costs more
 than waiting, and a case list invented here would quietly become the definition of "complete".
 So the first task is to read them, and the second is to say plainly which cases this build can

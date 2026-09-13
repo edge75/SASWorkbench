@@ -320,6 +320,12 @@ them. Scheduled as M7 in `PLAN.md`, after the breadth work that gives it a full 
 The same rule as D4 applies to those documents: their content informs what we test, and every
 word we ship is our own.
 
+**The documents arrived on 2026-09-13.** Eleven GSA EGM test-script PDFs, in
+`SAS test script/` — an intro plus required accounting, advanced accounting, ticketing, real-time
+events, progressives, bonusing, cashless, tournament, authentication, and miscellaneous/legacy.
+The directory is gitignored (`.gitignore:23`), so they never leave the user's machine, and D4's
+rule stands: they decide what we test and not one word of what we ship.
+
 ---
 
 # Decisions 32–33

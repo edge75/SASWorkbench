@@ -272,4 +272,68 @@ public class SessionContainerTests
         Assert.Equal(0, directory.Lines);
         Assert.Equal("01-64", directory.Header.Round);
     }
+
+    // ---- read like any other run ---------------------------------------------------------------
+
+    /// <summary>
+    /// A container is read by the ordinary run reader, without anything being told it is one.
+    /// </summary>
+    /// <remarks>
+    /// Decided here rather than in each command, so every reader of a run — the extended log, a
+    /// replay, a recording turned into a script — takes a container without knowing the format
+    /// exists. That is what keeps it a framing over the canonical record rather than a second kind
+    /// of run with its own set of tools.
+    /// </remarks>
+    [Fact]
+    public void AContainerIsReadByTheOrdinaryRunReader()
+    {
+        string[] run =
+        [
+            """{"kind":"run","startedAt":"2026-09-13T20:00:00+00:00","durationMs":1000,"provenance":[{"transport":"multi-drop loopback","fidelity":"Proven","stimulus":"None","channels":"channels 1@01","channelsRead":true}],"capabilities":[]}""",
+            """{"kind":"test","name":"a floor","file":"floor.sas","line":1,"verdict":"Pass","durationMs":900}""",
+            """{"kind":"wire","test":"a floor","sequence":0,"direction":"Transmit","channel":1,"address":7,"atMs":10,"symbols":"1.87"}""",
+        ];
+
+        string path = Path.Combine(Path.GetTempPath(), $"container-{Guid.NewGuid():N}.saslog");
+        try
+        {
+            using (FileStream file = File.Create(path))
+                SessionContainer.Write(run, file, Header(), 1024);
+
+            Assert.True(JsonLinesReader.IsContainer(path));
+
+            JsonLinesReader.Result read = JsonLinesReader.ReadFile(path);
+
+            Assert.Empty(read.Problems);
+            Assert.Equal("a floor", read.Report.Tests[0].Name);
+            Assert.True(read.Report.Provenance[0].ChannelsRead);
+            Assert.Equal(
+                SasWorkbench.Core.Wire.SasAddress.Of(7),
+                read.Report.Tests[0].Wire[0].Address);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>Plain JSON lines are still plain JSON lines, and are not taken for a container.</summary>
+    [Fact]
+    public void APlainRunIsNotTakenForAContainer()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"plain-{Guid.NewGuid():N}.jsonl");
+        try
+        {
+            File.WriteAllText(path,
+                """{"kind":"test","name":"t","file":"t.sas","line":1,"verdict":"Pass","durationMs":1}"""
+                + Environment.NewLine);
+
+            Assert.False(JsonLinesReader.IsContainer(path));
+            Assert.Equal("t", JsonLinesReader.ReadFile(path).Report.Tests[0].Name);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }
