@@ -36,6 +36,8 @@ internal static class Help
                                                  and say what the differences mean
               sasctl record <file> [options]     turn a recorded session into a script, and say
                                                  what a recording cannot capture
+              sasctl floor [options]             bring up a floor of software machines on one
+                                                 line and measure what a round of them costs
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -187,6 +189,31 @@ internal static class Help
 
               It asserts nothing, so like an import it comes back as a run in which nothing was
               tested rather than as a pass.
+
+            FLOOR
+              --machines <n>          how many software machines to bring up, 1 to 127
+                                      (default: 8)
+              --rounds <n>            how many complete rounds to time  (default: 10)
+              --poll <duration>       the interval between polls  (default: 0, so the round's own
+                                      cost is what is measured rather than an interval a host was
+                                      told to keep)
+              --no-sync-polls         stop sending a general poll of address zero ahead of each
+                                      general poll
+
+              One host walking a round of addresses on one multi-drop line, which is the shape a
+              floor controller has: a line carries one transaction at a time, so a round costs the
+              sum of its machines and not the longest of them. Several engines on several links
+              would report a far better number about a different arrangement.
+
+              The round is timed between two polls of the same machine, so everything the host did
+              in between is inside it. A machine that answered nothing is named and the command
+              fails, because the round still cost a round and that machine was not in it.
+
+              --no-sync-polls is sound in principle - in a round, the next machine's poll is
+              already a poll for another address, which is what the synchronisation poll exists to
+              provide - and it is unverified against a real machine, because neither our software
+              machine nor the gaming machine library enforces the rule it relies on. It is offered
+              so the two can be measured against each other, not as a default.
 
             EVENTS
               --tcp <host:port>       reach the machine over TCP, listening unless --dial

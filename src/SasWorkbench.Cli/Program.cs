@@ -33,6 +33,7 @@ try
         "transactions" => TransactionsCommand.Execute(line),
         "record" => RecordCommand.Execute(line),
         "events" => EventsCommand.Execute(line),
+        "floor" => FloorCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

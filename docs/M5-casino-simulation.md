@@ -141,3 +141,118 @@ is one timer wait per machine, not a hundred machines' worth of traffic.
 
 The number to re-measure, once a host can poll a round, is the round itself. A per-poll figure
 multiplied by a hundred is an estimate like any other.
+
+> **Superseded by the measurement in W2 below.** The round of a hundred was measured at **6.27 s**,
+> not 3.1 s. The 31 ms above is a host-message-to-reply pair, and a poll cycle sends two host
+> messages for one such pair — so the synchronisation poll's own 20 ms was outside every sample.
+> The table above is kept as it was written; the corrected figure is the measured one.
+
+---
+
+## W1 — the map into the record
+
+The audit's finding, fixed. The arrangement travelled to the terminal and was dropped from the
+canonical artefact, so a saved run could not say which host should have sent a poll.
+
+Before changing the shape, every writer and reader was found rather than the first one:
+
+| what | where | state before |
+|---|---|---|
+| constructs provenance | `ScriptRunner` | set the map |
+| | `ReplayCommand` · `SweepCommand` · `EventsCommand` | did not |
+| | `CaptureImporter` | did not, correctly — an import has no map |
+| | `JsonLinesReader` | did not — **the gap** |
+| decides the record's shape | `JsonLinesReportWriter`, run level and test level | dropped three fields |
+| renders it | extended log · HTML · Markdown · JUnit · the command line · two view models | — |
+
+Two things fell out that the audit had not named, and both are the same defect in more places:
+
+* `RunProvenance.ToString()` never rendered the refusal, so **a machine that would not take the
+  arrangement it was given read exactly like one that did**. It says so now.
+* HTML, Markdown and JUnit each build their own field list, so they would have kept dropping the
+  map after the record carried it. All three carry it now.
+
+The arrangement is written as the machine describes it and read back by the same parser that
+writes it, so a run's provenance line can be pasted back in to rebuild the arrangement. A record
+that names one but does not say it was read from the machine is read as **declared**, never as
+read: claiming a reading the file never made would turn what a case asserted into what a machine
+confirmed. An arrangement this build cannot parse is reported rather than passed through.
+
+The property is guarded where it cannot be forgotten. The arrangement went into the sample run
+that the live-versus-recorded equality test renders both ways, so a field dropped from the record
+fails there rather than in a test somebody has to remember to write.
+
+---
+
+## W2 — a host that polls a round
+
+### The design, and why it is not a preference
+
+SAS is RS-485 multi-drop: one host port, one pair, up to 127 machines, the address byte choosing
+who speaks. Two machines answering together collide, so **one transaction at a time is all the wire
+allows**. That settles the question the milestone opened with:
+
+| shape | round | what it measures |
+|---|---|---|
+| **one engine cycling N addresses, one line** | **N × per-machine, serial** | a floor round |
+| N engines, N links | ≈ one machine's cost, whatever N | how many links a process can drive — each engine still polls one address |
+
+A round is therefore one engine cycling addresses. The N-engine shape is not a faster round; it is
+a different measurement, and reporting it as the round would put 31 ms against a hundred machines.
+
+### What it took
+
+* **A multi-drop line.** `MultidropLoopbackBus`: one host end, N machine ends, everything the host
+  writes reaching every machine. The software machine needed no change — it already drops a general
+  poll and a long poll addressed elsewhere, which is the behaviour that makes a round mean anything.
+* **The address became the transaction's, not the engine's.** Six sites, not the five the first
+  reading found: the general poll, the rejection test, the real-time event address check, the long
+  poll's frame, `CouldAnswer`, and — the one that was missed — `Interpret`, where a reply from a
+  named machine was read as **coming from the wrong address**. It failed as a test rather than as a
+  run, which is the argument for writing the test first.
+* **A long poll on a round names its machine, or is refused.** Sent without a name it would land on
+  whichever machine the cycle had reached, and that machine would answer it correctly — a case that
+  passes while addressing the wrong machine is worse than one that does not run.
+
+### The round, measured
+
+`sasctl floor --machines <n> --rounds <n>`, timed between two polls of the same machine so
+everything the host did in between is inside the number. Poll interval zero, because a floor host
+with a hundred machines cannot keep 200 ms per machine — that is twenty seconds a round.
+
+| machines | round, as this build polls | per machine | round, no sync polls | per machine |
+|---|---|---|---|---|
+| 4 | 248.7 ms | 62.17 ms | 124.7 ms | 31.17 ms |
+| 8 | 498.1 ms | 62.26 ms | 248.4 ms | 31.05 ms |
+| **100** | **6.27 s** | 62.73 ms | **3.15 s** | 31.49 ms |
+
+**The hundred is measured, not extrapolated.** All 100 machines answered, nothing was dropped on
+the line, and the per-machine cost is flat from 4 to 100 — which is the serial model confirmed
+rather than assumed.
+
+### The prediction was wrong by a factor of two, and here is why
+
+W0 predicted **3.1 s** for a hundred. The measured round is **6.27 s**.
+
+The 31 ms of W0 was measured over *host-message-to-machine-reply pairs*. A poll cycle sends **two**
+host messages and produces **one** pair: a synchronisation poll of address zero, a 20 ms sleep to
+keep the two apart, then the general poll and its reply with its own quiet-gap wait. The pair
+measurement saw the second half and never the first, so the sync poll's own 20 ms was outside every
+sample. Two quiet gaps per machine, not one — 62 ms, and 6.27 s for a hundred.
+
+This is what measuring the round rather than multiplying the per-poll figure was for.
+
+### The 20 ms gap is untouched, and the halving is offered rather than taken
+
+`--no-sync-polls` halves the round, and it is **not** the default.
+
+The reasoning is sound: a synchronisation poll exists because a host that polls one address never
+shows a machine another address, and in a round the next machine's poll *is* that other address.
+The reason it is not the default is that this was checked rather than assumed, and **neither peer
+enforces the rule it leans on**. Our software machine models no such state at all. The gaming
+machine library resets its loop-break timer on *any* received address byte, so it does not require
+a different one either. So the halving is unverified against a real machine, and a real machine is
+the only thing that can settle it.
+
+The quiet gap itself stays at 20 ms. It is what decides a message has ended, and nothing here
+touched it.

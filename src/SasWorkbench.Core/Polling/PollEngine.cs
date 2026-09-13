@@ -48,11 +48,20 @@ public sealed class PollEngine : IDisposable
     private volatile bool _running;
     private volatile bool _pendingReady;
     private byte _pendingCommand;
+    private SasAddress _pendingAddress;
     private string? _pendingPurpose;
     private bool _pendingCheckSequence;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
     private long _pendingTicket;
+
+    // The machine the transaction in flight is for. On a host bound to one machine it never
+    // changes; on a round it is the address the cycle has reached, and every address check in the
+    // transaction — the poll, the reply, the rejection, the event — is against this and not
+    // against whichever machine the options happen to name first.
+    private SasAddress _polling;
+    private int _next;
+    private long _rounds;
 
     private long _syncPolls;
     private long _generalPolls;
@@ -80,6 +89,7 @@ public sealed class PollEngine : IDisposable
 
         _link = new SasLink(transport);
         _options = options;
+        _polling = options.Round[0];
         WireLog = new WireLog(options.WireLogCapacity);
     }
 
@@ -92,8 +102,14 @@ public sealed class PollEngine : IDisposable
     /// <summary>Which channel this engine owns.</summary>
     public SasChannel Channel => _options.Channel;
 
-    /// <summary>The machine being polled.</summary>
-    public SasAddress Address => _options.Address;
+    /// <summary>The machine being polled, or the one the round has reached.</summary>
+    public SasAddress Address => _polling;
+
+    /// <summary>Every machine this host polls, in the order the round visits them.</summary>
+    public IReadOnlyList<SasAddress> Round => _options.Round;
+
+    /// <summary>How many complete rounds have been walked.</summary>
+    public long RoundsCompleted => Interlocked.Read(ref _rounds);
 
     /// <summary>How often the machine is polled.</summary>
     public TimeSpan PollInterval => _options.PollInterval;
@@ -184,12 +200,18 @@ public sealed class PollEngine : IDisposable
     /// to measure the requirement itself — sending a command the wrong way on purpose, so that
     /// what a machine does about it is observed rather than reasoned about.
     /// </param>
+    /// <param name="to">
+    /// Which machine to send it to. Left null on a host bound to one machine it is that machine;
+    /// on a host that polls a round it is <b>refused</b>, because a command that went to whichever
+    /// machine the round had reached would be answered correctly by the wrong machine.
+    /// </param>
     public LongPollResult Execute(
         byte command,
         ReadOnlySpan<byte> data = default,
         TimeSpan? timeout = null,
         string? purpose = null,
-        bool? checkSequence = null)
+        bool? checkSequence = null,
+        SasAddress? to = null)
     {
         if (data.Length > _pendingData.Length)
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
@@ -201,11 +223,18 @@ public sealed class PollEngine : IDisposable
             return new LongPollResult(command, _options.Channel, LongPollOutcome.NotSent,
                 [], TimeSpan.Zero, "The poll engine is not running.");
 
+        if (!TryTarget(to, out SasAddress target, out string? refusal))
+        {
+            return new LongPollResult(command, _options.Channel, LongPollOutcome.NotSent,
+                [], TimeSpan.Zero, refusal);
+        }
+
         _executeGate.Wait();
         try
         {
             lock (_submitGate)
             {
+                _pendingAddress = target;
                 data.CopyTo(_pendingData);
                 _pendingDataLength = data.Length;
                 _pendingCommand = command;
@@ -243,6 +272,40 @@ public sealed class PollEngine : IDisposable
         {
             _executeGate.Release();
         }
+    }
+
+    /// <summary>
+    /// Settles which machine a long poll is for, or says why it cannot be settled.
+    /// </summary>
+    /// <remarks>
+    /// Refused rather than guessed. On a round, "the machine being polled" is whichever one the
+    /// cycle happened to reach, so a command sent without a name would land on a different machine
+    /// each time and be answered properly by all of them — a test that passes while addressing the
+    /// wrong machine is worse than one that does not run.
+    /// </remarks>
+    private bool TryTarget(SasAddress? asked, out SasAddress target, out string? refusal)
+    {
+        IReadOnlyList<SasAddress> round = _options.Round;
+        refusal = null;
+
+        if (asked is { } named)
+        {
+            target = named;
+            if (round.Contains(named))
+                return true;
+
+            refusal = $"this host does not poll ${named}; it polls "
+                      + string.Join(", ", round.Select(a => $"${a}")) + ".";
+            return false;
+        }
+
+        target = round[0];
+        if (round.Count == 1)
+            return true;
+
+        refusal = $"this host polls {round.Count} machines, so a long poll has to name one of "
+                  + "them rather than be sent to whichever the round had reached.";
+        return false;
     }
 
     public void Dispose()
@@ -307,7 +370,18 @@ public sealed class PollEngine : IDisposable
 
         _pollsSinceSync++;
 
-        int pollLength = HostMessage.WriteGeneralPoll(_outbound, _options.Address);
+        // The round advances before the poll goes out, so the address the poll carries and every
+        // check against the answer are one value read once. A round of one never moves.
+        IReadOnlyList<SasAddress> round = _options.Round;
+        _polling = round[_next];
+        _next++;
+        if (_next >= round.Count)
+        {
+            _next = 0;
+            Interlocked.Increment(ref _rounds);
+        }
+
+        int pollLength = HostMessage.WriteGeneralPoll(_outbound, _polling);
         Resynchronise();
         SendAndRecord(pollLength, "general poll");
         Interlocked.Increment(ref _generalPolls);
@@ -336,7 +410,7 @@ public sealed class PollEngine : IDisposable
         if (code == 0x00)
             return;
 
-        if (code == (byte)(_options.Address.Value | HostMessage.GeneralPollFlag))
+        if (code == (byte)(_polling.Value | HostMessage.GeneralPollFlag))
         {
             Interlocked.Increment(ref _rejections);
             return;
@@ -384,11 +458,11 @@ public sealed class PollEngine : IDisposable
             return;
         }
 
-        if (frame[0] != _options.Address.Value)
+        if (frame[0] != _polling.Value)
         {
             RecordReceive(received, wakeup,
                 $"a real-time event addressed ${frame[0]:X2}, and the machine being polled is "
-                + $"${_options.Address.Value:X2}");
+                + $"${_polling.Value:X2}");
             MarkHeard();
             return;
         }
@@ -424,6 +498,7 @@ public sealed class PollEngine : IDisposable
             ticket = _pendingTicket;
             purpose = _pendingPurpose;
             checkSequence = _pendingCheckSequence;
+            _polling = _pendingAddress;
             _pendingReady = false;
         }
 
@@ -438,7 +513,7 @@ public sealed class PollEngine : IDisposable
         }
 
         int length = HostMessage.WriteLongPoll(
-            _outbound, _options.Address, command, _pendingData.AsSpan(0, dataLength), checkSequence);
+            _outbound, _polling, command, _pendingData.AsSpan(0, dataLength), checkSequence);
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();
@@ -495,11 +570,11 @@ public sealed class PollEngine : IDisposable
 
         if (received == 1)
         {
-            if (frame[0] == _options.Address.Value)
+            if (frame[0] == _polling.Value)
                 return new LongPollResult(command, _options.Channel, LongPollOutcome.Acknowledged,
                     frame, latency);
 
-            if (frame[0] == (byte)(_options.Address.Value | HostMessage.GeneralPollFlag))
+            if (frame[0] == (byte)(_polling.Value | HostMessage.GeneralPollFlag))
             {
                 Interlocked.Increment(ref _rejections);
                 return new LongPollResult(command, _options.Channel, LongPollOutcome.Rejected,
@@ -508,13 +583,13 @@ public sealed class PollEngine : IDisposable
 
             return new LongPollResult(command, _options.Channel, LongPollOutcome.WrongAddress,
                 frame, latency, $"A one-byte reply of ${frame[0]:X2} is neither an acknowledgement "
-                                + $"nor a rejection from address {_options.Address}.");
+                                + $"nor a rejection from address {_polling}.");
         }
 
-        if (frame[0] != _options.Address.Value)
+        if (frame[0] != _polling.Value)
             return new LongPollResult(command, _options.Channel, LongPollOutcome.WrongAddress,
                 frame, latency,
-                $"The reply is addressed to ${frame[0]:X2}, not to {_options.Address}.");
+                $"The reply is addressed to ${frame[0]:X2}, not to {_polling}.");
 
         if (received > 2 && !SasCrc.Verify(frame))
         {
@@ -609,7 +684,7 @@ public sealed class PollEngine : IDisposable
     /// </remarks>
     private bool CouldAnswer(int command, ReadOnlySpan<byte> frame)
     {
-        byte address = _options.Address.Value;
+        byte address = _polling.Value;
 
         if (command == GeneralPoll)
             return frame.Length == 1
