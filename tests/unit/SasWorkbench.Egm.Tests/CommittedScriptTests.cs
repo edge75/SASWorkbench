@@ -157,7 +157,7 @@ public class CommittedScriptTests
         //  A machine in force at five cents that ignores what the case declared, which is how
         //  every machine this build did not make behaves: the declaration configures nothing and
         //  is read back off the wire.
-        EnvironmentFactory unconfigurable = (step, options, _) =>
+        EnvironmentFactory unconfigurable = (step, options, _, channels) =>
             SoftwareMachineEnvironment.For(
                 new FakeEgmOptions { AccountingDenomination = 0x02 })(step, options, null);
 
@@ -285,9 +285,21 @@ public class CommittedScriptTests
         }
 
         Assert.NotEmpty(report.Tests);
-        Assert.Equal(0, report.Failed);
         Assert.Equal(0, report.Errored);
         Assert.True(report.Passed > 0, "no conformance case ran: " + Explain(report));
+
+        //  A case labelled a finding is expected to fail: what it is about is a machine that does
+        //  not do what a conformance document asks. Every other failure is a real one. Asserting
+        //  that the labelled ones still fail is what stops the label outliving the finding — the
+        //  day the machine library changes, this goes red and somebody comes and takes it off.
+        foreach (TestOutcome test in report.Tests.Where(t => t.Tags.Contains("finding")))
+        {
+            Assert.Equal(Verdict.Fail, test.Verdict);
+        }
+
+        Assert.All(
+            report.Tests.Where(t => !t.Tags.Contains("finding")),
+            test => Assert.NotEqual(Verdict.Fail, test.Verdict));
 
         Assert.All(report.Tests, test => Assert.True(
             test.Verdict != Verdict.Skip || !string.IsNullOrWhiteSpace(test.SkipReason),

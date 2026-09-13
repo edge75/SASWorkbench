@@ -205,7 +205,7 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 
 **Address both by index from the EGM's config, never by the simulator's label.**
 
-### Trap D — the machine has no licence, so it takes no money  ✅ diagnosed 2026-09-08
+### Trap D — the machine has no licence, so it takes no money  (diagnosed 2026-09-08)
 
 **The cause is the machine's, not ours, and it cannot be fixed from here.** The M2 case that
 established the note path, `tests/regression/meters/note-moves-bill-meters.sas`, fails against
@@ -266,6 +266,33 @@ substituted peripheral manager print every message crossing into the machine and
 decision coming back, and asks the platform to raise its own trace level so its account of a refusal
 reaches the log. Without both, this failure is a five-second timeout and nothing else.
 
+### The machine really does open a second channel, and one thing about how it does is wrong
+
+Measured 2026-09-09 against `QSP_DemoOpenGL`, with nothing in its repository edited. Three things
+had to line up and all three already existed: the demo's own configuration declares `Network 1` and
+`Network 2`; the TCP transport reads a **per-port** endpoint
+(`SASWB_QXCOM_ENDPOINT__DEV_TTYS5` and `..._DEV_TTYS2`), so the two ports reach two different hosts
+rather than both dialling one; and the second channel's poll address and the category map live in
+NVRAM, where `sasctl nvram channels` writes them. The platform's own trace shows two link-ups and
+two exception buffers, and `$1F` came back as `011F…` on channel 1 and `021F…` on channel 2.
+
+**The one configuration a person cannot set by hand** is a category pointed at a channel with no
+poll address: the audit menu skips such a channel while cycling, so the menu can never produce one.
+A memory written any other way can, and it is refused rather than served — see D23's second
+consequence, now enforced in `SasChannelPlan`.
+
+**Read on the way past and not fixed, because nothing in QSP is edited.**
+`SasNetwork.cpp`'s loop over channels 2 to 4 passes `SerialPort::eNetwork2` whatever the index, so a
+machine configured for three or four channels would give them all one port. Two channels are
+unaffected, which is what this project needs today.
+
+**Only `$57` and `$70` can be asked with nothing after the command byte**, of the nine commands the
+library gates on validation. The receiver frames `$4C` at ten bytes and `$4D` at five and drops a
+shorter message as incomplete before any handler sees it — so a case asserting the silence of one
+of those is asserting the framing and reading it as the channel gate. Two cases written on
+2026-09-09 did exactly that and passed on both peers while proving nothing. The runner now refuses
+such an assertion with the length the receiver expects.
+
 ### Trap E — the generator reads one libsas and the machine runs another
 
 `tools/protogen/protogen.py` reads `C:\Progetti\libsas`, which is **24 commits ahead** of the
@@ -275,6 +302,12 @@ queue empty, the machine answers a general poll with nothing at all, while the c
 the event format. Every layout this project has established comes from the checkout; every byte one
 has been checked against comes from a machine behind it. Where they disagree, neither reading is
 wrong — they describe different machines, and a run has to say which.
+
+**Measured again on 2026-09-09, for the channel gates, and there they agree.** Twenty-nine handlers
+carry a channel-category gate, and all twenty-nine are byte-identical between the checkout the
+generator reads and the copy `QSP_DemoOpenGL` builds from — as are the five predicates that decide
+which channel hears which exception and the function that masks the enabled-features reply. So the
+whole of the channel model is safe from this trap, checked rather than assumed.
 
 **Measured again on 2026-09-09, for the meter handlers, and there they agree.** Every handler that
 reads a meter - the shared single-meter helper, the six bulk replies, the twenty dedicated bill

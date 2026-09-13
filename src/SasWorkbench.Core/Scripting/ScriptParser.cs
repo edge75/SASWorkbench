@@ -151,6 +151,12 @@ public static class ScriptParser
         bool player = words[1].Equals("player", StringComparison.OrdinalIgnoreCase)
                       && words[2].Equals("denominations", StringComparison.OrdinalIgnoreCase);
 
+        if (words[1].Equals("channel", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadMachineChannel(test, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -185,7 +191,99 @@ public static class ScriptParser
 
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
-        + "machine player denominations <cents>c [<cents>c ...]";
+        + "machine player denominations <cents>c [<cents>c ...], or "
+        + "machine channel <1-4> address <hh> [owns <category> ...]";
+
+    /// <summary>
+    /// Reads one channel of the machine's arrangement: its poll address, and what it owns.
+    /// </summary>
+    /// <remarks>
+    /// One line per channel, which is the shape the machine's own menu has: a poll address per
+    /// port, and each category pointed at one of them. An address of <c>00</c> says the channel
+    /// has none, because that is how the machine stores it — so a script can write the one
+    /// arrangement that must be refused, and see it refused, rather than being unable to say it.
+    /// </remarks>
+    private static void ReadMachineChannel(TestBuilder test, string[] words, SourceLocation location)
+    {
+        if (!SasChannels.TryParse(words[2], out SasChannel channel))
+            throw new ScriptParseException(location,
+                $"'{words[2]}' is not a channel. Expected 1 to {SasChannels.Count}");
+
+        if (test.ChannelAddresses.ContainsKey(channel))
+            throw new ScriptParseException(location,
+                $"this case already says what channel {(int)channel} is; a channel has one poll "
+                + "address");
+
+        int cursor = 3;
+        bool addressGiven = false;
+        var owns = new List<SasCategory>();
+
+        while (cursor < words.Length)
+        {
+            string keyword = words[cursor].ToLowerInvariant();
+            if (cursor + 1 >= words.Length)
+                throw new ScriptParseException(location, $"'{keyword}' needs a value after it");
+
+            switch (keyword)
+            {
+                case "address":
+                    if (!SasAddress.TryParse(words[cursor + 1], out SasAddress address))
+                        throw new ScriptParseException(location,
+                            $"'{words[cursor + 1]}' is not a poll address. Expected 00 to 7F");
+
+                    // Zero is not an address a host polls: the machine stores it to mean the
+                    // channel is not opened at all, and this keeps that meaning rather than
+                    // reading it as the synchronisation address.
+                    test.ChannelAddresses[channel] = address.IsSync ? null : address;
+                    addressGiven = true;
+                    cursor += 2;
+                    break;
+
+                case "owns":
+                    cursor++;
+                    while (cursor < words.Length && !IsChannelKeyword(words[cursor]))
+                    {
+                        if (!SasCategories.TryParse(words[cursor], out SasCategory category))
+                            throw new ScriptParseException(location,
+                                $"'{words[cursor]}' is not a category. Known: "
+                                + $"{SasCategories.Names}");
+
+                        owns.Add(category);
+                        cursor++;
+                    }
+
+                    if (owns.Count == 0)
+                        throw new ScriptParseException(location,
+                            $"'owns' needs at least one category. Known: {SasCategories.Names}");
+                    break;
+
+                default:
+                    throw new ScriptParseException(location,
+                        $"'{keyword}' is not a channel option. Expected address or owns");
+            }
+        }
+
+        if (!addressGiven)
+            throw new ScriptParseException(location,
+                $"machine channel {(int)channel} needs 'address <hh>': write 'address 00' to say "
+                + "the channel has none");
+
+        foreach (SasCategory category in owns)
+        {
+            if (test.ChannelOwners.TryGetValue(category, out SasChannel already) && already != channel)
+                throw new ScriptParseException(location,
+                    $"{SasCategories.NameOf(category)} is already on channel {(int)already}. The "
+                    + "machine holds one channel number per category, so it cannot be on two");
+
+            test.ChannelOwners[category] = channel;
+        }
+
+        test.ChannelsDeclaredAt ??= location;
+    }
+
+    private static bool IsChannelKeyword(string word) =>
+        word.Equals("address", StringComparison.OrdinalIgnoreCase)
+        || word.Equals("owns", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Reads a denomination written either as a number of cents or as a Table C-4 code.
@@ -312,6 +410,13 @@ public static class ScriptParser
                 test.Steps.Add(ReadSend(words, location));
                 return;
 
+            case "channel":
+                if (words.Length != 3 || !SasChannels.TryParse(words[2], out SasChannel moved))
+                    throw new ScriptParseException(location, "expected: host channel <1-4>");
+
+                test.Steps.Add(new UseChannelStep(location, moved));
+                return;
+
             case "forget":
                 if (words.Length < 3 || !words[2].Equals("exceptions",
                         StringComparison.OrdinalIgnoreCase))
@@ -330,8 +435,8 @@ public static class ScriptParser
 
             default:
                 throw new ScriptParseException(location,
-                    $"'host {words[1]}' is not a host action. Expected connect, poll, wait, "
-                    + "send, forget or expect");
+                    $"'host {words[1]}' is not a host action. Expected connect, channel, poll, "
+                    + "wait, send, forget or expect");
         }
     }
 
@@ -568,18 +673,52 @@ public static class ScriptParser
             "field" => ReadExpectField(test, words, location),
             "link" => ReadExpectLink(words, location),
             _ => throw new ScriptParseException(location,
-                $"'{words[2]}' cannot be expected. Expected exception, no exception, meter, "
-                + "field or link"),
+                $"'{words[2]}' cannot be expected. Expected exception, no exception, no reply, "
+                + "meter, field or link"),
         };
     }
 
     private static ScriptStep ReadExpectNo(string[] words, SourceLocation location)
     {
+        if (words.Length >= 4 && words[3].Equals("reply", StringComparison.OrdinalIgnoreCase))
+            return ReadExpectNoReply(words, location);
+
         if (words.Length < 4 || !words[3].Equals("exception", StringComparison.OrdinalIgnoreCase))
             throw new ScriptParseException(location,
-                "expected: host expect no exception <name> [within <duration>]");
+                "expected: host expect no exception <name> [within <duration>], or "
+                + "host expect no reply to lp <hh>");
 
         return ReadExpectException(words[..2].Concat(words[3..]).ToArray(), location, negated: true);
+    }
+
+    /// <summary>
+    /// Reads <c>host expect no reply to lp 70</c>: the machine is expected to say nothing at all.
+    /// </summary>
+    private static ExpectNoReplyStep ReadExpectNoReply(string[] words, SourceLocation location)
+    {
+        // host expect no reply to lp 70 [data <hex>]
+        if (words.Length < 7
+            || !words[4].Equals("to", StringComparison.OrdinalIgnoreCase)
+            || !words[5].Equals("lp", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ScriptParseException(location,
+                "expected: host expect no reply to lp <hh> [data <hex>]");
+        }
+
+        if (!SasNames.TryParseCode(words[6], out byte command))
+            throw new ScriptParseException(location, $"'{words[6]}' is not a long poll code");
+
+        byte[] data = [];
+        if (words.Length > 7)
+        {
+            if (words.Length != 9 || !words[7].Equals("data", StringComparison.OrdinalIgnoreCase))
+                throw new ScriptParseException(location,
+                    "expected: host expect no reply to lp <hh> [data <hex>]");
+
+            data = ParseHex(words[8], location);
+        }
+
+        return new ExpectNoReplyStep(location, command, data);
     }
 
     private static ExpectExceptionStep ReadExpectException(
@@ -1300,8 +1439,15 @@ public static class ScriptParser
 
         public SourceLocation? DeclaredAt { get; set; }
 
+        public Dictionary<SasChannel, SasAddress?> ChannelAddresses { get; } = [];
+
+        public Dictionary<SasCategory, SasChannel> ChannelOwners { get; } = [];
+
+        public SourceLocation? ChannelsDeclaredAt { get; set; }
+
         public bool HasContent =>
-            Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null;
+            Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
+            || ChannelsDeclaredAt is not null;
 
         public ScriptTest Build() => new()
         {
@@ -1309,9 +1455,26 @@ public static class ScriptParser
             Location = Location,
             Requirements = Requirements,
             Machine = BuildDeclaration(),
+            Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,
         };
+
+        /// <summary>
+        /// The channel arrangement, or null where the case does not say and one channel owning
+        /// everything is what it means.
+        /// </summary>
+        private MachineChannelDeclaration? BuildChannels()
+        {
+            if (ChannelsDeclaredAt is not { } where)
+                return null;
+
+            var addresses = new SasAddress?[SasChannels.Count];
+            foreach ((SasChannel channel, SasAddress? address) in ChannelAddresses)
+                addresses[channel.ToIndex()] = address;
+
+            return new MachineChannelDeclaration(where, addresses, ChannelOwners);
+        }
 
         /// <summary>
         /// Player denominations without an accounting denomination declare nothing a machine can

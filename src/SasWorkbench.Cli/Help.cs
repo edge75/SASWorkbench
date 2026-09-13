@@ -34,6 +34,8 @@ internal static class Help
                                                  transactions inside it
               sasctl replay <file> [options]     send a recording's host messages to a machine
                                                  and say what the differences mean
+              sasctl record <file> [options]     turn a recorded session into a script, and say
+                                                 what a recording cannot capture
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -48,6 +50,8 @@ internal static class Help
                                       changes how the machine answers every general poll
               --ask-for <duration>    how long a manual step waits for a person before it
                                       is skipped  (default: 2m)
+              --wait-for-machine <d>  how long a link waits for the machine to dial in before
+                                      the case is skipped  (default: 10s)
               --egm-resources <dir>   the machine's own resource directory, which is where it
                                       declares its doors and buttons  (--stimulus qpm)
               --qpm-shm <file>        the peripheral shared region, if it is not in the usual
@@ -72,6 +76,8 @@ internal static class Help
               sasctl catalogue                   a count of each kind
               sasctl catalogue long-polls        every long poll the machine library implements
               sasctl catalogue exceptions        every exception a machine can report
+              sasctl catalogue channels          the seven categories a channel can own, and
+                                                 what each of them decides
               sasctl catalogue meters            every meter, and which are readable by name
               sasctl catalogue readable-meters   every meter a script can name, the command it
                                                  is read from, and the commands it is not
@@ -267,6 +273,30 @@ internal static class Help
               had queued. Each request is sent twice, so a field that moves on its own is measured
               rather than assumed.
 
+            RECORD
+              --out <directory>       where to write the script
+              --name <text>           what to call the test  (default: the case's own name)
+              --test <word>           only the cases of a run whose name carries this
+              --address <hh>          the machine's address, which tells an acknowledgement
+                                      from an exception of the same value
+              --caveats               print what a recording cannot capture, and stop
+
+              The window records what a person does and writes the script itself. This is the
+              same emitter over a session already on disk: it is how the emitter is exercised
+              without a person, and the only way to get a script out of a recording nobody
+              here made.
+
+              What it recovers from a file is narrower than what the window records, and the
+              difference is the point. A host's own messages are things the host chose, so they
+              come back as steps. A stimulus is not in the bytes at all - nothing says a person
+              opened a door, only that the machine reported one - so every stimulus is reported
+              as unrecoverable rather than guessed at from the exceptions after it.
+
+              A recorded script that passes for the wrong reason is worse than no recorder, so
+              a value the machine chose is never asserted as a literal, a person's hesitation
+              is never written down as a wait, and a step whose place in a transaction is a
+              guess says so. '--caveats' prints all five and what is written instead.
+
             NVRAM
               status                  what the machine holds, and what has been saved
               show                    what each is configured to be, side by side
@@ -274,6 +304,10 @@ internal static class Help
               restore                 write a saved fixture back over it, keeping what was there
               validation <style>      write a fixture out again in standard, secure_enhanced or
                                       system validation
+              channels "<plan>"       write a fixture out again with the machine divided between
+                                      hosts, as in "1@01 2@02 validation=2". An address of 00
+                                      says the channel has none. A category on a channel with no
+                                      address reaches no host and is refused rather than written
 
               --fixture <file>        which saved memory  (default: fixtures/nvram/golden.nvram.gz)
               --nvram <file>          the machine's memory, if it is not in the usual place
@@ -305,6 +339,10 @@ internal static class Help
               sasctl replay --causes
               sasctl replay "<toolkit>/10.1/10.1.1/step2.trc" --loopback
               sasctl replay runs/20260909-101500/run.jsonl --tcp 127.0.0.1:9760
+              sasctl record --caveats
+              sasctl record runs/20260909-101500/run.jsonl --test cashout --out recorded
+              sasctl catalogue channels
+              sasctl nvram channels "1@01 2@02 validation=2" --out fixtures/nvram/two.nvram.gz
               sasctl nvram show
               sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
               sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz

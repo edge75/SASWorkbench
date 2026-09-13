@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Qpm;
 
@@ -29,6 +30,31 @@ public sealed record NvramMachineConfiguration(
 {
     /// <summary>Which validation style the machine performs when it cashes out.</summary>
     public SasCashoutValidation Validation => NvramConfiguration.ValidationOnTheWire(Flags);
+
+    /// <summary>
+    /// How this memory divides the machine between hosts, or the reason it divides it in a way
+    /// no machine could serve.
+    /// </summary>
+    /// <remarks>
+    /// Read rather than assumed, and reported as a refusal where it is one: a category pointed at
+    /// a channel with no poll address reaches no host, and a memory carrying that describes a
+    /// machine that would answer a poll nobody can send. The machine's own menu cannot write one,
+    /// so a memory that has it was written by something else.
+    /// </remarks>
+    public (SasChannelPlan? Plan, string? Refusal) Channels
+    {
+        get
+        {
+            SasAddress?[] addresses =
+                [.. PollAddresses.Select(a => a == 0 ? null : (SasAddress?)SasAddress.Of((byte)a))];
+
+            return SasChannelPlan.TryCreate(
+                addresses, NvramConfiguration.ChannelOwners(Flags),
+                out SasChannelPlan plan, out string? refusal)
+                ? (plan, null)
+                : (null, refusal);
+        }
+    }
 
     /// <summary>Whether the operator has enabled taking a ticket at all.</summary>
     public bool TicketInEnabled => (Flags & NvramConfiguration.TicketInMask) != 0;
@@ -84,6 +110,19 @@ public static class NvramConfiguration
 
     private const uint ValidationStyleMask = 3u << 2;
     private const int ValidationStyleShift = 2;
+
+    /// <summary>
+    /// Where the first category's channel number sits in the option word.
+    /// </summary>
+    /// <remarks>
+    /// The platform stores the seven categories as seven consecutive two-bit fields, in the order
+    /// the gaming machine library's own channel-control structure names them, holding a
+    /// zero-based channel number each. So a category's field is found by its position in that
+    /// order and nothing here has to name the categories again.
+    /// </remarks>
+    private const int FirstChannelShift = 14;
+
+    private const int ChannelFieldBits = 2;
 
     // The machine numbers its stored validation styles differently from the way it reports them
     // on the wire: it stores none, secure enhanced, system, and it reports standard, system,
@@ -145,6 +184,41 @@ public static class NvramConfiguration
         return (flags & ~ValidationStyleMask) | (stored << ValidationStyleShift);
     }
 
+    /// <summary>The two-bit field in the option word that holds one category's channel.</summary>
+    private static int ChannelShift(SasCategory category) =>
+        FirstChannelShift + ((int)category * ChannelFieldBits);
+
+    /// <summary>Which channel the option word puts each category on.</summary>
+    internal static Dictionary<SasCategory, SasChannel> ChannelOwners(uint flags)
+    {
+        var owners = new Dictionary<SasCategory, SasChannel>();
+        foreach (SasCategory category in SasChannelPlan.Categories)
+        {
+            // Stored zero-based, so channel one is a zero. Reading it as a channel number
+            // directly would put every category one channel too high.
+            uint stored = (flags >> ChannelShift(category)) & 0x03;
+            owners[category] = (SasChannel)(stored + 1);
+        }
+
+        return owners;
+    }
+
+    /// <summary>The option word that puts each category on the channel a plan gives it.</summary>
+    internal static uint WithChannelOwners(uint flags, SasChannelPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        uint written = flags;
+        foreach (SasCategory category in SasChannelPlan.Categories)
+        {
+            int shift = ChannelShift(category);
+            written &= ~(0x03u << shift);
+            written |= (uint)((int)plan.OwnerOf(category) - 1) << shift;
+        }
+
+        return written;
+    }
+
     /// <summary>Reads the configuration out of a machine's memory.</summary>
     /// <exception cref="QpmUnavailableException">It is not a machine memory this build knows.</exception>
     public static NvramMachineConfiguration Read(byte[] memory)
@@ -170,6 +244,44 @@ public static class NvramConfiguration
             AssetNumber: DoubleWord(memory, network + AssetNumberOffset),
             Flags: DoubleWord(memory, network + FlagsOffset),
             Caveat: Caveat(memory, bank));
+    }
+
+    /// <summary>
+    /// Rewrites the poll addresses and the category map, leaving everything else alone.
+    /// </summary>
+    /// <remarks>
+    /// The one configuration a person cannot set through the machine's own menu, because the menu
+    /// skips a channel with no poll address while cycling and so can never point a category at
+    /// one. A memory written here can, which is why the arrangement is resolved first and an
+    /// unserveable one is refused rather than written: a machine booted on it would open no
+    /// channel for that category and answer a host that never existed.
+    /// </remarks>
+    /// <returns>The memory with the change applied, resealed. The original is untouched.</returns>
+    /// <exception cref="QpmUnavailableException">It is not a machine memory this build knows.</exception>
+    public static byte[] WithChannels(byte[] memory, SasChannelPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(memory);
+        ArgumentNullException.ThrowIfNull(plan);
+
+        int bank = SoundBank(memory);
+        NvramMap map = MapFor(memory, bank);
+
+        uint flags = WithChannelOwners(
+            DoubleWord(memory, bank + map.SasNetwork + FlagsOffset), plan);
+
+        var written = new byte[MemoryBytes];
+        memory.AsSpan(bank, BankBytes).CopyTo(written);
+        for (int channel = 0; channel < PollAddressCount; channel++)
+        {
+            WriteWord(
+                written,
+                map.SasNetwork + PollAddressOffset + (channel * 2),
+                plan.AddressOf((SasChannel)(channel + 1))?.Value ?? 0);
+        }
+
+        WriteDoubleWord(written, map.SasNetwork + FlagsOffset, flags);
+        Reseal(written);
+        return written;
     }
 
     /// <summary>

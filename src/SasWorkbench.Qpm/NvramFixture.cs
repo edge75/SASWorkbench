@@ -3,6 +3,8 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using SasWorkbench.Core.Protocol;
 
+using SasWorkbench.Core.Wire;
+
 namespace SasWorkbench.Qpm;
 
 /// <summary>What a saved copy of a machine's memory is, and what it was taken from.</summary>
@@ -144,6 +146,33 @@ public static class NvramFixture
         string fixturePath, string outputPath, SasCashoutValidation validation)
     {
         byte[] written = NvramConfiguration.WithValidation(Load(fixturePath), validation);
+
+        string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
+
+        using (FileStream output = File.Create(outputPath))
+        using (var compressor = new GZipStream(output, CompressionLevel.SmallestSize))
+            compressor.Write(written);
+
+        return NvramConfiguration.Read(written);
+    }
+
+    /// <summary>
+    /// Writes a saved copy out again with the machine divided between hosts a given way.
+    /// </summary>
+    /// <remarks>
+    /// The one configuration a person cannot reach through the machine's own menu: the menu skips
+    /// a channel with no poll address while cycling, so it can put a second channel's address in
+    /// but never point a category at a channel that has none. This can write both, which is what
+    /// makes a second host reachable on a machine nobody has spent an afternoon configuring.
+    /// </remarks>
+    public static NvramMachineConfiguration Reconfigure(
+        string fixturePath, string outputPath, SasChannelPlan channels)
+    {
+        ArgumentNullException.ThrowIfNull(channels);
+
+        byte[] written = NvramConfiguration.WithChannels(Load(fixturePath), channels);
 
         string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
         if (!string.IsNullOrEmpty(directory))

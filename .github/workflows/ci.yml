@@ -53,18 +53,38 @@ jobs:
           run tests/regression --loopback --stimulus software
           --report html,junit,md,jsonl --out artifacts/run
 
-      # A suite that could test nothing exits 3, so this step proves the honest-skip path works
-      # rather than silently reporting success.
-      - name: Check that an untestable suite is not reported as a success
+      # The conformance tree now has cases that run, so this expects a pass; the exit code for a
+      # suite in which nothing could be tested is proved by a unit test instead. The cases
+      # labelled a finding are left out: one of them fails on purpose, and the step below keeps
+      # that honest.
+      - name: Check that the conformance tree passes with the findings left out
         shell: bash
         run: |
           set +e
           dotnet run --project src/SasWorkbench.Cli --configuration Release --no-build -- \
-            run tests/conformance --loopback --stimulus software
+            run tests/conformance --loopback --stimulus software --skip-tag finding
           code=$?
           set -e
-          if [ "$code" -ne 3 ]; then
-            echo "expected exit code 3 for a suite in which nothing could be tested, got $code"
+          if [ "$code" -ne 0 ]; then
+            echo "the conformance tree did not pass with the findings left out (exit $code)"
+            exit 1
+          fi
+
+      # A case labelled a finding is expected to fail, because what it is about is a machine that
+      # does not do what a conformance document asks. Checking that it still fails is what stops
+      # the label outliving the finding: the day the machine library changes, this goes red and
+      # somebody takes the label off.
+      - name: Check that the findings are still findings
+        shell: bash
+        run: |
+          set +e
+          dotnet run --project src/SasWorkbench.Cli --configuration Release --no-build -- \
+            run tests/conformance --loopback --stimulus software --tag finding
+          code=$?
+          set -e
+          if [ "$code" -ne 1 ]; then
+            echo "a case labelled a finding no longer fails (exit $code). If the machine library"
+            echo "now does what the document asks, take the label off and delete this step."
             exit 1
           fi
 

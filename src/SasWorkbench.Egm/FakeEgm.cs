@@ -23,18 +23,12 @@ namespace SasWorkbench.Egm;
 /// </remarks>
 public sealed partial class FakeEgm : IDisposable
 {
-    private readonly ISasTransport _transport;
     private readonly FakeEgmOptions _options;
-    private readonly SasSymbol[] _incoming = new SasSymbol[HostMessage.MaxSymbols];
-    private readonly List<SasSymbol> _message = new(HostMessage.MaxSymbols);
-    private readonly SasSymbol[] _outbound = new SasSymbol[HostMessage.MaxSymbols];
-    private readonly byte[] _frame = new byte[HostMessage.MaxSymbols];
-    private readonly Queue<PendingEvent> _exceptions = new();
+    private readonly List<MachineLink> _links = [];
     private readonly HashSet<string> _openDoors = new(StringComparer.OrdinalIgnoreCase);
     private readonly TicketRedemption _redemption = new();
     private readonly Lock _gate = new();
 
-    private Thread? _thread;
     private volatile bool _running;
     private bool _enabled = true;
 
@@ -92,9 +86,65 @@ public sealed partial class FakeEgm : IDisposable
                 $"{transport.Description} cannot carry the wakeup bit, so this machine could not "
                 + "tell an address byte from a data byte. Refusing rather than guessing.");
 
-        _transport = transport;
         _options = options ?? new FakeEgmOptions();
         (_denominationCode, _accountingCents, DenominationRefusal) = ResolveDenomination(_options);
+
+        //  The channel arrangement decides which host is answered what, so it is settled before
+        //  any link opens. A configuration no host could serve is refused here rather than
+        //  half-served: the refusal is the machine's, and it is reported the way a machine's own
+        //  menu would report it.
+        Channels = _options.Channels ?? SasChannelPlan.Only(_options.Channel, _options.Address);
+        ChannelRefusal = _options.ChannelRefusal;
+
+        _links.Add(new MachineLink(transport, _options.Channel, _options.Address));
+    }
+
+    /// <summary>How this machine is divided between hosts.</summary>
+    public SasChannelPlan Channels { get; }
+
+    /// <summary>
+    /// Why the arrangement asked for was refused, when one was and this machine fell back.
+    /// </summary>
+    /// <remarks>
+    /// Carried rather than thrown so that a run can report a machine that would not take the
+    /// configuration it was given, which is a finding, without the run itself falling over.
+    /// </remarks>
+    public string? ChannelRefusal { get; }
+
+    /// <summary>
+    /// Opens another host link on a second channel, at the address that channel answers at.
+    /// </summary>
+    /// <remarks>
+    /// Refused rather than opened where the arrangement gives that channel no poll address: a
+    /// channel with no address is one the machine never opens, so a host polling it would be
+    /// talking to something this machine does not have.
+    /// </remarks>
+    /// <exception cref="TransportRefusedException">That channel has no poll address.</exception>
+    public SasAddress Attach(ISasTransport transport, SasChannel channel)
+    {
+        ArgumentNullException.ThrowIfNull(transport);
+
+        if (Channels.AddressOf(channel) is not { } address)
+        {
+            throw new TransportRefusedException(
+                $"channel {(int)channel} has no poll address in this machine's configuration, so "
+                + "it is not a channel this machine opens. " + Channels.Describe());
+        }
+
+        if (_links.Any(link => link.Channel == channel))
+        {
+            throw new TransportRefusedException(
+                $"channel {(int)channel} is already open on this machine.");
+        }
+
+        var opened = new MachineLink(transport, channel, address);
+        lock (_gate)
+            _links.Add(opened);
+
+        if (_running)
+            StartLink(opened);
+
+        return address;
     }
 
     /// <summary>The meters this machine keeps.</summary>
@@ -222,8 +272,18 @@ public sealed partial class FakeEgm : IDisposable
         return (configured, cents.Value, null);
     }
 
-    /// <summary>The address this machine answers to.</summary>
+    /// <summary>The address this machine answers to on its first channel.</summary>
     public SasAddress Address => _options.Address;
+
+    /// <summary>Which channels are open on this machine, in order.</summary>
+    public IReadOnlyList<SasChannel> OpenChannels
+    {
+        get
+        {
+            lock (_gate)
+                return [.. _links.Select(link => link.Channel).Order()];
+        }
+    }
 
     /// <summary>True while play is enabled. Long poll shutdown clears it; startup sets it.</summary>
     public bool IsEnabled
@@ -244,14 +304,21 @@ public sealed partial class FakeEgm : IDisposable
     /// <summary>How many long polls this machine refused because it could not answer them.</summary>
     public long Rejections => Interlocked.Read(ref _rejections);
 
-    /// <summary>How many exceptions are queued but not yet reported.</summary>
+    /// <summary>How many exceptions are queued but not yet reported, over every channel.</summary>
     public int PendingExceptions
     {
         get
         {
             lock (_gate)
-                return _exceptions.Count;
+                return _links.Sum(link => link.Exceptions.Count);
         }
+    }
+
+    /// <summary>How many exceptions one channel is holding.</summary>
+    public int PendingExceptionsOn(SasChannel channel)
+    {
+        lock (_gate)
+            return _links.FirstOrDefault(link => link.Channel == channel)?.Exceptions.Count ?? 0;
     }
 
     /// <summary>Raised for every long poll that arrived, whether or not it could be answered.</summary>
@@ -263,28 +330,44 @@ public sealed partial class FakeEgm : IDisposable
         if (_running)
             return;
 
-        _transport.Open();
         _running = true;
-        _thread = new Thread(Loop)
+        foreach (MachineLink link in Links())
+            StartLink(link);
+    }
+
+    private void StartLink(MachineLink link)
+    {
+        link.Transport.Open();
+        link.Thread = new Thread(() => Loop(link))
         {
             IsBackground = true,
-            Name = $"fake-egm-{_options.Address}",
+            Name = $"fake-egm-{link.Address}-ch{(int)link.Channel}",
         };
-        _thread.Start();
+        link.Thread.Start();
+    }
+
+    private List<MachineLink> Links()
+    {
+        lock (_gate)
+            return [.. _links];
     }
 
     /// <summary>Stops answering.</summary>
     public void Stop()
     {
         _running = false;
-        _thread?.Join(TimeSpan.FromSeconds(1));
-        _thread = null;
+        foreach (MachineLink link in Links())
+        {
+            link.Thread?.Join(TimeSpan.FromSeconds(1));
+            link.Thread = null;
+        }
     }
 
     public void Dispose()
     {
         Stop();
-        _transport.Dispose();
+        foreach (MachineLink link in Links())
+            link.Transport.Dispose();
     }
 
     // ---- Stimulus ------------------------------------------------------------------------
@@ -312,8 +395,18 @@ public sealed partial class FakeEgm : IDisposable
             throw new ArgumentOutOfRangeException(nameof(code), code,
                 "Zero means the queue is empty and cannot be queued as an exception.");
 
+        //  One buffer per channel, and a channel that does not own the exception's category
+        //  never hears it. Both come out of the library: it walks every open channel, skips one
+        //  whose category does not match, and queues a copy in the rest. So two hosts are each
+        //  told about a printed ticket, and neither consumes the other's copy.
         lock (_gate)
-            _exceptions.Enqueue(new PendingEvent(code, data));
+        {
+            foreach (MachineLink link in _links)
+            {
+                if (Channels.Hears(link.Channel, code))
+                    link.Exceptions.Enqueue(new PendingEvent(code, data));
+            }
+        }
     }
 
     /// <summary>True when the host has asked for exceptions in the real-time event format.</summary>
@@ -653,76 +746,108 @@ public sealed partial class FakeEgm : IDisposable
 
     // ---- The wire ------------------------------------------------------------------------
 
-    private void Loop()
+    /// <summary>
+    /// One host link: a transport, the channel it is, the address it answers at, and the queue of
+    /// exceptions waiting to go out on it.
+    /// </summary>
+    /// <remarks>
+    /// A machine serves up to four of these and they are genuinely independent. Each has its own
+    /// exception buffer, which is the library's own arrangement and the reason two hosts can be
+    /// told about the same thing without either of them consuming the other's copy — and the
+    /// reason an exception belonging to a category a channel does not own never reaches it at all.
+    /// The scratch buffers are per link because two links answer on two threads.
+    /// </remarks>
+    private sealed class MachineLink(ISasTransport transport, SasChannel channel, SasAddress address)
+    {
+        public ISasTransport Transport { get; } = transport;
+
+        public SasChannel Channel { get; } = channel;
+
+        public SasAddress Address { get; } = address;
+
+        public Queue<PendingEvent> Exceptions { get; } = new();
+
+        public SasSymbol[] Incoming { get; } = new SasSymbol[HostMessage.MaxSymbols];
+
+        public List<SasSymbol> Message { get; } = new(HostMessage.MaxSymbols);
+
+        public SasSymbol[] Outbound { get; } = new SasSymbol[HostMessage.MaxSymbols];
+
+        public byte[] Frame { get; } = new byte[HostMessage.MaxSymbols];
+
+        public Thread? Thread { get; set; }
+    }
+
+    private void Loop(MachineLink link)
     {
         while (_running)
         {
-            int read = _transport.Read(_incoming, TimeSpan.FromMilliseconds(10));
+            int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
-                Dispatch();
+                Dispatch(link);
                 continue;
             }
 
             for (int i = 0; i < read; i++)
             {
-                SasSymbol symbol = _incoming[i];
+                SasSymbol symbol = link.Incoming[i];
 
                 // The wakeup bit is the start of a message, which is the one framing signal SAS
                 // gives. Splitting on it means two host messages arriving together are still
                 // read as two.
                 if (symbol.Wakeup)
-                    Dispatch();
-                else if (_message.Count == 0)
+                    Dispatch(link);
+                else if (link.Message.Count == 0)
                     continue;
 
-                _message.Add(symbol);
+                link.Message.Add(symbol);
             }
 
             // A read takes everything the line was holding, so a read that did not fill the
             // buffer ends the message. Answering on that rather than on a timed silence keeps
             // this machine's turnaround off the clock: a timed wait is the one thing a loaded
             // machine stretches, and stretching it here makes a host look at fault.
-            if (read < _incoming.Length)
-                Dispatch();
+            if (read < link.Incoming.Length)
+                Dispatch(link);
         }
 
-        Dispatch();
+        Dispatch(link);
     }
 
-    private void Dispatch()
+    private void Dispatch(MachineLink link)
     {
-        if (_message.Count == 0)
+        if (link.Message.Count == 0)
             return;
 
-        byte first = _message[0].Data;
-        int count = _message.Count;
+        byte first = link.Message[0].Data;
+        int count = link.Message.Count;
         for (int i = 0; i < count; i++)
-            _frame[i] = _message[i].Data;
-        _message.Clear();
+            link.Frame[i] = link.Message[i].Data;
+        link.Message.Clear();
 
         if (_options.ResponseDelay > TimeSpan.Zero)
             Thread.Sleep(_options.ResponseDelay);
 
         if (count == 1)
         {
-            HandlePoll(first);
+            HandlePoll(link, first);
             return;
         }
 
-        if (first != _options.Address.Value && first != SasAddress.Sync.Value)
+        if (first != link.Address.Value && first != SasAddress.Sync.Value)
             return;
 
-        HandleLongPoll(_frame.AsSpan(0, count));
+        HandleLongPoll(link, link.Frame.AsSpan(0, count));
     }
 
-    private void HandlePoll(byte first)
+    private void HandlePoll(MachineLink link, byte first)
     {
         if ((first & HostMessage.GeneralPollFlag) == 0)
             return;
 
         byte polled = (byte)(first & ~HostMessage.GeneralPollFlag);
-        if (polled == 0 || polled != _options.Address.Value)
+        if (polled == 0 || polled != link.Address.Value)
             return;
 
         Interlocked.Increment(ref _generalPolls);
@@ -732,18 +857,18 @@ public sealed partial class FakeEgm : IDisposable
         lock (_gate)
         {
             realTime = _rteEnabled;
-            queued = _exceptions.Count > 0 ? _exceptions.Dequeue() : null;
+            queued = link.Exceptions.Count > 0 ? link.Exceptions.Dequeue() : null;
         }
 
         if (realTime)
         {
-            SendRealTimeEvent(queued);
+            SendRealTimeEvent(link, queued);
             return;
         }
 
         if (queued is not { } event_)
         {
-            Send([SasSymbol.Data8(0x00)]);
+            Send(link, [SasSymbol.Data8(0x00)]);
             return;
         }
 
@@ -755,7 +880,7 @@ public sealed partial class FakeEgm : IDisposable
         if (SasEventLayouts.RealTimeOnly.Contains(event_.Code))
             return;
 
-        Send([SasSymbol.Data8(WithoutReporting(event_))]);
+        Send(link, [SasSymbol.Data8(WithoutReporting(event_))]);
     }
 
     /// <summary>
@@ -799,30 +924,30 @@ public sealed partial class FakeEgm : IDisposable
     /// zero. That is what the library does, and it matters: a host that had to tell a bare
     /// <c>$00</c> from an event would be reading two formats on the same link.
     /// </remarks>
-    private void SendRealTimeEvent(PendingEvent? queued)
+    private void SendRealTimeEvent(MachineLink link, PendingEvent? queued)
     {
-        _frame[0] = _options.Address.Value;
-        _frame[1] = SasEventLayouts.Marker;
-        _frame[2] = queued?.Code ?? 0x00;
+        link.Frame[0] = link.Address.Value;
+        link.Frame[1] = SasEventLayouts.Marker;
+        link.Frame[2] = queued?.Code ?? 0x00;
 
         int length = SasEventLayouts.HeaderLength;
         if (queued is { } event_)
         {
             foreach (byte value in event_.Data)
-                _frame[length++] = value;
+                link.Frame[length++] = value;
         }
 
-        ushort crc = SasCrc.Compute(_frame.AsSpan(0, length));
-        _frame[length++] = SasCrc.LowByte(crc);
-        _frame[length++] = SasCrc.HighByte(crc);
+        ushort crc = SasCrc.Compute(link.Frame.AsSpan(0, length));
+        link.Frame[length++] = SasCrc.LowByte(crc);
+        link.Frame[length++] = SasCrc.HighByte(crc);
 
         for (int i = 0; i < length; i++)
-            _outbound[i] = SasSymbol.Data8(_frame[i]);
+            link.Outbound[i] = SasSymbol.Data8(link.Frame[i]);
 
-        Send(_outbound.AsSpan(0, length));
+        Send(link, link.Outbound.AsSpan(0, length));
     }
 
-    private void HandleLongPoll(ReadOnlySpan<byte> frame)
+    private void HandleLongPoll(MachineLink link, ReadOnlySpan<byte> frame)
     {
         byte command = frame[1];
         Interlocked.Increment(ref _longPolls);
@@ -832,7 +957,7 @@ public sealed partial class FakeEgm : IDisposable
         // bytes is checked on arrival, and one that fails is refused whatever the command.
         if (frame.Length > 2 && !SasCrc.Verify(frame))
         {
-            Reject();
+            Reject(link);
             return;
         }
 
@@ -842,9 +967,17 @@ public sealed partial class FakeEgm : IDisposable
         // that this host shared, so the two peers agreed and both were wrong.
         if (frame.Length <= 2 && SasCommandFraming.RequiresCheckSequence(command))
         {
-            Reject();
+            Reject(link);
             return;
         }
+
+        //  The channel category gate, which is what makes two hosts on one machine safe. A
+        //  channel that was not given a category behaves as though the category did not exist,
+        //  and the library implements that by returning without sending anything — so this is
+        //  silence and not a refusal, and the difference matters: a refusal would tell the host
+        //  the command was understood and declined.
+        if (!Channels.Answers(link.Channel, command))
+            return;
 
         //  A command this machine has been built without. Silence rather than a rejection, for the
         //  same reason as below: a rejection says the command was understood and declined.
@@ -866,7 +999,7 @@ public sealed partial class FakeEgm : IDisposable
         {
             // Known to the protocol but not modelled here, or not a command at all. Either way
             // this machine says no rather than answering something a test would come to rely on.
-            Reject();
+            Reject(link);
             return;
         }
 
@@ -875,22 +1008,22 @@ public sealed partial class FakeEgm : IDisposable
             case SasResponseShape.Acknowledgement:
                 if (!ApplyAcknowledgedCommand(command, frame))
                 {
-                    Reject();
+                    Reject(link);
                     return;
                 }
 
-                Send([SasSymbol.Data8(_options.Address.Value)]);
+                Send(link, [SasSymbol.Data8(link.Address.Value)]);
                 return;
 
             case SasResponseShape.None:
                 return;
 
             case SasResponseShape.Data:
-                SendData(layout, frame);
+                SendData(link, layout, frame);
                 return;
 
             default:
-                Reject();
+                Reject(link);
                 return;
         }
     }
@@ -941,12 +1074,12 @@ public sealed partial class FakeEgm : IDisposable
         }
     }
 
-    private void SendData(SasMessageLayout layout, ReadOnlySpan<byte> request)
+    private void SendData(MachineLink link, SasMessageLayout layout, ReadOnlySpan<byte> request)
     {
         Dictionary<string, object>? values = ValuesFor(layout, request);
         if (values is null)
         {
-            Reject();
+            Reject(link);
             return;
         }
 
@@ -956,30 +1089,73 @@ public sealed partial class FakeEgm : IDisposable
         if (ReferenceEquals(values, NoAnswer))
             return;
 
+        //  The enabled-features reply describes the machine but is answered on a channel, so what
+        //  goes out is narrowed to the categories this channel owns. Done to the values rather
+        //  than to the finished bytes because the fields here are named, and done at all because
+        //  the library does it: a channel with no validation must not tell its host the machine
+        //  redeems tickets.
+        if (layout.Command == (byte)SasLongPollCode.LP_SENDENABLEFEATURES)
+            MaskFeaturesForChannel(link.Channel, values);
+
         int length;
         try
         {
-            length = SasMessageEncoder.WriteResponse(layout, _options.Address, values, _frame);
+            length = SasMessageEncoder.WriteResponse(layout, link.Address, values, link.Frame);
         }
         catch (InvalidOperationException)
         {
             // A value that will not fit the field is this fixture's fault, not the host's, but
             // answering a malformed frame would blame the host for it.
-            Reject();
+            Reject(link);
             return;
         }
 
         for (int i = 0; i < length; i++)
-            _outbound[i] = SasSymbol.Data8(_frame[i]);
+            link.Outbound[i] = SasSymbol.Data8(link.Frame[i]);
 
-        Send(_outbound.AsSpan(0, length));
+        Send(link, link.Outbound.AsSpan(0, length));
     }
 
-    private void Reject()
+    /// <summary>
+    /// Clears the enabled-feature bits this channel must not report.
+    /// </summary>
+    /// <remarks>
+    /// The library masks three feature bytes. Two of them are single fields here; the first is a
+    /// byte whose top four bits are named fields of their own, so it is composed, masked and taken
+    /// apart again rather than masked field by field — which is what keeps the bits this build
+    /// clears exactly the bits the library clears.
+    /// </remarks>
+    private void MaskFeaturesForChannel(SasChannel channel, Dictionary<string, object> values)
+    {
+        Span<byte> features =
+        [
+            (byte)(Byte(values, "feature_codes_1")
+                   | (byte)(Byte(values, "validation_style") << 5)
+                   | (byte)(Byte(values, "validation_extensions") << 4)
+                   | (byte)(Byte(values, "ticket_redemption") << 7)),
+            Byte(values, "feature_codes_2"),
+            Byte(values, "feature_codes_3"),
+        ];
+
+        Channels.MaskFeatures(channel, features);
+
+        values["feature_codes_1"] = (byte)(features[0] & 0x0F);
+        values["validation_style"] = (byte)((features[0] >> 5) & 0x03);
+        values["validation_extensions"] = (byte)((features[0] >> 4) & 0x01);
+        values["ticket_redemption"] = (byte)((features[0] >> 7) & 0x01);
+        values["feature_codes_2"] = features[1];
+        values["feature_codes_3"] = features[2];
+
+        static byte Byte(Dictionary<string, object> values, string name) =>
+            values.TryGetValue(name, out object? value) ? Convert.ToByte(value) : (byte)0;
+    }
+
+    private void Reject(MachineLink link)
     {
         Interlocked.Increment(ref _rejections);
-        Send([SasSymbol.Data8((byte)(_options.Address.Value | HostMessage.GeneralPollFlag))]);
+        Send(link, [SasSymbol.Data8((byte)(link.Address.Value | HostMessage.GeneralPollFlag))]);
     }
 
-    private void Send(ReadOnlySpan<SasSymbol> symbols) => _transport.Write(symbols);
+    private static void Send(MachineLink link, ReadOnlySpan<SasSymbol> symbols) =>
+        link.Transport.Write(symbols);
 }

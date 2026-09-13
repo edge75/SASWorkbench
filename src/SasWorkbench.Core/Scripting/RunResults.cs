@@ -138,11 +138,39 @@ public sealed record RunProvenance(
     /// </remarks>
     public bool WakeupBitCaptured { get; init; } = true;
 
+    /// <summary>
+    /// How the machine was divided between hosts: a poll address per channel, and the channel
+    /// owning each category.
+    /// </summary>
+    /// <remarks>
+    /// Part of the provenance rather than of any one packet, because "which host should have sent
+    /// this poll" and "which host owns this exception" are unanswerable without it — and the map
+    /// lives in the machine's own configuration, not here.
+    /// </remarks>
+    public string? Channels { get; init; }
+
+    /// <summary>
+    /// True when the arrangement was read from the machine, false when the case declared it.
+    /// </summary>
+    /// <remarks>
+    /// The difference is the whole value of recording it. Against a machine this build made, the
+    /// map is a reading. Against anybody else's, no long poll reports it, so what is on record is
+    /// what the case said it would be — which a case can then check against the machine's answers
+    /// but must not be taken as having checked on its own.
+    /// </remarks>
+    public bool ChannelsRead { get; init; }
+
+    /// <summary>Why the arrangement asked for was refused, when it was.</summary>
+    public string? ChannelRefusal { get; init; }
+
     public override string ToString()
     {
         string caveat = Caveat is null ? string.Empty : $" — {Caveat}";
+        string channels = Channels is null
+            ? string.Empty
+            : $", {Channels} ({(ChannelsRead ? "read from the machine" : "declared by the case")})";
         return $"{Transport}, {Fidelity.ToString().ToLowerInvariant()}, stimulus "
-               + $"{Stimulus.ToString().ToLowerInvariant()}{caveat}";
+               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{caveat}";
     }
 }
 

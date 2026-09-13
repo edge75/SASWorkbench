@@ -380,10 +380,49 @@ traces are **filtered**, so they hold answers to polls nobody wrote down; its se
 data replies at all and is **useless for replay**; and a recording can carry traffic to more than one
 machine.
 
+✅ **A person's session comes out as a script, and two channels are proven against a real
+machine** — see `docs/M4-recording-and-channels.md`. Two halves.
+
+The window records what somebody does by hand and emits a script that runs again unattended: two
+of them do, and both are committed under `tests/regression/recorded/`, which means they carry that
+tree's invariant of no skips at all. Nobody wrote their `requires` lines, their exception names,
+their windows or their ticket comparisons. What is refused rather than written down is the half
+worth more: a stimulus the backend would not carry out is recorded as one that did not happen and
+gets no step, a value the machine chose is reported with the values it was seen holding instead of
+asserted as a literal, and a person's hesitation is never written down as a wait — every emitted
+window is the measured time times three with a floor, and the script's own header says the number
+is the tool's. A ticket's number is the one machine-chosen value that can still be pinned down,
+because the language compares a reply against the ticket the printer filed. The money-free
+recording replayed against `QSP_DemoOpenGL` held **13 of its 14 assertions**; the one that did not
+is the demo's empty serial number, which `sasctl replay` independently classifies as a machine in
+another configuration rather than as a defect. The recording that needs money fails on the money —
+Trap D.
+
+And channels are no longer only carried. Three tables now come out of the machine library rather
+than out of anybody's head: the seven categories from its channel-control structure, **35 long
+polls gated on one**, **16 exceptions filtered by one**, and the enabled-feature bits a channel
+without a category must not report. All twenty-nine gated handlers are byte-identical between the
+checkout the generator reads and the revision the machine runs, so Trap E does not reach this
+question. `QSP_DemoOpenGL` **opened a second SAS channel and answered both hosts** — its own trace
+shows two link-ups and two exception buffers — with nothing in its repository edited: the demo
+already declares two network ports, the transport already reads a per-port endpoint, and
+`sasctl nvram channels` writes the poll address and the category map that a person cannot reach
+through the machine's own menu. Four cases prove the gate and the filter against the software
+machine with no skips, three prove them against the real one with no money at all.
+
+GSA 10.1.4 is written and **fails on purpose**: the cashout ticket information poll carries no
+channel gate in the library at all, so a host that owns no validation is answered with the real
+ticket's number and amount, where the document asks to be ignored or answered with zeros. Steps 2,
+3, 4 and 6 hold; step 4 holds because `$3D` is in none of the five exception predicates and so
+reaches every open channel, which is the same absence that breaks step 5. The case carries
+`tag @finding` and two gates use it — one suite gate skips the label and one asserts that the
+labelled case still fails, so a green suite cannot hide the finding and the label cannot outlive
+it. No catalogue figure moved and none could; three defects in this build were found and fixed on
+the way, and one of them was a case asserting a silence that was only the receiver's framing.
+
 Still to do in this milestone: the rest of the long-poll catalogue — 39
 commands, of which the five tournament meters need a machine that advertises tournament mode and the
-AFT family needs a registered host · the four event payloads Trap D blocks · GUI session recording
-(D5) · second channel to prove D16 against GSA 10.1.4.
+AFT family needs a registered host · the four event payloads Trap D blocks.
 
 ---
 

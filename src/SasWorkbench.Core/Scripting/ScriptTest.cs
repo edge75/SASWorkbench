@@ -35,6 +35,9 @@ public sealed record ScriptTest
     /// <summary>The configuration this case assumes the machine is already in, when it says.</summary>
     public MachineDeclaration? Machine { get; init; }
 
+    /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
+    public MachineChannelDeclaration? Channels { get; init; }
+
     /// <summary>Labels that cut across the suite, such as <c>@slow</c> or <c>@destructive</c>.</summary>
     public IReadOnlyList<string> Tags { get; init; } = [];
 

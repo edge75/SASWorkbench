@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Wire;
 using SasWorkbench.Qpm;
 
 namespace SasWorkbench.Cli;
@@ -24,7 +25,8 @@ internal static class NvramCommand
         if (line.Arguments.Count == 0)
         {
             Console.Error.WriteLine(
-                "error: 'nvram' needs an action: status, show, save, restore or validation.");
+                "error: 'nvram' needs an action: status, show, save, restore, validation or "
+                + "channels.");
             return 2;
         }
 
@@ -37,6 +39,7 @@ internal static class NvramCommand
                 "save" => Save(memory, fixture),
                 "restore" => Restore(memory, fixture),
                 "validation" => Validation(fixture, line),
+                "channels" => Channels(fixture, line),
                 _ => Unknown(line.Arguments[0]),
             };
         }
@@ -124,6 +127,10 @@ internal static class NvramCommand
                 + $"${configuration.ConfigurationRequired:X4}");
         }
 
+        (SasChannelPlan? plan, string? refusal) = configuration.Channels;
+        Console.WriteLine($"             channels         "
+            + (plan?.Describe() ?? $"refused - {refusal}"));
+
         if (configuration.Caveat is { } caveat)
             Console.WriteLine($"             note             {caveat}");
     }
@@ -165,6 +172,48 @@ internal static class NvramCommand
         return 0;
     }
 
+    /// <summary>
+    /// Writes a saved copy out again with the machine divided between two or more hosts.
+    /// </summary>
+    /// <remarks>
+    /// Written in the same words a run's provenance prints the arrangement in, so the line out of
+    /// a report can be pasted straight back in. An arrangement no machine could serve is refused
+    /// here rather than written, because a machine booted on it would open no channel for the
+    /// orphaned category and a host polling for it would get silence with no reason attached.
+    /// </remarks>
+    private static int Channels(string fixture, CommandLine line)
+    {
+        if (line.Arguments.Count < 2)
+        {
+            Console.Error.WriteLine(
+                "error: expected 'nvram channels \"1@01 2@02 validation=2\" --fixture <in> "
+                + "--out <out>'.");
+            Console.Error.WriteLine(
+                $"  Channels are 1 to {SasChannels.Count}; addresses are hex, and 00 means the "
+                + "channel has none.");
+            Console.Error.WriteLine($"  Categories: {SasCategories.Names}.");
+            return 2;
+        }
+
+        string wanted = string.Join(' ', line.Arguments.Skip(1));
+        if (!SasChannelPlan.TryParse(wanted, out SasChannelPlan plan, out string? error))
+        {
+            Console.Error.WriteLine($"error: {error}");
+            return 2;
+        }
+
+        string output = line.Value("out") ?? fixture;
+        NvramMachineConfiguration written = NvramFixture.Reconfigure(fixture, output, plan);
+
+        Console.WriteLine($"  wrote {output}");
+        Console.WriteLine($"  {written.Channels.Plan?.Describe() ?? written.Channels.Refusal}");
+        Console.WriteLine(
+            "  Restore it, boot a machine on it, and check the machine actually opens the second "
+            + "channel before trusting it: a cabinet with one serial port cannot, whatever this "
+            + "memory says.");
+        return 0;
+    }
+
     private static int Save(string? memory, string fixture)
     {
         NvramSnapshot saved = NvramFixture.Save(memory, fixture);
@@ -184,8 +233,8 @@ internal static class NvramCommand
     private static int Unknown(string action)
     {
         Console.Error.WriteLine(
-            $"error: '{action}' is not a memory action. Expected status, show, save, restore or "
-            + "validation.");
+            $"error: '{action}' is not a memory action. Expected status, show, save, restore, "
+            + "validation or channels.");
         return 2;
     }
 }

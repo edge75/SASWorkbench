@@ -171,6 +171,24 @@ internal static class RunCommand
             }
         }
 
+        //  How long to wait for the machine to dial in. Worth naming on the command line
+        //  because a machine that takes half a minute to come up is a fact about the machine and
+        //  not about the case, and a case skipped for it reads as a case that could not be run.
+        TimeSpan peer = TimeSpan.FromSeconds(10);
+        string? waitFor = line.Value("wait-for-machine");
+        if (waitFor is not null)
+        {
+            try
+            {
+                peer = ScriptParser.ParseDuration(waitFor, SourceLocation.None);
+            }
+            catch (ScriptParseException parse)
+            {
+                error = parse.Reason;
+                return false;
+            }
+        }
+
         // Read whether or not the peripheral driver was asked for, so that naming one of these
         // with the wrong backend is reported as the mistake it is rather than silently ignored.
         var peripherals = new QpmOptions(
@@ -189,6 +207,7 @@ internal static class RunCommand
             PollInterval = interval,
             AskPerson = backend == StimulusBackend.Manual ? AskAtTheConsole : null,
             PromptDeadline = askFor,
+            PeerTimeout = peer,
             RealTimeEventsAllowed = line.Flag("real-time-events"),
 
             // The software machine is only wired in when it was asked for. A run that quietly

@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Recording;
 using SasWorkbench.Core.Reporting;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Session;
@@ -25,6 +26,9 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
     private readonly SessionLog _log = new();
     private HostSession? _session;
     private CancellationTokenSource? _run;
+    private IStimulusBackend _stimulus = new NoStimulusBackend();
+    private FakeEgm? _machine;
+    private IReadOnlyList<RecordedAction> _link = [];
 
     public WorkbenchViewModel()
     {
@@ -36,6 +40,8 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         SelectedInstrument = Instruments[0];
         Channels = ChannelOption.Offer(CapabilityProbe.Baseline());
         SelectedChannel = Channels[0];
+        Recorder = new SessionRecorder(_log);
+        Stimulus.Selected = Stimulus.Actions[0];
 
         // One log for the window, not one per link. A run closes the interactive session and opens
         // its own, and the stream has to survive that: what is durable is the record, not the link.
@@ -61,6 +67,12 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     /// <summary>The band that asks a person to act on the machine during a manual run.</summary>
     public ManualPromptViewModel Prompt { get; } = new();
+
+    /// <summary>What a person can do to the machine by hand.</summary>
+    public StimulusViewModel Stimulus { get; } = new();
+
+    /// <summary>Watches what a person does, so it can be written out as a script.</summary>
+    public SessionRecorder Recorder { get; }
 
     // ---- connection ----------------------------------------------------------------------
 
@@ -140,9 +152,10 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         new RailItem("METERS", 1),
         new RailItem("EXCEPTIONS", 2),
         new RailItem("SUITE", 3),
+        new RailItem("STIMULUS", 4),
+        new RailItem("RECORD", 5),
         new RailItem("CATALOGUE", -1, "M4"),
         new RailItem("SESSION", -1, "M4"),
-        new RailItem("STIMULUS", -1, "M2"),
         new RailItem("TICKETS", -1, "M3"),
         new RailItem("TRACES", -1, "M4"),
     ];
@@ -348,15 +361,23 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         var spec = new HostSessionSpec(
             transport, Target, address, (SasChannel)SelectedChannel.Number, interval);
 
+        //  The machine the interactive session talks to is captured on the way past, because a
+        //  person driving it by hand needs something to drive: the same backend a script run uses,
+        //  so what a person can do here is exactly what a test can express.
+        FakeEgm? started = null;
         try
         {
-            _session = HostSession.Open(spec, SoftwareMachinePeer.For(), _log);
+            _session = HostSession.Open(
+                spec, SoftwareMachinePeer.For(started: machine => started = machine), _log);
         }
         catch (TransportRefusedException refused)
         {
             Status = refused.Message;
             return;
         }
+
+        _machine = started;
+        _stimulus = BuildStimulus(started);
 
         _session.ExceptionReported += OnException;
         _session.LinkStateChanged += OnLinkState;
@@ -366,9 +387,14 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         IsLinkUp = _session.State == Core.Polling.LinkState.Up;
         Status = $"connected to {_session.Description}";
 
+        _link = Preamble(transport, address, interval);
+        foreach (RecordedAction action in _link)
+            Recorder.Did(action.What, action.Step);
+
         TransportCapabilities caps = _session.Capabilities;
         IsLinkProven = caps.Fidelity == TransportFidelity.Proven;
-        LinkClaim = $"{_session.Description} · stimulus none";
+        LinkClaim = $"{_session.Description} · stimulus "
+                    + _stimulus.Kind.ToString().ToLowerInvariant();
         LinkCaveat = caps.Caveat;
 
         RefreshCounters();
@@ -385,6 +411,10 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         session.ExceptionReported -= OnException;
         session.LinkStateChanged -= OnLinkState;
         session.Dispose();
+
+        _machine = null;
+        _stimulus = new NoStimulusBackend();
+        _link = [];
 
         IsConnected = false;
         LinkState = "down";
@@ -421,6 +451,12 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         IsBusy = true;
         try
         {
+            Recorder.Did(
+                data.Length == 0
+                    ? $"send long poll ${command:X2}"
+                    : $"send long poll ${command:X2} with {Convert.ToHexString(data)}",
+                new SendLongPollStep(SourceLocation.None, command, data));
+
             (LongPollResult result, SasDecoded? decoded) = await Task.Run(
                 () => session.SendAndDecode(command, data));
 
@@ -476,6 +512,11 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         IsBusy = true;
         try
         {
+            //  Recorded as something that happened and not as a step: reading forty meters is an
+            //  observation, and every number it produces is the machine's condition rather than
+            //  anything a person chose. A script that asserted them would fail on its next run.
+            Recorder.Did("read every meter this build can read by name");
+
             IReadOnlyList<MeterReading> readings = await Task.Run(() => session.ReadMeters());
 
             Meters.Clear();
@@ -692,6 +733,188 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
                  + "this build has not established";
     }
 
+    /// <summary>
+    /// Does to the machine what the person asked for, and records what came of it.
+    /// </summary>
+    /// <remarks>
+    /// A refusal is recorded as an action that did not happen, with the backend's own reason, and
+    /// no step is written for it. The alternative — recording the intent as though it had worked —
+    /// is the one thing a recorder must never do: the script would then drive a machine nobody
+    /// drove, and everything asserted after it would be about a machine in another state.
+    /// </remarks>
+    [RelayCommand]
+    private void ApplyStimulus()
+    {
+        if (Stimulus.Selected is not { } action)
+        {
+            Stimulus.Outcome = "choose something first";
+            return;
+        }
+
+        if (!IsConnected)
+        {
+            Stimulus.Outcome = "connect first: a machine nobody is polling reports nothing";
+            return;
+        }
+
+        try
+        {
+            _stimulus.Apply(action.Step);
+            Stimulus.Outcome = $"{action.Label}: done";
+            Recorder.Did(action.Label, action.Step);
+        }
+        catch (StimulusUnavailableException unavailable)
+        {
+            Stimulus.Outcome = $"{action.Label}: {unavailable.Reason}";
+            Recorder.Did(action.Label, action.Step, unavailable.Reason);
+        }
+    }
+
+    // ---- recording -----------------------------------------------------------------------
+
+    /// <summary>Whether a recording is running, for the button and the lamp.</summary>
+    [ObservableProperty]
+    public partial bool IsRecording { get; set; }
+
+    /// <summary>What this recording has been called, which becomes the test's name.</summary>
+    [ObservableProperty]
+    public partial string RecordingName { get; set; } = "what I did by hand";
+
+    /// <summary>The script the last recording produced, or null before there is one.</summary>
+    [ObservableProperty]
+    public partial string? RecordedScript { get; set; }
+
+    /// <summary>What the last recording could not capture, one line each.</summary>
+    public ObservableCollection<CaveatLine> Caveats { get; } = [];
+
+    [RelayCommand]
+    private void StartRecording()
+    {
+        Caveats.Clear();
+        RecordedScript = null;
+
+        //  The link goes in as the recording's preamble rather than being waited for. A person
+        //  connects, watches the machine for a while and only then presses Record, and a script
+        //  with no link in it cannot run at all.
+        Recorder.Start(_link);
+        IsRecording = true;
+        Status = "recording; everything done from here on is written down, and everything that "
+                 + "cannot be is said plainly";
+    }
+
+    /// <summary>
+    /// Stops recording and writes the script out.
+    /// </summary>
+    /// <remarks>
+    /// The caveats are shown beside the script rather than only inside it, because the question a
+    /// person has at this moment is "does this do what I just did" — and the answer is entirely in
+    /// the list of things it left out.
+    /// </remarks>
+    [RelayCommand]
+    private void StopRecording()
+    {
+        if (!IsRecording)
+        {
+            Status = "nothing is being recorded";
+            return;
+        }
+
+        Recorded recorded = Recorder.Stop();
+        IsRecording = false;
+
+        if (!recorded.AnythingHappened)
+        {
+            RecordedScript = null;
+            Status = "nothing was done while that was recording, so there is no script";
+            return;
+        }
+
+        EmittedScript emitted = ScriptEmitter.Emit(
+            recorded,
+            string.IsNullOrWhiteSpace(RecordingName) ? "what I did by hand" : RecordingName);
+
+        RecordedScript = emitted.Script;
+        foreach (RecordingCaveat caveat in emitted.Caveats)
+            Caveats.Add(new CaveatLine(RecordingCaveat.Describe(caveat.Kind), caveat.What, caveat.Why));
+
+        Status = $"recorded {emitted}";
+    }
+
+    /// <summary>Writes the recorded script where a run can find it.</summary>
+    [RelayCommand]
+    private void SaveRecording()
+    {
+        if (RecordedScript is not { } script)
+        {
+            Status = "record something first";
+            return;
+        }
+
+        string directory = Resolve("runs");
+        string file = Path.Combine(
+            directory,
+            $"recorded-{DateTimeOffset.Now:yyyy-MM-dd-HHmmss}.sas");
+
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(file, script);
+            Status = $"wrote {file}";
+        }
+        catch (IOException io)
+        {
+            Status = $"could not write the script: {io.Message}";
+        }
+        catch (UnauthorizedAccessException denied)
+        {
+            Status = $"could not write the script: {denied.Message}";
+        }
+    }
+
+    /// <summary>
+    /// The link a recording is made over, as the steps that would open it again.
+    /// </summary>
+    private static IReadOnlyList<RecordedAction> Preamble(
+        ScriptTransport transport, SasAddress address, TimeSpan interval) =>
+    [
+        new(TimeSpan.Zero, SasChannel.One,
+            $"connect {transport.ToString().ToLowerInvariant()} address {address}",
+            new ConnectStep(
+                SourceLocation.None, transport,
+                transport == ScriptTransport.Loopback ? string.Empty : string.Empty,
+                address, SasChannel.One)),
+        new(TimeSpan.Zero, SasChannel.One, $"poll every {interval.TotalMilliseconds:F0}ms",
+            new PollEveryStep(SourceLocation.None, interval)),
+    ];
+
+    /// <summary>
+    /// The backend a person drives the machine with by hand.
+    /// </summary>
+    /// <remarks>
+    /// The same backends a run uses, so a hand-driven door and a scripted one are the same door.
+    /// One that cannot be built comes back as a backend that refuses with the reason rather than
+    /// as one that does nothing, because a stimulus that silently did nothing is what makes an
+    /// assertion afterwards pass for the wrong reason.
+    /// </remarks>
+    private IStimulusBackend BuildStimulus(FakeEgm? machine) => RunStimulus switch
+    {
+        StimulusBackend.Software when machine is not null =>
+            new SoftwareMachineStimulus(machine, Resolve("runs")),
+
+        StimulusBackend.Software => new RefusingStimulusBackend(
+            "the software gaming machine answers a loopback link, and this session is on another"),
+
+        StimulusBackend.Qpm => QpmEnvironment.Attach(
+            new QpmOptions(ResourcesDirectory: string.IsNullOrWhiteSpace(EgmResources)
+                ? null
+                : EgmResources)),
+
+        StimulusBackend.Manual => new ManualStimulusBackend(
+            AskAtTheWindow, ScriptParser.ParseDuration(Prompt.Deadline, SourceLocation.None)),
+
+        _ => new NoStimulusBackend(),
+    };
+
     [RelayCommand]
     private void ClearLog()
     {
@@ -760,6 +983,12 @@ public sealed record MeterLine(string Name, string From, string Value, string No
 
 /// <summary>One field of the last reply.</summary>
 public sealed record FieldLine(string Name, string Value, string Note);
+
+/// <summary>One thing a recording could not capture.</summary>
+/// <param name="Kind">Which of the five it is.</param>
+/// <param name="What">What was done, or which value it was about.</param>
+/// <param name="Why">Why it cannot be written down.</param>
+public sealed record CaveatLine(string Kind, string What, string Why);
 
 /// <summary>One line of a script run's result.</summary>
 public sealed record StepLine(ChipStatus Verdict, string What, string Where, string Detail);

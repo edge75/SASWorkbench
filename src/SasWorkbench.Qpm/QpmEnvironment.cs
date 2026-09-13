@@ -35,10 +35,14 @@ public static class QpmEnvironment
         // real machine, its accounting denomination is established by a memory clear, and nothing
         // reachable from here can change it. The runner reads it off the wire and skips a case
         // that assumed another unit, which is the honest outcome.
-        return (step, runnerOptions, _) =>
+        return (step, runnerOptions, _, channels) =>
         {
+            //  The channel arrangement is dropped for the same reason the denomination is: a
+            //  machine driven through its peripherals is a real machine, its channels are set in
+            //  its own configuration menu, and nothing reachable from here changes them. The link
+            //  a second channel needs is opened all the same, so a case can still drive two hosts.
             ScriptEnvironment link = DefaultEnvironment.Create(
-                step, runnerOptions with { Stimulus = StimulusBackend.None });
+                step, runnerOptions with { Stimulus = StimulusBackend.None }, null, channels);
 
             IStimulusBackend stimulus = Attach(settings, runnerOptions.AcceptorDirectory);
 

@@ -419,6 +419,198 @@ def parse_check_sequences(lp_source: str, dispatch: dict[int, str]) -> dict[int,
 VARIABLE_LENGTH = -1
 
 
+def parse_channel_categories(wrapper_header: str) -> list[str]:
+    """The categories a channel can own, read from the library's own channel-control bitfield.
+
+    SAS 6.02 treats every channel as an independent entity, and the library states which
+    independences there are exactly once: as the one-bit fields of sChannelControl. Read from
+    there rather than listed here, so a category added to the library arrives as a diff.
+    """
+    body = re.search(r"typedef\s+struct\s+_sChannelControl\s*\{(.*?)\}\s*sChannelControl\s*;",
+                     strip_comments(wrapper_header), re.S)
+    if not body:
+        raise SystemExit("the library's channel control structure was not found")
+
+    names = [name for name, width in
+             re.findall(r"unsigned\s+int\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(\d+)", body.group(1))
+             if width == "1"]
+    if not names:
+        raise SystemExit("the library's channel control structure named no categories")
+
+    return names
+
+
+def enclosing_condition(body: str, at: int) -> str | None:
+    """The `if (...)` a gate sits inside, when it sits inside one rather than at the top."""
+    opened = body.rfind("{", 0, at)
+    while opened >= 0:
+        head = body[:opened].rstrip()
+        condition = re.search(r"if\s*\(((?:[^()]|\([^()]*\))*)\)$", head)
+        if condition:
+            return condition.group(1)
+        opened = body.rfind("{", 0, opened)
+    return None
+
+
+def category_gate(bodies: dict[str, str], handler: str) -> tuple[str, list[str]] | None:
+    """Which category one handler is gated on, and which commands its gate exempts.
+
+    The library gates a long poll on the answering channel owning the command's category by
+    returning without sending anything - "Otherwise ignore the LP" in its own words - so what a
+    host on the wrong channel gets is silence and not a refusal. The two are not interchangeable:
+    a refusal says the command was understood and declined.
+
+    One handler serves nine commands and gates all but two of them, naming those two in the
+    condition around its gate. They are read out of the condition rather than assumed, so a
+    command the library exempts is exempted here.
+    """
+    body = bodies.get(handler)
+    if body is None:
+        return None
+
+    found = list(re.finditer(r"!channelControl\.([A-Za-z_][A-Za-z0-9_]*)", body))
+    if not found:
+        return None
+
+    categories = {match.group(1) for match in found}
+    if len(categories) > 1:
+        print(f"{handler} is gated on more than one category: " + ", ".join(sorted(categories)),
+              file=sys.stderr)
+        return None
+
+    exempt: list[str] = []
+    for match in found:
+        condition = enclosing_condition(body, match.start())
+        if condition:
+            exempt.extend(re.findall(r"\b(LP_[A-Z0-9_]+)\b", condition))
+
+    return categories.pop(), sorted(set(exempt))
+
+
+def parse_command_categories(
+        lp_source: str, dispatch: dict[int, str], long_polls: list[Entry]) -> dict[int, str]:
+    """Maps each long poll to the channel category that owns it, where the library gates one.
+
+    A command in no category is answered on any channel. That is not a hole to be filled in: the
+    cashout ticket information poll is one of them, so a host on a channel that does not own
+    validation is answered with the ticket's real validation number, which is a fact about the
+    library worth stating.
+    """
+    bodies = parse_function_bodies(lp_source)
+    by_code = {entry.value: entry.name for entry in long_polls}
+    categories: dict[int, str] = {}
+
+    for code, handler in sorted(dispatch.items()):
+        gate = category_gate(bodies, handler)
+        if gate is None:
+            continue
+
+        category, exempt = gate
+        if by_code.get(code) in exempt:
+            continue
+
+        categories[code] = category
+
+    return categories
+
+
+def parse_exception_categories(utils_source: str, exceptions: list[Entry]) -> dict[int, str]:
+    """Maps each exception to the channel category that owns it, from the library's predicates.
+
+    The library keeps one exception buffer per channel and skips a channel that does not own the
+    exception's category, so which host hears an exception is decided by these five functions and
+    by nothing else. An exception none of them claims reaches every open channel - which is what
+    makes a printed cashout ticket visible to a host that cannot then read the ticket.
+    """
+    bodies = parse_function_bodies(utils_source)
+    by_symbol = {entry.name: entry.value for entry in exceptions}
+    categories: dict[int, str] = {}
+    unmatched: set[str] = set()
+
+    for predicate, category in (
+            ("isAftException", "aft"),
+            ("isProgressiveException", "progressive"),
+            ("isLegacyBonusException", "legacyBonus"),
+            ("isValidationException", "validation"),
+            ("isComponentAuthenticationException", "componentAuthentication")):
+        body = bodies.get(predicate)
+        if body is None:
+            raise SystemExit(f"the library's {predicate} was not found")
+
+        for symbol in re.findall(r"exceptionCode\s*==\s*([A-Za-z_][A-Za-z0-9_]*)", body):
+            if symbol in by_symbol:
+                categories[by_symbol[symbol]] = category
+            else:
+                unmatched.add(symbol)
+
+    # A predicate naming a code the enumeration does not carry means the two have drifted apart.
+    # Dropped in silence it would be indistinguishable from an exception no channel filters.
+    if unmatched:
+        print("exception category predicates naming codes with no entry in the enumeration: "
+              + ", ".join(sorted(unmatched)), file=sys.stderr)
+
+    return categories
+
+
+def parse_feature_masks(
+        utils_source: str, libsas_header: str) -> dict[str, list[tuple[int, int]]]:
+    """Which enabled-feature bits the library clears for a channel that lacks a category.
+
+    Long poll $A0 is answered on a channel, so a channel that was never given a category must not
+    tell its host the machine supports that category. The library masks its own answer; the bits
+    it clears are read from there and resolved through the header's macros, so a bit renumbered in
+    the library is renumbered here.
+    """
+    bodies = parse_function_bodies(utils_source)
+    body = bodies.get("maskEnabledFeaturesForChannel")
+    if body is None:
+        raise SystemExit("the library's enabled-features channel mask was not found")
+
+    header = strip_comments(libsas_header)
+    defines: dict[str, int] = {}
+    # Plain macros, and the enumerated constants a macro may be written in terms of. Both, because
+    # the validation style bits are a macro over an enumerator and reading only one kind of
+    # definition left two of the four bits out of the mask.
+    for name, value in re.findall(
+            r"#define\s+([A-Z][A-Z0-9_]*)\s+(0x[0-9A-Fa-f]+|\d+)\s*$", header, re.M):
+        defines[name] = int(value, 0)
+    for name, value in re.findall(
+            r"^\s*([A-Z][A-Z0-9_]*)\s*=\s*(0x[0-9A-Fa-f]+|\d+)\s*,?\s*$", header, re.M):
+        defines.setdefault(name, int(value, 0))
+
+    # One of them is written as another macro shifted, which is how the library expresses the
+    # reserved value of a two-bit field. Resolved the same way rather than named as a special case.
+    for name, base, shift in re.findall(
+            r"#define\s+([A-Z][A-Z0-9_]*)\s+\(\s*([A-Z][A-Z0-9_]*)\s*<<\s*(\d+)\s*\)", header):
+        if base in defines:
+            defines[name] = defines[base] << int(shift)
+
+    masks: dict[str, list[tuple[int, int]]] = {}
+    unresolved: set[str] = set()
+    gates = list(re.finditer(r"if\s*\(!channelControl\.([A-Za-z_][A-Za-z0-9_]*)\)", body))
+    for index, gate in enumerate(gates):
+        until = gates[index + 1].start() if index + 1 < len(gates) else len(body)
+        for byte, expression in re.findall(
+                r"features\[(\d+)\]\s*&=\s*~\(?([^;]+?)\)?\s*;", body[gate.end():until]):
+            bits = 0
+            for symbol in re.findall(r"[A-Z][A-Z0-9_]*", expression):
+                if symbol in defines:
+                    bits |= defines[symbol]
+                else:
+                    unresolved.add(symbol)
+            if bits:
+                masks.setdefault(gate.group(1), []).append((int(byte), bits))
+
+    if unresolved:
+        print("enabled-feature bits the header does not define: " + ", ".join(sorted(unresolved)),
+              file=sys.stderr)
+
+    if not masks:
+        raise SystemExit("no enabled-feature bits were read out of the channel mask")
+
+    return masks
+
+
 def parse_host_message_lengths(uart_source: str) -> dict[int, int]:
     """Reads the receiver's own table of how long each host message is.
 
@@ -522,6 +714,37 @@ def header(sources: str, usings: str = "") -> str:
     return HEADER.format(sources=sources, usings=usings)
 
 
+
+def csharp_category(name: str) -> str:
+    """Turns the library's generalControl into GeneralControl."""
+    return name[:1].upper() + name[1:]
+
+
+def emit_categories(categories: list[str], sources: str) -> str:
+    """The seven categories a channel can own, as the library's own structure names them."""
+    lines = [header(sources),
+             "/// <summary>",
+             "/// One of the categories of SAS traffic a channel can be given ownership of.",
+             "/// </summary>",
+             "/// <remarks>",
+             "/// Read from the gaming machine library's channel-control structure, whose one-bit",
+             "/// fields are the only place the library states what the independences are. The",
+             "/// platform above it lists the same seven in the same order, as seven two-bit fields",
+             "/// each holding one channel number - so a category cannot be on two channels at once,",
+             "/// and disjointness is a property of the machine rather than a rule a host has to",
+             "/// police.",
+             "/// </remarks>",
+             "public enum SasCategory", "{"]
+    for index, name in enumerate(categories):
+        lines.append(f"    /// <summary>{spaced(csharp_category(name))}.</summary>")
+        lines.append(f"    {csharp_category(name)} = {index},")
+        lines.append("")
+    if lines[-1] == "":
+        lines.pop()
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
 def emit_enum(
     csharp_name: str,
     underlying: str,
@@ -552,6 +775,9 @@ def emit_catalogue(
     meters: list[Entry],
     meter_reads: dict[int, tuple[list[int], bool]],
     multigame_meters: list[int],
+    command_categories: dict[int, str],
+    exception_categories: dict[int, str],
+    feature_masks: dict[str, list[tuple[int, int]]],
     sources: str,
 ) -> str:
     lines = [header(sources, "\nusing System.Collections.Frozen;\n"),
@@ -660,6 +886,60 @@ def emit_catalogue(
         lines.append(f'            0x{value:04X},')
     lines.append("        }.ToFrozenSet();")
     lines.append("")
+    lines.append("    /// <summary>")
+    lines.append("    /// Which channel category owns each long poll, where the library gates one.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// A channel that was not given a category behaves as though the category did")
+    lines.append("    /// not exist, and the library implements that by returning without sending")
+    lines.append("    /// anything - so a host on the wrong channel is met with silence rather than")
+    lines.append("    /// with a refusal. A command absent from this table is answered on any")
+    lines.append("    /// channel, which is a fact about the library and not a gap here.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<byte, SasCategory> CommandCategories { get; } =")
+    lines.append("        new Dictionary<byte, SasCategory>")
+    lines.append("        {")
+    for code in sorted(command_categories):
+        lines.append(
+            f'            [0x{code:02X}] = SasCategory.{csharp_category(command_categories[code])},')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
+    lines.append("    /// <summary>")
+    lines.append("    /// Which channel category owns each exception, where the library filters one.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// The library keeps one exception buffer per channel and skips a channel that")
+    lines.append("    /// does not own the exception's category, so this decides which host hears")
+    lines.append("    /// what. An exception in no category reaches every open channel.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<byte, SasCategory> ExceptionCategories { get; } =")
+    lines.append("        new Dictionary<byte, SasCategory>")
+    lines.append("        {")
+    for code in sorted(exception_categories):
+        lines.append(
+            f'            [0x{code:02X}] = SasCategory.{csharp_category(exception_categories[code])},')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
+    lines.append("    /// <summary>")
+    lines.append("    /// Which enabled-feature bits the library clears when answering on a channel")
+    lines.append("    /// that does not own the category, by feature byte.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// The features describe the machine and are configured once, but the poll that")
+    lines.append("    /// reports them is answered on a channel - so a channel with no validation must")
+    lines.append("    /// not tell its host the machine redeems tickets.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<SasCategory, IReadOnlyList<SasFeatureMask>>")
+    lines.append("        ChannelFeatureMasks { get; } =")
+    lines.append("        new Dictionary<SasCategory, IReadOnlyList<SasFeatureMask>>")
+    lines.append("        {")
+    for category in sorted(feature_masks):
+        written = ", ".join(
+            f"new({index}, 0x{bits:02X})" for index, bits in feature_masks[category])
+        lines.append(
+            f'            [SasCategory.{csharp_category(category)}] = [{written}],')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
     lines.append("    /// <summary>How many of each the catalogue holds, for a report header.</summary>")
     lines.append("    public static (int LongPolls, int Exceptions, int Meters) Counts =>")
     lines.append("        (LongPolls.Count, Exceptions.Count, Meters.Count);")
@@ -723,6 +1003,14 @@ public sealed record SasMeterReadInfo(
         $"${Command:X2} {Meters.Count} meter(s)" + (ThroughSharedHandler ? ", scaled" : string.Empty);
 }
 
+/// <summary>One run of enabled-feature bits a channel without a category must not report.</summary>
+/// <param name="Byte">Which of the three feature bytes, zero-based.</param>
+/// <param name="Mask">The bits the library clears in it.</param>
+public readonly record struct SasFeatureMask(int Byte, byte Mask)
+{
+    public override string ToString() => $"features[{Byte}] &= ~0x{Mask:X2}";
+}
+
 /// <summary>One meter.</summary>
 /// <param name="Code">The meter code.</param>
 /// <param name="Symbol">The library's own identifier for it.</param>
@@ -750,14 +1038,16 @@ def main() -> int:
     lp_cpp = root / "src" / "lp.cpp"
     uart_cpp = root / "src" / "libsas_uart.cpp"
     utils_cpp = root / "src" / "libsas_utils.cpp"
+    wrapper_h = root / "include" / "libsas_wrapper.h"
     if (not libsas_h.exists() or not lp_h.exists() or not threads_cpp.exists()
-            or not lp_cpp.exists() or not uart_cpp.exists() or not utils_cpp.exists()):
+            or not lp_cpp.exists() or not uart_cpp.exists() or not utils_cpp.exists()
+            or not wrapper_h.exists()):
         print(f"headers not found under {root}", file=sys.stderr)
         return 2
 
     source = read(libsas_h)
-    sources = ("include/libsas.h, include/lp.h, src/libsas_threads.cpp, src/lp.cpp, "
-               "src/libsas_uart.cpp, src/libsas_utils.cpp")
+    sources = ("include/libsas.h, include/lp.h, include/libsas_wrapper.h, "
+               "src/libsas_threads.cpp, src/lp.cpp, src/libsas_uart.cpp, src/libsas_utils.cpp")
 
     long_polls = unique_names(parse_enum(source, "SasLongPollCode"))
     exceptions = unique_names(parse_enum(source, "SasExceptionCode"))
@@ -772,6 +1062,10 @@ def main() -> int:
     check_sequences = reconcile_check_sequences(host_lengths, from_handlers)
     meter_reads = parse_meter_reads(read(lp_cpp), handlers_full, meters)
     multigame_meters = parse_multigame_meters(read(utils_cpp), meters)
+    categories = parse_channel_categories(read(wrapper_h))
+    command_categories = parse_command_categories(read(lp_cpp), handlers_full, long_polls)
+    exception_categories = parse_exception_categories(read(utils_cpp), exceptions)
+    feature_masks = parse_feature_masks(read(utils_cpp), source)
 
     files = {
         "SasLongPollCode.g.cs": emit_enum(
@@ -792,10 +1086,12 @@ def main() -> int:
         "SasTicketMachineStatus.g.cs": emit_enum(
             "SasTicketMachineStatus", "byte", machine_status, sources,
             "What a gaming machine reports it did with a ticket."),
+        "SasCategory.g.cs": emit_categories(categories, sources),
         "CatalogueInfo.g.cs": emit_info_types(sources),
         "Catalogue.g.cs": emit_catalogue(
             long_polls, handlers, handlers_full, check_sequences, host_lengths,
-            exceptions, meters, meter_reads, multigame_meters, sources),
+            exceptions, meters, meter_reads, multigame_meters, command_categories,
+            exception_categories, feature_masks, sources),
     }
 
     stale = []
@@ -818,7 +1114,9 @@ def main() -> int:
 
     print(f"{len(long_polls)} long polls, {len(exceptions)} exceptions, {len(meters)} meters, "
           f"{len(transfer_codes)} ticket transfer codes, {len(machine_status)} machine "
-          f"statuses -> {OUT_DIR.relative_to(REPO)}")
+          f"statuses, {len(categories)} channel categories owning "
+          f"{len(command_categories)} command(s) and {len(exception_categories)} exception(s) "
+          f"-> {OUT_DIR.relative_to(REPO)}")
     if stale:
         print("updated: " + ", ".join(sorted(stale)))
     else:

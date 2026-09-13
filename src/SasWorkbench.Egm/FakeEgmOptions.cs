@@ -164,4 +164,25 @@ public sealed record FakeEgmOptions
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>
     public TimeSpan ResponseDelay { get; init; } = TimeSpan.Zero;
+
+    /// <summary>
+    /// How the machine is divided between hosts, or null for one channel owning everything.
+    /// </summary>
+    /// <remarks>
+    /// A property of the machine rather than of a host, which is why it is configured here and
+    /// read off the wire by everything else. A machine given no arrangement puts every category
+    /// on the one channel it opens, which is what a single-host machine is.
+    /// </remarks>
+    public SasChannelPlan? Channels { get; init; }
+
+    /// <summary>
+    /// Why the arrangement asked for was refused, when a caller resolved one and it would not
+    /// stand.
+    /// </summary>
+    /// <remarks>
+    /// Carried through so a run can report a machine that would not take the configuration it was
+    /// given. The refusal belongs to the machine, so the reason travels with the machine rather
+    /// than being reconstructed by whoever reads the report.
+    /// </remarks>
+    public string? ChannelRefusal { get; init; }
 }

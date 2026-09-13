@@ -101,6 +101,20 @@ public sealed record ConnectStep(
         + $"channel {(int)Channel}";
 }
 
+/// <summary>
+/// Moves the host to another channel of the same machine, for the steps that follow.
+/// </summary>
+/// <remarks>
+/// A step rather than a second script, because the conformance case this exists for is written as
+/// one sequence: print a ticket on the validating channel, move the host to the channel that does
+/// not own validation, ask again there, move back. Two scripts could not express "the same ticket,
+/// read from the other host" at all.
+/// </remarks>
+public sealed record UseChannelStep(SourceLocation Location, SasChannel Channel) : ScriptStep(Location)
+{
+    public override string Describe() => $"use channel {(int)Channel}";
+}
+
 /// <summary>Sets how often the host polls.</summary>
 public sealed record PollEveryStep(SourceLocation Location, TimeSpan Interval) : ScriptStep(Location)
 {
@@ -139,6 +153,23 @@ public sealed record SendLongPollStep(SourceLocation Location, byte Command, byt
         : Data.Length == 0
             ? $"send lp {Command:X2}"
             : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
+}
+
+/// <summary>
+/// Expects a long poll to be met with silence rather than with a reply or a refusal.
+/// </summary>
+/// <remarks>
+/// Silence is a fact about the machine and one this build had no way to assert. It is how the
+/// gaming machine library says four different things: the command belongs to a category this
+/// channel was not given, the machine is not performing the validation the command is about, the
+/// message was too short for the receiver to frame, or the machine has no handler. A refusal says
+/// something else — the command was understood and declined — so this step distinguishes the two
+/// and reports a refusal as a failure rather than as silence.
+/// </remarks>
+public sealed record ExpectNoReplyStep(SourceLocation Location, byte Command, byte[] Data)
+    : ScriptStep(Location)
+{
+    public override string Describe() => $"expect no reply to lp {Command:X2}";
 }
 
 /// <summary>Expects an exception to arrive, or expects it not to.</summary>

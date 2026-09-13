@@ -19,6 +19,25 @@ public sealed record ScriptEnvironment(
     IReadOnlyDictionary<string, string?> ExtraCapabilities,
     IDisposable? Owned = null) : IDisposable
 {
+    /// <summary>
+    /// Opens another host link on another channel of the same machine, where the environment can.
+    /// </summary>
+    /// <remarks>
+    /// Null where it cannot, and a case that needs a second channel is then skipped naming that
+    /// rather than being given a second machine — which is what a second link built from scratch
+    /// would be, and the opposite of what a two-channel case is about.
+    /// </remarks>
+    public ChannelOpener? OpenChannel { get; init; }
+
+    /// <summary>
+    /// How the machine is divided between hosts, where this environment built the machine and so
+    /// knows; null where the machine is somebody else's and only it knows.
+    /// </summary>
+    public Wire.SasChannelPlan? Channels { get; init; }
+
+    /// <summary>Why the arrangement asked for was refused, when it was.</summary>
+    public string? ChannelRefusal { get; init; }
+
     public void Dispose()
     {
         HostTransport.Dispose();
@@ -35,7 +54,10 @@ public sealed record ScriptEnvironment(
 /// skipped rather than run against the wrong unit.
 /// </remarks>
 public delegate ScriptEnvironment EnvironmentFactory(
-    ConnectStep step, ScriptRunnerOptions options, MachineDeclaration? declared);
+    ConnectStep step,
+    ScriptRunnerOptions options,
+    MachineDeclaration? declared,
+    MachineChannelDeclaration? channels = null);
 
 /// <summary>
 /// The environments this assembly can build on its own: a real link to something already
@@ -56,7 +78,10 @@ public static class DefaultEnvironment
     /// the machine.
     /// </remarks>
     public static ScriptEnvironment Create(
-        ConnectStep step, ScriptRunnerOptions options, MachineDeclaration? declared = null)
+        ConnectStep step,
+        ScriptRunnerOptions options,
+        MachineDeclaration? declared = null,
+        MachineChannelDeclaration? channels = null)
     {
         IStimulusBackend stimulus = options.Stimulus switch
         {
@@ -85,7 +110,40 @@ public static class DefaultEnvironment
                 $"'{step.Transport}' is not a link this build can open."),
         };
 
-        return new ScriptEnvironment(transport, stimulus, stimulus.Capabilities);
+        //  A second channel of a machine reached over a real link is a second link to the same
+        //  machine, which this environment can open: it is the machine's own second port. What it
+        //  cannot do is say what the machine is configured to put on that port — that lives in the
+        //  machine, so the arrangement stays unknown here and the case's own assertions establish
+        //  it.
+        var extra = new List<ISasTransport>();
+        return new ScriptEnvironment(
+            transport, stimulus, stimulus.Capabilities, new Closing(extra))
+        {
+            OpenChannel = another =>
+            {
+                ISasTransport opened = another.Transport switch
+                {
+                    ScriptTransport.Tcp => BuildTcp(another, options),
+                    ScriptTransport.Serial =>
+                        new SerialTransport(new SerialTransportOptions(another.Target)),
+                    _ => throw new TransportRefusedException(
+                        $"'{another.Transport}' is not a second link this build can open."),
+                };
+
+                extra.Add(opened);
+                return opened;
+            },
+        };
+    }
+
+    /// <summary>Closes the links opened after the first.</summary>
+    private sealed class Closing(List<ISasTransport> transports) : IDisposable
+    {
+        public void Dispose()
+        {
+            foreach (ISasTransport transport in transports)
+                transport.Dispose();
+        }
     }
 
     private static ISasTransport BuildTcp(ConnectStep step, ScriptRunnerOptions options)

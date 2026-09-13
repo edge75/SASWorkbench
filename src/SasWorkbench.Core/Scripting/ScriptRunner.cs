@@ -198,7 +198,7 @@ public sealed class ScriptRunner
         ScriptEnvironment environment;
         try
         {
-            environment = _options.Environment(connect, _options, test.Machine);
+            environment = _options.Environment(connect, _options, test.Machine, test.Channels);
         }
         catch (TransportRefusedException refused)
         {
@@ -232,7 +232,16 @@ public sealed class ScriptRunner
                 environment.HostTransport.Description,
                 environment.HostTransport.Capabilities.Fidelity,
                 environment.Stimulus.Kind,
-                environment.HostTransport.Capabilities.Caveat);
+                environment.HostTransport.Capabilities.Caveat)
+            {
+                //  Which host should have sent a poll, and which host owns an exception, are only
+                //  answerable if the arrangement is known — and it lives in the machine. Where
+                //  this environment built the machine it is a reading; where the machine is
+                //  somebody else's it is what the case declared, and the report says which.
+                Channels = environment.Channels?.Describe() ?? test.Channels?.ToString(),
+                ChannelsRead = environment.Channels is not null,
+                ChannelRefusal = environment.ChannelRefusal,
+            };
 
             (Requirement Requirement, string Reason)? unmet =
                 capabilities.FirstUnmet(Local(Declared(test)));
@@ -267,10 +276,19 @@ public sealed class ScriptRunner
     /// out of the case's own requirement list so a report says what the script said, rather than
     /// showing a line nobody wrote.
     /// </remarks>
-    private static IEnumerable<Requirement> Declared(ScriptTest test) =>
-        test.Machine is { } machine
-            ? test.Requirements.Append(machine.AsRequirement())
-            : test.Requirements;
+    private static IEnumerable<Requirement> Declared(ScriptTest test)
+    {
+        IEnumerable<Requirement> all = test.Requirements;
+        if (test.Machine is { } machine)
+            all = all.Append(machine.AsRequirement());
+
+        //  The channel arrangement is deliberately not a requirement. No long poll reports how a
+        //  machine divides itself, so nothing can answer it before the link opens; opening the
+        //  second channel is the measurement, and a machine that has only one makes that step a
+        //  skip naming the channel. That is what GSA 10.1.4 asks for in words - if the machine is
+        //  single-channel only, skip this test - reached by measuring rather than by claiming.
+        return all;
+    }
 
     /// <summary>
     /// Why a requirement the machine was asked about is unmet, said as a fact about the machine.
@@ -309,32 +327,108 @@ public sealed class ScriptRunner
             QuietGap = _options.QuietGap,
         };
 
-        PollEngine engine;
-        try
-        {
-            engine = new PollEngine(environment.HostTransport, engineOptions);
-        }
-        catch (TransportRefusedException refused)
-        {
-            return Skipped(test, stopwatch, startedAt, refused.Message, connect.Channel, testBase, provenance);
-        }
+        var exceptions = new ReportedExceptions();
+        var hosts = new ChannelHosts();
 
-        // The engine keeps its own clock, so its zero is marked on the session clock before it
-        // starts and every record it produces is converted before joining the stream.
-        ClockBase engineBase = Log.Clock.Mark();
-        engine.Wire += (direction, channel, symbols, elapsed, note) =>
-            Log.Wire(direction, channel, symbols, elapsed, engineBase, note);
-        engine.LinkStateChanged += state =>
-            Log.Link(state, connect.Channel, engineBase, engine.Elapsed);
-
-        var exceptions = new List<ExceptionReport>();
-        var consumed = new HashSet<long>();
-        engine.ExceptionReported += report =>
+        //  Every host on this machine reports into the same list of exceptions and the same log.
+        //  Each report carries its channel, so an assertion can ask which host heard something;
+        //  two lists would make "the other host heard it too" unaskable.
+        (PollEngine? Engine, string? Refusal) Wire(ConnectStep step, ISasTransport transport)
         {
-            Log.Exception(report, engineBase, SasNames.ExceptionName(report.Code));
-            lock (exceptions)
+            PollEngine opened;
+            try
+            {
+                opened = new PollEngine(
+                    transport,
+                    engineOptions with { Address = step.Address, Channel = step.Channel });
+            }
+            catch (TransportRefusedException refusal)
+            {
+                return (null, refusal.Message);
+            }
+
+            //  The engine keeps its own clock, so its zero is marked on the session clock before
+            //  it starts and every record it produces is converted before joining the stream.
+            ClockBase clock = Log.Clock.Mark();
+            opened.Wire += (direction, channel, symbols, elapsed, note) =>
+                Log.Wire(direction, channel, symbols, elapsed, clock, note);
+            opened.LinkStateChanged += state =>
+                Log.Link(state, step.Channel, clock, opened.Elapsed);
+            opened.ExceptionReported += report =>
+            {
+                Log.Exception(report, clock, SasNames.ExceptionName(report.Code));
                 exceptions.Add(report);
-        };
+            };
+
+            hosts.Add(step.Channel, opened, clock);
+            return (opened, null);
+        }
+
+        (PollEngine? First, string? WhyNot) primary = Wire(connect, environment.HostTransport);
+        if (primary.First is not { } engine)
+        {
+            hosts.Dispose();
+            return Skipped(test, stopwatch, startedAt, primary.WhyNot!, connect.Channel, testBase,
+                provenance);
+        }
+
+        //  Opens a second host on another channel of the same machine. Skipped rather than failed
+        //  where the environment opens only one link, or where the machine gives that channel no
+        //  poll address: both are facts about the machine in front of the case.
+        StepResult OpenAnother(ConnectStep step, TimeSpan at)
+        {
+            if (environment.OpenChannel is not { } opener)
+            {
+                return Unavailable(step, at,
+                    $"this environment opens one link, so channel {(int)step.Channel} of the same "
+                    + "machine cannot be reached");
+            }
+
+            ISasTransport transport;
+            try
+            {
+                transport = opener(step);
+            }
+            catch (TransportRefusedException refused)
+            {
+                return Unavailable(step, at, refused.Message);
+            }
+
+            (PollEngine? second, string? refusal) = Wire(step, transport);
+            if (second is null)
+                return Unavailable(step, at, refusal!);
+
+            try
+            {
+                second.Start();
+            }
+            catch (TransportRefusedException refused)
+            {
+                return Unavailable(step, at, refused.Message);
+            }
+
+            //  Waited for after starting, not before: starting is what opens the socket, and
+            //  waiting first waits on a link nothing could possibly have dialled. That cost a run
+            //  against a real machine, which reported a second channel it does have as absent.
+            if (transport is TcpTransport waiting && !waiting.WaitForPeer(_options.PeerTimeout))
+            {
+                return Unavailable(step, at,
+                    $"no gaming machine connected to {waiting.Description} within "
+                    + $"{_options.PeerTimeout.TotalSeconds:F0}s");
+            }
+
+            return new StepResult(step.Location, step.Describe(), Verdict.Pass, At: at);
+        }
+
+        //  A channel that could not be opened, or moved to, blocks every step that follows rather
+        //  than leaving them on the channel they were already on. Running the second half of a
+        //  two-channel case against the first channel would pass, and would mean nothing.
+        StepResult Unavailable(ScriptStep step, TimeSpan at, string reason)
+        {
+            hosts.Block(reason);
+            return new StepResult(step.Location, step.Describe(), Verdict.Skip, At: at,
+                Reason: reason);
+        }
 
         var steps = new List<StepResult>();
         var baselines = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
@@ -345,7 +439,7 @@ public sealed class ScriptRunner
         //  Everything already in the wallet belongs to whatever ran before this test.
         printed.Baseline();
 
-        using (engine)
+        using (hosts)
         {
             try
             {
@@ -390,17 +484,37 @@ public sealed class ScriptRunner
 
             foreach (ScriptStep step in test.Steps)
             {
-                StepResult result = RunStep(step, engine, environment, exceptions, consumed,
-                    test, baselines, window, answered, printed, stopwatch.Elapsed);
+                StepResult result = hosts.Blocked switch
+                {
+                    { } blocked => new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                        At: stopwatch.Elapsed, Reason: blocked),
+
+                    //  A connect naming a channel this case has no host on yet opens a second host
+                    //  on the same machine. Any other connect is the one already open.
+                    _ => step switch
+                    {
+                        ConnectStep another when !hosts.Has(another.Channel) =>
+                            OpenAnother(another, stopwatch.Elapsed),
+
+                        UseChannelStep use => hosts.TryUse(use.Channel, out string? refusal)
+                            ? new StepResult(use.Location, use.Describe(), Verdict.Pass,
+                                At: stopwatch.Elapsed)
+                            : Unavailable(use, stopwatch.Elapsed, refusal!),
+
+                        _ => RunStep(step, hosts.Engine, environment, exceptions,
+                            test, baselines, window, answered, printed, stopwatch.Elapsed),
+                    },
+                };
+
                 steps.Add(result);
-                Log.Step(result, connect.Channel, testBase);
+                Log.Step(result, hosts.Current, testBase);
 
                 if (result.Verdict == Verdict.Error)
                     break;
             }
 
-            IReadOnlyList<WireRecord> wire = engine.WireLog.Snapshot();
-            engine.Stop();
+            IReadOnlyList<WireRecord> wire = hosts.Wire();
+            hosts.StopAll();
 
             var outcome = new TestOutcome
             {
@@ -429,8 +543,7 @@ public sealed class ScriptRunner
         ScriptStep step,
         PollEngine engine,
         ScriptEnvironment environment,
-        List<ExceptionReport> exceptions,
-        HashSet<long> consumed,
+        ReportedExceptions exceptions,
         ScriptTest test,
         Dictionary<string, long> baselines,
         LastStimulus window,
@@ -452,19 +565,21 @@ public sealed class ScriptRunner
 
                 SendLongPollStep send => Send(send, engine, answered, at),
 
-                ForgetExceptionsStep forget => Forget(forget, engine, exceptions, consumed, at),
+                ExpectNoReplyStep silence => ExpectSilence(silence, engine, at),
+
+                ForgetExceptionsStep forget => Forget(forget, engine, exceptions, at),
 
                 StimulusStep stimulus => ApplyStimulus(
                     stimulus, engine, environment, test, baselines, window, answered, at),
 
                 ExpectExceptionStep expect => CheckException(
-                    expect, exceptions, consumed, window, at),
+                    expect, engine, exceptions, window, at),
 
                 ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
 
                 ExpectFieldStep expect => CheckField(expect, engine, answered, printed, at),
 
-                ExpectEventFieldStep expect => CheckEventField(expect, exceptions, consumed, at),
+                ExpectEventFieldStep expect => CheckEventField(expect, engine, exceptions, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
@@ -503,6 +618,76 @@ public sealed class ScriptRunner
             _replies.GetValueOrDefault(command);
 
         public void Forget() => _replies.Clear();
+    }
+
+    /// <summary>
+    /// Every exception every host on this machine reported, and which of them an assertion may
+    /// still match.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// One list, because the ordering between what one host sent and what another heard is the
+    /// thing a two-channel case asserts, and two lists could not be interleaved afterwards. What
+    /// keeps it honest is that <b>an assertion matches only its own channel's exceptions</b>: the
+    /// non-validating host in GSA 10.1.4 has to be shown to have been told about the ticket
+    /// itself, and an assertion that matched the other host's copy would pass without the machine
+    /// having told it anything.
+    /// </para>
+    /// <para>
+    /// Consumption is keyed on the channel as well as the sequence number, because a sequence
+    /// number is each engine's own and two engines number from zero. Keyed on the number alone,
+    /// reading an exception on one channel marked another channel's unrelated exception as already
+    /// read — and the assertion for it then failed with nothing wrong.
+    /// </para>
+    /// </remarks>
+    private sealed class ReportedExceptions
+    {
+        private readonly Lock _gate = new();
+        private readonly List<ExceptionReport> _all = [];
+        private readonly HashSet<(SasChannel Channel, long Sequence)> _consumed = [];
+
+        public void Add(ExceptionReport report)
+        {
+            lock (_gate)
+                _all.Add(report);
+        }
+
+        /// <summary>How many this channel has reported, read or not.</summary>
+        public int CountOn(SasChannel channel)
+        {
+            lock (_gate)
+                return _all.Count(report => report.Channel == channel);
+        }
+
+        /// <summary>The first unread exception of that code on that channel, if there is one.</summary>
+        public ExceptionReport? Match(SasChannel channel, byte code)
+        {
+            lock (_gate)
+            {
+                return _all.FirstOrDefault(report =>
+                    report.Channel == channel
+                    && report.Code == code
+                    && !_consumed.Contains((channel, report.Sequence)));
+            }
+        }
+
+        /// <summary>Marks one as read, so a second assertion for it needs a second exception.</summary>
+        public void Consume(ExceptionReport report)
+        {
+            lock (_gate)
+                _consumed.Add((report.Channel, report.Sequence));
+        }
+
+        /// <summary>Leaves everything this channel has reported so far out of what follows.</summary>
+        public int ForgetOn(SasChannel channel)
+        {
+            lock (_gate)
+            {
+                return _all
+                    .Where(report => report.Channel == channel)
+                    .Count(report => _consumed.Add((channel, report.Sequence)));
+            }
+        }
     }
 
     /// <summary>
@@ -553,19 +738,18 @@ public sealed class ScriptRunner
     private static StepResult Forget(
         ForgetExceptionsStep step,
         PollEngine engine,
-        List<ExceptionReport> exceptions,
-        HashSet<long> consumed,
+        ReportedExceptions exceptions,
         TimeSpan at)
     {
         TimeSpan quiet = engine.PollInterval * 3;
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        int seen = Count(exceptions);
+        int seen = exceptions.CountOn(engine.Channel);
         long lastChange = Environment.TickCount64;
 
         while (Environment.TickCount64 < deadline)
         {
             Thread.Sleep(5);
-            int now = Count(exceptions);
+            int now = exceptions.CountOn(engine.Channel);
             if (now != seen)
             {
                 seen = now;
@@ -577,24 +761,9 @@ public sealed class ScriptRunner
                 break;
         }
 
-        int forgotten = 0;
-        lock (exceptions)
-        {
-            foreach (ExceptionReport report in exceptions)
-            {
-                if (consumed.Add(report.Sequence))
-                    forgotten++;
-            }
-        }
-
+        int forgotten = exceptions.ForgetOn(engine.Channel);
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Actual: $"{forgotten} exception(s) left out of what follows", At: at);
-    }
-
-    private static int Count(List<ExceptionReport> exceptions)
-    {
-        lock (exceptions)
-            return exceptions.Count;
     }
 
     private static StepResult Wait(WaitStep step, TimeSpan at)
@@ -619,6 +788,53 @@ public sealed class ScriptRunner
             Expected: "a reply",
             Actual: result.ToString(),
             Reason: result.Detail,
+            At: at)
+        {
+            IsAssertion = true,
+        };
+    }
+
+    /// <summary>
+    /// Checks that a long poll was met with silence, and tells silence from a refusal.
+    /// </summary>
+    /// <remarks>
+    /// The two are the machine saying different things and a case that treated them alike would
+    /// pass on the wrong one: a refusal is the command understood and declined, silence is the
+    /// command never acted on. The category gate that makes two hosts on one machine safe produces
+    /// silence, so this is the step that can assert it.
+    /// </remarks>
+    private static StepResult ExpectSilence(
+        ExpectNoReplyStep step, PollEngine engine, TimeSpan at)
+    {
+        //  A poll shorter than the machine's receiver frames it is dropped as incomplete before
+        //  any handler sees it, so its silence is the framing and says nothing about anything
+        //  else. Refused rather than allowed to pass: a case asserting the silence of $4D with no
+        //  data would read as a channel gate working when the message never arrived at all, and
+        //  this build had two such cases before the guard was written.
+        if (SasCatalogue.LongPolls.TryGetValue(step.Command, out SasLongPollInfo? info)
+            && info.HostMessageLength is { } framed
+            && (framed < 0 || framed > 2 + step.Data.Length + (info.RequiresCheckSequence == true ? 2 : 0)))
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: "silence that means something",
+                Actual: $"a {2 + step.Data.Length}-byte poll of a command the machine frames at "
+                        + (framed < 0 ? "a length it reads out of the message" : $"{framed} bytes"),
+                Reason: $"the machine's receiver drops a short ${step.Command:X2} as incomplete "
+                        + "before any handler sees it, so this silence would be the framing and "
+                        + "not what the case is about. Give the command its data.",
+                At: at) { IsAssertion = true };
+        }
+
+        LongPollResult result = engine.Execute(step.Command, step.Data);
+        bool silent = result.Outcome == LongPollOutcome.Silent;
+
+        return new StepResult(
+            step.Location,
+            step.Describe(),
+            silent ? Verdict.Pass : Verdict.Fail,
+            Expected: "silence",
+            Actual: result.ToString(),
+            Reason: silent ? null : result.Detail,
             At: at)
         {
             IsAssertion = true,
@@ -659,22 +875,17 @@ public sealed class ScriptRunner
 
     private static StepResult CheckException(
         ExpectExceptionStep step,
-        List<ExceptionReport> exceptions,
-        HashSet<long> consumed,
+        PollEngine engine,
+        ReportedExceptions exceptions,
         LastStimulus window,
         TimeSpan at)
     {
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        ExceptionReport? match = null;
+        ExceptionReport? match;
 
         while (true)
         {
-            lock (exceptions)
-            {
-                match = exceptions.FirstOrDefault(
-                    e => e.Code == step.Code && !consumed.Contains(e.Sequence));
-            }
-
+            match = exceptions.Match(engine.Channel, step.Code);
             if (match is not null || Environment.TickCount64 >= deadline)
                 break;
 
@@ -701,7 +912,7 @@ public sealed class ScriptRunner
                 At: at) { IsAssertion = true };
         }
 
-        consumed.Add(match.Sequence);
+        exceptions.Consume(match);
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Expected: SasNames.DescribeException(step.Code),
             Actual: $"arrived at {match.Elapsed.TotalMilliseconds:F0}ms",
@@ -730,8 +941,8 @@ public sealed class ScriptRunner
     /// </remarks>
     private static StepResult CheckEventField(
         ExpectEventFieldStep step,
-        List<ExceptionReport> exceptions,
-        HashSet<long> consumed,
+        PollEngine engine,
+        ReportedExceptions exceptions,
         TimeSpan at)
     {
         SasEventLayout? layout = SasEventLayouts.For(step.Code);
@@ -743,16 +954,11 @@ public sealed class ScriptRunner
         }
 
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        ExceptionReport? match = null;
+        ExceptionReport? match;
 
         while (true)
         {
-            lock (exceptions)
-            {
-                match = exceptions.FirstOrDefault(
-                    e => e.Code == step.Code && !consumed.Contains(e.Sequence));
-            }
-
+            match = exceptions.Match(engine.Channel, step.Code);
             if (match is not null || Environment.TickCount64 >= deadline)
                 break;
 

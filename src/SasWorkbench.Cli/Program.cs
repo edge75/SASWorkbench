@@ -31,6 +31,7 @@ try
         "sweep" => SweepCommand.Execute(line),
         "replay" => ReplayCommand.Execute(line),
         "transactions" => TransactionsCommand.Execute(line),
+        "record" => RecordCommand.Execute(line),
         "events" => EventsCommand.Execute(line),
         _ => Unknown(line.Command),
     };

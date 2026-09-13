@@ -96,3 +96,5 @@ PHASE:M4 WAVE:W7-software-machine-values STATUS:complete TS:2026-09-08T18:04:18Z
 PHASE:M4 WAVE:W8-note-stimulus-diagnosis STATUS:complete TS:2026-09-08T19:00:32Z
 PHASE:M4 WAVE:W9-meter-index STATUS:complete TS:2026-09-09T00:39:17Z
 PHASE:M4 WAVE:W10-replay-and-transactions STATUS:complete TS:2026-09-09T07:05:00Z
+PHASE:M4 WAVE:W11-channel-map STATUS:complete TS:2026-09-09T09:35:00Z
+PHASE:M4 WAVE:W11-recording-and-channels STATUS:complete TS:2026-09-09T11:35:00Z

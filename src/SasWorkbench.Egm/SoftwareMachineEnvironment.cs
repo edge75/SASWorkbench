@@ -1,6 +1,7 @@
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Egm;
 
@@ -119,10 +120,10 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared) =>
+        (step, options, declared, channels) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
-                return DefaultEnvironment.Create(step, options, declared);
+                return DefaultEnvironment.Create(step, options, declared, channels);
 
             var bus = new LoopbackBus();
             FakeEgmOptions settings = (machineOptions ?? new FakeEgmOptions()) with
@@ -130,6 +131,19 @@ public static class SoftwareMachineEnvironment
                 Address = step.Address,
                 Channel = step.Channel,
             };
+
+            //  A case that says how the machine is divided between hosts gets a machine divided
+            //  that way. An arrangement no machine could hold is not silently repaired: the
+            //  machine is built on its one channel instead and carries the refusal, so the case
+            //  reports what the machine would not accept rather than passing against a machine in
+            //  a configuration nobody asked for.
+            if (channels is not null)
+            {
+                if (channels.TryResolve(out SasChannelPlan plan, out string? refusal))
+                    settings = settings with { Channels = plan };
+                else
+                    settings = settings with { ChannelRefusal = refusal };
+            }
 
             // A case that says what unit it assumes gets a machine in that unit. Nothing is
             // asserted here about whether the machine accepted it - section 16 may refuse the
@@ -155,12 +169,46 @@ public static class SoftwareMachineEnvironment
             //  answers the enabled-features poll like any machine, and the runner asks it there —
             //  so the same question reaches both peers the same way, and a disagreement between
             //  them is a finding rather than an artefact of one being asked and the other told.
+            //  A second host on this machine is a second loopback bus attached to the same
+            //  machine — not a second machine, which is what building the environment twice would
+            //  produce and which would make a two-channel case meaningless.
+            var extra = new List<LoopbackBus>();
+
             return new ScriptEnvironment(
                 bus.Host,
                 stimulus,
                 stimulus.Capabilities,
-                new Composite(machine, bus));
+                new Composite(machine, bus, new Closing(extra)))
+            {
+                Channels = machine.Channels,
+                ChannelRefusal = machine.ChannelRefusal,
+                //  One capability per channel this machine actually opens, because this
+                //  environment built the machine and so can answer it. It is reported rather than
+                //  required: what decides a two-channel case is whether the second link opens.
+                ExtraCapabilities = stimulus.Capabilities
+                    .Concat(machine.Channels.Open.Select(channel =>
+                        new KeyValuePair<string, string?>(
+                            MachineChannelDeclaration.CapabilityFor(channel), "yes")))
+                    .ToDictionary(pair => pair.Key, pair => pair.Value),
+                OpenChannel = another =>
+                {
+                    var second = new LoopbackBus();
+                    extra.Add(second);
+                    machine.Attach(second.Egm, another.Channel);
+                    return second.Host;
+                },
+            };
         };
+
+    /// <summary>Closes the extra buses a second and third host needed.</summary>
+    private sealed class Closing(List<LoopbackBus> buses) : IDisposable
+    {
+        public void Dispose()
+        {
+            foreach (LoopbackBus bus in buses)
+                bus.Dispose();
+        }
+    }
 
     private sealed class Composite(params IDisposable[] parts) : IDisposable
     {

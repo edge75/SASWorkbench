@@ -91,6 +91,7 @@ suite, and timestamps that read from the test, the previous poll or the previous
 | `docs/M0-prove-the-wire.md` | The wire proof, with the hex dump |
 | `docs/M1-thin-vertical-slice.md` | What M1 built, and what it found |
 | `docs/M1.5-design-contract.md` | The window's design contract, and the defects it fixed |
+| `docs/M4-recording-and-channels.md` | Recording a session by hand, and two hosts on one machine |
 | `research/reports/` | 14 reverse-engineering reports |
 
 ## Why it exists

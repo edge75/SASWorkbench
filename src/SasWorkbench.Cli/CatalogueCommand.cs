@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Cli;
 
@@ -48,12 +49,75 @@ internal static class CatalogueCommand
                 ReadableMeters();
                 return 0;
 
+            case "channels":
+                Channels();
+                return 0;
+
             default:
                 Console.Error.WriteLine(
                     $"error: '{what}' is not something to list. Expected long-polls, exceptions, "
-                    + "events, meters, layouts, readable-meters or diff.");
+                    + "events, meters, layouts, readable-meters, channels or diff.");
                 return 2;
         }
+    }
+
+    /// <summary>
+    /// The seven categories a channel can own, and what each of them decides.
+    /// </summary>
+    /// <remarks>
+    /// Three tables, all read out of the gaming machine library rather than written here: the
+    /// categories themselves are its channel-control structure's one-bit fields; a command's
+    /// category is the gate at the top of its handler; an exception's is one of five predicates.
+    /// A command or an exception in no category is answered, or heard, on every channel — which is
+    /// a fact about the library and the reason the last section of this listing exists.
+    /// </remarks>
+    private static void Channels()
+    {
+        Console.WriteLine("Channel categories, read from the gaming machine library");
+        Console.WriteLine();
+
+        foreach (SasCategory category in SasChannelPlan.Categories)
+        {
+            byte[] commands =
+                [.. SasCatalogue.CommandCategories
+                    .Where(pair => pair.Value == category).Select(pair => pair.Key).Order()];
+            byte[] exceptions =
+                [.. SasCatalogue.ExceptionCategories
+                    .Where(pair => pair.Value == category).Select(pair => pair.Key).Order()];
+
+            Console.WriteLine($"  {SasCategories.NameOf(category)}");
+            Console.WriteLine($"    long polls   {commands.Length,3}  "
+                              + string.Join(' ', commands.Select(c => $"${c:X2}")));
+            Console.WriteLine($"    exceptions   {exceptions.Length,3}  "
+                              + string.Join(' ', exceptions.Select(c => $"${c:X2}")));
+
+            if (SasCatalogue.ChannelFeatureMasks.TryGetValue(
+                    category, out IReadOnlyList<SasFeatureMask>? masks))
+            {
+                Console.WriteLine("    a channel without it reports "
+                                  + string.Join(", ", masks.Select(m => m.ToString())));
+            }
+
+            Console.WriteLine();
+        }
+
+        int gated = SasCatalogue.CommandCategories.Count;
+        int filtered = SasCatalogue.ExceptionCategories.Count;
+        Console.WriteLine("COUNTED");
+        Console.WriteLine($"  long polls gated on a category      {gated,4} of "
+                          + $"{SasCatalogue.LongPolls.Count}");
+        Console.WriteLine($"  exceptions filtered by category     {filtered,4} of "
+                          + $"{SasCatalogue.Exceptions.Count}");
+        Console.WriteLine();
+        Console.WriteLine("  Everything else is answered, and heard, on every open channel. That is");
+        Console.WriteLine("  not a gap in this table: the cashout ticket information poll is one of");
+        Console.WriteLine("  them, so a host on a channel that does not own validation is answered");
+        Console.WriteLine("  with the ticket's real validation number and amount.");
+        Console.WriteLine();
+        Console.WriteLine("  A category pointed at a channel with no poll address reaches no host at");
+        Console.WriteLine("  all, and is refused rather than served. The machine's own menu cannot");
+        Console.WriteLine("  produce one - it skips a channel with no address while cycling - but a");
+        Console.WriteLine("  configuration written any other way can.");
     }
 
     /// <summary>

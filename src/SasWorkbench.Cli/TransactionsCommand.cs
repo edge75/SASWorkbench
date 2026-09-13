@@ -61,7 +61,8 @@ internal static class TransactionsCommand
             address = parsed;
         }
 
-        if (!TryRead(path, limit, out IReadOnlyList<Session> sessions, out string source))
+        if (!RecordedSessions.TryRead(path, limit, out IReadOnlyList<RecordedSession> sessions,
+                out string source))
             return 2;
 
         Console.WriteLine($"TRANSACTIONS IN {path}");
@@ -81,7 +82,7 @@ internal static class TransactionsCommand
         Console.WriteLine("                            prints the rule for each kind.");
 
         var totals = new Totals();
-        foreach (Session session in sessions)
+        foreach (RecordedSession session in sessions)
         {
             TransactionSplit split = TransactionSplitter.Split(session.Records, address);
             totals.Add(split);
@@ -96,7 +97,7 @@ internal static class TransactionsCommand
         return 0;
     }
 
-    private static void Print(Session session, TransactionSplit split, bool exchanges)
+    private static void Print(RecordedSession session, TransactionSplit split, bool exchanges)
     {
         Console.WriteLine();
         Console.WriteLine("------------------------------------------------------------------------------");
@@ -251,69 +252,6 @@ internal static class TransactionsCommand
         return true;
     }
 
-    /// <summary>
-    /// Reads a file as either a run of our own or a capture somebody else wrote.
-    /// </summary>
-    /// <remarks>
-    /// The same two inputs the extended log reads, on purpose: a splitter that only worked on our
-    /// own recordings would be no use for the traffic this is worth doing on.
-    /// </remarks>
-    private static bool TryRead(
-        string path, int? limit, out IReadOnlyList<Session> sessions, out string source)
-    {
-        sessions = [];
-        source = string.Empty;
-
-        if (CaptureImporter.Detect(path) is { } format)
-        {
-            Capture capture = CaptureImporter.ReadFile(path, limit);
-            source = format switch
-            {
-                CaptureFormat.GsaTrace => "the conformance toolkit's trace",
-                CaptureFormat.GsaHostLog => "the conformance toolkit's session log",
-                _ => "the legacy tester's serial log",
-            };
-
-            IReadOnlyList<WireRecord> records = capture.ToWire();
-            sessions = [new Session(Path.GetFileName(path), Cap(records, limit))];
-            return true;
-        }
-
-        JsonLinesReader.Result read = JsonLinesReader.ReadFile(path);
-        foreach (string problem in read.Problems)
-            Console.Error.WriteLine($"warning: {problem}");
-
-        if (read.IsEmpty)
-        {
-            Console.Error.WriteLine(
-                $"error: '{path}' is neither a capture this build reads nor a run written with "
-                + "--report jsonl.");
-            return false;
-        }
-
-        source = "a run written by this build";
-        sessions =
-        [
-            .. read.Report.Tests
-                .Where(test => test.Wire.Count > 0)
-                .Select(test => new Session(test.Name, Cap(test.Wire, limit))),
-        ];
-
-        if (sessions.Count == 0)
-        {
-            Console.Error.WriteLine(
-                $"error: '{path}' describes a run that recorded no packets, so there is nothing "
-                + "to split.");
-            return false;
-        }
-
-        return true;
-    }
-
-    private static IReadOnlyList<WireRecord> Cap(IReadOnlyList<WireRecord> records, int? limit) =>
-        limit is { } count && records.Count > count ? [.. records.Take(count)] : records;
-
-    private sealed record Session(string Name, IReadOnlyList<WireRecord> Records);
 
     /// <summary>The one number a reader wants after all the detail: what was in there.</summary>
     private sealed class Totals

@@ -43,6 +43,27 @@ internal static class Program
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .SetupWithoutStarting();
 
+        //  The instruments the matrix below does not reach, once each. Rendered first because
+        //  the matrix runs the committed suite for every one of its verdict pictures, and a
+        //  binding error is worth hearing about before that rather than after it. A tab control realises the
+        //  selected tab's content and nothing else, so an instrument no specimen renders is one
+        //  whose bindings nothing checks - which is the whole reason this run turns binding
+        //  diagnostics on. One size and one lane setting each: what is being checked here is that
+        //  they bind and lay out, not how they compare.
+        foreach ((string themeName, ThemeVariant variant) in
+                 new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
+        {
+            foreach ((string tabName, int tab) in new[]
+                     {
+                         ("stimulus", 4), ("record", 5), ("meters", 1), ("exceptions", 2),
+                     })
+            {
+                string only = Path.Combine(directory, $"instrument-{themeName}-{tabName}.png");
+                Capture(variant, 1180, 760, tab, allLanes: false, only);
+                Console.WriteLine(only);
+            }
+        }
+
         foreach ((string themeName, ThemeVariant variant) in
                  new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
         {

@@ -229,6 +229,67 @@
             <v:SuiteInstrument />
           </TabItem>
 
+          <!-- What a person can do to the machine. Everything the script language has a step for
+               is offered whatever the backend can honour: a button that refuses says which of the
+               two is missing, and a hidden one says nothing at all. -->
+          <TabItem Header="Stimulus">
+            <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="0,8,0,0" RowSpacing="8"
+                  DataContext="{Binding Stimulus}">
+              <TextBlock Grid.Row="0" Classes="prose" TextWrapping="Wrap"
+                         Text="Everything here is a step a script can carry, so what you do by hand is what a test can express. A machine that cannot do one refuses and says why." />
+
+              <ListBox Grid.Row="1" ItemsSource="{Binding Actions}"
+                       SelectedItem="{Binding Selected}" MaxHeight="240">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:StimulusAction">
+                    <TextBlock Classes="name" Text="{Binding Label}"
+                               AutomationProperties.Name="{Binding Automation}" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <Button Grid.Row="2" Content="Do it"
+                      Command="{Binding $parent[Window].((vm:WorkbenchViewModel)DataContext).ApplyStimulusCommand}"
+                      HorizontalAlignment="Left" />
+
+              <SelectableTextBlock Grid.Row="3" Classes="prose" Text="{Binding Outcome}"
+                                   TextWrapping="Wrap" VerticalAlignment="Top" />
+            </Grid>
+          </TabItem>
+
+          <!-- The recorder. The script is beside the list of what it could not capture on
+               purpose: the only question worth asking of a recorded script is whether it does
+               what was just done, and the answer is entirely in what it left out. -->
+          <TabItem Header="Record">
+            <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,140" Margin="0,8,0,0" RowSpacing="8">
+              <TextBlock Grid.Row="0" Classes="field" Text="WHAT TO CALL IT" />
+              <TextBox Grid.Row="1" Text="{Binding RecordingName}" />
+
+              <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                <Button Content="Record" Command="{Binding StartRecordingCommand}"
+                        IsEnabled="{Binding !IsRecording}" />
+                <Button Content="Stop" Command="{Binding StopRecordingCommand}"
+                        IsEnabled="{Binding IsRecording}" />
+                <Button Content="Save as a script" Command="{Binding SaveRecordingCommand}" />
+              </StackPanel>
+
+              <ListBox Grid.Row="3" ItemsSource="{Binding Caveats}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:CaveatLine">
+                    <StackPanel>
+                      <TextBlock Classes="name" Text="{Binding What}" TextWrapping="Wrap" />
+                      <TextBlock Classes="prose" Text="{Binding Why}" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <TextBlock Grid.Row="4" Classes="field" Text="THE SCRIPT" />
+              <SelectableTextBlock Grid.Row="5" Classes="hex" Text="{Binding RecordedScript}"
+                                   TextWrapping="NoWrap" />
+            </Grid>
+          </TabItem>
+
         </TabControl>
       </Border>
 
