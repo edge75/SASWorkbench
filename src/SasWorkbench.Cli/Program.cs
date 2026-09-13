@@ -34,6 +34,7 @@ try
         "record" => RecordCommand.Execute(line),
         "events" => EventsCommand.Execute(line),
         "floor" => FloorCommand.Execute(line),
+        "log" => LogCommand.Execute(line),
         _ => Unknown(line.Command),
     };
 

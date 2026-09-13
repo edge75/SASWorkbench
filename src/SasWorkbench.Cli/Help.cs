@@ -38,6 +38,8 @@ internal static class Help
                                                  what a recording cannot capture
               sasctl floor [options]             bring up a floor of software machines on one
                                                  line and measure what a round of them costs
+              sasctl log <action> [options]      pack a run into one container file, read it
+                                                 back, or read a span of time out of the middle
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
@@ -189,6 +191,35 @@ internal static class Help
 
               It asserts nothing, so like an import it comes back as a run in which nothing was
               tested rather than as a pass.
+
+            LOG
+              sasctl log pack <run.jsonl>        write the container
+              sasctl log unpack <file.saslog>    turn it back into JSON lines
+              sasctl log header <file.saslog>    say what the run was, reading no compressed byte
+              sasctl log slice <file.saslog>     read only the records in a span of time
+
+              --out <file>            where to write  (pack, unpack, slice)
+              --block <bytes>         how much uncompressed text goes in one block
+                                      (default: 1048576)
+              --from <seconds>        the start of the span, in seconds into the run  (slice)
+              --to <seconds>          the end of it  (slice)
+
+              A session log is long: a hundred machines on one line produce about 48 records a
+              second, so an hour is roughly 172,000 of them. A container is one file with three
+              parts — an uncompressed header, a body of independently-decompressible blocks, and a
+              footer index of where each block is and what span of time it covers.
+
+              JSON lines stays the canonical record. This is a framing over exactly those lines,
+              and unpacking gives back the bytes that went in, so nothing is readable only through
+              this format.
+
+              What the index buys is 'slice': a span of time is read by decompressing only the
+              blocks that overlap it, and the command says how many of the file's blocks it had to
+              touch. A slice that read every block would mean the file is merely compressed rather
+              than seekable.
+
+              A container cut short while it was being written says so and does not guess at its
+              index. Its header is still readable, because the header is plain text at the front.
 
             FLOOR
               --machines <n>          how many software machines to bring up, 1 to 127

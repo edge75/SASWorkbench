@@ -55,6 +55,10 @@ internal static class FloorCommand
             : TimeSpan.Zero;
         bool syncPolls = !line.Flag("no-sync-polls");
 
+        // Read before anything can go wrong, so a run that stops early still reports the flag as
+        // recognised rather than telling the operator they mistyped something they did not.
+        string? directory = line.Value("out");
+
         //  Either a floor this build brings up, or a real link with a round named on the command
         //  line. The measurement is the same either way; what differs is what a result is worth,
         //  which is why the two are labelled differently and never merged into one sentence.
@@ -115,13 +119,13 @@ internal static class FloorCommand
             Console.WriteLine();
 
             engine.Start();
-            if (!WaitFor(engine, () => engine.RoundsCompleted >= rounds + 1, TimeSpan.FromMinutes(5)))
+            if (!WaitForRounds(engine, rounds + 1))
             {
                 engine.Stop();
                 Console.Error.WriteLine(
-                    $"error: only {engine.RoundsCompleted} round(s) completed. Nothing is "
-                    + "reported, because a round count that did not reach what was asked measures "
-                    + "a stall rather than a round.");
+                    $"error: only {engine.RoundsCompleted} round(s) completed, and none has "
+                    + $"finished in {StallSeconds} seconds. Nothing is reported, because a round "
+                    + "count that stopped rising measures a stall rather than a round.");
                 return 2;
             }
 
@@ -131,7 +135,7 @@ internal static class FloorCommand
             RoundMeasurement measured = RoundMeasurement.Of(wire, round);
             Report(measured, engine, floor, wire);
 
-            if (line.Value("out") is { } directory)
+            if (directory is not null)
                 Write(directory, engine, measured, round, syncPolls, link);
 
             // A real link is being asked a question rather than checked against an expectation: a
@@ -322,16 +326,39 @@ internal static class FloorCommand
         return false;
     }
 
-    private static bool WaitFor(PollEngine engine, Func<bool> done, TimeSpan limit)
+    /// <summary>How long a round may take before the host is called stalled rather than slow.</summary>
+    private const int StallSeconds = 60;
+
+    /// <summary>
+    /// Waits for a number of rounds, and gives up only when the count stops rising.
+    /// </summary>
+    /// <remarks>
+    /// A deadline on the whole run would call a long floor session a failure for being long — a
+    /// hundred machines at six seconds a round is ten minutes for a hundred rounds, and that is
+    /// the measurement working rather than failing. What is not acceptable is a host that has
+    /// stopped making progress, which is what this waits for instead.
+    /// </remarks>
+    private static bool WaitForRounds(PollEngine engine, long wanted)
     {
-        DateTime deadline = DateTime.UtcNow + limit;
-        while (DateTime.UtcNow < deadline)
+        long seen = engine.RoundsCompleted;
+        DateTime lastProgress = DateTime.UtcNow;
+
+        while (engine.RoundsCompleted < wanted)
         {
-            if (done())
-                return true;
-            Thread.Sleep(10);
+            Thread.Sleep(20);
+
+            long now = engine.RoundsCompleted;
+            if (now != seen)
+            {
+                seen = now;
+                lastProgress = DateTime.UtcNow;
+                continue;
+            }
+
+            if (DateTime.UtcNow - lastProgress > TimeSpan.FromSeconds(StallSeconds))
+                return false;
         }
 
-        return done();
+        return true;
     }
 }

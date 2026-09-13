@@ -256,3 +256,115 @@ the only thing that can settle it.
 
 The quiet gap itself stays at 20 ms. It is what decides a message has ended, and nothing here
 touched it.
+
+---
+
+## W3 — the machine on the record, and a round in one line
+
+### Every writer and reader of a wire record, before the shape changed
+
+| | where |
+|---|---|
+| **writers, 5 in `src/`** | `WireLog.Snapshot` (the only live producer) · `Capture.ToWire` · `SessionRecorder.Wire` · `JsonLinesReader` · `ChannelHosts.Wire` (rewrites time and sequence when merging two hosts) |
+| **the upstream signatures** | `WireLog.Record`, called 3× in the poll engine · the `WireObserver` delegate, invoked 3× and subscribed twice |
+| **readers, 13** | `PacketExplainer` · `ExtendedLogWriter` · `JsonLinesReportWriter` · `HtmlReportWriter` · `TransactionSplitter` · `SasExchange` · `ReplayFinding` · `CatalogueSweep` · `ScriptEmitter` · `RecordCommand` · `RecordedSessions` · `SuiteViewModel` · `RoundMeasurement` |
+| **tests** | 10 more construction sites |
+
+### The address is recorded, because it cannot be derived
+
+A host's own message carries the address in its first byte. A reply to a long poll carries it too.
+But **a reply to a general poll is a bare exception code with no address in it at all** — one byte,
+`$11`, and nothing else. Across a round of a hundred machines that is most of the traffic, and
+which machine sent it is answerable only from the poll it answered.
+
+`TransactionSplitter` was already the standing evidence: it learns addresses from the host's polls
+and already reports the ambiguity that leaves behind.
+
+So the field is carried, and it is nullable with a hard rule: **null means *not known*, never
+*machine one*.** An import whose recorder kept no address, and a run written by an older build,
+both read as null. Filling it in would attribute a whole floor's traffic to whichever machine
+happened to be first.
+
+Added as an `init` property rather than a positional one, so all fifteen construction sites
+compile unchanged and only the producer sets it.
+
+### What belongs to nobody stays belonging to nobody
+
+The engine attributes each record to the transaction in flight, which is **not** always the machine
+being polled:
+
+* a **synchronisation poll** is addressed to address zero and belongs to no machine;
+* **symbols drained off the line** before a poll goes out answered some *earlier* transaction.
+
+Attributing either to the machine about to be polled would put one machine's traffic under
+another's name. Both are recorded as belonging to nobody, and the extended log leaves the column
+blank:
+
+```
+  #0     TX             50.6ms  1.80                    ← the sync poll, nobody's
+  #1     TX    $01      83.1ms  1.81
+  #2     RX    $01     115.4ms  0.00
+  #7     TX    $04     487.0ms  1.04 0.1F
+  #8     RX    $04     518.4ms  0.04 0.1F 0.51 …
+```
+
+### A round in one line
+
+```
+host connect tcp 127.0.0.1:9760 addresses 01-64 channel 1    # a hundred machines
+host connect loopback addresses 01,05,09-0C                  # a list, a range, or both
+host machine 05                                              # the steps that follow talk to $05
+host send lp 1F                                              #   … so this one goes to $05
+host send lp 1F to 07                                        # or name it on the step itself
+```
+
+`address <hh>` is untouched, so every case written before rounds existed is unaffected.
+
+The same reader serves the command line and the script language, because two readers of one
+notation drift and the first sign of it is a case that polls a different floor than the one its
+author wrote down. A round printed the short way can be pasted back in — `01,05,09-0B,7F` in and
+out — which is the rule the channel arrangement already follows.
+
+Three things are refused rather than smoothed over: a machine **named twice** (a round that polls
+one machine twice costs more than it reads, and removing the repeat is a decision taken on the
+author's behalf), a range written **backwards**, and **address zero**, which no machine answers to.
+
+### What happens when a long poll names no machine
+
+The rule the poll engine already enforced, lifted to the script so it arrives as a step that
+skipped rather than as a poll that was never sent:
+
+| the round | a send with no machine named |
+|---|---|
+| one machine | goes to it — unambiguous, and what every case does today |
+| more than one, no `host machine` yet | **refused**, with the round named |
+| names a machine outside the round | **refused**, with the round named |
+
+Not sent to the head of the round. That machine would answer it correctly and the case would pass
+having addressed a machine it never named — the worst outcome available, because nothing in the
+report would look wrong.
+
+The refusal is sticky, the way a channel that could not be opened is: every step after it skips
+too, rather than quietly running the rest of the case against one arbitrary machine.
+
+Both refusals are asserted in the unit suite rather than in `tests/regression/round/`. Expressed as
+cases they would be skips, and everything under `tests/regression/` runs green with **no skips at
+all** — a suite carrying two deliberate ones cannot be read at a glance for the accidental one.
+
+### What a floor of software machines deliberately does not do
+
+A script naming a round gets a floor on one multi-drop line, and that floor has **no stimulus**. A
+floor has no "the machine" to drive, and driving the first because it is first is the silent choice
+this project refuses everywhere else — a case would pass having stimulated a machine it never
+named. A step needing stimulus skips with that reason.
+
+It also refuses to be both axes at once. A case that names a round *and* divides one machine
+between channels is asking for something nothing here builds yet, and is told so rather than given
+one of the two.
+
+### The defect the change found
+
+Making the address the transaction's rather than the engine's touched **six** sites, not the five
+a first reading found. The sixth was `Interpret`, where a reply from a machine named on a round
+came back as **`WrongAddress`** — the host reading a correct reply as a fault. It failed as a test
+rather than as a run, which is the argument for writing the test first.
