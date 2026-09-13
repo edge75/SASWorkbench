@@ -368,3 +368,131 @@ Making the address the transaction's rather than the engine's touched **six** si
 a first reading found. The sixth was `Interpret`, where a reply from a machine named on a round
 came back as **`WrongAddress`** — the host reading a correct reply as a fault. It failed as a test
 rather than as a run, which is the argument for writing the test first.
+
+---
+
+## W4 — the container log
+
+### First, the volume premise was wrong, and the round measurement is what corrects it
+
+The figure this wave was started on was **1.2 million records an hour**. That came from W0's
+reading, which modelled a hundred machines each polled every 200 ms — about 500 records a second.
+
+A serial round cannot do that. One multi-drop line carries one transaction at a time, and the
+measured round of a hundred machines is 6.27 s. So:
+
+| | |
+|---|---|
+| rounds in an hour | 3600 / 6.27 = **574** |
+| records per round | 100 machines × (sync poll + general poll + reply) = **300** |
+| **records in an hour** | **≈ 172,000** |
+| records per second | **≈ 48** |
+
+**An order of magnitude less than the premise.** The round measurement did not only halve the
+expected round time's accuracy — it cut the expected log volume by a factor of seven, because a
+hundred machines on one line cannot each be polled five times a second. The 200 ms figure is what a
+*machine* sees between its own polls when it is the only machine; it is not what a floor does.
+
+That does not make the container unnecessary. It makes it the right size of problem: an hour is a
+file somebody wants to seek into, not a file that cannot be written.
+
+### The format
+
+```
+SASWB1\n                        the mark, so the file is recognisable from the front
+<header JSON>\n                 uncompressed: provenance, arrangement, round, clock base, catalogue
+<block><block><block>…          each one a complete Brotli stream of its own
+<footer JSON>\n                 every block's offset, length, record count, first and last timestamp
+<footer offset, 8 bytes LE>     so the index is reachable from the end
+SASWB1                          the mark again, so truncation is detectable
+```
+
+Brotli because it ships in the framework on both platforms, so the file needs no native dependency
+to read. The codec is **named in the header rather than assumed**: a file written by a build that
+chose differently is refused by name rather than decompressed into bytes that are not the run.
+
+### What each part buys, and the test that proves it
+
+* **The header is plain text at the front.** `sasctl log header` prints what a run was worth — the
+  link, the arrangement, the round, the catalogue it was read against — having decompressed
+  nothing.
+* **Blocks stand alone.** A single stream over the whole body would compress better and would make
+  the middle of an hour unreachable without decompressing the half-hour in front of it.
+* **The footer carries each block's span of time.** That is what makes `sasctl log slice` a seek
+  rather than a scan: a block whose last timestamp is before the window, or whose first is after
+  it, is never read off disk. The command prints how many of the file's blocks it touched, because
+  a slice that read every block would mean the file is merely compressed rather than seekable.
+
+**The load-bearing property is that what comes out is what went in.** JSON lines stays the
+canonical record; this is a framing over exactly those lines. A compression layer that is not
+exactly reversible would be a second record, and then there would be two artefacts that have to be
+right instead of one.
+
+Verified on a real run rather than only in a unit test: a 2,015-record regression run packed and
+unpacked back to the same SHA-256.
+
+### It is not a second kind of run
+
+`JsonLinesReader.ReadFile` decides by what is in the file, not by its name. So `sasctl explain`,
+`sasctl replay`, `sasctl record`, `sasctl transactions` and `sasctl find` all take a container
+without any of them knowing the format exists — checked by rendering the extended log from a
+container and from the plain lines it was packed from, and diffing the two.
+
+### What it refuses
+
+* a file that is not a container — **said**, not decompressed hopefully;
+* a body in a codec this build does not read — refused **by name**;
+* a container **cut short while it was being written** — which is the failure a long floor session
+  actually has, when the machine is stopped or the disk fills halfway through an hour. The header
+  is still readable and still true; the index is gone, and nothing here guesses at where the blocks
+  were.
+
+### The real file, measured both ways
+
+Ten genuine minutes of the hundred-machine floor, recorded rather than synthesised: **95 rounds,
+28,804 records, 601.5 seconds**, at a measured round of 6.257 s. The file was then packed and
+unpacked, and both sizes are the files on disk rather than a ratio anybody guessed at.
+
+| | |
+|---|---|
+| plain JSON lines | **5,424,226 bytes** |
+| container | **316,654 bytes** in 6 blocks |
+| **ratio** | **17.13× smaller** |
+| bytes per record, plain | 188.3 |
+| records per second | 47.9 |
+| unpacking it again | 0.50 s, and **byte-identical** — same SHA-256 |
+
+Scaled by the measured round, which is arithmetic on a measurement and is said to be:
+
+| | plain | container |
+|---|---|---|
+| one hour (≈172,600 records) | 32.5 MB | **1.9 MB** |
+| a floor running all day | 780 MB | **45.5 MB** |
+
+### The seek, on that file
+
+Thirty seconds out of the middle of the ten minutes:
+
+```
+sasctl log slice round.saslog --from 300 --to 330
+  1,434 record(s) from 1 of 6 block(s). The rest of the file was never decompressed.
+```
+
+Counted independently against the plain file, the window holds **1,434 records** — the same number.
+One block of six was touched, which is the claim the format makes and the reason the footer carries
+timestamps at all.
+
+### What the ten minutes also confirmed about the round
+
+The floor ran unattended for ten minutes at a hundred machines, and the round held:
+
+| | |
+|---|---|
+| complete rounds timed | 95 |
+| fastest / **median** / slowest | 6199.5 / **6257.0** / 6508.6 ms |
+| per machine | 62.57 ms |
+| machines that answered | **100 of 100** |
+| silences · symbols lost on the line | **0** · **0** |
+
+The spread across ten minutes is 5%, and the median is within 0.1% of the five-round measurement
+taken earlier. The round is a stable number, not a lucky one.
