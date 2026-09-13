@@ -218,6 +218,27 @@ public sealed class ReplayRunner(
     }
 
     /// <summary>Why this request will not be sent, or null when it will be.</summary>
+    /// <summary>
+    /// Why this exact request is not sent, or null when it may be.
+    /// </summary>
+    /// <remarks>
+    /// A sweep chooses its own argument; a replay is handed one. Two commands are asked at all
+    /// only because one particular argument makes the library read instead of write, and the host
+    /// that made the recording had no reason to use it — so the bytes are compared rather than
+    /// the disposition trusted. Without this, replaying a conformance capture could lock a
+    /// machine.
+    /// </remarks>
+    public static string? WhyNotSent(byte command, ReadOnlySpan<byte> request)
+    {
+        if (SweepPlan.ReadOnlyArgument(command) is not { } reading)
+            return null;
+
+        return request.SequenceEqual(reading)
+            ? null
+            : $"not sent: ${command:X2} leaves the machine alone only when it is asked with the "
+              + "one argument that reads, and this recording asks it with another";
+    }
+
     private static ReplayFinding? Refuse(RequestGroup group)
     {
         var skeleton = new ReplayFinding
@@ -249,6 +270,9 @@ public sealed class ReplayRunner(
                 Explanation = $"not sent: it {entry.Reason}",
             };
         }
+
+        if (WhyNotSent(group.Command, group.Request) is { } refusal)
+            return skeleton with { Explanation = refusal };
 
         return null;
     }

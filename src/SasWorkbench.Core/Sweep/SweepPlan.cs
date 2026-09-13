@@ -39,15 +39,16 @@ public sealed record SweepEntry(
 /// <para>
 /// The rule, stated once so it can be checked rather than taken on trust: <b>a command whose
 /// handler in the gaming machine library is named for sending something is asked; every other
-/// command is withheld and named here with its reason.</b> The library's handler names are
-/// first-party and describe what the handler does, which is why they can carry a safety
-/// judgement that a name invented here could not.
+/// command is withheld and named here with its reason</b>, unless it carries an argument that
+/// makes the handler read rather than write, in which case it is asked with that argument and
+/// with nothing else. The library's handler names are first-party and describe what the handler
+/// does, which is why they can carry a safety judgement that a name invented here could not.
 /// </para>
 /// <para>
 /// The rule is enforced rather than documented: a test walks the whole catalogue and fails if a
-/// command whose handler is not a <c>Send</c> is missing from <see cref="Withheld"/>. So a setter
-/// added to the library arrives as a failing test, not as a command the sweep quietly sends to
-/// somebody's machine.
+/// command whose handler is not a <c>Send</c> is neither in <see cref="Withheld"/> nor named in
+/// the read-only table with its argument. So a setter added to the library arrives as a failing
+/// test, not as a command the sweep quietly sends to somebody's machine.
 /// </para>
 /// <para>
 /// Where the judgement was uncertain the command is withheld. That costs coverage and cannot cost
@@ -83,10 +84,8 @@ public static class SweepPlan
         [0x71] = "redeems a ticket, which moves money",
         [0x72] = "transfers funds to or from the machine",
         [0x73] = "registers a host against the machine for funds transfer",
-        [0x74] = "can lock the machine so a player cannot use it",
         [0x75] = "sets the text printed on a funds transfer receipt",
         [0x76] = "sets the machine's custom ticket text",
-        [0x7B] = "sets how the machine reports validations",
         [0x7C] = "sets the machine's extended ticket text",
         [0x7D] = "sets the machine's ticket text",
         [0x7F] = "sets the machine's clock",
@@ -108,12 +107,50 @@ public static class SweepPlan
     /// Requests the sweep sends verbatim, where working up from the shortest form would be the
     /// wrong thing to do rather than merely slow.
     /// </summary>
+    /// <summary>
+    /// Commands that change the machine when asked one way and only read it when asked another,
+    /// with the argument that reads and the branch in the library that makes it a read.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is the one exception to the rule above, and it is deliberately narrow: an entry here
+    /// is a claim that <b>for this argument</b> the handler takes no branch that writes, and the
+    /// reason names the branch so somebody can check it against the library rather than trust it.
+    /// A command with no such argument stays withheld, however useful its reply would be.
+    /// </para>
+    /// <para>
+    /// Both entries were then measured rather than argued: the machine answered, and it was still
+    /// unlocked and still validating the same way afterwards.
+    /// </para>
+    /// </remarks>
+    private static readonly Dictionary<byte, (byte[] Request, string Why)> ReadOnlyWithArgument =
+        new()
+        {
+            // Lock code $FF is LC_INTERROGATE, whose whole branch is `gameLockStatus =
+            // aft.gameLockStatus` - a read. $00 asks for a lock and $80 cancels one.
+            [0x74] = ([0xFF, 0x00, 0x00, 0x00],
+                "lock code $FF is the library's LC_INTERROGATE, which reads the lock status and "
+                + "takes no lock"),
+
+            // The handler only touches a status bit where the control mask selects it, so a mask
+            // of nothing selects nothing and the reply still carries the machine's own settings.
+            [0x7B] = ([0x04, 0x00, 0x00, 0x00, 0x00],
+                "the handler changes only the status bits the control mask selects, and this mask "
+                + "selects none"),
+        };
+
     private static readonly Dictionary<byte, byte[]> FixedRequests = new()
     {
         // Function code $FF reads the current validation entry and leaves the machine's buffer
         // where it was. Function code zero reads the same entry and advances past it, which would
         // consume a record nobody has seen. The ladder would send zero first.
         [0x4D] = [0xFF],
+
+        // Action $00 interrogates how many components are installed and authenticates nothing.
+        // The ladder's shortest form gives this command a length byte of zero, after which the
+        // handler reads the check sequence as the action code and refuses it - so without this
+        // the command's silence would be about the request and not about the machine.
+        [0x6E] = [0x01, 0x00],
     };
 
     /// <summary>Every command in the catalogue, with what the sweep does about it.</summary>
@@ -126,6 +163,24 @@ public static class SweepPlan
     /// <summary>The commands the sweep refuses to send, with the reason for each.</summary>
     public static IEnumerable<SweepEntry> Withheld =>
         All.Where(e => e.Disposition == SweepDisposition.Withheld);
+
+    /// <summary>
+    /// The one argument that makes this command read rather than write, or null when it has none.
+    /// </summary>
+    /// <remarks>
+    /// Asked for by anything that sends a command it did not choose itself. A recording carries
+    /// whatever argument the host that made it used, and for these two commands that may be the
+    /// one that locks the machine or changes how it validates — so a replay has to compare rather
+    /// than trust the disposition.
+    /// </remarks>
+    public static byte[]? ReadOnlyArgument(byte command) =>
+        ReadOnlyWithArgument.TryGetValue(command, out (byte[] Request, string Why) only)
+            ? only.Request
+            : null;
+
+    /// <summary>The commands that have such an argument, for the tests that name them.</summary>
+    public static IReadOnlyCollection<byte> ReadOnlyWithArgumentCommands =>
+        ReadOnlyWithArgument.Keys;
 
     /// <summary>What the sweep does about one command.</summary>
     public static SweepEntry For(byte command) =>
@@ -155,6 +210,12 @@ public static class SweepPlan
         var entries = new List<SweepEntry>();
         foreach (byte command in SasCatalogue.LongPolls.Keys.Order())
         {
+            if (ReadOnlyWithArgument.TryGetValue(command, out (byte[] Request, string Why) only))
+            {
+                entries.Add(new SweepEntry(command, SweepDisposition.Ask, only.Why, only.Request));
+                continue;
+            }
+
             if (WithheldCommands.TryGetValue(command, out string? reason))
             {
                 entries.Add(new SweepEntry(command, SweepDisposition.Withheld, reason));

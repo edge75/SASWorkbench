@@ -82,6 +82,8 @@ internal static class Help
               sasctl catalogue readable-meters   every meter a script can name, the command it
                                                  is read from, and the commands it is not
               sasctl catalogue layouts           the replies this build can decode, field by field
+              sasctl catalogue undecoded         the commands it cannot, and what stands in the
+                                                 way of each — read out of the machine library
               sasctl catalogue events            what an exception carries after its code
               sasctl catalogue diff [options]    compare this build's catalogue against two
                                                  descriptions of SAS written by other people

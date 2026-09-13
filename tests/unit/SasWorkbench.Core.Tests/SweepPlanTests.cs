@@ -36,10 +36,39 @@ public class SweepPlanTests
     {
         var wrong = SweepPlan.Asked
             .Where(e => !SweepPlan.HandlerOnlyAnswers(e.Command))
+            .Where(e => SweepPlan.ReadOnlyArgument(e.Command) is null)
             .Select(e => $"${e.Command:X2} {e.Name}")
             .ToList();
 
         Assert.Empty(wrong);
+    }
+
+    /// <summary>
+    /// The exception to that rule, named one command at a time. A third entry has to be added
+    /// here deliberately, which is the point: each one is a claim that for this argument the
+    /// library takes no branch that writes, and nobody should be able to make that claim by
+    /// editing a table somewhere else.
+    /// </summary>
+    [Fact]
+    public void Only_two_commands_are_asked_because_an_argument_makes_them_read()
+    {
+        Assert.Equal(
+            new byte[] { 0x74, 0x7B },
+            SweepPlan.ReadOnlyWithArgumentCommands.Order());
+
+        // Lock code $FF is LC_INTERROGATE. $00 asks for a lock and $80 cancels one.
+        Assert.Equal(0xFF, SweepPlan.ReadOnlyArgument(0x74)![0]);
+
+        // A control mask of nothing selects no status bit for the handler to change.
+        Assert.Equal(new byte[] { 0x00, 0x00 }, SweepPlan.ReadOnlyArgument(0x7B)![1..3]);
+
+        foreach (byte command in SweepPlan.ReadOnlyWithArgumentCommands)
+        {
+            Assert.Equal(SweepDisposition.Ask, SweepPlan.For(command).Disposition);
+
+            // And the reply is one this build can actually read, or asking would prove nothing.
+            Assert.True(SasLayouts.All.ContainsKey(command));
+        }
     }
 
     /// <summary>
@@ -96,8 +125,17 @@ public class SweepPlanTests
             else
             {
                 // Length-prefixed, or a command the receiver does not frame. Either way the sweep
-                // says what it sent rather than claiming to know the shape.
-                Assert.True(ladder.Count is 1 or 3);
+                // says what it sent rather than claiming to know the shape. Two forms where the
+                // command carries a repeating group: asked for nothing, and asked for one entry,
+                // because two revisions of the library frame such a command differently and only
+                // the machine can say which it is.
+                Assert.True(ladder.Count is 1 or 2 or 3);
+
+                if (ladder.Count == 2)
+                {
+                    Assert.True(CatalogueSweep.OneElementLonger(entry.Command) is not null);
+                    Assert.True(ladder[1].Length > ladder[0].Length);
+                }
             }
         }
     }

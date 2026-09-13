@@ -437,4 +437,27 @@ public class ReplayRequestTests
         foreach (byte setter in (byte[])[0x01, 0x02, 0x0E, 0x4C, 0x58, 0x71, 0x72, 0x7F, 0x86])
             Assert.Equal(SweepDisposition.Withheld, SweepPlan.For(setter).Disposition);
     }
+
+    /// <summary>
+    /// The two commands the sweep asks only because one argument makes them read are the two a
+    /// replay has to check the bytes of rather than the disposition: a sweep picks its own
+    /// argument and a replay is handed one. A capture's $74 is a host asking for a lock, and
+    /// sending that again would lock somebody's machine.
+    /// </summary>
+    [Fact]
+    public void A_recorded_request_that_is_not_the_reading_one_is_not_sent()
+    {
+        foreach (byte command in SweepPlan.ReadOnlyWithArgumentCommands)
+        {
+            byte[] reading = SweepPlan.ReadOnlyArgument(command)!;
+            byte[] writing = [.. reading];
+            writing[0] = (byte)(writing[0] ^ 0xFF);
+
+            Assert.Null(ReplayRunner.WhyNotSent(command, reading));
+
+            string? refused = ReplayRunner.WhyNotSent(command, writing);
+            Assert.NotNull(refused);
+            Assert.Contains("asks it with another", refused, StringComparison.Ordinal);
+        }
+    }
 }

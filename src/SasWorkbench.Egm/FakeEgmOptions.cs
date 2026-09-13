@@ -160,6 +160,13 @@ public sealed record FakeEgmOptions
     /// </remarks>
     public byte BillCountryCode { get; init; } = 37;
 
+    /// <summary>The number this machine is registered under, as $74 and $7B report it.</summary>
+    /// <remarks>
+    /// One, because that is what the machine this build is measured against answers, and because
+    /// two replies carrying the same number is the cheapest cross-check either of them has.
+    /// </remarks>
+    public uint AssetNumber { get; init; } = 1;
+
     /// <summary>
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>

@@ -721,6 +721,141 @@ public static class SasLayouts
                 ],
                 DerivedFrom = "lp71_RedeemTicket",
             },
+
+            // The two funds-transfer commands that can be asked without changing anything, and the
+            // only reason they are here: each has an argument that makes the handler read rather
+            // than write, so the bytes below came off a real link instead of only out of the
+            // source. The rest of the family needs a registered host - 'sasctl catalogue
+            // undecoded' says which, and why.
+            new()
+            {
+                Command = 0x74,
+                Name = "lock_and_status",
+                Description = "What the machine will let a host transfer, and what it is holding.",
+
+                // Lock code $FF is the library's LC_INTERROGATE, and its whole branch in the
+                // handler is one assignment out of the machine's own lock status. $00 asks for a
+                // lock and $80 cancels one, and both change the machine.
+                Request =
+                [
+                    Byte("lock_code", SasUnit.Code,
+                        "$00 asks for a lock, $80 cancels one, $FF only reads."),
+                    Byte("transfer_condition", SasUnit.Code,
+                        "Which kinds of transfer the host wants the lock for."),
+                    Bcd("lock_timeout", 2, SasUnit.None,
+                        "How long the lock should last, in hundredths of a second."),
+                ],
+                Response =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    new()
+                    {
+                        Name = "asset_number",
+                        Length = 4,
+                        Encoding = SasFieldEncoding.Binary,
+
+                        // Least significant byte first: the handler copies the stored number
+                        // straight out of memory rather than laying it out for the wire.
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Index,
+                        Description = "The number this machine is registered under.",
+                    },
+                    Byte("game_lock_status", SasUnit.Code, "Whether the machine is locked now."),
+                    Byte("available_transfers", SasUnit.Code,
+                        "Which transfers the machine would accept, with the top bit cleared."),
+                    Byte("host_cashout_status", SasUnit.Code, "What the machine expects of a cashout."),
+                    Byte("aft_status", SasUnit.Code,
+                        "What the machine is doing about transfers, and whether a host is registered."),
+                    Byte("max_buffer_index", SasUnit.Count,
+                        "The highest transaction the machine's history holds."),
+                    Bcd("current_cashable_amount", 5, SasUnit.Cents, "Cashable credits held now."),
+                    Bcd("current_restricted_amount", 5, SasUnit.Cents, "Restricted credits held now."),
+                    Bcd("current_nonrestricted_amount", 5, SasUnit.Cents,
+                        "Non-restricted credits held now."),
+                    Bcd("gaming_machine_transfer_limit", 5, SasUnit.Cents,
+                        "The most the machine will take in one transfer."),
+                    Bcd("restricted_expiration", 4, SasUnit.None,
+                        "When the restricted credits expire; zero when there are none."),
+                    new()
+                    {
+                        Name = "restricted_pool_id",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Index,
+                        Description = "Which restricted pool those credits belong to.",
+                    },
+                ],
+                DerivedFrom = "lp74_LockAndStatusRequest",
+
+                // Measured 2026-09-13 against QSP_DemoOpenGL, asked with lock code $FF: forty
+                // bytes, and the length byte read 35, which is the total less the header and the
+                // check sequence. Its asset number and $7B's agree, and neither reply was used to
+                // write the other.
+                ConfirmedByCapture = true,
+            },
+            new()
+            {
+                Command = 0x7B,
+                Name = "extended_validation_status",
+                Description = "How the machine has been told to validate, and how it is set now.",
+
+                // The handler applies a status bit only where the control mask selects it, so a
+                // mask of nothing selects nothing, changes nothing, and is still answered.
+                Request =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    new()
+                    {
+                        Name = "control_mask",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Code,
+                        Description = "Which status bits the host is setting; zero sets none.",
+                    },
+                    new()
+                    {
+                        Name = "status_bit_control_states",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Code,
+                        Description = "What to set the selected bits to.",
+                    },
+                ],
+                Response =
+                [
+                    Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+                    new()
+                    {
+                        Name = "asset_number",
+                        Length = 4,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Index,
+                        Description = "The number this machine is registered under.",
+                    },
+                    new()
+                    {
+                        Name = "current_validation_status",
+                        Length = 2,
+                        Encoding = SasFieldEncoding.Binary,
+                        ByteOrder = SasByteOrder.LittleEndian,
+                        Unit = SasUnit.Code,
+                        Description = "Which validation status bits the machine is holding.",
+                    },
+                    Bcd("cashable_ticket_expiration", 2, SasUnit.None,
+                        "Default days before a cashable ticket expires."),
+                    Bcd("restricted_ticket_expiration", 2, SasUnit.None,
+                        "Default days before a restricted ticket expires."),
+                ],
+                DerivedFrom = "lp7B_ExtendedValidationStatus",
+
+                // Measured 2026-09-13 against QSP_DemoOpenGL with an all-zero control mask:
+                // fifteen bytes, length byte 10, and the same asset number $74 reported.
+                ConfirmedByCapture = true,
+            },
             new()
             {
                 Command = 0x7E,

@@ -21,4 +21,11 @@ endif()
 #	keeps HAL off everywhere except QPM, so it has to be added here.
 add_compile_definitions(SKIP_INTEGRITY_CHECKS)
 
-include("${SASWB_ROOT}/tools/qxcom-tcp/qxcom-tcp-targets.cmake")
+#	Added as a subdirectory rather than included, so the transport's target is not created in
+#	the demo's own directory. A Release build applies reproducible-build flags at qx_version(),
+#	and refuses to run if the top-level directory already holds a target - the flags would then
+#	cover only part of the build. This transport is dev-only and reaches no customer build, so
+#	keeping it out of that directory is the honest fix rather than relaxing the check.
+if(NOT TARGET qxcom_static)
+	add_subdirectory("${SASWB_ROOT}/tools/qxcom-tcp" "${CMAKE_BINARY_DIR}/saswb-qxcom-tcp")
+endif()

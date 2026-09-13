@@ -201,6 +201,22 @@ public static class ReplayFields
         Configuration("bytes the protocol reserves, which a machine may leave as it likes",
             "reserved");
 
+        // The funds-transfer replies. Where a name here looks like a state and is classified as a
+        // configuration, or the other way round, the deciding question was the one this whole
+        // table asks: would two machines set up the same way answer the same, whatever either of
+        // them happened to be doing at the time.
+        Configuration("what the machine is registered as, and the limits it was set up with",
+            "asset_number", "max_buffer_index", "gaming_machine_transfer_limit");
+
+        Configuration("how the machine was told to validate, and for how long a ticket lasts",
+            "current_validation_status", "cashable_ticket_expiration",
+            "restricted_ticket_expiration");
+
+        State("what the machine will accept and is holding for a transfer right now",
+            "game_lock_status", "available_transfers", "host_cashout_status", "aft_status",
+            "current_cashable_amount", "current_restricted_amount",
+            "current_nonrestricted_amount", "restricted_expiration", "restricted_pool_id");
+
         State("the machine's clock, which moves whether or not anything else does",
             "month", "day", "year", "hour", "minute", "second");
 

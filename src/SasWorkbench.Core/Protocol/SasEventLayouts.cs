@@ -199,6 +199,9 @@ public static class SasEventLayouts
                         + "included."),
                 ],
                 DerivedFrom = "SAS_BillAccepted",
+                // Measured 2026-09-13 as 370400000002: denomination code 04 is the twenty, and the meter
+                // read 2 after exactly two twenties had been put in.
+                ConfirmedByCapture = true,
             },
             new()
             {
@@ -235,6 +238,9 @@ public static class SasEventLayouts
                         "Which progressive group the machine is in."),
                 ],
                 DerivedFrom = "SAS_RTE_GameStart",
+                // Measured 2026-09-13 over nine games: the first field held 50 every time while the
+                // second climbed 50, 100, 150 and on, which is what tells a wager from a meter.
+                ConfirmedByCapture = true,
             },
             new()
             {
@@ -246,6 +252,8 @@ public static class SasEventLayouts
                     Bcd("win_amount", 4, SasUnit.Cents, "What this game won."),
                 ],
                 DerivedFrom = "SAS_RTE_GameEnd",
+                // Measured 2026-09-13 across eight games, four of which won nothing and reported zero.
+                ConfirmedByCapture = true,
             },
             new()
             {
@@ -260,6 +268,9 @@ public static class SasEventLayouts
                         "Which physical position it stopped at."),
                 ],
                 DerivedFrom = "SAS_RTE_ReelStopped",
+                // Measured 2026-09-13 forty-five times: the first byte ran 1 to 5 in order, one reel at
+                // a time.
+                ConfirmedByCapture = true,
             },
             new()
             {
@@ -294,6 +305,8 @@ public static class SasEventLayouts
                     Bcd("game_number", 2, SasUnit.Index, "Which game is now selected."),
                 ],
                 DerivedFrom = "SAS_RTE_GameSelected",
+                // Measured 2026-09-13 when the game menu was pressed.
+                ConfirmedByCapture = true,
             },
             new()
             {

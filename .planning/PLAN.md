@@ -420,9 +420,35 @@ labelled case still fails, so a green suite cannot hide the finding and the labe
 it. No catalogue figure moved and none could; three defects in this build were found and fixed on
 the way, and one of them was a case asserting a silence that was only the receiver's framing.
 
-Still to do in this milestone: the rest of the long-poll catalogue — 39
-commands, of which the five tournament meters need a machine that advertises tournament mode and the
-AFT family needs a registered host · the four event payloads Trap D blocks.
+✅ **The rest of the catalogue is accounted for, and the machine takes money again** — see
+`docs/M4-catalogue-breadth.md`. Thirty-nine commands have no layout and `sasctl catalogue undecoded`
+now says, for each, what stands in the way — read out of the library rather than written down: the
+conditions its handler returns on, verbatim; how many bytes the receiver frames the host's message
+at; and what this build does about it. Four are dispatched nowhere at all, nine are gated on a
+feature the machine must advertise, one waits on a configuration, and twenty-five change the machine
+and are not sent unattended. **The AFT family is not blocked on a registered host**, which is the
+correction worth having: `$74` answered with `aft_status` = `$B2`, and the library's registered bit
+is `$08` — clear.
+
+Two of the withheld commands turned out to carry an argument for which the library takes no branch
+that writes — `$74` with lock code `$FF`, `$7B` with an empty control mask — so both are now asked,
+both answer, and both layouts were checked against the bytes. **85 of 124 replies, 59 of them
+confirmed against bytes a machine sent.** The two replies report the same asset number out of two
+different handlers, which is the cross-check either of them has on its own; `$74` came back
+`GLS_GAME_NOT_LOCKED`, which is what makes the argument safe rather than believed. A replay now
+compares a recorded request against the reading argument and refuses anything else, because a
+conformance capture is full of `$74` with a real lock code.
+
+Trap D is cleared, and it was the build: a debug build additionally requires the `DEMO` licence
+feature, and this machine's key carries `SAS` only. Built `Release` through the gitignored preset,
+the same key validates, the machine takes notes, and `sasctl events` produced **5 of the 10 payloads
+against bytes a machine sent, from 0**. The five that remain are named with the reason — two the
+library never queues, one is money, two need a person or a card game.
+
+Found on the way and kept as a finding: the committed catalogue was stale, and regenerating it moved
+`$2F`'s framing from eight bytes to a length byte — **Trap E, measured on a wire for the first
+time**. The sweep now asks a length-prefixed command both ways and records which the machine
+answered, rather than picking a number.
 
 ---
 

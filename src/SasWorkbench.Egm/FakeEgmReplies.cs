@@ -82,6 +82,8 @@ public sealed partial class FakeEgm
         0x3D => LastCashout(),
         0x70 => TicketInEscrow(),
         0x71 => RedeemTicket(request),
+        0x74 => LockAndStatus(),
+        0x7B => ExtendedValidationStatus(),
 
         0x18 => GamesSince(),
         0x19 => new Dictionary<string, object>
@@ -333,6 +335,54 @@ public sealed partial class FakeEgm
     /// altogether. Answering a percentage would be inventing a measurement from a device that is
     /// not there; saying it cannot be measured is a fact about this machine.
     /// </remarks>
+    /// <summary>What this machine would let a host transfer, and what it is holding.</summary>
+    /// <remarks>
+    /// <para>
+    /// Only the reading form of the command reaches here — a host asking for a lock is refused
+    /// before it is sent, on both peers, out of the same table. So the lock status is always
+    /// "not locked", and that is the truth about this machine rather than a stub: nothing in it
+    /// can take a lock.
+    /// </para>
+    /// <para>
+    /// It reports no available transfers for the same reason. That differs from the machine under
+    /// test, which advertises three, and the difference is the honest one — this machine performs
+    /// none, so saying it would accept them would be the lie.
+    /// </para>
+    /// </remarks>
+    private Dictionary<string, object> LockAndStatus() => new()
+    {
+        ["length"] = 0x23,
+        ["asset_number"] = (long)_options.AssetNumber,
+        ["game_lock_status"] = (byte)0xFF,
+        ["available_transfers"] = (byte)0x00,
+        ["host_cashout_status"] = (byte)0x00,
+        ["aft_status"] = (byte)0x00,
+        ["max_buffer_index"] = (byte)0x7F,
+        ["current_cashable_amount"] = Meters.Read(SasMeterCode.CurrentCredits),
+        ["current_restricted_amount"] = 0L,
+        ["current_nonrestricted_amount"] = 0L,
+        ["gaming_machine_transfer_limit"] = 0L,
+        ["restricted_expiration"] = 0L,
+        ["restricted_pool_id"] = 0L,
+    };
+
+    /// <summary>How this machine has been told to validate, and how it is set now.</summary>
+    /// <remarks>
+    /// Only the form with an empty control mask reaches here, so nothing is being set and the
+    /// reply is a reading. Every status bit reads zero, and that is a statement rather than a
+    /// placeholder: nothing in this machine sets one, and the bits are not derived from the
+    /// validation style it does model — the two are different things in the library, and guessing
+    /// a bit pattern from the style is exactly the kind of invention a layout is meant to stop.
+    /// </remarks>
+    private Dictionary<string, object> ExtendedValidationStatus() => new()
+    {
+        ["length"] = 0x0A,
+        ["asset_number"] = (long)_options.AssetNumber,
+        ["current_validation_status"] = 0L,
+        ["cashable_ticket_expiration"] = 0L,
+        ["restricted_ticket_expiration"] = 0L,
+    };
+
     private static Dictionary<string, object> HopperStatus() => new()
     {
         ["length"] = 2,

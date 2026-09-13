@@ -205,6 +205,53 @@ Our own side never had this defect: `QpmSharedRegion.Write` is a single `Volatil
 
 **Address both by index from the EGM's config, never by the simulator's label.**
 
+### Trap D — the machine has no licence, so it takes no money  ✅ **cleared 2026-09-13**
+
+**It was the build, not the licence, and the diagnosis below was right about everything except the
+last step.** The machine's secure storage did hold a valid, machine-bound key the whole time. What
+rejected it was `LicenseHandler::RetrieveRequiredFeatures`, which adds `F_QSP_LICENSE_DEMO` to the
+required features **`#ifndef NDEBUG`** — deliberately, so a debug build cannot run on production
+hardware even by accident. The key carries `SAS` only, the `SasWorkbenchM0` preset inherited
+`CMAKE_BUILD_TYPE=Debug`, and so a good key was refused, the lockup was raised at powerup and never
+removed, and the platform disabled the bill validator on every evaluation.
+
+Building the preset `Release` — in `CMakeUserPresets.json`, which is gitignored and is the one file
+in that repository this project may write — validates the same key:
+
+```
+[CONDITION] RemoveCondition(Quixant License)
+[INFO]      AsyncEnableBillValidator(1)
+PASS  a twenty raises its exception and moves its meters (8.3s, 7 assert(s))
+```
+
+**What the reconfigure needed, and would need again.** Changing the build type forces a fresh
+configure, which turned up two things the incremental build had been hiding:
+
+* the demo pins its platform dependency to a branch that has since been **renamed upstream**, and
+  its libsas and peripheral-manager dependencies likewise. `FETCHCONTENT_UPDATES_DISCONNECTED=ON`
+  plus local refs at the revisions already on disk keeps the machine under test at exactly the
+  revisions every earlier measurement used, so the build type stays the only thing that changed.
+* a `Release` build applies reproducible-build flags at `qx_version()` and **refuses to configure**
+  if the top-level directory already holds a target. This project's TCP transport was being created
+  there; it is now added as a subdirectory instead, which is the honest fix rather than relaxing
+  the check.
+
+**What it was costing, and no longer does:** the four real-time event payloads. A run of
+`sasctl events` on 2026-09-13 produced **5 of 10**, against 0 of 10 on 2026-09-08. See
+`docs/M4-catalogue-breadth.md`.
+
+**What is still true and still worth knowing.** Nothing on the SAS wire says a machine is locked
+up: the licence condition maps to the no-activity exception, and the fault light the platform
+commands does not reach the shared region's lamp words either — checked from the raw bytes over ten
+samples. **An unattended run still cannot tell a locked-up machine from a broken stimulus.** That is
+what made this cost two sessions, and it is a finding rather than something fixed here.
+`SASWB_QPM_TRACE=1` remains the way to make the machine explain itself.
+
+---
+
+<details>
+<summary>The diagnosis as it stood on 2026-09-08, kept because what it got wrong is the useful half</summary>
+
 ### Trap D — the machine has no licence, so it takes no money  (diagnosed 2026-09-08)
 
 **The cause is the machine's, not ours, and it cannot be fixed from here.** The M2 case that
@@ -266,6 +313,8 @@ substituted peripheral manager print every message crossing into the machine and
 decision coming back, and asks the platform to raise its own trace level so its account of a refusal
 reaches the log. Without both, this failure is a five-second timeout and nothing else.
 
+</details>
+
 ### The machine really does open a second channel, and one thing about how it does is wrong
 
 Measured 2026-09-09 against `QSP_DemoOpenGL`, with nothing in its repository edited. Three things
@@ -308,6 +357,17 @@ carry a channel-category gate, and all twenty-nine are byte-identical between th
 generator reads and the copy `QSP_DemoOpenGL` builds from — as are the five predicates that decide
 which channel hears which exception and the function that masks the enabled-features reply. So the
 whole of the channel model is safe from this trap, checked rather than assumed.
+
+**Measured on 2026-09-13, for the receiver's framing table, and there they do not — and it showed
+up on the wire.** The checkout frames long poll `$2F` by a length byte (`long_poll_size[0x2f] = -1`,
+with a comment saying the old fixed size read a wider request short and refused it); the copy
+`QSP_DemoOpenGL` builds from still frames it at eight. Regenerating the catalogue moved the value,
+the sweep began asking `$2F` for no meters at all, and a command that had answered for two
+milestones went silent against the machine. Neither reading is wrong. The sweep now asks a
+length-prefixed command **twice** — for nothing and for one entry — and records which form the
+machine answered, so the disagreement is reported rather than resolved by picking a number. It is
+also the reason to run `python tools/protogen/protogen.py --check` before trusting a coverage
+figure: the committed catalogue had been stale.
 
 **Measured again on 2026-09-09, for the meter handlers, and there they agree.** Every handler that
 reads a meter - the shared single-meter helper, the six bulk replies, the twenty dedicated bill

@@ -221,13 +221,45 @@ public class RealTimeEventTests
     }
 
     /// <summary>
-    /// No payload here has been seen on a link. Asserted rather than left to a comment, so the day
-    /// a measurement produces one the flag has to be set deliberately and this test says so.
+    /// Exactly the five payloads a machine has actually sent carry the flag. Named one by one, so
+    /// that confirming a sixth is a deliberate edit here rather than a number that drifts upward.
     /// </summary>
     [Fact]
-    public void No_payload_is_yet_confirmed_against_a_machine()
+    public void Only_the_payloads_a_machine_has_sent_are_confirmed()
     {
-        Assert.Empty(SasEventLayouts.All.Values.Where(e => e.ConfirmedByCapture));
+        byte[] expected =
+        [
+            (byte)SasExceptionCode.BillAccepted,
+            (byte)SasExceptionCode.GameStarted,
+            (byte)SasExceptionCode.GameEnded,
+            (byte)SasExceptionCode.ReelNStopped,
+            (byte)SasExceptionCode.GameSelected,
+        ];
+
+        Assert.Equal(
+            expected.Order(),
+            SasEventLayouts.All.Values.Where(e => e.ConfirmedByCapture).Select(e => e.Code).Order());
+    }
+
+    /// <summary>
+    /// The five that are not confirmed are not confirmable by anything unattended: two the library
+    /// never queues, one is money a sweep will not send, and two need a person or a card game.
+    /// </summary>
+    [Fact]
+    public void The_unconfirmed_payloads_are_the_ones_nothing_here_can_cause()
+    {
+        byte[] expected =
+        [
+            (byte)SasExceptionCode.LegacyBonusPayOrJackpotAwarded,
+            (byte)SasExceptionCode.GameRecallEntryDisplayed,
+            (byte)SasExceptionCode.CardHeldOrNotHeld,
+            (byte)SasExceptionCode.SessionStarted,
+            (byte)SasExceptionCode.SessionEnd,
+        ];
+
+        Assert.Equal(
+            expected.Order(),
+            SasEventLayouts.All.Values.Where(e => !e.ConfirmedByCapture).Select(e => e.Code).Order());
     }
 
     /// <summary>

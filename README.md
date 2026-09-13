@@ -59,10 +59,16 @@ $ sasctl run tests/regression --loopback --stimulus software
 | | |
 |---|---|
 | Long polls catalogued, from the machine library's own headers | 124 |
-| Replies that decode field by field | 21 |
-| Meters readable by name | 17 |
+| Replies that decode field by field | 85 |
+| …of those, confirmed against bytes a machine sent | 59 |
+| Exception payloads that decode, confirmed against a capture | 5 of 10 |
+| Meters readable by name | 40 |
 | Exceptions catalogued | 122 |
-| Unit tests | 242 |
+| Unit tests | 918 |
+
+The gap between 124 and 85 is the honest part, and `sasctl catalogue undecoded` says what is in it:
+most of those commands are not work waiting to be done but commands no machine here will answer,
+each with the condition — verbatim from the machine library — that makes it so.
 
 ## Try it
 
@@ -72,6 +78,7 @@ sasctl egm --tcp 127.0.0.1:9760 --dial                       # run that machine 
 sasctl run tests/regression --tcp 127.0.0.1:9760             # and point the host at it
 sasctl probe                                                 # what can this machine do?
 sasctl catalogue layouts                                     # every reply we can decode
+sasctl catalogue undecoded                                   # and why we cannot decode the rest
 ```
 
 `SasWorkbench` is the same engine with a window. The centre is one time-ordered stream of

@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Sweep;
 using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Cli;
@@ -53,10 +54,14 @@ internal static class CatalogueCommand
                 Channels();
                 return 0;
 
+            case "undecoded":
+                Undecoded();
+                return 0;
+
             default:
                 Console.Error.WriteLine(
                     $"error: '{what}' is not something to list. Expected long-polls, exceptions, "
-                    + "events, meters, layouts, readable-meters, channels or diff.");
+                    + "events, meters, layouts, readable-meters, channels, undecoded or diff.");
                 return 2;
         }
     }
@@ -205,6 +210,113 @@ internal static class CatalogueCommand
         Console.WriteLine();
         Console.WriteLine("Try 'sasctl catalogue layouts' for the replies, field by field, and");
         Console.WriteLine("'sasctl catalogue events' for what an exception carries after its code.");
+    }
+
+    /// <summary>
+    /// Every command this build cannot decode field by field, and what stands in the way of each.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The point of this listing is that most of these are not work waiting to be done. A layout
+    /// is read out of the library's handler and then checked against bytes a machine sent, so a
+    /// command no machine here will answer is one whose layout cannot honestly be established —
+    /// and saying which, and why, is worth more than a number that never moves.
+    /// </para>
+    /// <para>
+    /// Both halves of each line are read rather than written here. What the machine requires
+    /// before it will answer comes from the conditions its handler returns on, verbatim from the
+    /// library. Whether anything here would send the command comes from the sweep's own plan,
+    /// which is the same table a replay uses.
+    /// </para>
+    /// </remarks>
+    private static void Undecoded()
+    {
+        SasLongPollInfo[] undecoded =
+        [
+            .. SasCatalogue.LongPolls.Values
+                .Where(info => !SasLayouts.All.ContainsKey(info.Code))
+                .OrderBy(info => info.Code),
+        ];
+
+        Console.WriteLine("Commands the gaming machine library implements and this build cannot");
+        Console.WriteLine("decode field by field, and what stands in the way of each.");
+        Console.WriteLine();
+        int undispatched = undecoded.Count(i => i.Handler is null);
+        Console.WriteLine($"  {undecoded.Length} of {SasCatalogue.LongPolls.Count}. {undispatched} of "
+                          + "them the library's dispatcher sends nowhere, so no machine");
+        Console.WriteLine("  running it answers them and there is no reply for anything to read.");
+        Console.WriteLine();
+
+        foreach (SasLongPollInfo info in undecoded)
+        {
+            Console.WriteLine($"${info.Code:X2}  {info.Description}");
+
+            if (info.Handler is null)
+            {
+                Console.WriteLine("     the library's dispatcher sends this command nowhere, so no");
+                Console.WriteLine("     machine running it answers and there is no reply to read");
+            }
+            else
+            {
+                Console.WriteLine($"     answered in {info.Handler}");
+            }
+
+            if (SasCatalogue.AnswerGates.TryGetValue(info.Code, out IReadOnlyList<string>? gates))
+            {
+                Console.WriteLine("     the machine answers nothing while, in the library's own words:");
+                foreach (string gate in gates)
+                    Console.WriteLine($"       {gate}");
+            }
+
+            if (info.HostMessageLength is { } framed)
+            {
+                Console.WriteLine(framed < 0
+                    ? "     the host's message is framed by a length byte it carries, so a bare"
+                      + " poll of it is dropped as incomplete"
+                    : $"     the host's message is framed at {framed} bytes, so a shorter one is"
+                      + " dropped as incomplete");
+            }
+
+            SweepEntry entry = SweepPlan.For(info.Code);
+            // Most reasons are verb phrases meant to follow "it"; the two that name something
+            // that is not a command at all already read as sentences.
+            string why = entry.Reason.StartsWith("not ", StringComparison.Ordinal)
+                ? entry.Reason
+                : $"it {entry.Reason}";
+            Console.WriteLine(entry.Disposition == SweepDisposition.Withheld
+                ? $"     not asked here: {why}"
+                : $"     asked here: {entry.Reason}");
+
+            Console.WriteLine();
+        }
+
+        // Counted here rather than in prose somewhere, and in one order so that the buckets do
+        // not overlap: a command can be both withheld and gated, and counting it twice would make
+        // the total larger than the list.
+        int withheld = 0, gated = 0, neither = 0;
+        foreach (SasLongPollInfo info in undecoded.Where(i => i.Handler is not null))
+        {
+            if (SweepPlan.For(info.Code).Disposition == SweepDisposition.Withheld)
+                withheld++;
+            else if (SasCatalogue.AnswerGates.ContainsKey(info.Code))
+                gated++;
+            else
+                neither++;
+        }
+
+        Console.WriteLine("COUNTED, in this order so that nothing is counted twice");
+        Console.WriteLine($"  dispatched nowhere by the library            {undispatched}");
+        Console.WriteLine($"  not asked here, because it changes the machine  {withheld}");
+        Console.WriteLine($"  asked here, and the machine gates its answer   {gated}");
+        Console.WriteLine($"  asked here, and nothing explains the silence   {neither}");
+        Console.WriteLine();
+        Console.WriteLine("The last line is the only one that is work. Everything above it is a");
+        Console.WriteLine("property of the machine or a decision about what may be sent to one.");
+        Console.WriteLine();
+        Console.WriteLine("A gate naming a feature bit is a property of the machine under test: it");
+        Console.WriteLine("advertises the feature or it does not, and no host can change that. A gate");
+        Console.WriteLine("naming a channel category is one a host can be given, through the machine's");
+        Console.WriteLine("own memory - see 'sasctl catalogue channels' and 'sasctl nvram channels'.");
     }
 
     private static void Layouts()

@@ -152,7 +152,16 @@ public sealed class CatalogueSweep
         // command asked by count alone goes out with a length byte that disagrees with its own
         // message - which this host would then be sending knowing it was wrong.
         if (MinimalRequest(entry.Command) is { } shaped)
-            return [shaped];
+        {
+            // A command the receiver frames by a length byte is asked for nothing first and then
+            // for one element, and both forms are kept. The reason is measured rather than
+            // theoretical: the checkout this build's catalogue is generated from frames $2F by a
+            // length byte, and the copy the machine under test is built from frames it at eight
+            // bytes exactly — so the shortest form is answered by one of them and dropped as
+            // incomplete by the other. Asking both ways costs one message and is the difference
+            // between a reply and a silence that means nothing.
+            return OneElementLonger(entry.Command) is { } longer ? [shaped, longer] : [shaped];
+        }
 
         if (SasCommandFraming.RequestDataBytes(entry.Command) is { } width)
             return [new byte[width]];
@@ -161,6 +170,43 @@ public sealed class CatalogueSweep
             return [[0x00]];
 
         return [[], new byte[1], new byte[2]];
+    }
+
+    /// <summary>
+    /// The same request with one entry in its repeating group, or null when the command has no
+    /// such group or the group's entries are not a fixed width.
+    /// </summary>
+    /// <remarks>
+    /// Only ever a second rung on the ladder, never a replacement for the first: which of the two
+    /// a machine answers is a fact about that machine's receiver, and the sweep records which one
+    /// it was rather than deciding in advance.
+    /// </remarks>
+    public static byte[]? OneElementLonger(byte command)
+    {
+        SasMessageLayout? layout = SasLayouts.For(command);
+        if (layout is null)
+            return null;
+
+        SasField[] groups = [.. layout.Request.Where(f => f.IsGroup)];
+        if (groups.Length != 1 || groups[0].Fields.Any(m => m.Length <= 0))
+            return null;
+
+        var values = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+        foreach (SasField field in layout.Request)
+        {
+            if (field.IsGroup || field.BitsOfField is not null || field.PresentWhen is not null)
+                continue;
+            if (field.Name.Equals("length", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            values[field.Name] = 0L;
+        }
+
+        values[groups[0].Name + ".count"] = 1L;
+        foreach (SasField member in groups[0].Fields)
+            values[$"{groups[0].Name}[0].{member.Name}"] = 0L;
+
+        return Encode(layout, values);
     }
 
     /// <summary>

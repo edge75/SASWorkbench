@@ -58,7 +58,7 @@ public static class SasCatalogue
             [0x2C] = new(0x2C, "LP_SENDCURRENTHOPPERLEVEL", "Send current hopper level", "lp2C_SendCurrentHopperLevel", false, 2),
             [0x2D] = new(0x2D, "LP_SENDTOTALHANDPAYCANCELLED", "Send total handpay cancelled credits", "lp2D_SendTotalHandpayCancelledCredits", true, 6),
             [0x2E] = new(0x2E, "LP_DELAYGAME", "Game delay", "lp2E_GameDelay", true, 6),
-            [0x2F] = new(0x2F, "LP_SENDMETERSFORGAME_N", "Send selected meters for game n", "lp2F_SendSelectedMetersForGameN", true, 8),
+            [0x2F] = new(0x2F, "LP_SENDMETERSFORGAME_N", "Send selected meters for game n", "lp2F_SendSelectedMetersForGameN", true, -1),
             [0x31] = new(0x31, "LP_SEND1BILLSINMETER", "Send1 bills in meter", "lp31_Send1BillsInMeter", false, 2),
             [0x32] = new(0x32, "LP_SEND2BILLSINMETER", "Send2 bills in meter", "lp32_Send2BillsInMeter", false, 2),
             [0x33] = new(0x33, "LP_SEND5BILLSINMETER", "Send5 bills in meter", "lp33_Send5BillsInMeter", false, 2),
@@ -206,7 +206,7 @@ public static class SasCatalogue
             [0x2C] = 2,
             [0x2D] = 6,
             [0x2E] = 6,
-            [0x2F] = 8,
+            [0x2F] = -1,
             [0x31] = 2,
             [0x32] = 2,
             [0x33] = 2,
@@ -300,6 +300,74 @@ public static class SasCatalogue
             [0xB5] = 6,
             [0xB6] = 6,
             [0xB7] = 10,
+        }.ToFrozenDictionary();
+
+    /// <summary>
+    /// The conditions under which a command's handler returns without
+    /// answering, in the library's own words.
+    /// </summary>
+    /// <remarks>
+    /// Copied verbatim rather than translated, so that a claim made from one
+    /// can be checked against the same line in the library. This is what lets
+    /// a command with no layout say why it has none — a feature bit the
+    /// machine must advertise, a channel category it must own, a thing that
+    /// has to be configured first — instead of being counted as work nobody
+    /// has got to yet. The conditions every handler carries are left out: a
+    /// failed memory read, a message for another machine, a bad check
+    /// sequence, a game number out of range.
+    /// </remarks>
+    public static FrozenDictionary<byte, IReadOnlyList<string>> AnswerGates { get; } =
+        new Dictionary<byte, IReadOnlyList<string>>
+        {
+            [0x01] = new[] { "!channelControl.generalControl" },
+            [0x02] = new[] { "!channelControl.generalControl" },
+            [0x03] = new[] { "!channelControl.generalControl" },
+            [0x04] = new[] { "!channelControl.generalControl" },
+            [0x05] = new[] { "!channelControl.generalControl" },
+            [0x06] = new[] { "!channelControl.generalControl" },
+            [0x07] = new[] { "!channelControl.generalControl" },
+            [0x0A] = new[] { "!channelControl.generalControl" },
+            [0x0B] = new[] { "!channelControl.generalControl" },
+            [0x2C] = new[] { "!channelControl.information", "percentageFull == 0xFF" },
+            [0x2D] = new[] { "gameNumber != 0" },
+            [0x2E] = new[] { "!(features[0] & LEGACY_BONUS_AWARDS_BIT)", "!channelControl.legacyBonus" },
+            [0x4C] = new[] { "!channelControl.validation", "cashoutValidationType != CASHOUT_VALIDATION_SECURE_ENHANCED" },
+            [0x4D] = new[] { "!channelControl.validation" },
+            [0x4F] = new[] { "!channelControl.information" },
+            [0x50] = new[] { "readResult != QXT_LIB_SUCCESS" },
+            [0x57] = new[] { "!channelControl.validation" },
+            [0x58] = new[] { "!channelControl.validation" },
+            [0x6E] = new[] { "!channelControl.componentAuthentication", "!(features[1] & COMPONENT_AUTHENTICATION_BIT)" },
+            [0x70] = new[] { "!channelControl.validation", "!internalIsTicketRedemptionSupported(features[0])", "waitResult != SAS_WAIT_SUCCESS" },
+            [0x71] = new[] { "!channelControl.validation", "!internalIsTicketRedemptionSupported(features[0])", "waitResult != SAS_WAIT_SUCCESS" },
+            [0x72] = new[] { "!channelControl.aft" },
+            [0x73] = new[] { "!channelControl.aft" },
+            [0x74] = new[] { "!channelControl.aft", "!(features[1] & AFT_BIT)" },
+            [0x75] = new[] { "!channelControl.aft", "!(features[1] & AFT_BIT)" },
+            [0x76] = new[] { "!channelControl.aft", "!(features[1] & AFT_BIT)" },
+            [0x7B] = new[] { "!channelControl.validation" },
+            [0x7C] = new[] { "!channelControl.validation" },
+            [0x7D] = new[] { "!channelControl.validation" },
+            [0x80] = new[] { "!channelControl.progressive" },
+            [0x86] = new[] { "!channelControl.progressive", "rxProgressiveGroup != ptrGame->progressivesGameConf.group" },
+            [0x8A] = new[] { "!channelControl.legacyBonus", "!(features[0] & LEGACY_BONUS_AWARDS_BIT)" },
+            [0x8B] = new[] { "!(features[0] & LEGACY_BONUS_AWARDS_BIT)", "!(features[0] & JACKPOT_MULTIPLIER_BIT)", "!channelControl.legacyBonus" },
+            [0x8C] = new[] { "!(features[0] & TOURNAMENT_BIT)" },
+            [0x8E] = new[] { "!channelControl.information" },
+            [0x8F] = new[] { "!channelControl.information" },
+            [0x90] = new[] { "!(features[0] & LEGACY_BONUS_AWARDS_BIT)" },
+            [0x94] = new[] { "!channelControl.generalControl", "!isRemoteHandpayResetEnabled" },
+            [0x95] = new[] { "!internalIsTournamentSupported(ptrGame)" },
+            [0x96] = new[] { "!internalIsTournamentSupported(ptrGame)" },
+            [0x97] = new[] { "!internalIsTournamentSupported(ptrGame)" },
+            [0x98] = new[] { "!internalIsTournamentSupported(ptrGame)" },
+            [0x99] = new[] { "!internalIsTournamentSupported(ptrGame)" },
+            [0x9A] = new[] { "!(features[0] & LEGACY_BONUS_AWARDS_BIT)" },
+            [0xA4] = new[] { "!channelControl.information", "!cashoutLimitConfigured" },
+            [0xA8] = new[] { "!channelControl.generalControl" },
+            [0xAA] = new[] { "!channelControl.information", "sasContext.autoRebetDisabled" },
+            [0xB4] = new[] { "psGame->gameNumber == 0" },
+            [0xB6] = new[] { "!(features[2] & METER_CHANGE_NOTIFICATION_BIT)" },
         }.ToFrozenDictionary();
 
     /// <summary>Exception codes, by code.</summary>

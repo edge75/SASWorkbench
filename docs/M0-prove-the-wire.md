@@ -115,9 +115,18 @@ the only file added to that repository. It defines one preset, `SasWorkbenchM0`,
 
 | Injected into | Does | Why |
 |---|---|---|
-| the demo | supplies the `qxcom_static` target, adds `SKIP_INTEGRITY_CHECKS` | QSP and libsas both fetch the hardware libqxcom only `if(NOT TARGET qxcom_static)`, so defining it first wins. The integrity check has nothing to verify against a simulated NVRAM file. |
+| the demo | supplies the `qxcom_static` target, adds `SKIP_INTEGRITY_CHECKS` | QSP and libsas both fetch the hardware libqxcom only `if(NOT TARGET qxcom_static)`, so defining it first wins. The integrity check has nothing to verify against a simulated NVRAM file. The target is added as a subdirectory, because a Release build refuses to configure if the demo's own directory already holds one. |
 | QPM2 | `set(HAL ON)` for that project only | Peripherals must be simulated; nothing else in the build may be. |
 | libsas | `add_compile_definitions(VALIDATION_DEBUG)` | Compiles out the `\\.\QX10` platform check, using the library's own guard. |
+
+The preset also sets **`CMAKE_BUILD_TYPE=Release`**, and that is not a performance choice. A debug
+build of the platform requires the `DEMO` licence feature on top of `SAS`, deliberately, so that a
+debug build cannot run on production hardware by accident — and the key in this machine's secure
+storage carries `SAS` only. Built `Debug`, a valid key is refused, the machine raises a licence
+lockup and takes no money; built `Release`, the same key validates. `BLOCKERS.md` Trap D is the
+whole story. It also sets `FETCHCONTENT_UPDATES_DISCONNECTED=ON`, because the branches the demo
+pins its dependencies to have been renamed upstream and every measurement in this project was taken
+against the revisions already on disk.
 
 Build it with:
 

@@ -610,6 +610,49 @@ def parse_feature_masks(
 
     return masks
 
+ANSWER_GATE = re.compile(
+    r"if\s*\(([^\n]{0,200}?)\)\s*\n?\s*(?:\{\s*)?return\s*(?:0|1)?\s*;")
+
+#   Conditions every handler carries, which say nothing about whether this command can be asked:
+#   a failed shared-memory read, a message for another machine, a bad check sequence, a game number
+#   out of range, a mutex that timed out.
+ANSWER_GATE_NOISE = ("isError", "egmAddress", "crcCheck", "notFound", "numberOfGames",
+                     "internalLockMutex", "rxPacket->length", "rxBuffer->length")
+
+
+def parse_answer_gates(lp_source: str, dispatch: dict[int, str],
+                       bodies: dict[str, str]) -> dict[int, list[str]]:
+    """Per command, the conditions under which its handler returns without answering.
+
+    Read verbatim rather than translated, because the point of the list is that somebody can go
+    and look at the same line in the library. A handler whose whole body is a call to another one
+    - the four tournament meters are all like this - inherits that one's conditions, which is the
+    only indirection followed: a second level would start being a guess about control flow.
+    """
+    gates: dict[int, list[str]] = {}
+    for code, handler in dispatch.items():
+        body = bodies.get(handler)
+        if body is None:
+            continue
+
+        delegated = re.fullmatch(
+            r"\{\s*(lp[0-9A-Za-z_]+)\s*\([^;]*\)\s*;\s*\}", strip_comments(body).strip())
+        if delegated and delegated.group(1) in bodies:
+            body = bodies[delegated.group(1)]
+
+        found: list[str] = []
+        for match in ANSWER_GATE.finditer(strip_comments(body)):
+            condition = " ".join(match.group(1).split())
+            if any(noise in condition for noise in ANSWER_GATE_NOISE):
+                continue
+            if condition not in found:
+                found.append(condition)
+
+        if found:
+            gates[code] = found
+
+    return gates
+
 
 def parse_host_message_lengths(uart_source: str) -> dict[int, int]:
     """Reads the receiver's own table of how long each host message is.
@@ -778,6 +821,7 @@ def emit_catalogue(
     command_categories: dict[int, str],
     exception_categories: dict[int, str],
     feature_masks: dict[str, list[tuple[int, int]]],
+    answer_gates: dict[int, list[str]],
     sources: str,
 ) -> str:
     lines = [header(sources, "\nusing System.Collections.Frozen;\n"),
@@ -825,6 +869,30 @@ def emit_catalogue(
     lines.append("        {")
     for code in sorted(host_lengths):
         lines.append(f'            [0x{code:02X}] = {host_lengths[code]},')
+    lines.append("        }.ToFrozenDictionary();")
+    lines.append("")
+
+    lines.append("    /// <summary>")
+    lines.append("    /// The conditions under which a command's handler returns without")
+    lines.append("    /// answering, in the library's own words.")
+    lines.append("    /// </summary>")
+    lines.append("    /// <remarks>")
+    lines.append("    /// Copied verbatim rather than translated, so that a claim made from one")
+    lines.append("    /// can be checked against the same line in the library. This is what lets")
+    lines.append("    /// a command with no layout say why it has none — a feature bit the")
+    lines.append("    /// machine must advertise, a channel category it must own, a thing that")
+    lines.append("    /// has to be configured first — instead of being counted as work nobody")
+    lines.append("    /// has got to yet. The conditions every handler carries are left out: a")
+    lines.append("    /// failed memory read, a message for another machine, a bad check")
+    lines.append("    /// sequence, a game number out of range.")
+    lines.append("    /// </remarks>")
+    lines.append("    public static FrozenDictionary<byte, IReadOnlyList<string>> AnswerGates "
+                 "{ get; } =")
+    lines.append("        new Dictionary<byte, IReadOnlyList<string>>")
+    lines.append("        {")
+    for code in sorted(answer_gates):
+        rendered = ", ".join(f'"{escape(gate)}"' for gate in answer_gates[code])
+        lines.append(f'            [0x{code:02X}] = new[] {{ {rendered} }},')
     lines.append("        }.ToFrozenDictionary();")
     lines.append("")
     lines.append("    /// <summary>Exception codes, by code.</summary>")
@@ -1066,6 +1134,8 @@ def main() -> int:
     command_categories = parse_command_categories(read(lp_cpp), handlers_full, long_polls)
     exception_categories = parse_exception_categories(read(utils_cpp), exceptions)
     feature_masks = parse_feature_masks(read(utils_cpp), source)
+    answer_gates = parse_answer_gates(
+        read(lp_cpp), handlers_full, parse_function_bodies(read(lp_cpp)))
 
     files = {
         "SasLongPollCode.g.cs": emit_enum(
@@ -1091,7 +1161,7 @@ def main() -> int:
         "Catalogue.g.cs": emit_catalogue(
             long_polls, handlers, handlers_full, check_sequences, host_lengths,
             exceptions, meters, meter_reads, multigame_meters, command_categories,
-            exception_categories, feature_masks, sources),
+            exception_categories, feature_masks, answer_gates, sources),
     }
 
     stale = []
