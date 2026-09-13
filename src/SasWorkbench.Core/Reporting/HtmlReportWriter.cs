@@ -77,6 +77,19 @@ public sealed class HtmlReportWriter : IReportWriter
             builder.AppendLine(
                 $"<p class=\"meta\">weight <strong>{Text(weight)}</strong> · stimulus "
                 + $"<strong>{Text(provenance.Stimulus.ToString().ToLowerInvariant())}</strong></p>");
+            if (provenance.Channels is not null)
+            {
+                string how = provenance.ChannelsRead ? "read from the machine" : "declared by the case";
+                builder.AppendLine(
+                    $"<p class=\"channels\">{Text(provenance.Channels)} <em>({Text(how)})</em></p>");
+            }
+
+            if (provenance.ChannelRefusal is not null)
+            {
+                builder.AppendLine(
+                    $"<p class=\"caveat\">arrangement refused: {Text(provenance.ChannelRefusal)}</p>");
+            }
+
             if (provenance.Caveat is not null)
                 builder.AppendLine($"<p class=\"caveat\">{Text(provenance.Caveat)}</p>");
             builder.AppendLine("</div>");

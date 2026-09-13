@@ -60,6 +60,16 @@ public sealed class JUnitReportWriter : IReportWriter
                     WriteProperty(writer, "transport", provenance.Transport);
                     WriteProperty(writer, "fidelity", provenance.Fidelity.ToString());
                     WriteProperty(writer, "stimulus", provenance.Stimulus.ToString());
+                    if (provenance.Channels is not null)
+                    {
+                        WriteProperty(writer, "channels", provenance.Channels);
+                        WriteProperty(writer, "channelsRead",
+                            provenance.ChannelsRead ? "true" : "false");
+                    }
+
+                    if (provenance.ChannelRefusal is not null)
+                        WriteProperty(writer, "channelRefusal", provenance.ChannelRefusal);
+
                     if (provenance.Caveat is not null)
                         WriteProperty(writer, "caveat", provenance.Caveat);
                 }

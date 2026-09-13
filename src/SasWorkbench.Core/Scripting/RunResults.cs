@@ -169,8 +169,16 @@ public sealed record RunProvenance(
         string channels = Channels is null
             ? string.Empty
             : $", {Channels} ({(ChannelsRead ? "read from the machine" : "declared by the case")})";
+
+        // A machine that would not take the arrangement it was given is a finding, so it is said
+        // rather than only recorded. Without it a run reads as though the arrangement it names is
+        // the one that was served.
+        string refused = ChannelRefusal is null
+            ? string.Empty
+            : $" [arrangement refused: {ChannelRefusal}]";
+
         return $"{Transport}, {Fidelity.ToString().ToLowerInvariant()}, stimulus "
-               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{caveat}";
+               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{refused}{caveat}";
     }
 }
 

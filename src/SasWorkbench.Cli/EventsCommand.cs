@@ -468,7 +468,13 @@ internal static class EventsCommand
             "A real-time event measurement asserts nothing. It turns reporting on, causes what it "
             + "can cause, and records the payloads, so an exception's layout can be checked "
             + "against bytes rather than only against source. It sends two commands the catalogue "
-            + "sweep withholds and turns both off again.");
+            + "sweep withholds and turns both off again.")
+        {
+            // A single-host command polls one machine on one channel, so the arrangement the
+            // record needs is that one: every category reaches the only host there is. Marked as
+            // not read, because nothing here asked the machine what its own map is.
+            Channels = SasChannelPlan.Only(engine.Channel, engine.Address).Describe(),
+        };
 
         var started = DateTimeOffset.UtcNow;
         var tests = new List<TestOutcome>(findings.Count);

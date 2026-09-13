@@ -39,14 +39,7 @@ public sealed class JsonLinesReportWriter : IReportWriter
             failed = report.Failed,
             skipped = report.Skipped,
             errored = report.Errored,
-            provenance = report.Provenance.Select(p => new
-            {
-                transport = p.Transport,
-                fidelity = p.Fidelity.ToString(),
-                stimulus = p.Stimulus.ToString(),
-                caveat = p.Caveat,
-                wakeupBitCaptured = p.WakeupBitCaptured,
-            }),
+            provenance = report.Provenance.Select(Project),
             capabilities = report.Capabilities,
         });
 
@@ -85,16 +78,7 @@ public sealed class JsonLinesReportWriter : IReportWriter
                         playerDenominationsInCents = declared.PlayerDenominationsInCents,
                     }
                     : null,
-                provenance = test.Provenance is { } how
-                    ? new
-                    {
-                        transport = how.Transport,
-                        fidelity = how.Fidelity.ToString(),
-                        stimulus = how.Stimulus.ToString(),
-                        caveat = how.Caveat,
-                        wakeupBitCaptured = how.WakeupBitCaptured,
-                    }
-                    : null,
+                provenance = test.Provenance is { } how ? Project(how) : null,
             });
 
             foreach (StepResult step in test.Steps)
@@ -133,6 +117,29 @@ public sealed class JsonLinesReportWriter : IReportWriter
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// One projection of provenance, used at both the run level and the test level.
+    /// </summary>
+    /// <remarks>
+    /// Shared rather than written twice so the two cannot drift: a field added to one and not the
+    /// other would make a record whose answer to "which host owned this poll" depended on which
+    /// line of it you read.
+    /// </remarks>
+    private static object Project(RunProvenance p) => new
+    {
+        transport = p.Transport,
+        fidelity = p.Fidelity.ToString(),
+        stimulus = p.Stimulus.ToString(),
+        caveat = p.Caveat,
+        wakeupBitCaptured = p.WakeupBitCaptured,
+
+        // The arrangement, which is what makes "which host should have sent this poll" and "which
+        // host owns this exception" answerable from the file rather than only from the terminal.
+        channels = p.Channels,
+        channelsRead = p.ChannelsRead,
+        channelRefusal = p.ChannelRefusal,
+    };
 
     private static void Write(StringBuilder builder, object record) =>
         builder.Append(JsonSerializer.Serialize(record, Options)).Append('\n');

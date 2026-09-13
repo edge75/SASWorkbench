@@ -363,7 +363,13 @@ internal static class ReplayCommand
             transport.Description, transport.Capabilities.Fidelity, StimulusBackend.None,
             $"Replay of {source} at {path}. The expectation is another tool's recording of another "
             + "machine, so a difference is classified rather than failed: only a difference "
-            + "nothing here explains is a finding.");
+            + "nothing here explains is a finding.")
+        {
+            // A single-host command polls one machine on one channel, so the arrangement the
+            // record needs is that one: every category reaches the only host there is. Marked as
+            // not read, because nothing here asked the machine what its own map is.
+            Channels = SasChannelPlan.Only(engine.Channel, engine.Address).Describe(),
+        };
 
         IReadOnlyList<WireRecord> wire = engine.WireLog.Snapshot();
         var started = DateTimeOffset.UtcNow;

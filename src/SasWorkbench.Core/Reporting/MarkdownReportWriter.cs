@@ -26,15 +26,26 @@ public sealed class MarkdownReportWriter : IReportWriter
         {
             builder.AppendLine("## What this run was carried over");
             builder.AppendLine();
-            builder.AppendLine("| Link | Weight | Stimulus | Caveat |");
-            builder.AppendLine("|---|---|---|---|");
+            builder.AppendLine("| Link | Weight | Stimulus | Channels | Caveat |");
+            builder.AppendLine("|---|---|---|---|---|");
             foreach (RunProvenance provenance in report.Provenance)
             {
+                string channels = provenance.Channels is null
+                    ? "—"
+                    : $"{provenance.Channels} "
+                      + $"({(provenance.ChannelsRead ? "read" : "declared")})";
+
+                string caveat = provenance.ChannelRefusal is null
+                    ? provenance.Caveat ?? "—"
+                    : $"arrangement refused: {provenance.ChannelRefusal}"
+                      + (provenance.Caveat is null ? string.Empty : $" {provenance.Caveat}");
+
                 builder.AppendLine(
                     $"| {Escape(provenance.Transport)} "
                     + $"| {provenance.Fidelity.ToString().ToLowerInvariant()} "
                     + $"| {provenance.Stimulus.ToString().ToLowerInvariant()} "
-                    + $"| {Escape(provenance.Caveat ?? "—")} |");
+                    + $"| {Escape(channels)} "
+                    + $"| {Escape(caveat)} |");
             }
 
             builder.AppendLine();

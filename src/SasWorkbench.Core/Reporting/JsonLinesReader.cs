@@ -203,9 +203,27 @@ public static class JsonLinesReader
         bool wakeup = !element.TryGetProperty("wakeupBitCaptured", out JsonElement captured)
                       || captured.ValueKind != JsonValueKind.False;
 
+        // The arrangement is read back as written or not at all. A record that does not carry one
+        // leaves it null, and a record that carries one but does not say it was read from the
+        // machine is read as declared: claiming a reading the file never made would turn what a
+        // case asserted into what a machine confirmed.
+        string? channels = Text(element, "channels");
+        bool read = channels is not null
+                    && element.TryGetProperty("channelsRead", out JsonElement fromMachine)
+                    && fromMachine.ValueKind == JsonValueKind.True;
+
+        if (channels is not null && !SasChannelPlan.TryParse(channels, out _, out string? unreadable))
+        {
+            problems.Add($"line {number} describes the arrangement as '{channels}', which this "
+                         + $"build cannot read back: {unreadable}");
+        }
+
         return new RunProvenance(transport, weight, backend, Text(element, "caveat"))
         {
             WakeupBitCaptured = wakeup,
+            Channels = channels,
+            ChannelsRead = read,
+            ChannelRefusal = Text(element, "channelRefusal"),
         };
     }
 

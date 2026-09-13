@@ -100,3 +100,4 @@ PHASE:M4 WAVE:W11-channel-map STATUS:complete TS:2026-09-09T09:35:00Z
 PHASE:M4 WAVE:W11-recording-and-channels STATUS:complete TS:2026-09-09T11:35:00Z
 PHASE:M4 WAVE:W12-catalogue-breadth STATUS:complete TS:2026-09-12T23:32:47Z
 PHASE:M5 WAVE:W0-readiness-and-poll-cycle STATUS:complete TS:2026-09-13T19:06:23Z
+PHASE:M5 WAVE:W1-map-into-the-record STATUS:complete TS:2026-09-13T20:42:49Z

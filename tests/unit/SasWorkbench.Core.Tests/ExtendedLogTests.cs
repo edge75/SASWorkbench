@@ -63,6 +63,18 @@ public sealed class ExtendedLogTests
         return Rx(sequence, sequence * 10, body);
     }
 
+    /// <summary>
+    /// A machine split between two hosts, written the way a machine describes its own arrangement.
+    /// </summary>
+    /// <remarks>
+    /// In the sample rather than in one test of its own on purpose: it puts the arrangement inside
+    /// the equality that guards the whole record, so a field dropped from the record fails there
+    /// rather than only in a test somebody has to remember to write.
+    /// </remarks>
+    private const string TwoChannels =
+        "channels 1@01 2@02 · general_control=1 aft=1 progressive=1 legacy_bonus=1 "
+        + "validation=2 component_authentication=1 information=1";
+
     private static RunReport Sample() => new()
     {
         StartedAt = new DateTimeOffset(2026, 9, 7, 8, 30, 0, TimeSpan.Zero),
@@ -71,7 +83,11 @@ public sealed class ExtendedLogTests
         Provenance =
         [
             new RunProvenance("tcp 127.0.0.1:9760", TransportFidelity.Proven,
-                StimulusBackend.Software, "In-process link."),
+                StimulusBackend.Software, "In-process link.")
+            {
+                Channels = TwoChannels,
+                ChannelsRead = true,
+            },
         ],
         Tests =
         [
@@ -91,7 +107,11 @@ public sealed class ExtendedLogTests
                         "printer"),
                 ],
                 Provenance = new RunProvenance("tcp 127.0.0.1:9760", TransportFidelity.Proven,
-                    StimulusBackend.Software, "In-process link."),
+                    StimulusBackend.Software, "In-process link.")
+                {
+                    Channels = TwoChannels,
+                    ChannelsRead = true,
+                },
                 Steps =
                 [
                     new StepResult(new SourceLocation("tests/conformance/10.1/10.1.3.sas", 32),
@@ -771,4 +791,118 @@ public sealed class ExtendedLogTests
     private static string Flat(string log) =>
         string.Join(' ', log.Split(
             (char[])['\r', '\n', ' ', '\t'], StringSplitOptions.RemoveEmptyEntries));
+
+    // ---- the arrangement in the record -------------------------------------------------------
+
+    /// <summary>
+    /// Which host owned a poll is answerable from a saved run, not only from the terminal.
+    /// </summary>
+    /// <remarks>
+    /// The arrangement is the machine's, and it is the only thing that says which of two hosts
+    /// should have sent a poll and which owns an exception. A record that prints it and does not
+    /// carry it answers that question while a person is watching and not afterwards, which across
+    /// a floor of machines is the difference between a log and a pile of bytes.
+    /// </remarks>
+    [Fact]
+    public void TheChannelArrangementSurvivesIntoTheRecordAndBackOut()
+    {
+        JsonLinesReader.Result read = JsonLinesReader.Read(
+            Lines(new JsonLinesReportWriter().Render(Sample())));
+
+        Assert.Empty(read.Problems);
+
+        RunProvenance run = Assert.Single(read.Report.Provenance);
+        Assert.Equal(TwoChannels, run.Channels);
+        Assert.True(run.ChannelsRead);
+
+        RunProvenance test = Assert.IsType<RunProvenance>(read.Report.Tests[0].Provenance);
+        Assert.Equal(TwoChannels, test.Channels);
+        Assert.True(test.ChannelsRead);
+    }
+
+    /// <summary>
+    /// The arrangement read back out is the one a plan can be rebuilt from.
+    /// </summary>
+    [Fact]
+    public void TheArrangementInARecordRebuildsTheSamePlan()
+    {
+        RunProvenance read = JsonLinesReader
+            .Read(Lines(new JsonLinesReportWriter().Render(Sample())))
+            .Report.Provenance[0];
+
+        Assert.True(SasChannelPlan.TryParse(read.Channels, out SasChannelPlan plan, out string? why), why);
+        Assert.Equal(2, plan.OpenCount);
+        Assert.Equal(SasChannel.Two, plan.OwnerOf(SasCategory.Validation));
+        Assert.Equal(SasChannel.One, plan.OwnerOf(SasCategory.GeneralControl));
+        Assert.Equal("02", plan.AddressOf(SasChannel.Two)?.ToString());
+    }
+
+    /// <summary>
+    /// A record that names an arrangement but does not say it was read is read as declared.
+    /// </summary>
+    /// <remarks>
+    /// The same honest-labelling rule the unknown link weight gets. Reading a missing flag as
+    /// "read from the machine" would turn what a case asserted into what a machine confirmed,
+    /// which is the one claim a record must never manufacture.
+    /// </remarks>
+    [Fact]
+    public void AnArrangementNotMarkedAsReadIsNotClaimedToHaveBeenReadFromTheMachine()
+    {
+        string[] lines =
+        [
+            """{"kind":"run","durationMs":1,"provenance":[{"transport":"a link","fidelity":"Proven","stimulus":"Software","channels":"channels 1@01"}],"capabilities":[]}""",
+        ];
+
+        RunProvenance read = JsonLinesReader.Read(lines).Report.Provenance[0];
+
+        Assert.Equal("channels 1@01", read.Channels);
+        Assert.False(read.ChannelsRead);
+        Assert.Contains("declared by the case", read.ToString(), StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// An arrangement this build cannot read back is reported, never passed through in silence.
+    /// </summary>
+    [Fact]
+    public void AnUnreadableArrangementIsReported()
+    {
+        string[] lines =
+        [
+            """{"kind":"run","durationMs":1,"provenance":[{"transport":"a link","fidelity":"Proven","stimulus":"Software","channels":"channels 9@01"}],"capabilities":[]}""",
+        ];
+
+        Assert.Contains(
+            JsonLinesReader.Read(lines).Problems,
+            p => p.Contains("cannot read back", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A machine that refused the arrangement it was given says so in the record and in the log.
+    /// </summary>
+    /// <remarks>
+    /// Recorded but never rendered was the state this found: a run whose machine would not take
+    /// its configuration read exactly like one whose machine did.
+    /// </remarks>
+    [Fact]
+    public void AnArrangementTheMachineRefusedIsCarriedAndSaid()
+    {
+        RunReport report = Sample();
+        report = report with
+        {
+            Provenance =
+            [
+                report.Provenance[0] with
+                {
+                    ChannelRefusal = "validation is on channel 3, which has no poll address",
+                },
+            ],
+        };
+
+        RunProvenance read = JsonLinesReader
+            .Read(Lines(new JsonLinesReportWriter().Render(report)))
+            .Report.Provenance[0];
+
+        Assert.Equal("validation is on channel 3, which has no poll address", read.ChannelRefusal);
+        Assert.Contains("arrangement refused", read.ToString(), StringComparison.Ordinal);
+    }
 }

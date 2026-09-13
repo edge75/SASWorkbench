@@ -197,7 +197,13 @@ internal static class SweepCommand
         var provenance = new RunProvenance(
             transport.Description, transport.Capabilities.Fidelity, StimulusBackend.None,
             "A sweep asserts nothing. It asks a machine every command it may ask and records the "
-            + "answers, so a layout can be checked against bytes rather than only against source.");
+            + "answers, so a layout can be checked against bytes rather than only against source.")
+        {
+            // A single-host command polls one machine on one channel, so the arrangement the
+            // record needs is that one: every category reaches the only host there is. Marked as
+            // not read, because nothing here asked the machine what its own map is.
+            Channels = SasChannelPlan.Only(engine.Channel, engine.Address).Describe(),
+        };
 
         var tests = new List<TestOutcome>(findings.Count);
         var started = DateTimeOffset.UtcNow;
