@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Tickets;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Qpm;
 
@@ -25,7 +26,10 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
 
     public IReadOnlyDictionary<string, string?> Capabilities => Describe();
 
-    public void Apply(StimulusStep step)
+    //  The named machine is ignored: the peripheral simulator drives the one cabinet it is
+    //  attached to, and a host bound to it polls one address, so every address a case can name
+    //  here is that machine's own.
+    public void Apply(StimulusStep step, SasAddress? named = null)
     {
         ArgumentNullException.ThrowIfNull(step);
 

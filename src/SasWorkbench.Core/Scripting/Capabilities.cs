@@ -260,6 +260,19 @@ public static class CapabilityProbe
 
         string? whyNot = null;
 
+        //  A floor has no "the machine" to ask. These probes read what a machine is, and the
+        //  answer is that machine's — asking whichever one the round starts at and publishing it
+        //  as the floor's would be exactly the head-of-round guess every other refusal here
+        //  avoids. Said plainly, so the skip names the floor rather than reading as a link that
+        //  would not carry a poll.
+        if (engine.Round.Count > 1)
+        {
+            return new MachineAnswers(values,
+                $"this host polls {engine.Round.Count} machines, and what a machine is can only be "
+                + "asked of one of them. A floor has no machine to answer for it, so this was not "
+                + "asked at all.");
+        }
+
         if (asked.Contains("egm.validation"))
             whyNot = AskValidation(engine, values);
 

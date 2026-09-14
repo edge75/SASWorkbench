@@ -92,6 +92,10 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
             clockBase.Reconcile(report.Elapsed),
             $"exception ${report.Code:X2}")
         {
+            //  Which machine raised it. A general poll is answered with a bare code and no
+            //  address, so without the one the engine recorded a floor's exceptions all read as
+            //  the floor's rather than as any machine's.
+            Address = report.Address,
             Detail = meaning,
         });
 
@@ -148,8 +152,13 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
     /// When the step finished. Omit it for now, which is what a live run wants; supply one when
     /// replaying a recording, whose times come from the recording rather than from this clock.
     /// </param>
+    /// <param name="machine">
+    /// Which machine the step was about, where the case had said. Null on a host bound to one
+    /// machine, where there is nothing to choose between.
+    /// </param>
     public SessionEvent Step(
-        StepResult step, SasChannel channel, ClockBase clockBase, TimeSpan? at = null)
+        StepResult step, SasChannel channel, ClockBase clockBase, TimeSpan? at = null,
+        SasAddress? machine = null)
     {
         ArgumentNullException.ThrowIfNull(step);
 
@@ -163,6 +172,7 @@ public sealed class SessionLog(SessionClock? clock = null, int capacity = 20000)
             new SessionEvent(0, lane, channel, at ?? default, step.Description)
             {
                 Started = clockBase.Reconcile(step.At),
+                Address = machine,
                 Verdict = step.Verdict,
                 Where = step.Location,
                 Detail = step.Reason ?? (step.Expected is null

@@ -98,6 +98,24 @@ public sealed record LongPollResult(
 public sealed record ExceptionReport(
     byte Code, SasChannel Channel, TimeSpan Elapsed, long Sequence, byte[]? Data = null)
 {
+    /// <summary>
+    /// The machine that raised it, or null where this build cannot say which.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A general poll is answered with a bare exception code and no address in it at all, so which
+    /// machine sent one is answerable only from the poll it answered. The engine knows that, and
+    /// carries it here — without it, an assertion on one machine of a floor is satisfied by any
+    /// machine on the line raising the same code.
+    /// </para>
+    /// <para>
+    /// Nullable with the same hard rule the wire record has: null means <em>not known</em>, never
+    /// <em>machine one</em>. A report read back from an older run has none, and filling it in
+    /// would attribute a whole floor's exceptions to whichever machine happened to be first.
+    /// </para>
+    /// </remarks>
+    public SasAddress? Address { get; init; }
+
     /// <summary>True when the machine reported this in the real-time event format.</summary>
     public bool IsRealTimeEvent => Data is not null;
 
@@ -106,6 +124,8 @@ public sealed record ExceptionReport(
         string carried = Data is { Length: > 0 }
             ? " carrying " + Convert.ToHexString(Data)
             : string.Empty;
-        return $"exception ${Code:X2} ch{(int)Channel} at {Elapsed.TotalMilliseconds:F0}ms{carried}";
+        string from = Address is { } address ? $" ${address}" : string.Empty;
+        return $"exception ${Code:X2} ch{(int)Channel}{from} at "
+               + $"{Elapsed.TotalMilliseconds:F0}ms{carried}";
     }
 }

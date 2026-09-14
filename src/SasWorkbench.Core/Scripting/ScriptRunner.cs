@@ -241,6 +241,12 @@ public sealed class ScriptRunner
                 Channels = environment.Channels?.Describe() ?? test.Channels?.ToString(),
                 ChannelsRead = environment.Channels is not null,
                 ChannelRefusal = environment.ChannelRefusal,
+
+                //  And on a floor, how many machines each host had. The arrangement above is one
+                //  machine's, so without this a run of a hundred reads back as a run of that one.
+                //  Taken from every connect the case holds rather than from the first, because the
+                //  second host's round is its own and is not opened until its step runs.
+                Round = Polling(test),
             };
 
             (Requirement Requirement, string Reason)? unmet =
@@ -304,6 +310,27 @@ public sealed class ScriptRunner
         && reason.StartsWith("this environment provides no", StringComparison.Ordinal)
             ? why
             : reason;
+
+    /// <summary>
+    /// The machines each host of a case polls, written <c>1=01-64 2=01-64</c>, or null where every
+    /// host polls one machine.
+    /// </summary>
+    /// <remarks>
+    /// Null on an ordinary case rather than <c>1=01</c>: a reader tells a floor from a machine by
+    /// whether this is there at all, and every run written before floors existed has no round.
+    /// </remarks>
+    private static string? Polling(ScriptTest test)
+    {
+        var rounds = test.Steps
+            .OfType<ConnectStep>()
+            .Where(step => step.Round.Count > 1)
+            .GroupBy(step => step.Channel)
+            .OrderBy(group => group.Key)
+            .Select(group => $"{(int)group.Key}={SasAddressRound.Describe(group.First().Round)}")
+            .ToList();
+
+        return rounds.Count == 0 ? null : string.Join(' ', rounds);
+    }
 
     private TestOutcome Execute(
         ScriptTest test,
@@ -437,7 +464,11 @@ public sealed class ScriptRunner
         }
 
         var steps = new List<StepResult>();
-        var baselines = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        //  Keyed by the machine as well as the meter. A floor's machines each have their own
+        //  count of everything, so one key per meter would answer an assertion about machine $04
+        //  with the baseline taken from machine $02 — and a relative assertion reads as absolute
+        //  when the baseline it finds is not its machine's.
+        var baselines = new Baselines();
         var window = new LastStimulus();
         var answered = new AnsweredPolls();
         var printed = new PrintedTickets(_options.WalletDirectory);
@@ -486,7 +517,7 @@ public sealed class ScriptRunner
                 }
             }
 
-            RefreshBaselines(engine, test.WatchedMeters, baselines);
+            RefreshBaselines(engine, hosts.Machine, test.WatchedMeters, baselines);
 
             foreach (ScriptStep step in test.Steps)
             {
@@ -502,15 +533,16 @@ public sealed class ScriptRunner
                         ConnectStep another when !hosts.Has(another.Channel) =>
                             OpenAnother(another, stopwatch.Elapsed),
 
+                        //  Moving takes the new machine's own baselines, because the move is the
+                        //  first step on it. Without that, a relative assertion after a move would
+                        //  measure against the machine the case had just left.
                         UseChannelStep use => hosts.TryUse(use.Channel, out string? refusal)
-                            ? new StepResult(use.Location, use.Describe(), Verdict.Pass,
-                                At: stopwatch.Elapsed)
+                            ? Moved(use, hosts, test, baselines, stopwatch.Elapsed)
                             : Unavailable(use, stopwatch.Elapsed, refusal!),
 
                         UseMachineStep onto =>
                             hosts.TryUseMachine(onto.Address, out string? notPolled)
-                                ? new StepResult(onto.Location, onto.Describe(), Verdict.Pass,
-                                    At: stopwatch.Elapsed)
+                                ? Moved(onto, hosts, test, baselines, stopwatch.Elapsed)
                                 : Unavailable(onto, stopwatch.Elapsed, notPolled!),
 
                         //  A send names its machine, or takes the one the case moved to. On a round
@@ -525,16 +557,28 @@ public sealed class ScriptRunner
 
                         SendLongPollStep send =>
                             RunStep(send with { To = send.To ?? hosts.Machine }, hosts.Engine,
-                                environment, exceptions, test, baselines, window, answered, printed,
-                                stopwatch.Elapsed),
+                                hosts.Machine, environment, exceptions, test, baselines, window,
+                                answered, printed, stopwatch.Elapsed),
 
-                        _ => RunStep(step, hosts.Engine, environment, exceptions,
+                        //  An exception on a round belongs to one machine, and a general poll is
+                        //  answered with a bare code that does not say which. A case that has not
+                        //  named one is refused rather than answered by any machine on the line —
+                        //  the same rule a send follows, for the same reason.
+                        ExpectExceptionStep or ExpectEventFieldStep or ForgetExceptionsStep
+                            when hosts.Machine is null && hosts.Engine.Round.Count > 1 =>
+                            Unavailable(step, stopwatch.Elapsed,
+                                $"this host polls {hosts.Engine.Round.Count} machines and this "
+                                + "case has not said which one's exceptions this is about. Add "
+                                + "'host machine <address>' before it. It polls "
+                                + string.Join(", ", hosts.Engine.Round.Select(a => $"${a}")) + "."),
+
+                        _ => RunStep(step, hosts.Engine, hosts.Machine, environment, exceptions,
                             test, baselines, window, answered, printed, stopwatch.Elapsed),
                     },
                 };
 
                 steps.Add(result);
-                Log.Step(result, hosts.Current, testBase);
+                Log.Step(result, hosts.Current, testBase, machine: hosts.Machine);
 
                 if (result.Verdict == Verdict.Error)
                     break;
@@ -566,13 +610,24 @@ public sealed class ScriptRunner
         }
     }
 
+    /// <summary>
+    /// Records a move to another machine or host, having taken that machine's meter baselines.
+    /// </summary>
+    private static StepResult Moved(
+        ScriptStep step, ChannelHosts hosts, ScriptTest test, Baselines baselines, TimeSpan at)
+    {
+        RefreshBaselines(hosts.Engine, hosts.Machine, test.WatchedMeters, baselines);
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass, At: at);
+    }
+
     private StepResult RunStep(
         ScriptStep step,
         PollEngine engine,
+        SasAddress? machine,
         ScriptEnvironment environment,
         ReportedExceptions exceptions,
         ScriptTest test,
-        Dictionary<string, long> baselines,
+        Baselines baselines,
         LastStimulus window,
         AnsweredPolls answered,
         PrintedTickets printed,
@@ -592,21 +647,21 @@ public sealed class ScriptRunner
 
                 SendLongPollStep send => Send(send, engine, answered, at),
 
-                ExpectNoReplyStep silence => ExpectSilence(silence, engine, at),
+                ExpectNoReplyStep silence => ExpectSilence(silence, engine, machine, at),
 
-                ForgetExceptionsStep forget => Forget(forget, engine, exceptions, at),
+                ForgetExceptionsStep forget => Forget(forget, engine, machine, exceptions, at),
 
                 StimulusStep stimulus => ApplyStimulus(
-                    stimulus, engine, environment, test, baselines, window, answered, at),
+                    stimulus, engine, machine, environment, test, baselines, window, answered, at),
 
                 ExpectExceptionStep expect => CheckException(
-                    expect, engine, exceptions, window, at),
+                    expect, engine, machine, exceptions, window, at),
 
-                ExpectMeterStep expect => CheckMeter(expect, engine, baselines, at),
+                ExpectMeterStep expect => CheckMeter(expect, engine, machine, baselines, at),
 
-                ExpectFieldStep expect => CheckField(expect, engine, answered, printed, at),
+                ExpectFieldStep expect => CheckField(expect, engine, machine, answered, printed, at),
 
-                ExpectEventFieldStep expect => CheckEventField(expect, engine, exceptions, at),
+                ExpectEventFieldStep expect => CheckEventField(expect, engine, machine, exceptions, at),
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
@@ -667,6 +722,29 @@ public sealed class ScriptRunner
     /// read — and the assertion for it then failed with nothing wrong.
     /// </para>
     /// </remarks>
+    /// <summary>
+    /// What each meter read on each machine before the step that is being measured.
+    /// </summary>
+    /// <remarks>
+    /// The machine is half the key, not decoration. Every machine on a floor keeps its own count of
+    /// everything, so a single key per meter would hand an assertion about one machine the baseline
+    /// taken from another — and a relative assertion whose baseline is not its own machine's reads
+    /// as an absolute one without saying so.
+    /// </remarks>
+    private sealed class Baselines
+    {
+        private readonly Dictionary<(SasAddress? Machine, string Meter), long> _values = new();
+
+        /// <summary>What that meter read on that machine, or zero where none was taken.</summary>
+        public long Of(SasAddress? machine, string meter) =>
+            _values.GetValueOrDefault((machine, Key(meter)));
+
+        public void Set(SasAddress? machine, string meter, long value) =>
+            _values[(machine, Key(meter))] = value;
+
+        private static string Key(string meter) => meter.ToLowerInvariant();
+    }
+
     private sealed class ReportedExceptions
     {
         private readonly Lock _gate = new();
@@ -679,24 +757,44 @@ public sealed class ScriptRunner
                 _all.Add(report);
         }
 
-        /// <summary>How many this channel has reported, read or not.</summary>
-        public int CountOn(SasChannel channel)
+        /// <summary>How many this channel has reported from that machine, read or not.</summary>
+        public int CountOn(SasChannel channel, SasAddress? machine)
         {
             lock (_gate)
-                return _all.Count(report => report.Channel == channel);
+                return _all.Count(report => Belongs(report, channel, machine));
         }
 
-        /// <summary>The first unread exception of that code on that channel, if there is one.</summary>
-        public ExceptionReport? Match(SasChannel channel, byte code)
+        /// <summary>
+        /// The first unread exception of that code, on that channel and from that machine.
+        /// </summary>
+        /// <remarks>
+        /// Both halves are needed and neither is enough on its own: a hundred machines on one line
+        /// raise the same codes, and one machine raises them on two channels. A general poll is
+        /// answered with a bare code and no address, so without the machine the engine recorded, an
+        /// assertion about machine $25 would be satisfied by machine $26.
+        /// </remarks>
+        public ExceptionReport? Match(SasChannel channel, SasAddress? machine, byte code)
         {
             lock (_gate)
             {
                 return _all.FirstOrDefault(report =>
-                    report.Channel == channel
+                    Belongs(report, channel, machine)
                     && report.Code == code
                     && !_consumed.Contains((channel, report.Sequence)));
             }
         }
+
+        /// <summary>
+        /// Whether a report is one this host, on this machine, should be answered by.
+        /// </summary>
+        /// <remarks>
+        /// A caller that names no machine takes the channel's whole line, which is what every case
+        /// on a host bound to one machine means. A caller that names one takes only that machine's,
+        /// and a report with no address recorded is <em>not</em> read as that machine's: unknown is
+        /// unknown, and attributing it would be the guess this build refuses everywhere else.
+        /// </remarks>
+        private static bool Belongs(ExceptionReport report, SasChannel channel, SasAddress? machine) =>
+            report.Channel == channel && (machine is null || report.Address == machine);
 
         /// <summary>Marks one as read, so a second assertion for it needs a second exception.</summary>
         public void Consume(ExceptionReport report)
@@ -705,13 +803,15 @@ public sealed class ScriptRunner
                 _consumed.Add((report.Channel, report.Sequence));
         }
 
-        /// <summary>Leaves everything this channel has reported so far out of what follows.</summary>
-        public int ForgetOn(SasChannel channel)
+        /// <summary>
+        /// Leaves everything this channel has reported from that machine out of what follows.
+        /// </summary>
+        public int ForgetOn(SasChannel channel, SasAddress? machine)
         {
             lock (_gate)
             {
                 return _all
-                    .Where(report => report.Channel == channel)
+                    .Where(report => Belongs(report, channel, machine))
                     .Count(report => _consumed.Add((channel, report.Sequence)));
             }
         }
@@ -765,18 +865,19 @@ public sealed class ScriptRunner
     private static StepResult Forget(
         ForgetExceptionsStep step,
         PollEngine engine,
+        SasAddress? machine,
         ReportedExceptions exceptions,
         TimeSpan at)
     {
         TimeSpan quiet = engine.PollInterval * 3;
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        int seen = exceptions.CountOn(engine.Channel);
+        int seen = exceptions.CountOn(engine.Channel, machine);
         long lastChange = Environment.TickCount64;
 
         while (Environment.TickCount64 < deadline)
         {
             Thread.Sleep(5);
-            int now = exceptions.CountOn(engine.Channel);
+            int now = exceptions.CountOn(engine.Channel, machine);
             if (now != seen)
             {
                 seen = now;
@@ -788,7 +889,7 @@ public sealed class ScriptRunner
                 break;
         }
 
-        int forgotten = exceptions.ForgetOn(engine.Channel);
+        int forgotten = exceptions.ForgetOn(engine.Channel, machine);
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Actual: $"{forgotten} exception(s) left out of what follows", At: at);
     }
@@ -831,7 +932,7 @@ public sealed class ScriptRunner
     /// silence, so this is the step that can assert it.
     /// </remarks>
     private static StepResult ExpectSilence(
-        ExpectNoReplyStep step, PollEngine engine, TimeSpan at)
+        ExpectNoReplyStep step, PollEngine engine, SasAddress? machine, TimeSpan at)
     {
         //  A poll shorter than the machine's receiver frames it is dropped as incomplete before
         //  any handler sees it, so its silence is the framing and says nothing about anything
@@ -852,7 +953,7 @@ public sealed class ScriptRunner
                 At: at) { IsAssertion = true };
         }
 
-        LongPollResult result = engine.Execute(step.Command, step.Data);
+        LongPollResult result = engine.Execute(step.Command, step.Data, to: machine);
         bool silent = result.Outcome == LongPollOutcome.Silent;
 
         return new StepResult(
@@ -871,16 +972,17 @@ public sealed class ScriptRunner
     private StepResult ApplyStimulus(
         StimulusStep step,
         PollEngine engine,
+        SasAddress? machine,
         ScriptEnvironment environment,
         ScriptTest test,
-        Dictionary<string, long> baselines,
+        Baselines baselines,
         LastStimulus window,
         AnsweredPolls answered,
         TimeSpan at)
     {
         // Take the baseline before acting, so a relative assertion afterwards measures the effect
         // of this step and not of everything since the test began.
-        RefreshBaselines(engine, test.WatchedMeters, baselines);
+        RefreshBaselines(engine, machine, test.WatchedMeters, baselines);
 
         // Every reply captured so far describes the machine as it was before this step, so none of
         // them may answer an assertion made after it.
@@ -890,7 +992,7 @@ public sealed class ScriptRunner
 
         try
         {
-            environment.Stimulus.Apply(step);
+            environment.Stimulus.Apply(step, machine);
             return new StepResult(step.Location, step.Describe(), Verdict.Pass, At: at);
         }
         catch (StimulusUnavailableException unavailable)
@@ -903,6 +1005,7 @@ public sealed class ScriptRunner
     private static StepResult CheckException(
         ExpectExceptionStep step,
         PollEngine engine,
+        SasAddress? machine,
         ReportedExceptions exceptions,
         LastStimulus window,
         TimeSpan at)
@@ -912,7 +1015,7 @@ public sealed class ScriptRunner
 
         while (true)
         {
-            match = exceptions.Match(engine.Channel, step.Code);
+            match = exceptions.Match(engine.Channel, machine, step.Code);
             if (match is not null || Environment.TickCount64 >= deadline)
                 break;
 
@@ -969,6 +1072,7 @@ public sealed class ScriptRunner
     private static StepResult CheckEventField(
         ExpectEventFieldStep step,
         PollEngine engine,
+        SasAddress? machine,
         ReportedExceptions exceptions,
         TimeSpan at)
     {
@@ -985,7 +1089,7 @@ public sealed class ScriptRunner
 
         while (true)
         {
-            match = exceptions.Match(engine.Channel, step.Code);
+            match = exceptions.Match(engine.Channel, machine, step.Code);
             if (match is not null || Environment.TickCount64 >= deadline)
                 break;
 
@@ -1061,7 +1165,8 @@ public sealed class ScriptRunner
     private static StepResult CheckMeter(
         ExpectMeterStep step,
         PollEngine engine,
-        Dictionary<string, long> baselines,
+        SasAddress? machine,
+        Baselines baselines,
         TimeSpan at)
     {
         if (!MeterIndex.TryResolve(step.Meter, out MeterSource source))
@@ -1076,8 +1181,8 @@ public sealed class ScriptRunner
 
         while (true)
         {
-            (actual, failure) = ReadMeter(engine, source);
-            if (actual is not null && Holds(step, baselines, actual.Value))
+            (actual, failure) = ReadMeter(engine, source, machine);
+            if (actual is not null && Holds(step, machine, baselines, actual.Value))
                 break;
             if (Environment.TickCount64 >= deadline)
                 break;
@@ -1091,8 +1196,8 @@ public sealed class ScriptRunner
                 Reason: failure, At: at) { IsAssertion = true };
         }
 
-        long baseline = baselines.GetValueOrDefault(step.Meter);
-        bool held = Holds(step, baselines, actual.Value);
+        long baseline = baselines.Of(machine, step.Meter);
+        bool held = Holds(step, machine, baselines, actual.Value);
 
         string expected = step.Comparison switch
         {
@@ -1116,10 +1221,11 @@ public sealed class ScriptRunner
 
     private static bool Holds(
         ExpectMeterStep step,
-        Dictionary<string, long> baselines,
+        SasAddress? machine,
+        Baselines baselines,
         long actual)
     {
-        long baseline = baselines.GetValueOrDefault(step.Meter);
+        long baseline = baselines.Of(machine, step.Meter);
         return step.Comparison switch
         {
             MeterComparison.IncreasedBy => actual - baseline == step.Value,
@@ -1210,6 +1316,7 @@ public sealed class ScriptRunner
     private static StepResult CheckField(
         ExpectFieldStep step,
         PollEngine engine,
+        SasAddress? machine,
         AnsweredPolls answered,
         PrintedTickets printed,
         TimeSpan at)
@@ -1249,7 +1356,8 @@ public sealed class ScriptRunner
 
         // The reply this test already has, when it has one. Asking again would ask a different
         // question for any long poll that carries data, because the second ask carries none.
-        LongPollResult reply = answered.Recall(step.Command) ?? engine.Execute(step.Command);
+        LongPollResult reply =
+            answered.Recall(step.Command) ?? engine.Execute(step.Command, to: machine);
         if (!reply.Succeeded)
         {
             return new StepResult(step.Location, step.Describe(), Verdict.Fail,
@@ -1351,17 +1459,18 @@ public sealed class ScriptRunner
 
     private static void RefreshBaselines(
         PollEngine engine,
+        SasAddress? machine,
         IReadOnlyList<string> meters,
-        Dictionary<string, long> baselines)
+        Baselines baselines)
     {
         foreach (string meter in meters)
         {
             if (!MeterIndex.TryResolve(meter, out MeterSource source))
                 continue;
 
-            (long? value, _) = ReadMeter(engine, source, WirePurpose.MeterBaseline);
+            (long? value, _) = ReadMeter(engine, source, machine, WirePurpose.MeterBaseline);
             if (value is not null)
-                baselines[meter] = value.Value;
+                baselines.Set(machine, meter, value.Value);
         }
     }
 
@@ -1371,13 +1480,13 @@ public sealed class ScriptRunner
     /// polls a reader could not account for.
     /// </param>
     private static (long? Value, string? Failure) ReadMeter(
-        PollEngine engine, MeterSource source, string? purpose = null)
+        PollEngine engine, MeterSource source, SasAddress? machine, string? purpose = null)
     {
         SasMessageLayout? layout = SasLayouts.For(source.Command);
         if (layout is null)
             return (null, $"long poll ${source.Command:X2} has no layout");
 
-        LongPollResult reply = engine.Execute(source.Command, purpose: purpose);
+        LongPollResult reply = engine.Execute(source.Command, purpose: purpose, to: machine);
         if (!reply.Succeeded)
             return (null, reply.Detail ?? reply.Outcome.ToString());
 

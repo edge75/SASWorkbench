@@ -1,3 +1,5 @@
+using SasWorkbench.Core.Wire;
+
 namespace SasWorkbench.Core.Scripting;
 
 /// <summary>Something that can act on the gaming machine.</summary>
@@ -15,9 +17,16 @@ public interface IStimulusBackend
     /// <summary>What this backend can do, added to the environment's capabilities.</summary>
     IReadOnlyDictionary<string, string?> Capabilities { get; }
 
-    /// <summary>Carries out one step.</summary>
+    /// <summary>Carries out one step, on the machine the case has moved to.</summary>
+    /// <param name="step">What to do.</param>
+    /// <param name="machine">
+    /// Which machine to do it to, or null where the case has not said. Null keeps the meaning it
+    /// has on a wire record: <em>not known</em>, never machine one. On a host bound to one machine
+    /// there is nothing to choose and a backend ignores it; on a floor it is the difference
+    /// between driving the machine the case named and driving whichever one happened to be first.
+    /// </param>
     /// <exception cref="StimulusUnavailableException">This backend cannot do it.</exception>
-    void Apply(StimulusStep step);
+    void Apply(StimulusStep step, SasAddress? machine = null);
 }
 
 /// <summary>Thrown when a stimulus step cannot be carried out, with the reason for the skip.</summary>
@@ -35,9 +44,10 @@ public sealed class NoStimulusBackend : IStimulusBackend
     public IReadOnlyDictionary<string, string?> Capabilities =>
         CapabilityProbe.ForStimulus(StimulusBackend.None);
 
-    public void Apply(StimulusStep step) => throw new StimulusUnavailableException(
-        $"nothing is driving the gaming machine, so '{step.Describe()}' cannot happen "
-        + $"(needs {step.RequiredCapability})");
+    public void Apply(StimulusStep step, SasAddress? machine = null) =>
+        throw new StimulusUnavailableException(
+            $"nothing is driving the gaming machine, so '{step.Describe()}' cannot happen "
+            + $"(needs {step.RequiredCapability})");
 }
 
 /// <summary>What came back when a person was asked to do something.</summary>
@@ -86,12 +96,16 @@ public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
         : throw new ArgumentOutOfRangeException(nameof(deadline), deadline,
             "A manual prompt needs a deadline: without one an unattended run never finishes.");
 
-    public void Apply(StimulusStep step)
+    public void Apply(StimulusStep step, SasAddress? machine = null)
     {
         ArgumentNullException.ThrowIfNull(step);
 
+        //  The machine is named in the prompt when the case named one, because on a floor the
+        //  person has to walk to the right cabinet and "do this on the machine" does not say which.
+        string where = machine is { } address ? $"on machine ${address}" : "on the machine";
+
         PromptAnswer answer = ask(
-            $"Please do this on the machine, then confirm: {step.Describe()}", Deadline);
+            $"Please do this {where}, then confirm: {step.Describe()}", Deadline);
 
         switch (answer)
         {
@@ -122,6 +136,6 @@ public sealed class RefusingStimulusBackend(string reason) : IStimulusBackend
     public IReadOnlyDictionary<string, string?> Capabilities =>
         new Dictionary<string, string?> { ["stimulus"] = "refused" };
 
-    public void Apply(StimulusStep step) => throw new StimulusUnavailableException(
-        $"'{step.Describe()}' cannot happen: {reason}");
+    public void Apply(StimulusStep step, SasAddress? machine = null) =>
+        throw new StimulusUnavailableException($"'{step.Describe()}' cannot happen: {reason}");
 }

@@ -428,7 +428,11 @@ public sealed class PollEngine : IDisposable
         }
 
         long sequence = Interlocked.Increment(ref _exceptions);
-        ExceptionReported?.Invoke(new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence));
+        ExceptionReported?.Invoke(
+            new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence)
+            {
+                Address = _polling,
+            });
     }
 
     /// <summary>
@@ -492,7 +496,10 @@ public sealed class PollEngine : IDisposable
 
         long sequence = Interlocked.Increment(ref _exceptions);
         ExceptionReported?.Invoke(
-            new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence, data));
+            new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence, data)
+            {
+                Address = _polling,
+            });
     }
 
     private void RunPendingLongPoll()
