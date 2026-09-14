@@ -22,7 +22,10 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
     public IReadOnlyDictionary<string, string?> Capabilities =>
         CapabilityProbe.ForStimulus(StimulusBackend.Software);
 
-    public void Apply(StimulusStep step)
+    //  The named machine is ignored, and that is safe rather than sloppy: this backend drives one
+    //  machine, and 'host machine' will not accept an address outside the host's round, so every
+    //  address a case can name here is one of this machine's own channel addresses.
+    public void Apply(StimulusStep step, SasAddress? named = null)
     {
         switch (step)
         {
@@ -108,6 +111,75 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 }
 
 /// <summary>
+/// Drives one named machine of a software floor.
+/// </summary>
+/// <remarks>
+/// <para>
+/// What W3 refused to do, now that a case can say which machine it means. A floor has no "the
+/// machine", so a step that names none is skipped rather than applied to the head of the round —
+/// a case that passed having stimulated a machine it never named is the worst outcome available,
+/// because nothing in the report would look wrong.
+/// </para>
+/// <para>
+/// The wallet is the run's and the whole floor prints into it, because the assertions watch one
+/// directory. That is stated rather than hidden: a case that cashes out two machines and then asks
+/// for "a ticket" gets whichever was filed first, and must tell them apart by what is on them.
+/// </para>
+/// </remarks>
+public sealed class SoftwareFloorStimulus : IStimulusBackend
+{
+    private readonly Dictionary<SasAddress, SoftwareMachineStimulus> _machines = [];
+    private readonly IReadOnlyList<SasAddress> _round;
+
+    public SoftwareFloorStimulus(SoftwareFloor floor, string walletDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(floor);
+
+        foreach (FakeEgm machine in floor.Machines)
+        {
+            var driver = new SoftwareMachineStimulus(machine, walletDirectory);
+
+            //  One machine answers at one address per channel, and all of them reach the same
+            //  machine, so every address it opens is a way to name it.
+            foreach (SasChannel channel in machine.Channels.Open)
+            {
+                if (machine.Channels.AddressOf(channel) is { } address)
+                    _machines[address] = driver;
+            }
+        }
+
+        _round = floor.Addresses;
+    }
+
+    public StimulusBackend Kind => StimulusBackend.Software;
+
+    public IReadOnlyDictionary<string, string?> Capabilities =>
+        CapabilityProbe.ForStimulus(StimulusBackend.Software);
+
+    public void Apply(StimulusStep step, SasAddress? machine = null)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+
+        if (machine is not { } address)
+        {
+            throw new StimulusUnavailableException(
+                $"this host polls {_round.Count} machines and the case has not said which one "
+                + $"'{step.Describe()}' is for. Add 'host machine <hh>' first: "
+                + $"the round is {SasAddressRound.Describe(_round)}.");
+        }
+
+        if (!_machines.TryGetValue(address, out SoftwareMachineStimulus? driver))
+        {
+            throw new StimulusUnavailableException(
+                $"no machine on this floor answers at ${address}. "
+                + $"The round is {SasAddressRound.Describe(_round)}.");
+        }
+
+        driver.Apply(step, address);
+    }
+}
+
+/// <summary>
 /// Builds an environment in which the machine under test is the software peer in this repository.
 /// </summary>
 /// <remarks>
@@ -129,7 +201,7 @@ public static class SoftwareMachineEnvironment
             //  machine. It is the other axis, so what it can do is different and is not smoothed
             //  over: see Floor below for what a floor deliberately does not provide.
             if (step.Round.Count > 1)
-                return Floor(step, channels);
+                return Floor(step, options, channels);
 
             var bus = new LoopbackBus();
             FakeEgmOptions settings = (machineOptions ?? new FakeEgmOptions()) with
@@ -207,42 +279,127 @@ public static class SoftwareMachineEnvironment
         };
 
     /// <summary>
-    /// A floor of software machines on one multi-drop line, for a case that names a round.
+    /// A floor of software machines, one multi-drop line per channel, for a case that names a
+    /// round.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Deliberately without stimulus. A floor has no "the machine" to drive, and driving the first
-    /// one because it is first is exactly the silent choice this project refuses everywhere else —
-    /// a case would pass having stimulated a machine it never named. So a step that needs stimulus
-    /// skips with that reason until driving a named machine on a floor exists.
+    /// Both axes at once. A round splits one host between machines and a channel splits one
+    /// machine between hosts; the two meet as a line per channel, because a channel is a port in
+    /// the machine and two hosts on one line would be two hosts transmitting on one pair.
     /// </para>
     /// <para>
-    /// Also without a second channel. A channel splits one machine between hosts and a round
-    /// splits one host between machines; a case that wants both is asking for something nothing
-    /// here builds yet, and it is told so rather than given one of the two.
+    /// A case that names no arrangement gets a floor of one-channel machines, which is every case
+    /// written before both axes existed.
     /// </para>
     /// </remarks>
-    private static ScriptEnvironment Floor(ConnectStep step, MachineChannelDeclaration? channels)
+    private static ScriptEnvironment Floor(
+        ConnectStep step, ScriptRunnerOptions options, MachineChannelDeclaration? channels)
     {
-        if (channels is not null)
+        SoftwareFloor floor = channels is null
+            ? SoftwareFloor.Of(step.Round.Count, step.Round[0])
+            : FromDeclaration(step, channels);
+
+        //  A host polling machines its line does not carry hears silence on every one of them, and
+        //  a partial mismatch is worse: some machines answer and the floor reads as one with holes
+        //  in it. Refused with both rounds named.
+        IReadOnlyList<SasAddress> carried = floor.RoundOf(step.Channel);
+        if (!carried.SequenceEqual(step.Round))
         {
+            floor.Dispose();
             throw new TransportRefusedException(
-                "a case cannot both name a round of machines and divide one machine between "
-                + "channels: the first splits a host between machines and the second splits a "
-                + "machine between hosts, and nothing here builds both at once yet.");
+                $"this host polls {SasAddressRound.Describe(step.Round)} on channel "
+                + $"{(int)step.Channel}, and that line carries "
+                + (carried.Count == 0
+                    ? "no machines at all"
+                    : SasAddressRound.Describe(carried))
+                + ". A host polling machines its line does not carry hears silence from every one "
+                + "of them.");
         }
 
-        SoftwareFloor floor = SoftwareFloor.Of(step.Round.Count, step.Round[0]);
-        var stimulus = new NoStimulusBackend();
+        var stimulus = new SoftwareFloorStimulus(floor, options.WalletDirectory);
 
         return new ScriptEnvironment(
             floor.Host, stimulus, stimulus.Capabilities, floor)
         {
-            //  Every machine on this floor answers everything on the one channel it has, which is
-            //  what SoftwareFloor builds. Reported for the first, because that is the arrangement
-            //  the host's provenance describes and they are all alike.
+            //  Reported for the first machine, because that is the arrangement the host's
+            //  provenance describes and every machine on this floor is alike in everything but
+            //  its addresses.
             Channels = floor.Machines[0].Channels,
+
+            ExtraCapabilities = stimulus.Capabilities
+                .Concat(floor.Channels.Select(channel =>
+                    new KeyValuePair<string, string?>(
+                        MachineChannelDeclaration.CapabilityFor(channel), "yes")))
+                .ToDictionary(pair => pair.Key, pair => pair.Value),
+
+            //  A second host on a floor is the other line, not a second engine on this one. The
+            //  line already exists — the machines were built with an end on it — so this hands
+            //  back its host end rather than opening anything new, and the two hosts' rounds run
+            //  at once on independent wires instead of contending for one.
+            OpenChannel = another => Line(floor, another),
         };
+    }
+
+    /// <summary>
+    /// The host end of the line a second host wants, checked against what that line carries.
+    /// </summary>
+    private static ISasTransport Line(SoftwareFloor floor, ConnectStep step)
+    {
+        if (floor.HostFor(step.Channel) is not { } host)
+        {
+            throw new TransportRefusedException(
+                $"no machine on this floor opens channel {(int)step.Channel}, so there is no line "
+                + "for a host to poll. This floor carries "
+                + string.Join(", ", floor.Channels.Select(c => $"channel {(int)c}")) + ".");
+        }
+
+        IReadOnlyList<SasAddress> carried = floor.RoundOf(step.Channel);
+        IReadOnlyList<SasAddress> wanted = step.Round.Count > 0 ? step.Round : [step.Address];
+        if (!carried.SequenceEqual(wanted))
+        {
+            throw new TransportRefusedException(
+                $"this host polls {SasAddressRound.Describe(wanted)} on channel "
+                + $"{(int)step.Channel}, and that line carries "
+                + SasAddressRound.Describe(carried)
+                + ". A host polling machines its line does not carry hears silence from every one "
+                + "of them.");
+        }
+
+        return host;
+    }
+
+    /// <summary>
+    /// Builds the floor a case's arrangement describes: one machine per entry of the rounds, each
+    /// with its own address on every channel.
+    /// </summary>
+    private static SoftwareFloor FromDeclaration(
+        ConnectStep step, MachineChannelDeclaration channels)
+    {
+        if (!channels.TryCountMachines(out int count, out string? mismatch))
+            throw new TransportRefusedException(mismatch!);
+
+        if (count != step.Round.Count)
+        {
+            throw new TransportRefusedException(
+                $"this host polls {step.Round.Count} machine(s) and the arrangement describes "
+                + $"{count}. A floor is one set of machines, however many channels it is divided "
+                + "between.");
+        }
+
+        var plans = new List<SasChannelPlan>(count);
+        for (int index = 0; index < count; index++)
+        {
+            //  An arrangement no machine could hold is refused for the whole floor rather than
+            //  built for some machines and not others: a floor half in a configuration nobody
+            //  asked for is worse to read than one that would not come up.
+            if (!channels.TryResolveFor(index, out SasChannelPlan plan, out string? refusal))
+                throw new TransportRefusedException(refusal!);
+
+            plans.Add(plan);
+        }
+
+        return SoftwareFloor.Of(plans);
     }
 
     /// <summary>Closes the extra buses a second and third host needed.</summary>

@@ -192,7 +192,7 @@ public static class ScriptParser
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
-        + "machine channel <1-4> address <hh> [owns <category> ...]";
+        + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
     /// Reads one channel of the machine's arrangement: its poll address, and what it owns.
@@ -239,6 +239,22 @@ public static class ScriptParser
                     cursor += 2;
                     break;
 
+                //  A round of machines on this channel's line. A channel is a port and a port is a
+                //  line, so this is the floor that line carries — and the k-th machine of every
+                //  channel's round is the same machine.
+                case "addresses":
+                    if (!SasAddressRound.TryParse(words[cursor + 1],
+                            out IReadOnlyList<SasAddress> round, out string? bad))
+                    {
+                        throw new ScriptParseException(location, bad!);
+                    }
+
+                    test.ChannelRounds[channel] = round;
+                    test.ChannelAddresses[channel] = round[0];
+                    addressGiven = true;
+                    cursor += 2;
+                    break;
+
                 case "owns":
                     cursor++;
                     while (cursor < words.Length && !IsChannelKeyword(words[cursor]))
@@ -259,14 +275,14 @@ public static class ScriptParser
 
                 default:
                     throw new ScriptParseException(location,
-                        $"'{keyword}' is not a channel option. Expected address or owns");
+                        $"'{keyword}' is not a channel option. Expected address, addresses or owns");
             }
         }
 
         if (!addressGiven)
             throw new ScriptParseException(location,
-                $"machine channel {(int)channel} needs 'address <hh>': write 'address 00' to say "
-                + "the channel has none");
+                $"machine channel {(int)channel} needs 'address <hh>' or 'addresses <round>': "
+                + "write 'address 00' to say the channel has none");
 
         foreach (SasCategory category in owns)
         {
@@ -283,6 +299,7 @@ public static class ScriptParser
 
     private static bool IsChannelKeyword(string word) =>
         word.Equals("address", StringComparison.OrdinalIgnoreCase)
+        || word.Equals("addresses", StringComparison.OrdinalIgnoreCase)
         || word.Equals("owns", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
@@ -1496,6 +1513,8 @@ public static class ScriptParser
 
         public Dictionary<SasChannel, SasAddress?> ChannelAddresses { get; } = [];
 
+        public Dictionary<SasChannel, IReadOnlyList<SasAddress>> ChannelRounds { get; } = [];
+
         public Dictionary<SasCategory, SasChannel> ChannelOwners { get; } = [];
 
         public SourceLocation? ChannelsDeclaredAt { get; set; }
@@ -1528,7 +1547,10 @@ public static class ScriptParser
             foreach ((SasChannel channel, SasAddress? address) in ChannelAddresses)
                 addresses[channel.ToIndex()] = address;
 
-            return new MachineChannelDeclaration(where, addresses, ChannelOwners);
+            return new MachineChannelDeclaration(where, addresses, ChannelOwners)
+            {
+                Rounds = ChannelRounds,
+            };
         }
 
         /// <summary>
