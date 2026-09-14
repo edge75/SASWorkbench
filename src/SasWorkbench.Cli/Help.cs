@@ -224,6 +224,10 @@ internal static class Help
             FLOOR
               --machines <n>          how many software machines to bring up, 1 to 127
                                       (default: 8)
+              --channels <1-4>        give every machine that many ports, and bring up a line per
+                                      channel with a host on each. The rounds then run at once on
+                                      independent wires and are reported one per line, never summed
+                                      (default: 1)
               --tcp <host:port>       measure a real link instead, listening unless --dial
               --serial <port>         measure a real serial link instead
               --addresses <round>     which machines the round polls on a real link, as ranges
@@ -238,8 +242,13 @@ internal static class Help
 
               One host walking a round of addresses on one multi-drop line, which is the shape a
               floor controller has: a line carries one transaction at a time, so a round costs the
-              sum of its machines and not the longest of them. Several engines on several links
-              would report a far better number about a different arrangement.
+              sum of its machines and not the longest of them. Several engines on one link would
+              report a far better number about an arrangement no machine has.
+
+              --channels is several links on purpose, and it is what a machine actually has: each
+              of its SAS channels is its own port, so a second host is a second wire. The same
+              address may appear on both, because an address is unique on a line and not on a
+              floor.
 
               The round is timed between two polls of the same machine, so everything the host did
               in between is inside it. A machine that answered nothing is named and the command

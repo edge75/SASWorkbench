@@ -1,8 +1,10 @@
 using System.Net;
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Reporting;
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Session;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Egm;
@@ -24,14 +26,37 @@ namespace SasWorkbench.Cli;
 /// one transaction at a time. Several engines would measure several lines, which is a different
 /// number and a flattering one.
 /// </para>
+/// <para>
+/// <c>--channels</c> is the exception that proves it, and it is several lines on purpose. A
+/// channel is a port in the machine, so a second host is a second wire; the two rounds are then
+/// measured together to see whether they interleave, as independent wires should, or cost each
+/// other anything. Reported per channel, never summed — a sum would read as one host doing twice
+/// the work.
+/// </para>
 /// </remarks>
 internal static class FloorCommand
 {
     public static int Execute(CommandLine line)
     {
         if (!TryCount(line, "machines", 8, out int machines)
-            || !TryCount(line, "rounds", 10, out int rounds))
+            || !TryCount(line, "rounds", 10, out int rounds)
+            || !TryCount(line, "channels", 1, out int channels))
         {
+            return 2;
+        }
+
+        if (channels is < 1 or > SasChannels.Count)
+        {
+            Console.Error.WriteLine(
+                $"error: --channels is 1 to {SasChannels.Count}; a machine has that many ports.");
+            return 2;
+        }
+
+        if (channels > 1 && (line.Value("tcp") is not null || line.Value("serial") is not null))
+        {
+            Console.Error.WriteLine(
+                "error: --channels brings up a line per channel, which only the software floor "
+                + "can do. A real machine's second port is a second link, named on its own.");
             return 2;
         }
 
@@ -76,11 +101,18 @@ internal static class FloorCommand
         }
         else
         {
-            floor = SoftwareFloor.Of(machines);
+            floor = Bring(machines, channels);
             link = floor.Host;
             round = floor.Addresses;
             what = $"a floor of {machines} software machine(s) at "
-                   + $"{SasAddressRound.Describe(round)} on one multi-drop line";
+                   + $"{SasAddressRound.Describe(round)} on "
+                   + (channels == 1 ? "one multi-drop line" : $"{channels} multi-drop lines");
+        }
+
+        if (floor is not null && channels > 1)
+        {
+            using (floor)
+                return Lines(floor, rounds, interval, syncPolls, what, directory);
         }
 
         using (floor)
@@ -210,6 +242,251 @@ internal static class FloorCommand
                       + "at it, which is an answer and not a fault. What it is not is a machine "
                       + "that answered.");
         }
+    }
+
+    /// <summary>
+    /// Brings up a floor of machines, each answering on every channel asked for.
+    /// </summary>
+    /// <remarks>
+    /// The same address on every channel, because an address is unique on a line and not on a
+    /// floor: machine $25 is $25 on both of its ports, and a hundred machines on two channels
+    /// could not be addressed any other way — two hundred ports, and SAS has 127 addresses.
+    /// </remarks>
+    private static SoftwareFloor Bring(int machines, int channels)
+    {
+        if (channels == 1)
+            return SoftwareFloor.Of(machines);
+
+        var plans = new List<SasChannelPlan>(machines);
+        for (int i = 0; i < machines; i++)
+        {
+            var addresses = new SasAddress?[SasChannels.Count];
+            for (int c = 0; c < channels; c++)
+                addresses[c] = SasAddress.Of((byte)(1 + i));
+
+            // Ownership is left where it falls, on channel one. This measures a round, and a
+            // general poll is answered on every channel a machine opens whatever owns what.
+            if (!SasChannelPlan.TryCreate(addresses, new Dictionary<SasCategory, SasChannel>(),
+                    out SasChannelPlan plan, out string? refusal))
+            {
+                throw new InvalidOperationException(refusal);
+            }
+
+            plans.Add(plan);
+        }
+
+        return SoftwareFloor.Of(plans);
+    }
+
+    /// <summary>
+    /// Measures a round on every line of the floor at once, and reports each one on its own.
+    /// </summary>
+    /// <remarks>
+    /// The question this answers is whether two hosts on two wires cost each other anything. They
+    /// share a process and a machine at each end and nothing else, so the prediction is that each
+    /// round costs what it costs alone — and the way to find out is to run them together and
+    /// compare against the single-line figure rather than to reason about it.
+    /// </remarks>
+    private static int Lines(
+        SoftwareFloor floor, int rounds, TimeSpan interval, bool syncPolls, string what,
+        string? directory)
+    {
+        IReadOnlyList<SasChannel> channels = floor.Channels;
+        IReadOnlyList<SasAddress> round = floor.Addresses;
+        var engines = new List<PollEngine>();
+
+        //  One clock for the whole session, so the two lines' records can be put in one stream.
+        //  Each engine measures from its own start, and they do not start at the same instant —
+        //  merging their own elapsed times would report one line's traffic as a few milliseconds
+        //  earlier or later than it was, for no reason other than the order they were started in.
+        var session = new SessionClock();
+        var bases = new List<ClockBase>();
+
+        Console.WriteLine($"{what}, one host on each.");
+        Console.WriteLine($"  Poll interval {interval.TotalMilliseconds:F0} ms, "
+                          + $"synchronisation polls {(syncPolls ? "on" : "off")}.");
+        Console.WriteLine(
+            "  The lines are independent wires, so the rounds should interleave rather than "
+            + "contend. Each is reported on its own; they are never summed.");
+        Console.WriteLine();
+
+        try
+        {
+            foreach (SasChannel channel in channels)
+            {
+                engines.Add(new PollEngine(floor.HostFor(channel)!, new PollEngineOptions
+                {
+                    Address = round[0],
+                    Addresses = floor.RoundOf(channel),
+                    Channel = channel,
+                    PollInterval = interval,
+                    SyncPollEvery = syncPolls ? 1 : 0,
+                    WireLogCapacity = Math.Max(4096, round.Count * rounds * 8),
+                }));
+            }
+
+            //  Started as close together as this can manage, so the rounds genuinely overlap.
+            //  A line that started after the other had finished would measure two runs in
+            //  sequence and report them as two rounds that did not interfere.
+            foreach (PollEngine engine in engines)
+            {
+                bases.Add(session.Mark());
+                engine.Start();
+            }
+
+            foreach (PollEngine engine in engines)
+            {
+                if (WaitForRounds(engine, rounds + 1))
+                    continue;
+
+                Console.Error.WriteLine(
+                    $"error: channel {(int)engine.Channel} completed only "
+                    + $"{engine.RoundsCompleted} round(s) and has stopped making progress.");
+                return 2;
+            }
+
+            foreach (PollEngine engine in engines)
+                engine.Stop();
+
+            var measurements = new List<(PollEngine Engine, RoundMeasurement Measured)>();
+            foreach (PollEngine engine in engines)
+            {
+                measurements.Add((engine,
+                    RoundMeasurement.Of(engine.WireLog.Snapshot(), floor.RoundOf(engine.Channel))));
+            }
+
+            Console.WriteLine("EACH LINE'S ROUND, MEASURED WHILE THE OTHERS WERE RUNNING");
+            Console.WriteLine("  channel   rounds    fastest     median    slowest   per machine");
+            foreach ((PollEngine engine, RoundMeasurement measured) in measurements)
+            {
+                Console.WriteLine(
+                    $"  {(int)engine.Channel,7}   {measured.Rounds,6}   "
+                    + $"{measured.Fastest.TotalMilliseconds,7:F1}    "
+                    + $"{measured.Median.TotalMilliseconds,7:F1}    "
+                    + $"{measured.Slowest.TotalMilliseconds,7:F1}   "
+                    + $"{measured.PerMachine.TotalMilliseconds,8:F2} ms");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("WHICH MACHINES ANSWERED, PER LINE");
+            int silent = 0;
+            foreach ((PollEngine engine, RoundMeasurement measured) in measurements)
+            {
+                silent += measured.Silent.Count;
+                Console.WriteLine(
+                    $"  channel {(int)engine.Channel}   {measured.Answered.Count} of "
+                    + $"{measured.Machines}"
+                    + (measured.Silent.Count == 0
+                        ? string.Empty
+                        : "   never answered: "
+                          + string.Join(" ", measured.Silent.Select(a => $"${a}"))));
+            }
+
+            Console.WriteLine();
+            Console.WriteLine($"  symbols lost across every line   {floor.Dropped}");
+
+            if (directory is not null)
+                WriteLines(directory, floor, engines, bases, session, measurements, syncPolls);
+
+            return silent == 0 ? 0 : 1;
+        }
+        finally
+        {
+            foreach (PollEngine engine in engines)
+                engine.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Writes one record for the whole floor: both lines' traffic in one stream, each message
+    /// carrying the host it belongs to and the machine it was to or from.
+    /// </summary>
+    /// <remarks>
+    /// One file and not one per line, for the reason D23 gives: the ordering between what one host
+    /// sent and what the other heard is the thing a floor run is about, and two files cannot be
+    /// interleaved afterwards without a shared clock. The sequence numbers are each engine's own,
+    /// so they are renumbered over the merged list — two independent sequences interleaved would
+    /// read as a great deal having been dropped.
+    /// </remarks>
+    private static void WriteLines(
+        string directory,
+        SoftwareFloor floor,
+        IReadOnlyList<PollEngine> engines,
+        IReadOnlyList<ClockBase> bases,
+        SessionClock session,
+        IReadOnlyList<(PollEngine Engine, RoundMeasurement Measured)> measurements,
+        bool syncPolls)
+    {
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "floor.jsonl");
+
+        List<WireRecord> wire =
+        [
+            .. engines
+                .Select((engine, index) => (Engine: engine, Base: bases[index]))
+                .SelectMany(host => host.Engine.WireLog.Snapshot()
+                    .Select(record => record with { Elapsed = host.Base.Reconcile(record.Elapsed) }))
+                .OrderBy(record => record.Elapsed)
+                .Select((record, index) => record with { Sequence = index }),
+        ];
+
+        var report = new RunReport
+        {
+            StartedAt = session.StartedAt,
+            Duration = session.Now,
+            Provenance =
+            [
+                new RunProvenance(
+                    $"multi-drop loopback, {floor.Machines.Count} machine(s) on "
+                    + $"{floor.Channels.Count} line(s)",
+                    TransportFidelity.Proven,
+                    StimulusBackend.None,
+                    "One host per line, each walking its own round, "
+                    + (syncPolls
+                        ? "with a synchronisation poll ahead of each general poll."
+                        : "with no synchronisation polls at all.")
+                    + " It asserts nothing beyond which machines answered.")
+                {
+                    Channels = floor.Machines[0].Channels.Describe(),
+                    ChannelsRead = true,
+                    Round = string.Join(' ', floor.Channels.Select(channel =>
+                        $"{(int)channel}={SasAddressRound.Describe(floor.RoundOf(channel))}")),
+                },
+            ],
+            Tests =
+            [
+                new TestOutcome
+                {
+                    Name = $"a floor of {floor.Machines.Count} machine(s) behind "
+                           + $"{floor.Channels.Count} host(s)",
+                    Location = Origin,
+                    Verdict = measurements.All(m => m.Measured.Silent.Count == 0)
+                        ? Verdict.Pass
+                        : Verdict.Fail,
+                    StartedAt = session.StartedAt,
+                    Duration = session.Now,
+                    Steps =
+                    [
+                        .. measurements.Select(m => new StepResult(
+                            Origin,
+                            $"channel {(int)m.Engine.Channel}: the median round",
+                            m.Measured.Silent.Count == 0 ? Verdict.Pass : Verdict.Fail,
+                            Expected: string.Join(" ", m.Engine.Round.Select(a => $"${a}")),
+                            Actual: $"{m.Measured.Median.TotalMilliseconds:F1} ms over "
+                                    + $"{m.Measured.Rounds} round(s), "
+                                    + $"{m.Measured.Answered.Count} machine(s) answering")
+                        {
+                            IsAssertion = true,
+                        }),
+                    ],
+                    Wire = wire,
+                },
+            ],
+        };
+
+        File.WriteAllText(path, new JsonLinesReportWriter().Render(report));
+        Console.WriteLine();
+        Console.WriteLine($"  wrote {path}  ({wire.Count} wire record(s))");
     }
 
     /// <summary>Writes the round's own record, so an answer can be read again later.</summary>
