@@ -462,6 +462,10 @@ unpacked, and both sizes are the files on disk rather than a ratio anybody guess
 | records per second | 47.9 |
 | unpacking it again | 0.50 s, and **byte-identical** — same SHA-256 |
 
+> **Qualified by W5.** That check compared the records, not the file. Unpacked *to disk* on
+> Windows the file was not byte-identical until W5 pinned the line ending — see
+> *A defect this found in the container* below. The claim is true now and was not then.
+
 Scaled by the measured round, which is arithmetic on a measurement and is said to be:
 
 | | plain | container |
@@ -496,3 +500,263 @@ The floor ran unattended for ten minutes at a hundred machines, and the round he
 
 The spread across ten minutes is 5%, and the median is within 0.1% of the five-round measurement
 taken earlier. The round is a stable number, not a lucky one.
+
+---
+
+## W5 — both axes at once, and a floor that can be driven
+
+The case D29 actually asks for: 100 machines behind two hosts partitioned by category, funds moved
+on one and a ticket redeemed on the other, in one session log that says which host and which
+machine every record belongs to.
+
+Two things blocked it, and both were named in W3 rather than found here: **a floor has no
+stimulus**, and **a case cannot be both axes at once**. Both are designed below before either was
+written, because the second one has a fork that decides the answer to "do the two hosts' rounds
+interleave or collide", and getting it wrong is not a refactor.
+
+### The fork: is a second channel across a round a second engine on one line, or a second line?
+
+Read out of the machine rather than chosen. The platform opens each SAS channel on **its own
+serial port**:
+
+```
+sasInit(…, GetSerialPort(eNetwork1), pollAddress[0], …)                    channel 1
+sasAddSasChannel(…, GetSerialPort(eNetwork2), pollAddress[idx], …)         channel 2
+enum SerialPort { eBillValidator, ePrinter, eNetwork1, eNetwork2, eNetwork3, eNetwork4, … }
+```
+
+Four network ports, one per channel, each with its own poll address in the machine's own NVRAM.
+So **a channel is a physical line, and a second channel across a round is a second line.** Not a
+second engine on the first one.
+
+That is not a preference, and the alternative is not merely slower — it is wrong twice over:
+
+| | one line, two engines | **two lines** |
+|---|---|---|
+| what the machine has | one port serving two hosts, which no machine here has | one port per channel, which is what it has |
+| on real RS-485 | two hosts transmitting on one pair. SAS has no arbitration — the address byte says who *answers*, never who *asks* — so the two rounds **collide** | independent pairs; the two rounds **interleave** and never contend |
+| the round | two rounds serialised onto one wire: ≈ 12.5 s for a hundred | each round pays only its own traffic: ≈ 6.3 s, both at once |
+
+So the two hosts' rounds interleave. They are concurrent, on separate wires, and the only thing
+they share is the machine at each end and the session log in front of them.
+
+### The address arithmetic the fork also settles
+
+A hundred machines on two channels wants 200 poll addresses, and SAS has 127. It fits because
+**an address is unique on a line, not on a floor**: line 1 carries `01-64` and line 2 carries
+`01-64`, and the machine at `$25` on line 1 is the same machine as `$25` on line 2 because it is
+the same machine's two ports. Had the fork gone the other way the milestone would not have been
+expressible at all above 63 machines, which is its own argument.
+
+Nothing in the machine requires the two to be equal, and nothing here requires it either — the
+rounds are declared per channel. What is required is that they are the **same length**, because
+the k-th machine of each round is the same machine. Rounds of different lengths are refused with
+both lengths named rather than zipped to the shorter.
+
+### How a case says it
+
+One line per channel, which is the shape the machine's own menu has, extended from an address to
+a round exactly the way the host side was in W3:
+
+```
+machine channel 1 addresses 01-64 owns aft legacy_bonus
+machine channel 2 addresses 01-64 owns validation information
+
+host connect loopback addresses 01-64 channel 1     # the funds host
+host connect loopback addresses 01-64 channel 2     # the validation host
+
+host machine 25                                      # the steps that follow are machine $25's
+```
+
+`machine channel 1 address 01` is untouched, so every two-channel case written before floors
+existed reads the same. A single address is a round of one, which is what makes one rule cover
+both: a case mixing `address 01` on one channel with `addresses 01-64` on the other is refused as
+a length mismatch rather than by a rule written for that case alone.
+
+A host's round must be the round its channel was declared with. A host polling machines the line
+does not carry answers silence on every one of them, and a *partial* mismatch is worse — some
+machines answer and the case reads as a floor with holes in it. Refused, with both rounds printed.
+
+### The stimulus, on a named machine
+
+`host machine 25` already moves the *host* to a machine. What did not exist is moving the
+*stimulus* there: the backend was handed a step and no address, so a floor could only be given a
+backend that refuses everything.
+
+The step now carries the machine the case has moved to. The rules follow from what null means,
+and null keeps the meaning W3 gave it — **not known, never machine one**:
+
+| the case | what happens |
+|---|---|
+| one machine, no round | the address is the only machine there is, and every backend ignores it |
+| a floor, `host machine` said | the stimulus goes to that machine, and to no other |
+| a floor, no machine named | **skipped**, naming the round — never applied to the head of it |
+| a floor, a machine outside the round | refused already, by the rule W3 put on `host machine` |
+
+The backends that drive one physical thing — the peripheral simulator, a person — are handed the
+address too, and a person's prompt says which machine to walk to. They do not refuse an address
+they cannot check, because on a one-machine host every address the case can name is that machine's
+own: `host machine` will not accept one outside the round, and a one-machine round holds one.
+
+### Attribution, and the one gap W3 left
+
+W3 put the machine on every **wire** record. An **exception** carried only its channel, and on a
+floor that is not enough: a general poll is answered by a bare exception code with no address in
+it, so `expect exception 2E` on machine `$25` could be satisfied by machine `$26`'s. The engine
+knows which machine it polled, so the report carries it, with the same nullable rule.
+
+The consequence is that an assertion is answered by an exception from **the machine the case is
+on**, on the host it is on. Both halves are needed and neither is sufficient: a hundred machines
+raising the same exception on one channel, and one machine raising exceptions on two.
+
+---
+
+## W5, measured
+
+### The round, with both hosts running
+
+`sasctl floor --machines 100 --channels 2 --rounds 5`, timed the same way W2 and W4 timed one
+line: between two polls of the same machine, so everything the host did in between is inside the
+number. The two engines are started as close together as the process can manage and both rounds are
+walked at the same time.
+
+| | rounds | fastest | median | slowest | per machine |
+|---|---|---|---|---|---|
+| channel 1, alone (this machine, now) | 5 | 6219.3 | **6238.8** | 6253.3 | 62.39 ms |
+| channel 1, with channel 2 running | 5 | 6215.0 | **6239.8** | 6281.4 | 62.40 ms |
+| channel 2, with channel 1 running | 6 | 6215.0 | **6234.2** | 6265.0 | 62.34 ms |
+
+**The second host costs the first nothing measurable.** One line alone is 6238.8 ms; the same line
+with a hundred more machine-ends answering a second host beside it is 6239.8 ms — 1 ms, which is
+inside the 5% spread W4 measured across ten minutes of one line. All 200 machine-ends answered and
+**0 symbols were lost** across both lines.
+
+That is the fork answered by measurement rather than by argument. Had the second channel been a
+second engine on one line, the two rounds would have serialised onto one wire and the pair would
+have cost about 12.5 s; they cost 6.24 s each, at the same time.
+
+### Attribution, on the case D29 asks for
+
+`tests/regression/floor/a-hundred-machines-behind-two-hosts.sas`, 100 machines, two hosts, 20
+assertions, one session log. Counted out of the run's own JSON lines rather than read off the
+terminal:
+
+| | |
+|---|---|
+| wire records in the one log | **1,684** |
+| of them, the funds host's (channel 1) | 850 |
+| of them, the validation host's (channel 2) | 834 |
+| records naming a machine | **1,121** (66.6%) |
+| records belonging to nobody | 563 — **every one of them a synchronisation poll of address zero** |
+| distinct machines named, per host | **100** and **100** |
+| replies whose machine disagrees with the poll they answered | **0** of 560 |
+
+Nothing is unattributed except what belongs to nobody, and what belongs to nobody is exactly the
+class W3 named: a poll addressed to address zero. There is no third category.
+
+The four exceptions in the run are the partition itself, on the wire:
+
+```
+ch2  $25  0.4A     bill accepted — uncategorised, so both hosts hear it
+ch1  $25  0.4A     … and here it is on the other host, 12 ms later
+ch2  $25  0.67     ticket inserted — a validation exception, so this host only
+ch2  $25  0.68     ticket transfer complete — likewise
+```
+
+All four carry a machine, and all four are `$25` — the machine the case named, out of a hundred.
+The funds host never sees `$67` or `$68`, which is D23's guarantee observed across a floor rather
+than across one machine.
+
+### What the log costs
+
+The same run, packed with `sasctl log pack`:
+
+| | |
+|---|---|
+| records | 1,720 |
+| plain JSON lines | **416,422 bytes** |
+| container | **23,746 bytes** in 1 block |
+| ratio | **17.54× smaller** |
+
+Within a whisker of the 17.13× W4 measured on a single-host floor, which is the expected answer: a
+second host adds traffic of exactly the same shape, and the container compresses shape.
+
+The header reads without decompressing anything, and it now says which machines were on the floor:
+
+```
+arrangement        channels 1@01 2@01 · … validation=2 … information=2
+round              01-64
+carried over       multi-drop loopback, 100 machine(s), …, polling 1=01-64 2=01-64
+```
+
+The `round` line is derived from the records themselves rather than taken on trust, so it is
+independent evidence that all hundred machines are in the file; `polling 1=01-64 2=01-64` is what
+the run declared. Without the latter, a saved floor run's provenance said only `channels 1@01 2@01`
+and read back as a run of one machine — the same defect W1 found in the arrangement, one axis over.
+
+### Ten minutes of it, unattended
+
+The same shape as W4's ten minutes, with a second host beside the first:
+`sasctl floor --machines 100 --channels 2 --rounds 95 --out …`.
+
+| | W4: one host | **W5: two hosts** |
+|---|---|---|
+| complete rounds timed | 95 | **95** and **96** |
+| fastest / **median** / slowest, channel 1 | 6199.5 / **6257.0** / 6508.6 | 6194.8 / **6244.6** / 9414.4 |
+| fastest / **median** / slowest, channel 2 | — | 6194.7 / **6246.0** / 9631.9 |
+| per machine | 62.57 ms | **62.45** and **62.46** ms |
+| machines that answered | 100 of 100 | **100 of 100**, on each line |
+| silences · symbols lost | 0 · 0 | 0 · **0** |
+| wire records | 28,804 | **57,590** |
+| seconds | 601.5 | 606.4 |
+
+**Two hosts is twice the records and the same round.** 57,590 against 28,804 is 1.9996×, which is
+what a second host polling the same hundred machines on its own wire must produce; the median round
+is 6244.6 and 6246.0 against 6257.0 alone, so the second host did not cost the first anything.
+
+The slowest rounds — 9.4 and 9.6 s — are **not** the floor and are reported rather than hidden: the
+unit suites were run on this laptop while the session was in progress, so those outliers are this
+session's own machine being busy. The medians across 95 rounds are what the table is for, and they
+are within 0.2% of each other and of the single-host figure.
+
+### The log, packed
+
+| | plain | container |
+|---|---|---|
+| ten minutes, two hosts (57,594 records) | **11,030,311 bytes** | **706,288 bytes** in 11 blocks |
+| ratio | | **15.62× smaller** |
+| one hour, scaled by the measured round | 65.4 MB | **4.2 MB** |
+| a floor running all day | 1.53 GB | **100 MB** |
+
+Slightly less compressible than the single-host 17.13×, and the reason is visible in the format:
+one stream now interleaves two hosts, so consecutive records alternate between channels and the
+repetition Brotli feeds on is a little further apart. It is the cost of the single log D23 asks
+for, and it is 1.5% of the file.
+
+### A defect this found in the container, and it was not in this wave's code
+
+W4 recorded that a packed run *"unpacked byte-identical — same SHA-256"*. Checked again here on the
+ten-minute two-host file, **it was not**:
+
+```
+07c02a…  floor.jsonl
+95e464…  roundtrip.jsonl     ← 11,087,905 bytes against 11,030,311
+```
+
+The records were all correct and in order. The **file** was not: `sasctl log unpack` wrote with the
+platform's newline, so every `\n` came out as `\r\n` on Windows — 57,594 extra bytes, and a
+different hash. W4's verification was done in memory, comparing the lines, which is a different
+claim and cannot see this.
+
+This is the one property the format exists to make true — *what comes out is what went in* — so it
+is now true at the level it is claimed at:
+
+* the line ending is pinned in `SessionContainer` itself, beside the format, rather than at each
+  writer. The rule was already written down for ticket files and for the same reason; the container
+  had a stronger claim to it and did not have it.
+* both writers that put records on disk — `unpack` and `slice --out` — go through it.
+* the guard is a test that compares the **bytes** of the two files and asserts no carriage return
+  survives. Comparing them as text would normalise the very thing that was wrong, which is how this
+  went unnoticed.
+
+Re-measured after the fix, on the same file: byte-identical, same SHA-256.

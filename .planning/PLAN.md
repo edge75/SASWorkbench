@@ -452,7 +452,7 @@ answered, rather than picking a number.
 
 ---
 
-## M5 · Casino simulation — the many-EGM, many-category test
+## M5 · Casino simulation — the many-EGM, many-category test  ✅ done 2026-09-14
 
 100 software EGMs against one or two hosts, with the hosts partitioned by **category** rather than
 by machine (D29). For example Advanced Funds Transfer and Legacy Bonus on one host, Validation and
@@ -485,6 +485,18 @@ protocol, is what a floor controller lives or dies by.
 on one host and redeems a ticket on the other, and the single session log attributes every poll and
 every exception to the right host — with the poll cycle time reported as a measurement rather than
 assumed.
+
+**Done.** `tests/regression/floor/a-hundred-machines-behind-two-hosts.sas`. The round of a hundred
+is 6.24 s on each of two lines running at once, which is what it costs on one line alone; of 1,684
+records in the one log, every one names its host and every one names its machine except the
+synchronisation polls, which belong to nobody. See `docs/M5-casino-simulation.md`.
+
+One thing the plan above got wrong, and the correction is the milestone's main design finding: *"each
+needs an address per channel it answers on"* would want 200 addresses for a hundred machines on two
+channels, and SAS has 127. It fits because **a channel is a port and a port is a line**, so an address
+is unique on a line and not on a floor — both lines carry `01-64`, and `$25` on each is the same
+machine's two ports. That is read out of the platform, which opens each SAS channel on its own
+network serial port, rather than chosen.
 
 ---
 
