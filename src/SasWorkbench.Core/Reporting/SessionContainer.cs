@@ -344,6 +344,29 @@ public static class SessionContainer
     /// hundreds of thousands of lines and a JSON document per line to find one number is the
     /// difference between a container that can be written during a run and one that cannot.
     /// </remarks>
+    /// <summary>
+    /// Writes records back out as JSON lines, exactly as they were packed.
+    /// </summary>
+    /// <remarks>
+    /// The line ending is pinned rather than left to the platform, which is the same rule a ticket
+    /// file follows and for a stronger reason: what comes out of a container has to be what went
+    /// in, byte for byte, or the container is a second record rather than a framing over the first.
+    /// A writer that follows the platform's newline makes the same run a different file on Windows
+    /// than on Linux, and the check that would have caught it — a hash of the two — is exactly the
+    /// check the format's whole claim rests on.
+    /// </remarks>
+    public static void WriteLines(string path, IEnumerable<string> records)
+    {
+        ArgumentNullException.ThrowIfNull(records);
+
+        using var writer = new StreamWriter(path) { NewLine = LineEnding };
+        foreach (string record in records)
+            writer.WriteLine(record);
+    }
+
+    /// <summary>The one line ending a container's records are written with, on every platform.</summary>
+    public const string LineEnding = "\n";
+
     public static double? TimeOf(string line)
     {
         const string key = "\"atMs\":";

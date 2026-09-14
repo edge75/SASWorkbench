@@ -67,6 +67,52 @@ public class SessionContainerTests
         Assert.Equal(lines, SessionContainer.ReadAll(file, directory).ToList());
     }
 
+    /// <summary>
+    /// Unpacked to a file, a container is the same bytes as the file it was packed from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The test above compares the lines, which is not the same claim and cannot catch the way
+    /// this actually broke: the records were right and the file was not, because the writer
+    /// followed the platform's newline and turned every \n into \r\n on Windows. A run packed on
+    /// one machine and unpacked on another came back with a different hash, which is exactly the
+    /// check the format's whole claim rests on.
+    /// </para>
+    /// <para>
+    /// Compared as bytes rather than as text on purpose. Reading both back as strings would
+    /// normalise the very thing that was wrong.
+    /// </para>
+    /// </remarks>
+    [Fact]
+    public void UnpackedToAFileAContainerIsTheSameBytesItWasPackedFrom()
+    {
+        List<string> lines = Lines(2000);
+
+        string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        System.IO.Directory.CreateDirectory(directory);
+        try
+        {
+            string original = Path.Combine(directory, "run.jsonl");
+            string unpacked = Path.Combine(directory, "again.jsonl");
+
+            SessionContainer.WriteLines(original, lines);
+
+            using MemoryStream file = Packed(lines, 8192, out _);
+            SessionContainer.Directory index = SessionContainer.ReadDirectory(file);
+            SessionContainer.WriteLines(unpacked, SessionContainer.ReadAll(file, index));
+
+            Assert.Equal(File.ReadAllBytes(original), File.ReadAllBytes(unpacked));
+
+            // And the line ending is the one the canonical record uses, on every platform, rather
+            // than whichever one this platform happens to prefer.
+            Assert.DoesNotContain((byte)13, File.ReadAllBytes(unpacked));
+        }
+        finally
+        {
+            System.IO.Directory.Delete(directory, recursive: true);
+        }
+    }
+
     /// <summary>The header is readable without any of the body being decompressed.</summary>
     [Fact]
     public void TheHeaderIsReadableWithoutTouchingTheBody()

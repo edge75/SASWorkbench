@@ -152,11 +152,7 @@ internal static class LogCommand
             return 0;
         }
 
-        using (StreamWriter writer = File.CreateText(target))
-        {
-            foreach (string record in SessionContainer.ReadAll(file, directory))
-                writer.WriteLine(record);
-        }
+        SessionContainer.WriteLines(target, SessionContainer.ReadAll(file, directory));
 
         Console.WriteLine($"wrote {directory.Lines:N0} record(s) to {target}");
         return 0;
@@ -246,7 +242,9 @@ internal static class LogCommand
         string? target = line.Value("out");
         if (target is not null)
         {
-            File.WriteAllLines(target, records);
+            //  Written the container's way, so a slice of a run is the same bytes as that span
+            //  of the run it was cut from.
+            SessionContainer.WriteLines(target, records);
             Console.WriteLine($"wrote {records.Count:N0} record(s) to {target}");
         }
         else
