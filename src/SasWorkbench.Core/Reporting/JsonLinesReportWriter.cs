@@ -144,6 +144,10 @@ public sealed class JsonLinesReportWriter : IReportWriter
         channels = p.Channels,
         channelsRead = p.ChannelsRead,
         channelRefusal = p.ChannelRefusal,
+
+        // Which machines each host polled. The arrangement above is one machine's; this is how
+        // many of them there were, without which a floor reads back as that one machine.
+        round = p.Round,
     };
 
     private static void Write(StringBuilder builder, object record) =>

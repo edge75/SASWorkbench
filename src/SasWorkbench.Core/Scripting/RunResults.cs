@@ -163,9 +163,29 @@ public sealed record RunProvenance(
     /// <summary>Why the arrangement asked for was refused, when it was.</summary>
     public string? ChannelRefusal { get; init; }
 
+    /// <summary>
+    /// The machines each host polled, written <c>1=01-64 2=01-64</c>, or null where every host
+    /// polled one machine.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The arrangement above describes <em>a</em> machine — the addresses one machine answers at on
+    /// each of its channels. On a floor that is true and not enough: a run of a hundred machines
+    /// whose provenance said only <c>1@01 2@01</c> reads back as a run of one, and every record
+    /// after it as traffic to that one.
+    /// </para>
+    /// <para>
+    /// Null rather than <c>1=01</c> on an ordinary run, so nothing about a one-machine run's
+    /// provenance changes and a reader can tell a floor from a machine by whether this is there at
+    /// all.
+    /// </para>
+    /// </remarks>
+    public string? Round { get; init; }
+
     public override string ToString()
     {
         string caveat = Caveat is null ? string.Empty : $" — {Caveat}";
+        string round = Round is null ? string.Empty : $", polling {Round}";
         string channels = Channels is null
             ? string.Empty
             : $", {Channels} ({(ChannelsRead ? "read from the machine" : "declared by the case")})";
@@ -178,7 +198,7 @@ public sealed record RunProvenance(
             : $" [arrangement refused: {ChannelRefusal}]";
 
         return $"{Transport}, {Fidelity.ToString().ToLowerInvariant()}, stimulus "
-               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{refused}{caveat}";
+               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{round}{refused}{caveat}";
     }
 }
 

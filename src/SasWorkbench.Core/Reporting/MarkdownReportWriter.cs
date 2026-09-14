@@ -26,8 +26,8 @@ public sealed class MarkdownReportWriter : IReportWriter
         {
             builder.AppendLine("## What this run was carried over");
             builder.AppendLine();
-            builder.AppendLine("| Link | Weight | Stimulus | Channels | Caveat |");
-            builder.AppendLine("|---|---|---|---|---|");
+            builder.AppendLine("| Link | Weight | Stimulus | Channels | Polling | Caveat |");
+            builder.AppendLine("|---|---|---|---|---|---|");
             foreach (RunProvenance provenance in report.Provenance)
             {
                 string channels = provenance.Channels is null
@@ -45,6 +45,7 @@ public sealed class MarkdownReportWriter : IReportWriter
                     + $"| {provenance.Fidelity.ToString().ToLowerInvariant()} "
                     + $"| {provenance.Stimulus.ToString().ToLowerInvariant()} "
                     + $"| {Escape(channels)} "
+                    + $"| {Escape(provenance.Round ?? "one machine")} "
                     + $"| {Escape(caveat)} |");
             }
 
