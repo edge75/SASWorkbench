@@ -242,14 +242,57 @@ internal static class Program
     }
 
     /// <summary>
+    /// The suite's verdicts, run once for the whole specimen rather than once per image.
+    /// </summary>
+    /// <remarks>
+    /// Every capture builds a fresh view model, because a capture mutates the one it is given. The
+    /// <em>run</em> behind it does not have to be fresh: the verdicts are the same picture every
+    /// time, so running the suite again for each image was two dozen identical runs to draw two
+    /// dozen pictures of the same run.
+    /// </remarks>
+    private static readonly Lazy<RunReport?> Suite_ = new(RunTheSuite);
+
+    /// <summary>
     /// Runs the committed regression suite against the software machine, so the picture shows real
     /// verdicts rather than invented ones.
     /// </summary>
     private static void Ran(WorkbenchViewModel model)
     {
+        if (Suite_.Value is not { } report)
+        {
+            model.RunSummary = Refusal ?? "the suite could not be run for this specimen";
+            return;
+        }
+
+        model.Suite.Apply(report);
+        model.RunSummary = $"{report.Verdict.ToString().ToUpperInvariant()} — {report.Summary()}";
+        model.Suite.Selected = model.Suite.Nodes
+            .SelectMany(n => n.Children)
+            .SelectMany(n => n.Children)
+            .FirstOrDefault(n => n.Outcome is not null);
+    }
+
+    /// <summary>Why the suite could not be run, when it could not.</summary>
+    private static string? Refusal;
+
+    private static RunReport? RunTheSuite()
+    {
         try
         {
-            IReadOnlyList<ScriptDocument> documents = ScriptLoader.Load(Suite());
+            //  The floor cases are left out. A round of a hundred machines is a minute of work to
+            //  draw a window that shows verdicts, and the picture is no better for it — the
+            //  instrument renders the same either way. They are run by the suites, which is where
+            //  they belong.
+            IReadOnlyList<ScriptDocument> documents =
+            [
+                .. ScriptLoader.Load(Suite())
+                    .Select(document => document with
+                    {
+                        Tests = [.. document.Tests.Where(test => !test.Tags.Contains("casino", StringComparer.OrdinalIgnoreCase))],
+                    })
+                    .Where(document => document.Tests.Count > 0),
+            ];
+
             var runner = new ScriptRunner(new ScriptRunnerOptions
             {
                 Stimulus = StimulusBackend.Software,
@@ -257,17 +300,12 @@ internal static class Program
                 PollInterval = TimeSpan.FromMilliseconds(20),
             });
 
-            RunReport report = runner.RunAll(documents);
-            model.Suite.Apply(report);
-            model.RunSummary = $"{report.Verdict.ToString().ToUpperInvariant()} — {report.Summary()}";
-            model.Suite.Selected = model.Suite.Nodes
-                .SelectMany(n => n.Children)
-                .SelectMany(n => n.Children)
-                .FirstOrDefault(n => n.Outcome is not null);
+            return runner.RunAll(documents);
         }
         catch (Exception ex) when (ex is ScriptParseException or IOException)
         {
-            model.RunSummary = $"the suite could not be run for this specimen: {ex.Message}";
+            Refusal = $"the suite could not be run for this specimen: {ex.Message}";
+            return null;
         }
     }
 
