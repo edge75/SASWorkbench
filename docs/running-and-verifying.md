@@ -342,15 +342,14 @@ cannot be verified by a passing build:
 dotnet run --project tools\ui-specimen -- artifacts\ui
 ```
 
-It renders the window off-screen to PNGs in `artifacts\ui\` — **22 of them**, both themes, both
-window sizes, real frames from a real run of `tests\regression`. It also turns on Avalonia's binding
-diagnostics, so **read its console output**: a mistyped binding otherwise renders an empty cell and
-reports nothing.
+It renders the window off-screen to PNGs in `artifacts\ui\` — **30 of them**, both themes, both
+window sizes, the four instruments, the find states and a sheet of every status chip, with real
+frames from a real run of `tests\regression`. It also turns on Avalonia's binding diagnostics, so
+**read its console output**: a mistyped binding otherwise renders an empty cell and reports nothing.
 
-**It now takes several minutes rather than about two**, because it runs the whole regression tree to
-fill the window with real verdicts and that tree now contains the hundred-machine case. See the
-second decision below — running a floor of a hundred in order to draw a picture is waste, and it is
-a small fix.
+Takes about **2m50s** and should print **no warnings**. Delete `artifacts\ui\` before a run if you
+want the count to mean anything — the directory is not cleared, so stale images from an earlier
+session sit there looking like output.
 
 ### What this environment can and cannot do
 
@@ -386,17 +385,29 @@ My recommendation is to **leave it**: the case is the milestone, it is the only 
 both axes at scale, and 76 seconds is cheap against a floor defect that would otherwise be found by
 a person.
 
-### And a smaller one: the UI specimen picked the case up too
+### The other one is already fixed, and it was mine
 
-`tools\ui-specimen` runs `tests\regression` to fill the window with real verdicts, with no tag
-filter, so every specimen render now brings up a hundred machines. It still works — 22 images, as
-before — but it takes several minutes instead of about two, for a picture that does not need a
-floor.
+`tools\ui-specimen` ran `tests\regression` with no tag filter, so the hundred-machine case went
+into it — and it turned out to run the suite **once per image**, not once per run. Two dozen
+identical suite runs to draw two dozen pictures of the same run, each one now bringing up a floor.
 
-I did not change it, for the same reason: it is your tool and the fix is a judgement about what the
-picture should show. The options are to leave it, to give `ScriptRunner` the tag filter the command
-line already applies, or to point the specimen at a subdirectory. Not urgent, and worth doing before
-the next UI change rather than after.
+I found this by running it and watching it fail: after ten minutes it had produced **5** of its 30
+images and was killed by the operating system for running the machine out of memory. My first
+report of it said "it still works, 22 images" — that was wrong, and it was wrong because I counted a
+directory that already held 18 stale images from September. Deleting the directory first is how you
+avoid making the same mistake.
+
+Fixed rather than filed, since it is a regression I caused in a tool this project requires after
+every UI change:
+
+* the suite runs **once** for the whole specimen and its verdicts are applied to each image. The
+  view model is still rebuilt per capture, because a capture mutates it; the run behind it does not
+  need to be;
+* the floor cases are left out of it. A round of a hundred machines to draw a window that shows
+  verdicts makes the picture no better.
+
+Measured after the fix, from an empty directory: **2m49s, 30 images, no binding warnings** — against
+ten minutes, 5 images and an out-of-memory kill before it.
 
 ---
 
@@ -415,10 +426,20 @@ dotnet run --project src\SasWorkbench.Cli --configuration Release --no-build -- 
 Select-String -Path artifacts\chase\run.jsonl -Pattern '"verdict":"Fail"'
 ```
 
-My best guess, offered as a guess: the hundred-machine case waits up to 30 s for exceptions that
-arrive once per ~6.25 s round, so a laptop that stalls for several seconds mid-run could miss one.
-If it recurs and the failing case is that one, the waits are the thing to widen — **not** the 20 ms
-quiet gap, which is what decides a message has ended and does not move without asking.
+**Evidence that arrived afterwards, and it points at memory.** While writing this document the UI
+specimen was killed by the operating system for running the machine out of memory — it was starting
+a fresh hundred-machine floor for every image it rendered, so several were alive at once. That is
+fixed (see §6), but it establishes that this laptop *can* be pushed into memory pressure by a floor,
+and the exit-1 run happened in the same stretch of work.
+
+So the guess, still offered as a guess: a hundred machines on two lines is 200 answering threads and
+two wire logs, and the case waits up to 30 s for exceptions that arrive once per ~6.25 s round. A
+machine that stalls for several seconds — paging, another build, a specimen rendering in the
+background — could miss one.
+
+Two things follow. Run the full tree when the laptop is otherwise idle, the way you would time
+anything. And if it recurs and the failing case is that one, **the waits are what to widen** — not
+the 20 ms quiet gap, which is what decides a message has ended and does not move without asking.
 
 ---
 
