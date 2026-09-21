@@ -21,3 +21,9 @@ artifacts/
 
 # third-party specification documents, kept on the machine and never redistributed
 SAS test script/
+
+# editor
+.vscode/
+
+# generated handoff document, rebuilt from docs/running-and-verifying.md
+docs/running-and-verifying.pdf
