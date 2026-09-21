@@ -63,16 +63,38 @@ public class HostSessionTests
     /// A reply this build cannot decode comes back undecoded rather than half-guessed, and the
     /// caller can still see the bytes.
     /// </summary>
+    /// <remarks>
+    /// A refusal is used to produce one, rather than a command with no layout: an unsupported
+    /// poll is now ignored rather than refused, so it yields no bytes to be shown. Long poll $0E
+    /// with a value that is neither on nor off is a command the machine understands and declines,
+    /// which is the one kind of reply that is visible and still has nothing to decode.
+    /// </remarks>
     [Fact]
-    public void A_reply_with_no_layout_comes_back_undecoded_but_not_hidden()
+    public void A_reply_that_is_not_a_layout_comes_back_undecoded_but_not_hidden()
+    {
+        using HostSession session = HostSession.Open(Spec(), SoftwareMachinePeer.For());
+
+        (LongPollResult result, SasDecoded? decoded) = session.SendAndDecode(0x0E, [0x07]);
+
+        Assert.Null(decoded);
+        Assert.Equal(LongPollOutcome.Rejected, result.Outcome);
+        Assert.NotEmpty(result.Frame);
+    }
+
+    /// <summary>
+    /// And an unsupported poll is silence, with nothing to show, which is what the test scripts
+    /// require and what the machine library does.
+    /// </summary>
+    [Fact]
+    public void A_poll_this_machine_does_not_implement_comes_back_silent()
     {
         using HostSession session = HostSession.Open(Spec(), SoftwareMachinePeer.For());
 
         (LongPollResult result, SasDecoded? decoded) = session.SendAndDecode(0x72, [0x01]);
 
         Assert.Null(decoded);
-        Assert.Equal(LongPollOutcome.Rejected, result.Outcome);
-        Assert.NotEmpty(result.Frame);
+        Assert.Equal(LongPollOutcome.Silent, result.Outcome);
+        Assert.Empty(result.Frame);
     }
 
     [Fact]

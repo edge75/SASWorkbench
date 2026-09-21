@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
@@ -44,6 +45,32 @@ public sealed partial class FakeEgm : IDisposable
     private long _generalPolls;
     private long _longPolls;
     private long _rejections;
+
+    // Polls this machine does not implement and therefore ignored. Counted because silence on
+    // the wire is the only correct answer but is not a useful diagnostic on its own.
+    private long _ignored;
+    private readonly HashSet<byte> _ignoredCommands = [];
+
+    /// <summary>
+    /// The commands this fixture has no machinery for: progressives, legacy bonus, cards, reels.
+    /// </summary>
+    /// <remarks>
+    /// Stated here rather than left to the "could not build the values" fallback, because what
+    /// this machine is built without is a property of the machine and belongs where a reader
+    /// looks for one. The machine library behaves the same way and was read rather than assumed:
+    /// the legacy bonus polls open with a test of the legacy-bonus feature bit and return without
+    /// sending when it is clear, and none of these nine ever sends a refusal — a real machine
+    /// answers or says nothing.
+    /// <para>
+    /// Kept apart from <see cref="FakeEgmOptions.UnansweredCommands"/>, which a test sets to build
+    /// some other machine: if these lived there, a test that set that option for its own reasons
+    /// would silently give this machine a progressive it does not have.
+    /// </para>
+    /// </remarks>
+    private static readonly FrozenSet<byte> WithoutMachinery = new byte[]
+    {
+        0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+    }.ToFrozenSet();
 
     // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
     // currency units and does not move when the accounting denomination does.
@@ -303,6 +330,19 @@ public sealed partial class FakeEgm : IDisposable
 
     /// <summary>How many long polls this machine refused because it could not answer them.</summary>
     public long Rejections => Interlocked.Read(ref _rejections);
+
+    /// <summary>How many polls this machine ignored because it does not implement them.</summary>
+    public long Ignored => Interlocked.Read(ref _ignored);
+
+    /// <summary>Which commands those were, so a run can say what it asked for in vain.</summary>
+    public IReadOnlyCollection<byte> IgnoredCommands
+    {
+        get
+        {
+            lock (_ignoredCommands)
+                return _ignoredCommands.Order().ToArray();
+        }
+    }
 
     /// <summary>How many exceptions are queued but not yet reported, over every channel.</summary>
     public int PendingExceptions
@@ -981,8 +1021,11 @@ public sealed partial class FakeEgm : IDisposable
 
         //  A command this machine has been built without. Silence rather than a rejection, for the
         //  same reason as below: a rejection says the command was understood and declined.
-        if (_options.UnansweredCommands.Contains(command))
+        if (_options.UnansweredCommands.Contains(command) || WithoutMachinery.Contains(command))
+        {
+            Ignore(link, command);
             return;
+        }
 
         //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
         //  validation does not answer the cashout ticket information poll at all. Silence rather
@@ -997,9 +1040,11 @@ public sealed partial class FakeEgm : IDisposable
         SasMessageLayout? layout = SasLayouts.For(command);
         if (layout is null)
         {
-            // Known to the protocol but not modelled here, or not a command at all. Either way
-            // this machine says no rather than answering something a test would come to rely on.
-            Reject(link);
+            // Known to the protocol but not modelled here, or not a command at all. Either way an
+            // unsupported poll is ignored rather than refused: a refusal says the command was
+            // understood and declined, and this machine has not understood it. Counted so that
+            // our own gap stays visible in the run record without being announced on the wire.
+            Ignore(link, command);
             return;
         }
 
@@ -1023,7 +1068,10 @@ public sealed partial class FakeEgm : IDisposable
                 return;
 
             default:
-                Reject(link);
+                // Unreachable: the three shapes above are the whole enum. Kept as silence rather
+                // than a refusal so that a shape added later follows the same rule as any other
+                // command this machine does not implement.
+                Ignore(link, command);
                 return;
         }
     }
@@ -1079,6 +1127,11 @@ public sealed partial class FakeEgm : IDisposable
         Dictionary<string, object>? values = ValuesFor(layout, request);
         if (values is null)
         {
+            // The layout says this command is answered with data and no values could be built for
+            // it. That is this fixture's own gap, not a machine behaviour — what this machine is
+            // deliberately built without is declared in WithoutMachinery and never reaches here —
+            // so it stays a refusal, which is loud, rather than silence, which would look like a
+            // machine that simply does not have the feature.
             Reject(link);
             return;
         }
@@ -1154,6 +1207,29 @@ public sealed partial class FakeEgm : IDisposable
     {
         Interlocked.Increment(ref _rejections);
         Send(link, [SasSymbol.Data8((byte)(link.Address.Value | HostMessage.GeneralPollFlag))]);
+    }
+
+    /// <summary>
+    /// An unsupported poll: nothing goes out, and the command is remembered.
+    /// </summary>
+    /// <remarks>
+    /// The test scripts are explicit that an unsupported poll is ignored, and the machine library
+    /// does ignore one — an undefined command has no entry in its framing table, so its receiver
+    /// reads a length byte that never arrives and drops the packet. Refusing instead would make
+    /// this fixture the only one of the three that answers, and a case asserting the silence the
+    /// documents ask for would fail against our own peer and pass against a real machine.
+    /// <para>
+    /// The gap is counted rather than announced, so "this machine was asked for something it does
+    /// not implement" is still answerable from the run record — which is what the refusal was
+    /// really there for.
+    /// </para>
+    /// </remarks>
+    private void Ignore(MachineLink link, byte command)
+    {
+        Interlocked.Increment(ref _ignored);
+        _ = link;
+        lock (_ignoredCommands)
+            _ignoredCommands.Add(command);
     }
 
     private static void Send(MachineLink link, ReadOnlySpan<SasSymbol> symbols) =>

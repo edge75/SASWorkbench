@@ -271,17 +271,27 @@ public class FakeEgmTests
 
     /// <summary>
     /// A fixture that invented a reply for a command it does not implement would be worse than
-    /// useless: a test would come to depend on the invention. Refusing is the only honest answer.
+    /// useless: a test would come to depend on the invention. Silence is the honest answer, and
+    /// it is also the one the test scripts require and the one the machine library gives — an
+    /// undefined command has no entry in its framing table, so its receiver waits for a length
+    /// byte that never comes and drops the packet.
     /// </summary>
+    /// <remarks>
+    /// The gap is still counted, so "this machine was asked for something it does not implement"
+    /// stays answerable from the run record. That is what refusing was really providing, and it
+    /// is kept without putting a byte on the wire that a real machine would never send.
+    /// </remarks>
     [Fact]
-    public void A_command_this_machine_does_not_implement_is_refused()
+    public void A_command_this_machine_does_not_implement_is_ignored()
     {
         using var rig = new Rig();
 
         LongPollResult result = rig.Host.Execute(0x72, [0x01, 0x02, 0x03]);
 
-        Assert.Equal(LongPollOutcome.Rejected, result.Outcome);
-        Assert.Equal(1, rig.Machine.Rejections);
+        Assert.Equal(LongPollOutcome.Silent, result.Outcome);
+        Assert.Equal(0, rig.Machine.Rejections);
+        Assert.Equal(1, rig.Machine.Ignored);
+        Assert.Equal([0x72], rig.Machine.IgnoredCommands);
     }
 
     [Fact]

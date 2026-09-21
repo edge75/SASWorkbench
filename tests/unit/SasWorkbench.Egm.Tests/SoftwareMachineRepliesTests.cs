@@ -60,15 +60,22 @@ public class SoftwareMachineRepliesTests
     }
 
     /// <summary>
-    /// The commands this machine refuses, and the machinery each would need. Every one of them
-    /// has a layout, so nothing here is refused for want of a decoder.
+    /// The commands this machine has no machinery for, and answers with silence. Every one of
+    /// them has a layout, so nothing here is unanswered for want of a decoder.
     /// </summary>
     /// <remarks>
     /// A zero from a machine that has no reels is not the same statement as a zero from a machine
-    /// whose reels have not moved, and only the second is worth asserting on. So these stay
-    /// refused until the machinery exists, and this list is what says so out loud.
+    /// whose reels have not moved, and only the second is worth asserting on. So these are not
+    /// answered until the machinery exists, and this list is what says so out loud.
+    /// <para>
+    /// Silence rather than a refusal, because that is what the machine library does and it was
+    /// read rather than assumed: the legacy bonus polls return without sending when the
+    /// legacy-bonus feature bit is clear, and not one of these nine ever sends a refusal. A
+    /// machine answers them or says nothing, so a fixture that refused was the only one of the
+    /// three peers doing something no real machine does.
+    /// </para>
     /// </remarks>
-    public static TheoryData<byte, string> RefusedForWantOfMachinery => new()
+    public static TheoryData<byte, string> UnansweredForWantOfMachinery => new()
     {
         { 0x83, "0000" },
         { 0x84, "" },
@@ -82,15 +89,15 @@ public class SoftwareMachineRepliesTests
     };
 
     [Theory]
-    [MemberData(nameof(RefusedForWantOfMachinery))]
-    public void A_machine_with_no_progressive_bonus_reels_or_cards_refuses_rather_than_answering_zero(
+    [MemberData(nameof(UnansweredForWantOfMachinery))]
+    public void A_machine_with_no_progressive_bonus_reels_or_cards_says_nothing_rather_than_zero(
         byte command, string request)
     {
         using var rig = new Rig();
 
         LongPollResult result = rig.Host.Execute(command, Convert.FromHexString(request));
 
-        Assert.Equal(LongPollOutcome.Rejected, result.Outcome);
+        Assert.Equal(LongPollOutcome.Silent, result.Outcome);
     }
 
     /// <summary>
@@ -113,8 +120,16 @@ public class SoftwareMachineRepliesTests
     [Fact]
     public void Every_reply_in_the_catalogue_is_classified()
     {
-        byte[] refused = [0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A];
-        byte[] silent = [0x4C, 0x4D, 0xB2];
+        // Nothing in the catalogue is refused any more: a refusal is now reserved for this
+        // fixture's own gaps, and there are none among the commands it has layouts for.
+        byte[] refused = [];
+        byte[] silent =
+        [
+            0x4C, 0x4D, 0xB2,
+
+            // No progressive, no legacy bonus, no cards, no reels — see WithoutMachinery.
+            0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+        ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
         var wrong = new List<string>();
