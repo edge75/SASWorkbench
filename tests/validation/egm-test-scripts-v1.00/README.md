@@ -24,6 +24,26 @@ Those numbers are the starting estimate from reading the documents, not a claim 
 skipped and why — and it moves on its own as the build grows. See `docs/M7-reading-the-documents.md`
 for how the documents were read and what the estimate is worth.
 
+### Written so far
+
+Three chapters, 109 cases, measured against the software machine:
+
+| ch | chapter | cases | run | skip | what blocks the most of them |
+|---:|---|---:|---:|---:|---|
+| 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
+| 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
+| 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
+| | **total** | **109** | **14** | **95** | |
+
+Two host capabilities account for twenty of the ninety-five on their own. `host.poll_sequence` is
+the ability to put an exact sequence of named general and long polls on the line with nothing else
+between them — no round on a timer, and no synchronisation poll ahead of every message, which is
+itself a global broadcast and so an acknowledgement. `host.chirp` is the ability to watch for the
+machine's own address arriving every 200 ms after five seconds of silence. Every implied
+acknowledgement and implied NACK case in both chapters waits on the first.
+
+    sasctl run tests/validation/egm-test-scripts-v1.00 --loopback --stimulus software
+
 ## What a run of this suite means
 
 Every case declares what it needs. A case whose requirement this environment cannot meet is a skip
@@ -41,6 +61,20 @@ destroy that invariant or force the suite to be trimmed to the convenient cases.
 own display. Nothing here can read a machine's screen, so each is written as the wire assertion
 that runs plus a note carrying the comparison for a person (D40). The case is therefore the whole
 of what the document asks, with the automatable half actually running.
+
+**The same shape is used wherever a criterion is a person's to check and the rest of the case is
+not** — a machine's playability after a shutdown poll, a denomination this acceptor does not take,
+which poll carried an event. The criterion becomes a `note` and the case runs; the alternative is
+a skip that stops covering something the document requires, which is the reason D40 gives for
+rejecting it. One case is one `test`, always: a case whose *automatable* criteria cannot run here
+at all skips by name rather than being split or dropped.
+
+## One case, one test
+
+The tree holds every case in the chapters it covers, including the ones nothing can run. A case
+that needs something this environment does not have declares it and skips naming it, which is what
+makes the coverage line above a measurement rather than an opinion — build the capability and the
+cases that needed it start running without anything here being rewritten.
 
 ## Naming
 
