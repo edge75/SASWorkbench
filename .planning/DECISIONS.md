@@ -475,3 +475,44 @@ The simulator is approved for change (D15), but its work belongs on a branch rat
 `main`, which is where it sits today. The printer panel, the wallet, the ticket popup and the
 mask-zeroing race all land there.
 
+
+---
+
+# Decisions 39–41
+
+Taken with the user on 2026-09-21, after the M7 documents were read and before any case was
+written. Same standing as the rest.
+
+## D39 — M7 lives in `tests/validation/egm-test-scripts-v1.00/`, with the revision in the path
+
+The eleven documents are revision **1.00** of the EGM test scripts. The three cases already in
+`tests/conformance/10.1/` come from the GSA toolkit corpus, which is the **same suite at revision
+1.2**, and the section numbers moved between the two: revision 1.2's 10.1 *Standard Cashout
+Validation* is 10.2 in these documents, and its 10.2 *Secure Enhanced Validation* is 10.5 here. So
+"we pass 10.1" names two different things unless the tree says which revision it means.
+
+M7 therefore goes in D18's third tree, one directory per chapter, numbered as the documents number
+them (3 to 23, continuous across the suite). Two reasons rather than one: the revision becomes part
+of the path, and the regression and conformance trees keep their no-skip property — a
+document-driven suite is mostly cases no build can run yet, and putting one in a tree whose
+invariant is "no skips at all" would either destroy that invariant or trim the suite to the
+convenient cases.
+
+`tests/conformance/10.1/` is left exactly as it is.
+
+## D40 — A case that compares the wire against the machine's own display is written as two halves
+
+142 of the 612 cases assert a value read over the wire **and** that it matches the same meter on
+the machine's own display; 56 of those are chapter 6 alone. The wire half is assertable and the
+comparison never is — nothing here can read a machine's screen.
+
+Each becomes a wire assertion that runs, plus a note carrying the comparison for a person. The
+alternative shapes were both rejected: one case each would make the largest chapter contribute 56
+skips and almost nothing that runs, and dropping the comparison would silently stop covering
+something the document requires.
+
+## D41 — CI keeps running the hundred-machine case
+
+`ci.yml` is left unfiltered, so D29's case runs on every push on both platforms at about 76 seconds
+a run. It is the only thing exercising both axes at scale, and that is cheap against a floor defect
+found by a person instead. The `@casino` tag stays in place for running the tree without it by hand.
