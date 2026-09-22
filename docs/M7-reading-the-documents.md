@@ -272,9 +272,11 @@ names, with the synchronisation poll under the case's control rather than the en
 about implied acknowledgement and implied NACK — in this suite and in the machine library's own
 state machine — is unreachable without it.
 
-`host.chirp` blocks four, and is the smaller job: after five seconds of silence the machine sends
-its own address with the wakeup bit every 200 ms, and nothing here watches the line when no poll is
-outstanding.
+`host.chirp` is named by six cases — 3.4, 3.5.1, 3.6, 3.23, 11.8 and 11.13 — but it would unblock
+only **two of them on its own**, 3.4 and 11.8. The other four also need `host.poll_sequence`, a
+power cycle, or a service button, so they stay skipped whatever is done about the chirp. After five
+seconds of silence the machine sends its own address with the wakeup bit every 200 ms, and nothing
+here watches the line when no poll is outstanding.
 
 ## 10. Two findings, neither of them fixed
 
