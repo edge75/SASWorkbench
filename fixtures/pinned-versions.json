@@ -1,0 +1,22 @@
+{
+  "why": "EGM behaviour can change under a passing suite when a dependency moves. These are the revisions every measurement in this repository was taken against. A run record cites them; the runbook checks them before a validation run against a real machine.",
+  "pinned": {
+    "libsas": {
+      "repository": "https://github.com/quixantplc/libsas",
+      "commit": "4666881b3272d94969babc86076fb90664deae53",
+      "branch": "main",
+      "describedAs": "Merge pull request #163 from quixantplc/feat/progressive-cashout-paid-only",
+      "pinnedOn": "2026-09-28",
+      "howItIsHeld": "QSP declares libsas as FetchContent 'sas' at tag v5.4.4.57 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
+      "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
+    },
+    "nvramArrangement": {
+      "arrangement": 7,
+      "fixtures": [
+        "fixtures/nvram/golden.nvram.gz",
+        "fixtures/nvram/secure-enhanced.nvram.gz"
+      ],
+      "note": "A machine master-resets memory not written in the arrangement it was built for. These fixtures are arrangement 7, which is the QSP the M0 preset fetches. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
+    }
+  }
+}

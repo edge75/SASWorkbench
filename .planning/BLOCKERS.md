@@ -450,9 +450,12 @@ readable-meters` prints the mark.
   seeded by `std::random_device` and advanced by a free-running background thread.
 * **`KeyboardIntrusion` preset appears stale** — missing `DemoApplication::FrameResized`,
   and `default: assert(0);` with no case for three newer QSP callbacks. Expect a link failure.
-* **libsas is pinned to a branch, not a tag** (`IGS-226-accounting-denomination`,
-  `QSP/CMakeLists.txt:126`), so EGM behaviour can change under a passing suite. Record
-  versions in every run record.
+* **The libsas revision is pinned, and the pin lives here** — ✅ 2026-09-28. The earlier note on
+  this line was stale: `QSP/CMakeLists.txt` names the tag `v5.4.4.57`, not a branch. The pin this
+  project measures against is now recorded in `fixtures/pinned-versions.json` and held by
+  `FETCHCONTENT_SOURCE_DIR_SAS` in the M0 preset, because the declaration in QSP is not ours to
+  edit (D30). Check it with `git -C C:/Progetti/libsas rev-parse HEAD` before a validation run;
+  a moved checkout changes EGM behaviour under a passing suite.
 
 ### The suite was intermittently flaky under load — ✅ fixed 2026-09-07
 

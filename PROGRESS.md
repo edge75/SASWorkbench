@@ -112,3 +112,4 @@ PHASE:M7 WAVE:W3-chapter-4-required-exceptions STATUS:complete TS:2026-09-21T23:
 PHASE:M7 WAVE:W4-chapter-11-real-time-events STATUS:complete TS:2026-09-21T23:24:41Z
 PHASE:M7 WAVE:W5-long-poll-answered-with-an-event STATUS:complete TS:2026-09-22T18:48:23Z
 PHASE:M7 WAVE:W6-poll-sequence STATUS:complete TS:2026-09-28T21:58:50Z
+PHASE:M7 WAVE:W7-chapter-10-ticketing STATUS:complete TS:2026-09-28T22:20:38Z
