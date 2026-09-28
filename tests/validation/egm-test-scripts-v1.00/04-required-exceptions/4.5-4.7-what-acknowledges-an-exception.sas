@@ -22,12 +22,30 @@ test "4.5 a long poll acknowledges an exception" {
 
 # A general poll to a different address acknowledges without being answered.
 test "4.6 a general poll to another address acknowledges" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires host.poll_sequence
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.slot
   requires decoder.lp1F
 
-  note "Create slot door opened and slot door closed. With the host's resynchronisation off, establish communication, then send the general poll to this machine three times followed by one to another address."
-  note "The first two carry slot door opened, the third carries it or is unanswered, and the foreign general poll is not answered at all - but it acknowledges, so the next poll here carries slot door closed. Keep going until no activity comes back."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  host poll sequence
+
+  egm door slot open
+  egm door slot close
+
+  # The machine's own general poll draws the first of the two.
+  host send gp draws slot_door_opened
+
+  # The foreign poll is not answered at all - and it acknowledges, so the next poll here moves on
+  # to the second rather than repeating the first.
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws nothing
+
+  note "The document also sends the machine's own general poll three times over, where the first two carry the same exception because a repeated poll is an implied NACK. This build's software machine keeps no implied acknowledgement state - it hands out one exception per general poll whatever came before - so that half is not asserted here. The machine library does keep the state, so the half runs against a real machine and not against this peer."
 }
 
 # A global broadcast acknowledges. This is the one that makes the whole group unreachable from

@@ -451,6 +451,126 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// The sequenced mode exists because what is on the line between two messages is not
+    /// incidental - it is the protocol. A machine learns the host heard its last reply from the
+    /// next poll it sees, so a host running a round on a timer and prefixing a broadcast to every
+    /// message cannot present the sequence an implied-acknowledgement case describes: section 3.19
+    /// makes that broadcast an acknowledgement in its own right.
+    /// </summary>
+    [Fact]
+    public void In_a_sequence_the_line_carries_only_what_was_named()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Replies[0x1F] = [0x11, 0x22];
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+
+        // Long enough that a host polling on a timer would have sent a dozen of each.
+        Thread.Sleep(300);
+        Assert.Equal(0, engine.Statistics.GeneralPolls);
+        Assert.Equal(0, engine.Statistics.SyncPolls);
+        Assert.Equal(0, engine.Statistics.LongPolls);
+
+        Assert.Equal(GeneralPollOutcome.NoActivity, engine.PollGenerally().Outcome);
+        Assert.Equal(LongPollOutcome.Answered, engine.Execute(0x1F).Outcome);
+
+        PollStatistics stats = engine.Statistics;
+        Assert.Equal(1, stats.GeneralPolls);
+        Assert.Equal(1, stats.LongPolls);
+
+        // The one that matters: no synchronisation poll went out on its own, ahead of the long
+        // poll or anywhere else.
+        Assert.Equal(0, stats.SyncPolls);
+        Assert.Equal([0x1F], machine.CommandsSeen);
+    }
+
+    /// <summary>
+    /// A general poll a case names draws one exception and says which, in the order the machine
+    /// queued them. Watching the exception stream instead would say the same codes arrived and not
+    /// which poll drew each, which is exactly what these cases are about.
+    /// </summary>
+    [Fact]
+    public void A_named_general_poll_says_what_that_one_poll_drew()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Exceptions.Enqueue(0x11);
+        machine.Exceptions.Enqueue(0x12);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+
+        GeneralPollResult first = engine.PollGenerally();
+        GeneralPollResult second = engine.PollGenerally();
+        GeneralPollResult third = engine.PollGenerally();
+
+        Assert.Equal(GeneralPollOutcome.Exception, first.Outcome);
+        Assert.Equal(0x11, first.Code);
+        Assert.Equal(GeneralPollOutcome.Exception, second.Outcome);
+        Assert.Equal(0x12, second.Code);
+
+        // Not a silence: the machine answered and said it has nothing, which is a statement.
+        Assert.Equal(GeneralPollOutcome.NoActivity, third.Outcome);
+        Assert.Equal(Address, third.Address);
+    }
+
+    /// <summary>
+    /// The broadcast to address 00 is the message section 3.19 turns on, so a case has to be able
+    /// to place one itself. No machine answers it, and one that did would be a finding - so the
+    /// line is listened to rather than assumed quiet. Outside a sequence the engine owns this
+    /// message, and a second one placed by hand is refused rather than silently doubled.
+    /// </summary>
+    [Fact]
+    public void A_broadcast_is_placed_by_hand_only_inside_a_sequence_and_no_machine_answers_it()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.Start();
+
+        GeneralPollResult refused = engine.Synchronise();
+        Assert.Equal(GeneralPollOutcome.NotSent, refused.Outcome);
+        Assert.Contains("sequence", refused.Detail, StringComparison.OrdinalIgnoreCase);
+
+        engine.BeginSequence();
+        GeneralPollResult broadcast = engine.Synchronise();
+
+        Assert.Equal(GeneralPollOutcome.Broadcast, broadcast.Outcome);
+        Assert.False(broadcast.Answered);
+        Assert.True(engine.Statistics.SyncPolls >= 1);
+    }
+
+    /// <summary>
+    /// The mode is given back, so a case can establish communication the ordinary way, drive an
+    /// exact sequence, and then let the round resume.
+    /// </summary>
+    [Fact]
+    public void Ending_a_sequence_gives_the_line_back_to_the_timer()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+        Thread.Sleep(200);
+        Assert.Equal(0, engine.Statistics.GeneralPolls);
+
+        engine.EndSequence();
+        Assert.True(WaitUntil(() => engine.Statistics.GeneralPolls >= 3));
+        Assert.True(engine.Statistics.SyncPolls >= 1);
+    }
+
+    /// <summary>
     /// A busy response is the one reply to a long poll that echoes no command: the machine's
     /// address and a zero, with no check sequence. Read off the gaming machine library's own
     /// sender rather than reasoned about. Treating it as a message about some other poll would

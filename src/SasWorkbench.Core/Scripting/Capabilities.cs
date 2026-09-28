@@ -126,6 +126,11 @@ public static class CapabilityProbe
             // reports so that adding them later is not a rewrite, but claiming them now would be
             // a claim about a link nobody has opened.
             ["channel.1"] = "yes",
+
+            // The host can stop its round and put an exact sequence of named polls on the line,
+            // with the synchronisation poll under the case's control. True of this build and not
+            // of the machine, so it is baseline rather than probed.
+            ["host.poll_sequence"] = "yes",
         };
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

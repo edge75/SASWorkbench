@@ -218,6 +218,73 @@ public sealed record ExpectNoReplyStep(SourceLocation Location, byte Command, by
     public override string Describe() => $"expect no reply to lp {Command:X2}";
 }
 
+/// <summary>
+/// Stops the round and the synchronisation poll, so the line carries exactly the messages the
+/// case names.
+/// </summary>
+/// <remarks>
+/// What is on the line between two messages is the protocol, not scaffolding: a machine learns the
+/// host heard its last reply from the next poll it sees, and the synchronisation poll this host
+/// sends ahead of every message is a global broadcast, which section 3.19 makes an acknowledgement
+/// in its own right. Every implied-acknowledgement and implied-NACK case needs this mode.
+/// </remarks>
+public sealed record PollInSequenceStep(SourceLocation Location) : ScriptStep(Location)
+{
+    public override string Describe() => "poll in sequence";
+}
+
+/// <summary>What a general poll placed by a case is expected to draw.</summary>
+public enum DrawExpectation
+{
+    /// <summary>Nothing is asserted; the poll is placed for what it does to the machine.</summary>
+    Unasserted,
+
+    /// <summary>One named exception.</summary>
+    Exception,
+
+    /// <summary>The machine answering that it has nothing to report.</summary>
+    NoActivity,
+
+    /// <summary>No answer at all, which is what a poll to another machine must draw.</summary>
+    Silence,
+}
+
+/// <summary>Sends one general poll by name, and says what it drew.</summary>
+public sealed record SendGeneralPollStep(SourceLocation Location) : ScriptStep(Location)
+{
+    /// <summary>Which machine to poll, when the step names one rather than the case having moved.</summary>
+    public SasAddress? To { get; init; }
+
+    /// <summary>What the poll is expected to draw, when the case says.</summary>
+    public DrawExpectation Draws { get; init; } = DrawExpectation.Unasserted;
+
+    /// <summary>The exception code expected, when one is.</summary>
+    public byte Code { get; init; }
+
+    /// <summary>The name of that exception, for the report.</summary>
+    public string? CodeName { get; init; }
+
+    public override string Describe()
+    {
+        string target = To is { } address ? $" to {address}" : string.Empty;
+        string draws = Draws switch
+        {
+            DrawExpectation.Exception => $" draws {CodeName}",
+            DrawExpectation.NoActivity => " draws no activity",
+            DrawExpectation.Silence => " draws silence",
+            _ => string.Empty,
+        };
+
+        return $"send gp{target}{draws}";
+    }
+}
+
+/// <summary>Sends the broadcast to address 00, which acknowledges every machine on the line.</summary>
+public sealed record SendSyncPollStep(SourceLocation Location) : ScriptStep(Location)
+{
+    public override string Describe() => "send sync";
+}
+
 /// <summary>Expects an exception to arrive, or expects it not to.</summary>
 public sealed record ExpectExceptionStep(
     SourceLocation Location,

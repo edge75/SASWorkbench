@@ -412,8 +412,15 @@ public static class ScriptParser
                 return;
 
             case "poll":
+                if (words.Length == 3 && words[2].Equals("sequence", StringComparison.OrdinalIgnoreCase))
+                {
+                    test.Steps.Add(new PollInSequenceStep(location));
+                    return;
+                }
+
                 if (words.Length != 4 || !words[2].Equals("every", StringComparison.OrdinalIgnoreCase))
-                    throw new ScriptParseException(location, "expected: host poll every <duration>");
+                    throw new ScriptParseException(location,
+                        "expected: host poll every <duration>, or host poll sequence");
                 test.Steps.Add(new PollEveryStep(location, ParseDuration(words[3], location)));
                 return;
 
@@ -424,6 +431,18 @@ public static class ScriptParser
                 return;
 
             case "send":
+                if (words.Length > 2 && words[2].Equals("gp", StringComparison.OrdinalIgnoreCase))
+                {
+                    test.Steps.Add(ReadSendGeneralPoll(words, location));
+                    return;
+                }
+
+                if (words.Length == 3 && words[2].Equals("sync", StringComparison.OrdinalIgnoreCase))
+                {
+                    test.Steps.Add(new SendSyncPollStep(location));
+                    return;
+                }
+
                 test.Steps.Add(ReadSend(words, location));
                 return;
 
@@ -596,6 +615,53 @@ public static class ScriptParser
     {
         int bracket = step.IndexOf('[', StringComparison.Ordinal);
         return bracket < 0 ? step : step[..bracket];
+    }
+
+    /// <summary>
+    /// Reads <c>host send gp [draws &lt;name&gt;|nothing|silence] [to &lt;address&gt;]</c>.
+    /// </summary>
+    /// <remarks>
+    /// The expectation is part of the step rather than a separate assertion because what a general
+    /// poll drew is a property of that one poll. Asserted from the exception stream instead it
+    /// would say only that a code arrived at some point, which is the very thing these cases are
+    /// written to distinguish.
+    /// </remarks>
+    private static SendGeneralPollStep ReadSendGeneralPoll(string[] words, SourceLocation location)
+    {
+        words = TakeTarget(words, location, out SasAddress? to);
+        var step = new SendGeneralPollStep(location) { To = to };
+
+        if (words.Length == 3)
+            return step;
+
+        if (words.Length != 5 || !words[3].Equals("draws", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ScriptParseException(location,
+                "expected: host send gp [draws <exception>|draws nothing|draws silence] "
+                + "[to <address>]");
+        }
+
+        string what = words[4];
+        if (what.Equals("nothing", StringComparison.OrdinalIgnoreCase))
+            return step with { Draws = DrawExpectation.NoActivity };
+
+        if (what.Equals("silence", StringComparison.OrdinalIgnoreCase))
+            return step with { Draws = DrawExpectation.Silence };
+
+        if (!SasNames.TryResolveException(what, out byte code))
+        {
+            throw new ScriptParseException(location,
+                $"'{what}' is not an exception this build knows. Write its name, such as "
+                + "slot_door_opened, or its code, such as $11 - or 'nothing' for a machine "
+                + "reporting no activity, or 'silence' for no answer at all");
+        }
+
+        return step with
+        {
+            Draws = DrawExpectation.Exception,
+            Code = code,
+            CodeName = SasNames.ExceptionName(code),
+        };
     }
 
     private static SendLongPollStep ReadSend(string[] words, SourceLocation location)

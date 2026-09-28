@@ -47,6 +47,9 @@ public sealed class PollEngine : IDisposable
     private Thread? _thread;
     private volatile bool _running;
     private volatile bool _pendingReady;
+    private volatile bool _sequenced;
+    private PendingKind _pendingKind = PendingKind.LongPoll;
+    private GeneralPollResult? _pendingPollResult;
     private byte _pendingCommand;
     private SasAddress _pendingAddress;
     private string? _pendingPurpose;
@@ -213,6 +216,124 @@ public sealed class PollEngine : IDisposable
     /// on a host that polls a round it is <b>refused</b>, because a command that went to whichever
     /// machine the round had reached would be answered correctly by the wrong machine.
     /// </param>
+    /// <summary>True while the host sends only what a caller names, and nothing on a timer.</summary>
+    public bool IsSequenced => _sequenced;
+
+    /// <summary>
+    /// Stops the round and the synchronisation poll, so the line carries exactly the messages a
+    /// caller submits, in the order they are submitted.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A machine learns that the host received its last reply from the next poll it sees, so what
+    /// is on the line between two messages is not incidental — it is the protocol. A host that
+    /// runs a round on a timer and prefixes a broadcast to every message cannot present a machine
+    /// with the sequence an implied-acknowledgement case describes, because the broadcast is
+    /// itself an acknowledgement (section 3.19).
+    /// </para>
+    /// <para>
+    /// The link timeout still runs. A sequence that sends nothing the machine answers for longer
+    /// than the timeout takes the link down, and that is left alone deliberately: a host that kept
+    /// the link marked up while hearing nothing would be reporting something it had not measured.
+    /// </para>
+    /// </remarks>
+    public void BeginSequence() => _sequenced = true;
+
+    /// <summary>Gives the line back to the timer, and resumes the round and the synchronisation poll.</summary>
+    public void EndSequence() => _sequenced = false;
+
+    /// <summary>
+    /// Sends one general poll and says what it drew.
+    /// </summary>
+    /// <param name="to">
+    /// Which machine to poll. Left null it is the machine this host is bound to, and on a host
+    /// polling a round it is refused for the same reason a long poll without a name is.
+    /// </param>
+    /// <param name="timeout">How long to wait for the engine to reach it.</param>
+    /// <param name="purpose">Why it is being sent, for the wire record.</param>
+    public GeneralPollResult PollGenerally(
+        SasAddress? to = null, TimeSpan? timeout = null, string? purpose = null)
+    {
+        if (!TryTarget(to, out SasAddress target, out string? refusal))
+        {
+            return new GeneralPollResult(to ?? _polling, _options.Channel,
+                GeneralPollOutcome.NotSent, 0x00, [], TimeSpan.Zero, refusal);
+        }
+
+        return Submit(PendingKind.GeneralPoll, target, purpose, timeout);
+    }
+
+    /// <summary>
+    /// Sends the broadcast to address 00 — the synchronisation poll — as a message of its own.
+    /// </summary>
+    /// <remarks>
+    /// Available only in the sequenced mode. Outside it the engine sends this on its own schedule,
+    /// and a second one placed by hand would be a message the case did not account for.
+    /// </remarks>
+    public GeneralPollResult Synchronise(TimeSpan? timeout = null, string? purpose = null)
+    {
+        if (!_sequenced)
+        {
+            return new GeneralPollResult(SasAddress.Sync, _options.Channel,
+                GeneralPollOutcome.NotSent, 0x00, [], TimeSpan.Zero,
+                "The host is polling on a timer and sends the synchronisation poll itself. Put it "
+                + "into a sequence before placing one by hand.");
+        }
+
+        return Submit(PendingKind.SyncPoll, SasAddress.Sync, purpose, timeout);
+    }
+
+    /// <summary>Puts one general or synchronisation poll on the engine's thread and waits for it.</summary>
+    private GeneralPollResult Submit(
+        PendingKind kind, SasAddress target, string? purpose, TimeSpan? timeout)
+    {
+        TimeSpan wait = timeout
+                        ?? _options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1);
+
+        if (!_running)
+        {
+            return new GeneralPollResult(target, _options.Channel, GeneralPollOutcome.NotSent,
+                0x00, [], TimeSpan.Zero, "The poll engine is not running.");
+        }
+
+        _executeGate.Wait();
+        try
+        {
+            lock (_submitGate)
+            {
+                _pendingKind = kind;
+                _pendingAddress = target;
+                _pendingPurpose = purpose;
+                _pendingPollResult = null;
+                _pendingTicket++;
+                _pendingDone.Reset();
+                _pendingReady = true;
+            }
+
+            if (!_pendingDone.Wait(wait))
+            {
+                lock (_submitGate)
+                {
+                    _pendingTicket++;
+                    _pendingReady = false;
+                }
+
+                return new GeneralPollResult(target, _options.Channel, GeneralPollOutcome.NotSent,
+                    0x00, [], wait, "The poll engine did not reach this poll in time.");
+            }
+
+            lock (_submitGate)
+            {
+                return _pendingPollResult ?? new GeneralPollResult(target, _options.Channel,
+                    GeneralPollOutcome.NotSent, 0x00, [], TimeSpan.Zero, "No result was recorded.");
+            }
+        }
+        finally
+        {
+            _executeGate.Release();
+        }
+    }
+
     public LongPollResult Execute(
         byte command,
         ReadOnlySpan<byte> data = default,
@@ -242,6 +363,7 @@ public sealed class PollEngine : IDisposable
         {
             lock (_submitGate)
             {
+                _pendingKind = PendingKind.LongPoll;
                 _pendingAddress = target;
                 data.CopyTo(_pendingData);
                 _pendingDataLength = data.Length;
@@ -302,6 +424,13 @@ public sealed class PollEngine : IDisposable
             if (round.Contains(named))
                 return true;
 
+            // A sequence may poll a stranger on purpose, and several cases turn on it: a poll to
+            // another machine acknowledges this one without being answered, so the address has to
+            // be one no machine here holds. The refusal below guards against a typo becoming a
+            // poll nobody reads, which a case that named the address deliberately is not doing.
+            if (_sequenced)
+                return true;
+
             refusal = $"this host does not poll ${named}; it polls "
                       + string.Join(", ", round.Select(a => $"${a}")) + ".";
             return false;
@@ -344,6 +473,24 @@ public sealed class PollEngine : IDisposable
                 continue;
             }
 
+            // In the sequenced mode nothing goes out on a timer: the line carries what a caller
+            // named and nothing else, which is the only way to present a machine with an exact
+            // sequence of polls. So a submitted message runs at once rather than at the next tick.
+            if (_sequenced)
+            {
+                if (!_pendingReady)
+                {
+                    Thread.Sleep(1);
+                    continue;
+                }
+
+                RunPending();
+                nextPollAt = _clock.ElapsedMilliseconds
+                             + (long)_options.PollInterval.TotalMilliseconds;
+                CheckLinkTimeout();
+                continue;
+            }
+
             long now = _clock.ElapsedMilliseconds;
             long sleepFor = nextPollAt - now;
             if (sleepFor > 0)
@@ -355,7 +502,7 @@ public sealed class PollEngine : IDisposable
             nextPollAt = now + (long)_options.PollInterval.TotalMilliseconds;
 
             if (_pendingReady)
-                RunPendingLongPoll();
+                RunPending();
             else
                 RunPollCycle();
 
@@ -391,18 +538,37 @@ public sealed class PollEngine : IDisposable
             Interlocked.Increment(ref _rounds);
         }
 
+        SendGeneralPollAndRead(null);
+    }
+
+    /// <summary>
+    /// Sends a general poll to the address currently being polled and reads what it drew.
+    /// </summary>
+    /// <remarks>
+    /// Shared by the timer-driven round, which discards the result and lets the exception stream
+    /// carry it, and by the sequenced mode, where a case names the poll and has to be told what
+    /// that one poll drew rather than watching a stream.
+    /// </remarks>
+    private GeneralPollResult SendGeneralPollAndRead(string? purpose)
+    {
         int pollLength = HostMessage.WriteGeneralPoll(_outbound, _polling);
+        long sentAt = _clock.ElapsedTicks;
         Resynchronise();
         _attributed = _polling;
-        SendAndRecord(pollLength, "general poll");
+        SendAndRecord(pollLength, WirePurpose.Label("general poll", purpose)!);
         Interlocked.Increment(ref _generalPolls);
 
         int received = ReceiveAnswer(GeneralPoll, out bool wakeup, out _);
+        var latency = TimeSpan.FromTicks(_clock.ElapsedTicks - sentAt);
+
         if (received == 0)
         {
             Interlocked.Increment(ref _silences);
-            return;
+            return new GeneralPollResult(_polling, _options.Channel, GeneralPollOutcome.Silent,
+                0x00, [], latency, "The machine did not answer the general poll.");
         }
+
+        byte[] frame = _inbound.AsSpan(0, received).ToArray();
 
         // A reply of more than one byte to a general poll is the real-time event format: the
         // machine's address, the event marker, the exception code and whatever that exception
@@ -410,8 +576,24 @@ public sealed class PollEngine : IDisposable
         // code would invent a machine event out of a message about another one.
         if (received > 1)
         {
-            ReportRealTimeEvent(received, wakeup);
-            return;
+            byte? reported = ReportRealTimeEvent(received, wakeup);
+            if (reported is not { } code_)
+            {
+                return new GeneralPollResult(_polling, _options.Channel,
+                    GeneralPollOutcome.Unreadable, 0x00, frame, latency,
+                    "The message could not be read as a real-time event.")
+                {
+                    IsRealTimeEvent = true,
+                };
+            }
+
+            return new GeneralPollResult(_polling, _options.Channel,
+                code_ == 0x00 ? GeneralPollOutcome.NoActivity : GeneralPollOutcome.Exception,
+                code_, frame, latency)
+            {
+                IsRealTimeEvent = true,
+                Data = frame[SasEventLayouts.HeaderLength..^2],
+            };
         }
 
         RecordReceive(received, wakeup, null);
@@ -419,12 +601,14 @@ public sealed class PollEngine : IDisposable
 
         byte code = _inbound[0];
         if (code == 0x00)
-            return;
+            return new GeneralPollResult(_polling, _options.Channel,
+                GeneralPollOutcome.NoActivity, 0x00, frame, latency);
 
         if (code == (byte)(_polling.Value | HostMessage.GeneralPollFlag))
         {
             Interlocked.Increment(ref _rejections);
-            return;
+            return new GeneralPollResult(_polling, _options.Channel, GeneralPollOutcome.Rejected,
+                code, frame, latency, $"The machine refused a general poll to {_polling}.");
         }
 
         long sequence = Interlocked.Increment(ref _exceptions);
@@ -433,6 +617,9 @@ public sealed class PollEngine : IDisposable
             {
                 Address = _polling,
             });
+
+        return new GeneralPollResult(_polling, _options.Channel, GeneralPollOutcome.Exception,
+            code, frame, latency);
     }
 
     /// <summary>
@@ -452,7 +639,7 @@ public sealed class PollEngine : IDisposable
     /// that fails the check, the exception code included.
     /// </para>
     /// </remarks>
-    private void ReportRealTimeEvent(int received, bool wakeup)
+    private byte? ReportRealTimeEvent(int received, bool wakeup)
     {
         ReadOnlySpan<byte> frame = _inbound.AsSpan(0, received);
 
@@ -462,7 +649,7 @@ public sealed class PollEngine : IDisposable
                 "not a real-time event: a general poll answered with more than one byte and "
                 + $"${frame[1]:X2} where the event marker belongs");
             MarkHeard();
-            return;
+            return null;
         }
 
         if (received < SasEventLayouts.HeaderLength + 2 || !SasCrc.Verify(frame))
@@ -470,7 +657,7 @@ public sealed class PollEngine : IDisposable
             RecordReceive(received, wakeup,
                 "a real-time event whose check sequence does not check out, so no byte of it is "
                 + "established");
-            return;
+            return null;
         }
 
         if (frame[0] != _polling.Value)
@@ -479,7 +666,7 @@ public sealed class PollEngine : IDisposable
                 $"a real-time event addressed ${frame[0]:X2}, and the machine being polled is "
                 + $"${_polling.Value:X2}");
             MarkHeard();
-            return;
+            return null;
         }
 
         byte code = frame[2];
@@ -492,7 +679,7 @@ public sealed class PollEngine : IDisposable
         // Zero is the machine saying it has nothing queued, in the same format as everything else.
         // It is not an exception and must not be reported as one.
         if (code == 0x00)
-            return;
+            return code;
 
         long sequence = Interlocked.Increment(ref _exceptions);
         ExceptionReported?.Invoke(
@@ -500,6 +687,8 @@ public sealed class PollEngine : IDisposable
             {
                 Address = _polling,
             });
+
+        return code;
     }
 
     /// <summary>
@@ -525,6 +714,111 @@ public sealed class PollEngine : IDisposable
             });
     }
 
+    /// <summary>Which kind of message the caller submitted.</summary>
+    private enum PendingKind
+    {
+        LongPoll,
+        GeneralPoll,
+        SyncPoll,
+    }
+
+    /// <summary>Runs whatever a caller submitted, whichever kind it is.</summary>
+    private void RunPending()
+    {
+        switch (_pendingKind)
+        {
+            case PendingKind.GeneralPoll:
+                RunPendingGeneralPoll();
+                return;
+
+            case PendingKind.SyncPoll:
+                RunPendingSyncPoll();
+                return;
+
+            default:
+                RunPendingLongPoll();
+                return;
+        }
+    }
+
+    /// <summary>Sends one general poll a caller named, and hands back what it drew.</summary>
+    private void RunPendingGeneralPoll()
+    {
+        long ticket;
+        string? purpose;
+        lock (_submitGate)
+        {
+            ticket = _pendingTicket;
+            purpose = _pendingPurpose;
+            _polling = _pendingAddress;
+            _pendingReady = false;
+        }
+
+        _attributed = null;
+        GeneralPollResult result = SendGeneralPollAndRead(purpose);
+        Finish(ticket, result);
+    }
+
+    /// <summary>
+    /// Sends the broadcast to address 00 a caller named, and listens for the answer no machine
+    /// should give.
+    /// </summary>
+    /// <remarks>
+    /// Section 3.19 makes this a global acknowledgement, which is the whole reason a case needs to
+    /// place one by hand. The line is listened to afterwards rather than assumed quiet: a machine
+    /// that answered a broadcast would be a finding, and one this build would otherwise never see.
+    /// </remarks>
+    private void RunPendingSyncPoll()
+    {
+        long ticket;
+        string? purpose;
+        lock (_submitGate)
+        {
+            ticket = _pendingTicket;
+            purpose = _pendingPurpose;
+            _pendingReady = false;
+        }
+
+        _attributed = null;
+        int length = HostMessage.WriteSyncPoll(_outbound);
+        long sentAt = _clock.ElapsedTicks;
+        SendAndRecord(length, WirePurpose.Label("sync poll - address zero", purpose)!);
+        Interlocked.Increment(ref _syncPolls);
+
+        int received = _link.Receive(
+            _inbound, _options.ResponseTimeout, _options.QuietGap, out bool wakeup);
+        var latency = TimeSpan.FromTicks(_clock.ElapsedTicks - sentAt);
+
+        if (received == 0)
+        {
+            Finish(ticket, new GeneralPollResult(SasAddress.Sync, _options.Channel,
+                GeneralPollOutcome.Broadcast, 0x00, [], latency));
+            return;
+        }
+
+        RecordReceive(received, wakeup,
+            "a machine answered a broadcast to address 00, which no machine may answer");
+        Finish(ticket, new GeneralPollResult(SasAddress.Sync, _options.Channel,
+            GeneralPollOutcome.Unreadable, 0x00, _inbound.AsSpan(0, received).ToArray(), latency,
+            "A machine answered the broadcast to address 00. No machine may answer one."));
+    }
+
+    /// <summary>Hands a poll's answer back to whoever asked, when they are still waiting for it.</summary>
+    private void Finish(long ticket, GeneralPollResult result)
+    {
+        lock (_submitGate)
+        {
+            // Whoever asked has already given up and may have asked for something else, so the
+            // answer belongs to nobody. It stays on the wire log either way.
+            if (_pendingTicket != ticket)
+                return;
+
+            _pendingPollResult = result;
+        }
+
+        _pendingDone.Set();
+    }
+
     private void RunPendingLongPoll()
     {
         byte command;
@@ -546,8 +840,9 @@ public sealed class PollEngine : IDisposable
         _attributed = null;
 
         // A machine that has not been resynchronised ignores an addressed poll, so keep sending
-        // the synchronisation poll ahead of long polls too.
-        if (_options.SyncPollEvery > 0)
+        // the synchronisation poll ahead of long polls too — except in the sequenced mode, where
+        // the case owns every message on the line and a broadcast is itself an acknowledgement.
+        if (_options.SyncPollEvery > 0 && !_sequenced)
         {
             int syncLength = HostMessage.WriteSyncPoll(_outbound);
             SendAndRecord(syncLength, "sync poll - address zero");

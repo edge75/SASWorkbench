@@ -43,7 +43,28 @@ test "3.9 a memory fault resets the address to zero" {
 test "3.10 polls to another address change nothing" {
   tag @egm-test-scripts @chapter-3 @needs-a-person
   requires host.poll_sequence
+  requires decoder.lp1F
 
-  note "Poll a round carrying general and long polls to several addresses including 0, with only this machine on the line. It ignores every general poll to address 0, answers general polls to its own address with an exception byte and long polls to its own address with their replies, and ignores both to any other address."
-  note "Then check the machine's state: nothing a poll to another address asked for has happened. A machine that answers only its own polls but acts on everybody's fails this, and the trace alone will not show it - the state has to be read at the machine."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  # The case owns the line from here, because a poll to another address is only meaningful when
+  # nothing else is on the wire to answer for it.
+  host poll sequence
+
+  # Its own address is answered, on both kinds of poll.
+  host send gp draws nothing
+  host send lp 1F
+
+  # Address 00 and a stranger are not, and neither is answered at all.
+  host send sync
+  host send gp draws silence to 7F
+
+  # And its own address still answers afterwards, so the strangers changed nothing it does.
+  host send gp draws nothing
+  host send lp 1F
+
+  note "The wire half runs above. The half a person has to do is at the machine: read its state and check that nothing a poll to another address asked for has happened. A machine that answers only its own polls but acts on everybody's passes everything above and still fails the case, and no trace can show it."
 }
