@@ -36,7 +36,9 @@ test "11.1 reporting is enabled and disabled by long poll 0E" {
   host expect field credits_wagered of event game_started == 2 within 8s
   host expect field win_amount of event game_ended == 0 within 8s
 
-  # Off again. The events still happen and still arrive - as one byte each.
+  # Off again. The events still happen and still arrive - as one byte each. The queue is drained
+  # first because a long poll sent with one still waiting is answered with the event instead.
+  host forget exceptions within 2s
   host send lp 0E data 00
   host forget exceptions within 2s
 
@@ -147,6 +149,8 @@ test "11.7 the machine answers at 40 ms" {
 
   host send lp 0E data 01
 
+  # Safe with reporting on and no drain: nothing here stimulates the machine, so no exception is
+  # ever queued and no long poll below can be answered with an event instead of its reply.
   # Every rate the document names, with a long poll answered at each.
   host poll every 40ms
   host expect link up within 5s

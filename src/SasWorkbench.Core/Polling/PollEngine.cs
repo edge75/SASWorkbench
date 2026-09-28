@@ -502,6 +502,29 @@ public sealed class PollEngine : IDisposable
             });
     }
 
+    /// <summary>
+    /// Reports the exception carried by an event that arrived in a long poll's window.
+    /// </summary>
+    /// <remarks>
+    /// The frame has already been checked and recorded by the long-poll path, so this only reads
+    /// it. A code of zero is the machine saying it has nothing queued and is never an exception,
+    /// the same rule the general-poll path keeps.
+    /// </remarks>
+    private void ReportEventFromLongPoll(byte[] frame)
+    {
+        byte code = frame[2];
+        if (code == 0x00)
+            return;
+
+        byte[] data = frame[SasEventLayouts.HeaderLength..^2];
+        long sequence = Interlocked.Increment(ref _exceptions);
+        ExceptionReported?.Invoke(
+            new ExceptionReport(code, _options.Channel, _clock.Elapsed, sequence, data)
+            {
+                Address = _polling,
+            });
+    }
+
     private void RunPendingLongPoll()
     {
         byte command;
@@ -554,6 +577,11 @@ public sealed class PollEngine : IDisposable
         {
             Interlocked.Increment(ref _silences);
         }
+
+        // The event reached the stream it would have reached on a general poll. Reported here
+        // rather than in Interpret, which decides what a reply was and raises nothing.
+        if (result.Outcome == LongPollOutcome.AnsweredWithEvent)
+            ReportEventFromLongPoll(result.Frame);
 
         lock (_submitGate)
         {
@@ -619,8 +647,30 @@ public sealed class PollEngine : IDisposable
                 frame, latency, "The frame check sequence did not match.");
         }
 
+        if (IsEventInsteadOfReply(command, frame))
+        {
+            return new LongPollResult(command, _options.Channel, LongPollOutcome.AnsweredWithEvent,
+                frame, latency,
+                $"The machine answered with real-time event ${frame[2]:X2} rather than with the "
+                + $"reply to long poll ${command:X2}, which is what it does while event reporting "
+                + "is on and an exception is queued. The event was kept and reported. Drain the "
+                + "queue before sending this poll.");
+        }
+
         return new LongPollResult(command, _options.Channel, LongPollOutcome.Answered, frame, latency);
     }
+
+    /// <summary>
+    /// Whether what came back in a long poll's window is a real-time event rather than the reply.
+    /// </summary>
+    /// <remarks>
+    /// Called only once the frame has passed the address and check-sequence tests, so the marker
+    /// and the code it carries are established bytes rather than bytes that happen to be there.
+    /// </remarks>
+    private static bool IsEventInsteadOfReply(int command, ReadOnlySpan<byte> frame) =>
+        command != HostMessage.RealTimeEventIdentifier
+        && frame.Length >= SasEventLayouts.HeaderLength + 2
+        && frame[1] == SasEventLayouts.Marker;
 
     private void SendAndRecord(int length, string note)
     {
@@ -716,6 +766,15 @@ public sealed class PollEngine : IDisposable
 
         if (frame[0] != address)
             return false;
+
+        // The machine answers a long poll with a queued real-time event instead of the poll's own
+        // reply while reporting is on, so the event format belongs in this window too. A poll of
+        // $FF itself is left alone: there the marker and an echoed command are the same byte.
+        if (command != HostMessage.RealTimeEventIdentifier
+            && frame[1] == HostMessage.RealTimeEventIdentifier)
+        {
+            return true;
+        }
 
         return frame[1] == (byte)command
                || (frame.Length == 2 && frame[1] == HostMessage.BusyResponseByte);

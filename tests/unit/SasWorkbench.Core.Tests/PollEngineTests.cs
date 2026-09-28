@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -412,6 +413,44 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// A machine reporting real-time events answers a long poll with a queued event rather than
+    /// with the poll's own reply, and the event must survive that. A host reading the second byte
+    /// as an echoed command cannot see one at all: the message is counted as an answer to some
+    /// earlier poll, discarded, and the long poll reported silent — so the event is lost, not
+    /// misreported, which is the one failure this project exists to refuse.
+    /// </summary>
+    /// <remarks>
+    /// Staged the way the one-behind tests stage lateness: the line hands back one prepared
+    /// message with a silence after it, so what this proves is the order the bytes arrive in and
+    /// not any thread being scheduled promptly. The poll is deliberately not a success — the
+    /// caller never got the reply it asked for — and deliberately not retried, because repeating
+    /// the same poll is an implied NACK and would only fetch the same event again.
+    /// </remarks>
+    [Fact]
+    public void An_event_answering_a_long_poll_is_kept_and_the_poll_is_not_a_success()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(bus.Host, 0x1F, EventInsteadOfReply(0x7E, [0x01, 0x00]));
+
+        var reported = new List<ExceptionReport>();
+        using var engine = new PollEngine(line, SpacedOutOptions());
+        engine.ExceptionReported += reported.Add;
+        engine.Start();
+
+        LongPollResult result = engine.Execute(0x1F, [], LongEnoughToBeReached);
+
+        Assert.Equal(LongPollOutcome.AnsweredWithEvent, result.Outcome);
+        Assert.False(result.Succeeded);
+        Assert.Contains("drain", result.Detail, StringComparison.OrdinalIgnoreCase);
+
+        ExceptionReport kept = Assert.Single(reported);
+        Assert.Equal(0x7E, kept.Code);
+        Assert.Equal<byte[]>([0x01, 0x00], kept.Data);
+        Assert.True(kept.IsRealTimeEvent);
+        Assert.Equal(Address, kept.Address);
+    }
+
+    /// <summary>
     /// A busy response is the one reply to a long poll that echoes no command: the machine's
     /// address and a zero, with no check sequence. Read off the gaming machine library's own
     /// sender rather than reasoned about. Treating it as a message about some other poll would
@@ -646,6 +685,17 @@ public class PollEngineTests
         frame[2] = 0x51;
         frame[3] = 0x58;
         return frame[..SasCrc.Append(frame, 4)].ToArray();
+    }
+
+    /// <summary>The real-time event format, as a machine sends it in a long poll's window.</summary>
+    private static byte[] EventInsteadOfReply(byte code, byte[] carried)
+    {
+        Span<byte> frame = stackalloc byte[HostMessage.MaxSymbols];
+        frame[0] = Address.Value;
+        frame[1] = SasEventLayouts.Marker;
+        frame[2] = code;
+        carried.CopyTo(frame[SasEventLayouts.HeaderLength..]);
+        return frame[..SasCrc.Append(frame, SasEventLayouts.HeaderLength + carried.Length)].ToArray();
     }
 
     /// <summary>Puts bytes on the line from the machine's end, with no poll having asked for them.</summary>

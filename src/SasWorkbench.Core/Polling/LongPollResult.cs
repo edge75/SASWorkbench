@@ -28,6 +28,18 @@ public enum LongPollOutcome
 
     /// <summary>The engine was not running, or the link had no peer.</summary>
     NotSent,
+
+    /// <summary>
+    /// The machine answered with a queued real-time event instead of this poll's own reply, which
+    /// it does while event reporting is on and an exception is queued.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not a success: the event is kept and reported, but the caller did not get the
+    /// reply it asked for, and the host does not ask again — repeating the same poll is an implied
+    /// NACK and would only fetch the same event. Last in the enum because these values are written
+    /// to reports by number, and a run recorded before this existed must still read back the same.
+    /// </remarks>
+    AnsweredWithEvent,
 }
 
 /// <summary>

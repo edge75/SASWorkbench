@@ -25,6 +25,12 @@ public enum SweepOutcome
 
     /// <summary>The sweep did not send this command, because sending it changes the machine.</summary>
     Withheld,
+
+    /// <summary>
+    /// The machine answered with a queued real-time event instead, so nothing was learned about
+    /// this command.
+    /// </summary>
+    Preempted,
 }
 
 /// <summary>One attempt at one command.</summary>
@@ -42,7 +48,7 @@ public sealed record SweepFinding
     /// <summary>Every form of the request that was tried, in the order it was tried.</summary>
     public IReadOnlyList<SweepAttempt> Attempts { get; init; } = [];
 
-    /// <summary>The attempt the machine answered, when one did.</summary>
+    /// <summary>The attempt the machine responded to, when one did.</summary>
     public SweepAttempt? Answered { get; init; }
 
     /// <summary>Whether this build already holds a layout for the reply.</summary>
@@ -60,6 +66,8 @@ public sealed record SweepFinding
         SweepOutcome.Rejected => "refused the command",
         SweepOutcome.Acknowledged => "acknowledged, with no data",
         SweepOutcome.Unreadable => Answered?.Result.Detail ?? "the reply could not be read",
+        SweepOutcome.Preempted => Answered?.Result.Detail
+                                  ?? "a queued real-time event came back instead of a reply",
         _ => $"{Answered?.Result.Frame.Length ?? 0} byte(s): "
              + (Answered?.Result.ToHex() ?? string.Empty),
     };
@@ -310,7 +318,8 @@ public sealed class CatalogueSweep
             attempts.Add(attempt);
 
             if (result.Outcome is LongPollOutcome.Answered or LongPollOutcome.Acknowledged
-                or LongPollOutcome.BadCheckSequence or LongPollOutcome.WrongAddress)
+                or LongPollOutcome.BadCheckSequence or LongPollOutcome.WrongAddress
+                or LongPollOutcome.AnsweredWithEvent)
             {
                 answered = attempt;
                 break;
@@ -333,6 +342,10 @@ public sealed class CatalogueSweep
             LongPollOutcome.Rejected => SweepOutcome.Rejected,
             LongPollOutcome.BadCheckSequence or LongPollOutcome.WrongAddress =>
                 SweepOutcome.Unreadable,
+
+            // Named rather than left to fall through: a machine that spoke must never be counted
+            // as one that stayed quiet.
+            LongPollOutcome.AnsweredWithEvent => SweepOutcome.Preempted,
             _ => SweepOutcome.Silent,
         };
 
@@ -343,6 +356,7 @@ public sealed class CatalogueSweep
             Attempts = attempts,
             Answered = outcome is SweepOutcome.Answered or SweepOutcome.Acknowledged
                        or SweepOutcome.Rejected or SweepOutcome.Unreadable
+                       or SweepOutcome.Preempted
                 ? answered
                 : null,
             HadLayout = SasLayouts.For(entry.Command) is not null,

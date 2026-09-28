@@ -110,3 +110,4 @@ PHASE:M7 WAVE:W1-unsupported-poll-is-silence STATUS:complete TS:2026-09-21T22:29
 PHASE:M7 WAVE:W2-chapter-3-communications STATUS:complete TS:2026-09-21T23:24:41Z
 PHASE:M7 WAVE:W3-chapter-4-required-exceptions STATUS:complete TS:2026-09-21T23:24:41Z
 PHASE:M7 WAVE:W4-chapter-11-real-time-events STATUS:complete TS:2026-09-21T23:24:41Z
+PHASE:M7 WAVE:W5-long-poll-answered-with-an-event STATUS:complete TS:2026-09-22T18:48:23Z

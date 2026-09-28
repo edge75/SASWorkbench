@@ -26,7 +26,9 @@ test "11.14 notes follow the mode" {
   egm bill insert 2000
   host expect field denomination_code of event bill_accepted == 4 within 8s
 
-  # Off: the same two notes come back as the exception for their own denomination.
+  # Off: the same two notes come back as the exception for their own denomination. The queue is
+  # drained first because a long poll sent with one still waiting is answered with the event.
+  host forget exceptions within 2s
   host send lp 0E data 00
   host forget exceptions within 2s
 

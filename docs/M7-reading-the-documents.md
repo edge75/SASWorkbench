@@ -278,11 +278,12 @@ power cycle, or a service button, so they stay skipped whatever is done about th
 seconds of silence the machine sends its own address with the wakeup bit every 200 ms, and nothing
 here watches the line when no poll is outstanding.
 
-## 10. Two findings, neither of them fixed
+## 10. Two findings, one of them now fixed
 
 Both were found the way section 7's was: our software machine disagrees with the documents, and the
-machine library was read before deciding which of them was wrong. Neither has been changed — the
-call sites are listed so the work can be agreed first.
+machine library was read before deciding which of them was wrong. The call sites were listed so the
+work could be agreed first; the second finding has since been agreed as D43 and D44 and built, and
+the first waits on the two capabilities of section 9.
 
 ### The software machine never chirps
 
@@ -296,9 +297,9 @@ in the suite passes because of it, because the host cannot watch for a chirp eit
 form is the two capabilities above rather than a defect. Both halves are needed together: a machine
 that chirps and a host that can see one.
 
-### A long poll answered with an event — the machine does not send one, and the host would throw it away
+### A long poll answered with an event — the machine did not send one, and the host would have thrown it away
 
-This is the one worth deciding about. With real-time event reporting on and exceptions queued, the
+This is the one worth deciding about, and it was decided: D43 for the host, D44 for the fixture. With real-time event reporting on and exceptions queued, the
 machine library answers a **long poll** with the event rather than with the long poll's own reply:
 
     libsas_threads.cpp:3333
@@ -322,7 +323,12 @@ Two things follow, and the second is a defect in this build rather than in the f
   — not misreported, but lost — which is exactly the failure the one-behind work was about, in a
   case that work did not cover.
 
-The call sites, all of them, before anything is edited:
+The call sites, all of them, as they stood before anything was edited. A long poll answered with an
+event now has an outcome of its own, `AnsweredWithEvent`, which is not a success and is not retried;
+the event reaches the exception stream it would have reached on a general poll; and the software
+machine preempts the way the library does. Three cases beyond the table also changed, because a new
+outcome falling through a default would have reported a machine that spoke as silent: the sweep's
+outcome map, the replay classifier, and `sasctl events`.
 
 | file | line | what it is |
 |---|---:|---|

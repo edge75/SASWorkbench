@@ -91,6 +91,70 @@ public class FakeEgmRealTimeEventTests
         }
     }
 
+    /// <summary>
+    /// What the machine library does at libsas_threads.cpp:3333, and what the documents' chapter
+    /// 11 loops assume: while reporting is on and an exception is queued, a long poll is answered
+    /// with the event and the command is never dispatched. The fixture answered every long poll
+    /// with the command's own reply before this, so nothing here could reproduce it at all and a
+    /// case could not tell the two deliveries apart.
+    /// </summary>
+    /// <remarks>
+    /// The exception is queued from the machine's own receive path as the poll arrives, so no
+    /// general poll can drain it in between and the test turns on the order the two happen in
+    /// rather than on a thread being scheduled promptly.
+    /// </remarks>
+    [Fact]
+    public void A_long_poll_is_answered_with_a_queued_event_rather_than_with_its_own_reply()
+    {
+        using var rig = new Rig();
+        rig.EnableRealTimeEvents();
+
+        rig.Machine.LongPollReceived += command =>
+        {
+            if (command == 0x1F)
+                rig.Machine.RaiseEvent((byte)SasExceptionCode.GameStarted, 0x01, 0x00);
+        };
+
+        LongPollResult result = rig.Host.Execute(0x1F);
+
+        Assert.Equal(LongPollOutcome.AnsweredWithEvent, result.Outcome);
+        Assert.False(result.Succeeded);
+        Assert.Equal(SasEventLayouts.Marker, result.Frame[1]);
+        Assert.Equal((byte)SasExceptionCode.GameStarted, result.Frame[2]);
+
+        ExceptionReport? kept = rig.WaitFor((byte)SasExceptionCode.GameStarted);
+        Assert.NotNull(kept);
+        Assert.True(kept.IsRealTimeEvent);
+        Assert.Equal<byte[]>([0x01, 0x00], kept.Data);
+    }
+
+    /// <summary>
+    /// The gate sits after the check sequence test, so a poll the machine's receiver cannot frame
+    /// is still refused rather than answered with an event. A machine that preempted first would
+    /// let a malformed poll look like a healthy exchange.
+    /// </summary>
+    [Fact]
+    public void A_poll_that_would_be_refused_is_still_refused_with_an_event_queued()
+    {
+        using var rig = new Rig();
+        rig.EnableRealTimeEvents();
+
+        rig.Machine.LongPollReceived += command =>
+        {
+            if (command == 0x01)
+                rig.Machine.RaiseException(SasExceptionCode.GameStarted);
+        };
+
+        LongPollResult bare = rig.Host.Execute(0x01, default, null, null, checkSequence: false);
+
+        Assert.Equal(LongPollOutcome.Rejected, bare.Outcome);
+        Assert.True(rig.Machine.IsEnabled);
+
+        // The exception it queued is still the machine's to report, and reaches the host on the
+        // general polls that follow.
+        Assert.NotNull(rig.WaitFor((byte)SasExceptionCode.GameStarted));
+    }
+
     [Fact]
     public void A_machine_comes_up_reporting_the_old_way()
     {
