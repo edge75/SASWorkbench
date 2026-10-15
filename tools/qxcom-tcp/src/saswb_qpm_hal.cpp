@@ -3,9 +3,9 @@
  *
  *	Two peripherals are given bodies here, both halves of the money path.
  *
- *	The printer. QPM2's simulated one prints a ticket to stdout and nothing else, so no ticket the
- *	machine produces can be looked at, redeemed or asserted on. Ours also files it in the wallet,
- *	which is the directory the simulator's ticket panel shows and the test host reads.
+ *	The printer. QPM2's simulated one hands the ticket to the qpm_simulator window and completes only
+ *	once that window files it. Ours files it in the wallet itself, the directory the simulator's
+ *	ticket panel shows and the test host reads, so a run needs no window.
  *
  *	The note acceptor. QPM2's simulated one can take a note - the shared region carries a bit per
  *	denomination - but it can never report a ticket: the flag that would say so is only ever
@@ -540,9 +540,16 @@ QPMAPI QRESULT qpmPrinterRegisterCallback(QPMHANDLE handle, const char *deviceId
 QPMAPI QRESULT qpmPrinterPrint(QPMHANDLE handle, const char *deviceId,
 	const PQPMO_PRINTER_TICKET_DESCRIPTOR ticket)
 {
-	QRESULT result = qpmPrinterPrintAsQpm2WroteIt(handle, deviceId, ticket);
-	if (result != Q_SUCCESS || ticket == nullptr)
-		return result;
+	//	Not QPM2's print: it would also post the ticket to qpm_simulator, which would file it a second time.
+	if ((handle == nullptr) || (handle != sQpmWrapper))
+		return Q_QPM_INVALID_HANDLE;
+
+	if (ticket == nullptr)
+		return Q_QPM_INVALID_PARAMETER;
+
+	const QRESULT result = Q_SUCCESS;
+	printf("[SasWorkbench] print: template %d, ticket %" PRIu64 ", validation %s, $%" PRIu64 ".%02" PRIu64 "\n",
+		ticket->Template, ticket->VoucherNumber, ticket->Barcode, ticket->Value / 100, ticket->Value % 100);
 
 	//	The print itself still succeeded, because it did: the machine behaved exactly as it would
 	//	on a board. A ticket that could not be filed is said loudly instead, and the test that was
