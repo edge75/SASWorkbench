@@ -42,4 +42,7 @@ test "a HAL machine prints a cash-out ticket while a host polls" {
   host expect meter credits == 0 within 120s
   host expect exception cashout_ticket_printed within 15s
   host send lp 4D with function=0
+  # The record counts as read only once the host polls again after long poll 4D; an unread one
+  # takes the printer out of use as the cash-out device ten seconds later.
+  host send lp 1A
 }

@@ -32,6 +32,16 @@ the peripheral region on every frame, then add the stimulus:
 It inserts notes and redeems a ticket. Printing still needs the simulator, which is the printer:
 without it a cash-out raises Printer Malfunction, and the reset key clears it.
 
+## If a cash-out that should print pays by handpay
+
+Earlier runs can leave records a host never read: exception 51 (handpay information), 68
+(ticket status) and 3D (the validation buffer). A validation record counts as read only once the
+host polls again after long poll 4D, so a script that ends on 4D leaves it unread, and ten seconds
+later the machine stops using the printer as the cash-out device. Run
+`sasctl run tools/qxcom-hal-bridge/hal-read-back.sas --tcp 127.0.0.1:9760`, then cash out again.
+If it still fails on exception 51, more handpay records were queued than one run reads: run it
+again.
+
 ## If the port will not open
 
 On Windows a virtual cable keeps the slot of a process that was killed rather than closed. When
