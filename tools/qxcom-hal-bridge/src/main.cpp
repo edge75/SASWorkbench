@@ -57,9 +57,14 @@ void MachineToHost(QXCOM_HANDLE port, saswb::TcpLink &link, std::atomic<unsigned
 	while (!sStop.load())
 	{
 		unsigned int read = 0;
-		qxComRead(port, packets.data(), static_cast<unsigned int>(packets.size()), &read);
+		const QRESULT result = qxComRead(port, packets.data(), static_cast<unsigned int>(packets.size()), &read);
 		if (read == 0)
+		{
+			//	A read that timed out has already waited; one that failed outright would spin.
+			if (!QXT_SUCCESS(result) && result != Q_QXCOM_READ_W_CANCELLED)
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			continue;
+		}
 
 		for (unsigned int i = 0; i < read; i++)
 			symbols[i] = static_cast<saswb::Symbol>(packets[i].Data.Raw & (saswb::kWakeupMask | saswb::kPayloadMask));
@@ -87,11 +92,13 @@ void HostToMachine(QXCOM_HANDLE port, saswb::TcpLink &link, std::atomic<unsigned
 		for (std::size_t i = 0; i < read; i++)
 		{
 			packets[i] = {};
-			packets[i].Data.Raw = symbols[i];
+			packets[i].Data.Raw = symbols[i] & (saswb::kWakeupMask | saswb::kPayloadMask);
 		}
 
 		unsigned int written = 0;
 		qxComWrite(port, packets.data(), static_cast<unsigned int>(read), &written);
+		if (written < read)
+			std::fprintf(stderr, "qxcom-hal-bridge: the machine's port took %u of %zu units\n", written, read);
 		relayed += written;
 	}
 }
