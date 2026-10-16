@@ -34,7 +34,12 @@ test "a HAL machine prints a cash-out ticket while a host polls" {
   host expect link up within 30s
   host forget exceptions
 
+  # A machine can still be re-reporting an older ticket's exception, so the cash-out itself is
+  # proven by the credit meter emptying, not by the exception alone.
+  host expect meter credits >= 1 within 2s
+
   # A person presses Collect on the game.
-  host expect exception cashout_ticket_printed within 120s
+  host expect meter credits == 0 within 120s
+  host expect exception cashout_ticket_printed within 15s
   host send lp 4D with function=0
 }

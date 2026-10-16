@@ -24,7 +24,13 @@ cmake --build tools/qxcom-hal-bridge/build
 
 `hal-tickets.sas` needs a person: insert the ticket with validation number 1234567890123456 for
 $20.00 when the first case waits, then press Collect on the game when the second case waits.
-The machine must be on secure enhanced validation with ticket in enabled.
+The machine must be on secure enhanced validation with ticket in enabled, and have credit.
+
+`hal-unattended.sas` needs nobody. Close the `qpm_simulator` window first, because it rewrites
+the peripheral region on every frame, then add the stimulus:
+`sasctl run tools/qxcom-hal-bridge/hal-unattended.sas --tcp 127.0.0.1:9760 --stimulus qpm --egm-resources <machine>/Resources`.
+It inserts notes and redeems a ticket. Printing still needs the simulator, which is the printer:
+without it a cash-out raises Printer Malfunction, and the reset key clears it.
 
 ## If the port will not open
 
