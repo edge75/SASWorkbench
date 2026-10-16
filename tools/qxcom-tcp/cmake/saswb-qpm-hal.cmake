@@ -10,11 +10,10 @@
 #	   out the code that wires up the serial transport. Setting it here shadows the cache entry
 #	   rather than changing it, so every other project still sees HAL=OFF.
 #
-#	2. The simulated printer and the simulated note acceptor are substituted, so a ticket the
-#	   machine prints is filed in the wallet instead of only being written to stdout, and a ticket
-#	   dropped into the acceptor directory is reported to the machine as a document in escrow.
-#	   QPM2's own source is included by ours rather than copied - see
-#	   tools/qxcom-tcp/src/saswb_qpm_hal.cpp - so QPM2 stays the only place that file is maintained.
+#	2. The simulated printer is substituted, so a ticket the machine prints is filed in the wallet
+#	   with no qpm_simulator window open. The acceptor directory is QPM2's own to watch. QPM2's
+#	   source is included by ours rather than copied - see tools/qxcom-tcp/src/saswb_qpm_hal.cpp -
+#	   so QPM2 stays the only place that file is maintained.
 #
 
 set(HAL ON)
@@ -27,9 +26,8 @@ endif()
 if(NOT DEFINED SASWB_QPM_SIMULATOR_ROOT)
 	message(FATAL_ERROR
 		"SasWorkbench: set SASWB_QPM_SIMULATOR_ROOT to the qpm_simulator checkout. The printer "
-		"writes a ticket with that repository's ticket encoder and the note acceptor reads one "
-		"back with it, so the machine, the simulator's panel and the test host cannot come to "
-		"disagree about what a ticket is.")
+		"writes a ticket with that repository's ticket encoder, so the machine, the simulator's "
+		"panel and the test host cannot come to disagree about what a ticket is.")
 endif()
 
 #	The targets do not exist until QPM2's own CMakeLists has run, so the swap is deferred to the
@@ -84,9 +82,7 @@ function(saswb_substitute_qpm_printer)
 		list(APPEND kept
 			"${shim}"
 			"${SASWB_QPM_SIMULATOR_ROOT}/src/Ticket.cpp"
-			"${SASWB_QPM_SIMULATOR_ROOT}/src/Wallet.cpp"
-			"${SASWB_QPM_SIMULATOR_ROOT}/src/Acceptor.cpp"
-			"${SASWB_QPM_SIMULATOR_ROOT}/src/Barcode.cpp")
+			"${SASWB_QPM_SIMULATOR_ROOT}/src/Wallet.cpp")
 
 		set_target_properties(${target} PROPERTIES SOURCES "${kept}")
 		target_include_directories(${target} PRIVATE
@@ -97,8 +93,7 @@ function(saswb_substitute_qpm_printer)
 		target_compile_features(${target} PRIVATE cxx_std_17)
 	endforeach()
 
-	message(STATUS "SasWorkbench: the simulated printer files its tickets in the wallet, and the "
-		"simulated note acceptor takes one back from the acceptor directory")
+	message(STATUS "SasWorkbench: the simulated printer files its tickets in the wallet")
 endfunction()
 
 cmake_language(DEFER DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" CALL saswb_substitute_qpm_printer)
