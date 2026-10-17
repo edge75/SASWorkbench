@@ -116,6 +116,9 @@ constant. Nothing could start a redemption on a real machine. That entry point i
 substituted the same way the printer is — the peripheral manager's own source is included
 rather than copied, so it remains the only place that file is maintained.
 
+The peripheral manager now watches the acceptor directory itself, so that substitution is gone and the
+log lines below come from the peripheral manager as `[QPM] Ticket in escrow`, `stacked` or `returned`.
+
 ## Proven against a real machine
 
 The demo boots, the substituted acceptor picks a ticket out of the directory, reads its barcode
