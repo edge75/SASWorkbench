@@ -228,6 +228,22 @@ public sealed record RunReport
 
     public int Errored => Tests.Count(t => t.Verdict == Verdict.Error);
 
+    /// <summary>The label a case carries when its failure is the result the case exists to produce.</summary>
+    public const string FindingTag = "finding";
+
+    /// <summary>
+    /// How many of the failures are labelled a finding — a machine that does not do what a
+    /// conformance document asks, where the red is the finding rather than a defect in this build.
+    /// </summary>
+    /// <remarks>
+    /// Counted for the summary line only. It changes nothing about the verdict or the exit code:
+    /// a labelled failure is still a failure, and the gate that keeps the label honest is a second
+    /// run of the labelled cases alone, which expects them to fail.
+    /// </remarks>
+    public int FailedFindings => Tests.Count(t =>
+        t.Verdict == Verdict.Fail
+        && t.Tags.Contains(FindingTag, StringComparer.OrdinalIgnoreCase));
+
     /// <summary>
     /// The verdict for the whole run. A run in which nothing could be tested is a skip, never a
     /// pass: a suite that passed because every test was skipped would be the most misleading
@@ -259,7 +275,12 @@ public sealed record RunReport
     {
         var parts = new List<string> { $"{Passed} passed" };
         if (Failed > 0)
-            parts.Add($"{Failed} failed");
+        {
+            parts.Add(FailedFindings == 0
+                ? $"{Failed} failed"
+                : $"{Failed} failed ({FailedFindings} labelled a finding)");
+        }
+
         if (Skipped > 0)
             parts.Add($"{Skipped} skipped");
         if (Errored > 0)

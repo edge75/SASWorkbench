@@ -75,6 +75,20 @@ public static class ReplayDiff
             Explanation = string.Empty,
         };
 
+        // Rule 0 — the machine answered with a queued real-time event rather than with this
+        // command's reply, so the bytes in hand are not an answer to compare and calling the
+        // difference a defect would accuse a machine that never got the question.
+        if (subject.Live.Outcome == LongPollOutcome.AnsweredWithEvent)
+        {
+            return finding with
+            {
+                Cause = ReplayCause.NotComparable,
+                Explanation = "the machine answered with a queued real-time event instead of this "
+                              + "command's reply, which it does while event reporting is on, so "
+                              + "this command was never answered and nothing was compared",
+            };
+        }
+
         // Rule 1 — the same bytes after the address. The echoed address is excluded on purpose:
         // the replay re-addresses every message to the machine it is talking to, so the address
         // byte differing is this tool's own doing and reporting it would be noise on every row.

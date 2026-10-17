@@ -111,7 +111,12 @@ internal static class EventsCommand
             Console.Error.WriteLine(
                 "warning: the machine did not acknowledge reporting being turned off, so it may "
                 + "still be answering general polls in the event format. Anything run against it "
-                + "next would be measuring a machine this run left changed.");
+                + "next would be measuring a machine this run left changed."
+                + (off.Outcome == LongPollOutcome.AnsweredWithEvent
+                    ? " It answered with a queued event instead, which is what it does while "
+                      + "events are still queued, so the queue needs draining before this poll "
+                      + "can get through."
+                    : string.Empty));
         }
 
         IReadOnlyList<EventFinding> findings = probe.Findings();
@@ -221,11 +226,17 @@ internal static class EventsCommand
         }
     }
 
-    /// <summary>Sends the auto-rebet command until the machine acknowledges it, or three times.</summary>
+    /// <summary>
+    /// Sends the auto-rebet command until the machine acknowledges it, or three times — silence
+    /// and a poll preempted by a queued event both count as not yet acknowledged.
+    /// </summary>
     private static LongPollResult Insist(RealTimeEventProbe probe, bool on)
     {
         LongPollResult result = probe.AutoRebet(on);
-        for (int attempt = 1; attempt < 3 && result.Outcome == LongPollOutcome.Silent; attempt++)
+        for (int attempt = 1;
+             attempt < 3 && result.Outcome
+                 is LongPollOutcome.Silent or LongPollOutcome.AnsweredWithEvent;
+             attempt++)
         {
             Thread.Sleep(500);
             result = probe.AutoRebet(on);

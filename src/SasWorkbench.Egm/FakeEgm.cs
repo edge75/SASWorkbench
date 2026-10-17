@@ -412,10 +412,10 @@ public sealed partial class FakeEgm : IDisposable
 
     // ---- Stimulus ------------------------------------------------------------------------
 
-    /// <summary>Queues an exception for the next general poll.</summary>
+    /// <summary>Queues an exception for the next poll that can carry it.</summary>
     public void RaiseException(SasExceptionCode code) => RaiseException((byte)code);
 
-    /// <summary>Queues an exception code for the next general poll.</summary>
+    /// <summary>Queues an exception code for the next poll that can carry it.</summary>
     public void RaiseException(byte code) => RaiseEvent(code, []);
 
     /// <summary>
@@ -1009,6 +1009,28 @@ public sealed partial class FakeEgm : IDisposable
         {
             Reject(link);
             return;
+        }
+
+        //  What the library does at libsas_threads.cpp:3333 — while reporting is on and an
+        //  exception is queued for this link, an addressed long poll is answered with the event
+        //  and the command is never dispatched. Sited after the tests above so a malformed poll is
+        //  still refused, and before the gate below so an event never leaves on a channel that
+        //  owns no category. A broadcast poll is not addressed to this machine and is left alone.
+        if (frame[0] == link.Address.Value)
+        {
+            PendingEvent? preempting;
+            lock (_gate)
+            {
+                preempting = _rteEnabled && link.Exceptions.Count > 0
+                    ? link.Exceptions.Dequeue()
+                    : null;
+            }
+
+            if (preempting is not null)
+            {
+                SendRealTimeEvent(link, preempting);
+                return;
+            }
         }
 
         //  The channel category gate, which is what makes two hosts on one machine safe. A

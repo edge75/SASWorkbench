@@ -555,6 +555,18 @@ public sealed class ScriptRunner
                                 + $"<address>' before it, or 'to <address>' after it. It polls "
                                 + string.Join(", ", hosts.Engine.Round.Select(a => $"${a}")) + "."),
 
+                        SendGeneralPollStep poll when poll.To is null && hosts.Machine is null =>
+                            Unavailable(poll, stopwatch.Elapsed,
+                                $"this host polls {hosts.Engine.Round.Count} machines and this "
+                                + "case has not said which one to poll. Add 'host machine "
+                                + "<address>' before it, or 'to <address>' after it. It polls "
+                                + string.Join(", ", hosts.Engine.Round.Select(a => $"${a}")) + "."),
+
+                        SendGeneralPollStep poll =>
+                            RunStep(poll with { To = poll.To ?? hosts.Machine }, hosts.Engine,
+                                hosts.Machine, environment, exceptions, test, baselines, window,
+                                answered, printed, stopwatch.Elapsed),
+
                         SendLongPollStep send =>
                             RunStep(send with { To = send.To ?? hosts.Machine }, hosts.Engine,
                                 hosts.Machine, environment, exceptions, test, baselines, window,
@@ -637,8 +649,12 @@ public sealed class ScriptRunner
         {
             return step switch
             {
-                ConnectStep or PollEveryStep => new StepResult(
+                ConnectStep => new StepResult(
                     step.Location, step.Describe(), Verdict.Pass, At: at),
+
+                // The interval itself is read once when the host is built. What this does mid-case
+                // is give the line back to the timer after a sequence.
+                PollEveryStep every => Resume(every, engine, at),
 
                 NoteStep note => new StepResult(
                     note.Location, note.Describe(), Verdict.Pass, At: at),
@@ -646,6 +662,12 @@ public sealed class ScriptRunner
                 WaitStep wait => Wait(wait, at),
 
                 SendLongPollStep send => Send(send, engine, answered, at),
+
+                PollInSequenceStep sequence => Sequence(sequence, engine, at),
+
+                SendGeneralPollStep poll => SendGeneralPoll(poll, engine, at),
+
+                SendSyncPollStep sync => SendSyncPoll(sync, engine, at),
 
                 ExpectNoReplyStep silence => ExpectSilence(silence, engine, machine, at),
 
@@ -916,6 +938,93 @@ public sealed class ScriptRunner
             Expected: "a reply",
             Actual: result.ToString(),
             Reason: result.Detail,
+            At: at)
+        {
+            IsAssertion = true,
+        };
+    }
+
+    /// <summary>Gives the line back to the timer, ending a sequence if one was running.</summary>
+    private static StepResult Resume(PollEveryStep step, PollEngine engine, TimeSpan at)
+    {
+        bool was = engine.IsSequenced;
+        engine.EndSequence();
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+            Actual: was ? "the round resumes" : null, At: at);
+    }
+
+    /// <summary>Puts the host into the mode where the line carries only what the case names.</summary>
+    private static StepResult Sequence(PollInSequenceStep step, PollEngine engine, TimeSpan at)
+    {
+        engine.BeginSequence();
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+            Actual: "the round and the synchronisation poll are stopped; the line now carries "
+                    + "only what this case sends",
+            At: at);
+    }
+
+    /// <summary>Sends one general poll the case named, and checks what it drew.</summary>
+    /// <remarks>
+    /// Outside a sequence this is refused rather than sent. The round is already sending general
+    /// polls on its own, so one more placed by hand would be a message the case did not account
+    /// for — and the exception it drew would have been drawn by the round just as easily, which
+    /// makes the assertion say nothing.
+    /// </remarks>
+    private static StepResult SendGeneralPoll(
+        SendGeneralPollStep step, PollEngine engine, TimeSpan at)
+    {
+        if (!engine.IsSequenced)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: "a general poll this case owns",
+                Actual: "the host is polling a round on a timer",
+                Reason: "a general poll placed by hand while the round is running is one more "
+                        + "message among many, and what it drew the round would have drawn anyway. "
+                        + "Put 'host poll sequence' before it.",
+                At: at) { IsAssertion = true };
+        }
+
+        GeneralPollResult result = engine.PollGenerally(
+            step.To, purpose: WirePurpose.Label("general poll", step.Describe()));
+
+        (bool held, string expected) = step.Draws switch
+        {
+            DrawExpectation.Exception =>
+                (result.Outcome == GeneralPollOutcome.Exception && result.Code == step.Code,
+                    $"exception {step.CodeName}"),
+            DrawExpectation.NoActivity =>
+                (result.Outcome == GeneralPollOutcome.NoActivity, "no activity"),
+            DrawExpectation.Silence =>
+                (result.Outcome == GeneralPollOutcome.Silent, "silence"),
+            _ => (result.Outcome != GeneralPollOutcome.NotSent, "the poll to reach the line"),
+        };
+
+        return new StepResult(
+            step.Location,
+            step.Describe(),
+            held ? Verdict.Pass : Verdict.Fail,
+            Expected: expected,
+            Actual: result.ToString(),
+            Reason: held ? null : result.Detail,
+            At: at)
+        {
+            IsAssertion = step.Draws != DrawExpectation.Unasserted,
+        };
+    }
+
+    /// <summary>Sends the broadcast to address 00, and checks no machine answered it.</summary>
+    private static StepResult SendSyncPoll(SendSyncPollStep step, PollEngine engine, TimeSpan at)
+    {
+        GeneralPollResult result = engine.Synchronise(purpose: step.Describe());
+        bool held = result.Outcome == GeneralPollOutcome.Broadcast;
+
+        return new StepResult(
+            step.Location,
+            step.Describe(),
+            held ? Verdict.Pass : Verdict.Fail,
+            Expected: "a broadcast no machine answers",
+            Actual: result.ToString(),
+            Reason: held ? null : result.Detail,
             At: at)
         {
             IsAssertion = true,

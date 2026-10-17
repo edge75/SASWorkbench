@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
+using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -412,6 +413,164 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// A machine reporting real-time events answers a long poll with a queued event rather than
+    /// with the poll's own reply, and the event must survive that. A host reading the second byte
+    /// as an echoed command cannot see one at all: the message is counted as an answer to some
+    /// earlier poll, discarded, and the long poll reported silent — so the event is lost, not
+    /// misreported, which is the one failure this project exists to refuse.
+    /// </summary>
+    /// <remarks>
+    /// Staged the way the one-behind tests stage lateness: the line hands back one prepared
+    /// message with a silence after it, so what this proves is the order the bytes arrive in and
+    /// not any thread being scheduled promptly. The poll is deliberately not a success — the
+    /// caller never got the reply it asked for — and deliberately not retried, because repeating
+    /// the same poll is an implied NACK and would only fetch the same event again.
+    /// </remarks>
+    [Fact]
+    public void An_event_answering_a_long_poll_is_kept_and_the_poll_is_not_a_success()
+    {
+        using var bus = new LoopbackBus();
+        var line = new ScriptedLine(bus.Host, 0x1F, EventInsteadOfReply(0x7E, [0x01, 0x00]));
+
+        var reported = new List<ExceptionReport>();
+        using var engine = new PollEngine(line, SpacedOutOptions());
+        engine.ExceptionReported += reported.Add;
+        engine.Start();
+
+        LongPollResult result = engine.Execute(0x1F, [], LongEnoughToBeReached);
+
+        Assert.Equal(LongPollOutcome.AnsweredWithEvent, result.Outcome);
+        Assert.False(result.Succeeded);
+        Assert.Contains("drain", result.Detail, StringComparison.OrdinalIgnoreCase);
+
+        ExceptionReport kept = Assert.Single(reported);
+        Assert.Equal(0x7E, kept.Code);
+        Assert.Equal<byte[]>([0x01, 0x00], kept.Data);
+        Assert.True(kept.IsRealTimeEvent);
+        Assert.Equal(Address, kept.Address);
+    }
+
+    /// <summary>
+    /// The sequenced mode exists because what is on the line between two messages is not
+    /// incidental - it is the protocol. A machine learns the host heard its last reply from the
+    /// next poll it sees, so a host running a round on a timer and prefixing a broadcast to every
+    /// message cannot present the sequence an implied-acknowledgement case describes: section 3.19
+    /// makes that broadcast an acknowledgement in its own right.
+    /// </summary>
+    [Fact]
+    public void In_a_sequence_the_line_carries_only_what_was_named()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Replies[0x1F] = [0x11, 0x22];
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+
+        // Long enough that a host polling on a timer would have sent a dozen of each.
+        Thread.Sleep(300);
+        Assert.Equal(0, engine.Statistics.GeneralPolls);
+        Assert.Equal(0, engine.Statistics.SyncPolls);
+        Assert.Equal(0, engine.Statistics.LongPolls);
+
+        Assert.Equal(GeneralPollOutcome.NoActivity, engine.PollGenerally().Outcome);
+        Assert.Equal(LongPollOutcome.Answered, engine.Execute(0x1F).Outcome);
+
+        PollStatistics stats = engine.Statistics;
+        Assert.Equal(1, stats.GeneralPolls);
+        Assert.Equal(1, stats.LongPolls);
+
+        // The one that matters: no synchronisation poll went out on its own, ahead of the long
+        // poll or anywhere else.
+        Assert.Equal(0, stats.SyncPolls);
+        Assert.Equal([0x1F], machine.CommandsSeen);
+    }
+
+    /// <summary>
+    /// A general poll a case names draws one exception and says which, in the order the machine
+    /// queued them. Watching the exception stream instead would say the same codes arrived and not
+    /// which poll drew each, which is exactly what these cases are about.
+    /// </summary>
+    [Fact]
+    public void A_named_general_poll_says_what_that_one_poll_drew()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Exceptions.Enqueue(0x11);
+        machine.Exceptions.Enqueue(0x12);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+
+        GeneralPollResult first = engine.PollGenerally();
+        GeneralPollResult second = engine.PollGenerally();
+        GeneralPollResult third = engine.PollGenerally();
+
+        Assert.Equal(GeneralPollOutcome.Exception, first.Outcome);
+        Assert.Equal(0x11, first.Code);
+        Assert.Equal(GeneralPollOutcome.Exception, second.Outcome);
+        Assert.Equal(0x12, second.Code);
+
+        // Not a silence: the machine answered and said it has nothing, which is a statement.
+        Assert.Equal(GeneralPollOutcome.NoActivity, third.Outcome);
+        Assert.Equal(Address, third.Address);
+    }
+
+    /// <summary>
+    /// The broadcast to address 00 is the message section 3.19 turns on, so a case has to be able
+    /// to place one itself. No machine answers it, and one that did would be a finding - so the
+    /// line is listened to rather than assumed quiet. Outside a sequence the engine owns this
+    /// message, and a second one placed by hand is refused rather than silently doubled.
+    /// </summary>
+    [Fact]
+    public void A_broadcast_is_placed_by_hand_only_inside_a_sequence_and_no_machine_answers_it()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.Start();
+
+        GeneralPollResult refused = engine.Synchronise();
+        Assert.Equal(GeneralPollOutcome.NotSent, refused.Outcome);
+        Assert.Contains("sequence", refused.Detail, StringComparison.OrdinalIgnoreCase);
+
+        engine.BeginSequence();
+        GeneralPollResult broadcast = engine.Synchronise();
+
+        Assert.Equal(GeneralPollOutcome.Broadcast, broadcast.Outcome);
+        Assert.False(broadcast.Answered);
+        Assert.True(engine.Statistics.SyncPolls >= 1);
+    }
+
+    /// <summary>
+    /// The mode is given back, so a case can establish communication the ordinary way, drive an
+    /// exact sequence, and then let the round resume.
+    /// </summary>
+    [Fact]
+    public void Ending_a_sequence_gives_the_line_back_to_the_timer()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+        Thread.Sleep(200);
+        Assert.Equal(0, engine.Statistics.GeneralPolls);
+
+        engine.EndSequence();
+        Assert.True(WaitUntil(() => engine.Statistics.GeneralPolls >= 3));
+        Assert.True(engine.Statistics.SyncPolls >= 1);
+    }
+
+    /// <summary>
     /// A busy response is the one reply to a long poll that echoes no command: the machine's
     /// address and a zero, with no check sequence. Read off the gaming machine library's own
     /// sender rather than reasoned about. Treating it as a message about some other poll would
@@ -646,6 +805,17 @@ public class PollEngineTests
         frame[2] = 0x51;
         frame[3] = 0x58;
         return frame[..SasCrc.Append(frame, 4)].ToArray();
+    }
+
+    /// <summary>The real-time event format, as a machine sends it in a long poll's window.</summary>
+    private static byte[] EventInsteadOfReply(byte code, byte[] carried)
+    {
+        Span<byte> frame = stackalloc byte[HostMessage.MaxSymbols];
+        frame[0] = Address.Value;
+        frame[1] = SasEventLayouts.Marker;
+        frame[2] = code;
+        carried.CopyTo(frame[SasEventLayouts.HeaderLength..]);
+        return frame[..SasCrc.Append(frame, SasEventLayouts.HeaderLength + carried.Length)].ToArray();
     }
 
     /// <summary>Puts bytes on the line from the machine's end, with no poll having asked for them.</summary>

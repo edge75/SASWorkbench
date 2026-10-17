@@ -107,3 +107,9 @@ PHASE:M5 WAVE:W4-container-log STATUS:complete TS:2026-09-13T22:20:13Z
 PHASE:M5 WAVE:W5-both-axes-and-floor-stimulus STATUS:complete TS:2026-09-14T05:51:07Z
 PHASE:M7 WAVE:W0-read-the-documents STATUS:complete TS:2026-09-21T21:37:15Z
 PHASE:M7 WAVE:W1-unsupported-poll-is-silence STATUS:complete TS:2026-09-21T22:29:50Z
+PHASE:M7 WAVE:W2-chapter-3-communications STATUS:complete TS:2026-09-21T23:24:41Z
+PHASE:M7 WAVE:W3-chapter-4-required-exceptions STATUS:complete TS:2026-09-21T23:24:41Z
+PHASE:M7 WAVE:W4-chapter-11-real-time-events STATUS:complete TS:2026-09-21T23:24:41Z
+PHASE:M7 WAVE:W5-long-poll-answered-with-an-event STATUS:complete TS:2026-09-22T18:48:23Z
+PHASE:M7 WAVE:W6-poll-sequence STATUS:complete TS:2026-09-28T21:58:50Z
+PHASE:M7 WAVE:W7-chapter-10-ticketing STATUS:complete TS:2026-09-28T22:20:38Z

@@ -73,6 +73,33 @@ public class ReportingTests
         Assert.Equal(1, Sample().ExitCode);
     }
 
+    /// <summary>
+    /// A case labelled a finding fails because the machine does not do what a conformance document
+    /// asks, and the summary says so rather than leaving a reader to guess whether the red is a
+    /// defect in this build. What it must not do is soften the result: the verdict and the exit
+    /// code are the same either way, because the gate that keeps the label honest is a second run
+    /// of the labelled cases alone that expects them to fail.
+    /// </summary>
+    [Fact]
+    public void A_failure_labelled_a_finding_is_named_in_the_summary_and_still_fails()
+    {
+        RunReport plain = Sample();
+        Assert.Contains("1 failed", plain.Summary());
+        Assert.DoesNotContain("finding", plain.Summary());
+
+        RunReport labelled = plain with
+        {
+            Tests = [.. plain.Tests.Select(t => t.Verdict == Verdict.Fail
+                ? t with { Tags = [RunReport.FindingTag] }
+                : t)],
+        };
+
+        Assert.Equal(1, labelled.FailedFindings);
+        Assert.Contains("1 failed (1 labelled a finding)", labelled.Summary());
+        Assert.Equal(Verdict.Fail, labelled.Verdict);
+        Assert.Equal(1, labelled.ExitCode);
+    }
+
     [Fact]
     public void Every_format_has_a_writer_and_an_extension()
     {

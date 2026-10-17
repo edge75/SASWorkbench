@@ -516,3 +516,73 @@ something the document requires.
 `ci.yml` is left unfiltered, so D29's case runs on every push on both platforms at about 76 seconds
 a run. It is the only thing exercising both axes at scale, and that is cheap against a floor defect
 found by a person instead. The `@casino` tag stays in place for running the tree without it by hand.
+
+# Decisions 42–44
+
+Taken with the user on 2026-09-22, after chapters 3, 4 and 11 were written and the two findings in
+`docs/M7-reading-the-documents.md` §10 were put to them. Same standing as the rest.
+
+## D42 — The chirp is not built on its own; it goes with the scripted line
+
+Six cases name `host.chirp` — 3.4, 3.5.1, 3.6, 3.23, 11.8 and 11.13 — but it would unblock only
+**two of them alone**, 3.4 and 11.8. The rest also need `host.poll_sequence`, a power cycle or a
+service button.
+
+Chirping needs two halves that are useless apart: the software machine must send its address every
+200 ms after five seconds of silence, and the host must watch a line while no poll is outstanding.
+The second is a new mode in the poll engine, and it is the same mode `host.poll_sequence` needs —
+one where the script drives the line instead of the timer. `host.poll_sequence` blocks twenty
+cases. So the chirp waits and is built with it, rather than building the idle-line watcher twice
+for two cases.
+
+Nothing is wrong meanwhile: the six cases skip naming the capability, which is the honest state.
+
+## D43 — A long poll answered with an event is kept, named, and not retried
+
+The machine library answers a **long poll** with a real-time event, rather than with the long
+poll's own reply, when reporting is on and an exception is queued (`libsas_threads.cpp:3333`; the
+branch that dispatches long polls by command is never reached). The documents require the same
+thing — chapter 11's loops carry no general polls at all.
+
+This host discarded such a message: it cannot answer the command, so it was counted as answering
+some earlier poll, and the long poll was reported `Silent`. **The event was lost**, which is the
+silent degradation this project exists to refuse, and it happens against a real machine in a
+configuration a customer would use.
+
+So the host now admits the event format in a long poll's window, reports the exception to the
+stream it would have reached on a general poll, and gives the long poll a new outcome of its own —
+`AnsweredWithEvent`, which is deliberately **not** a success, because the caller did not get the
+reply it asked for. A script step that sent the poll fails, with a reason telling its author to
+drain the queue first.
+
+**The host does not ask again**, and that is the decision rather than an omission. Repeating the
+same poll is an implied NACK (section 3.20): the machine would read it as the event having been
+missed and send the same event again, and a third time is final. A host that retried would spin on
+one event and never reach its reply while anything was queued. Draining correctly means
+interleaving a *different* poll to acknowledge before re-asking, which is the poll engine's control
+flow and is not bought here. It is worth building when something actually needs long polls to work
+with reporting on.
+
+One bounded exception, because it already exists and already retried: `sasctl events` insists on
+its auto-rebet command up to three times while the machine stays silent, and that retry now covers
+an event-preempted poll too. It is a local insistence on one command, not a general policy.
+
+## D44 — The software machine mirrors the library, after the host can hear it
+
+The fixture answered every long poll with the command's own reply and only ever put an event on a
+general poll, so nothing here could reproduce D43 at all. It now does what the library does: while
+reporting is on and an exception is queued for that link, a long poll addressed to the machine is
+answered with the event and the command is not dispatched.
+
+The gate sits **after the check sequence and address tests and before the channel-category gate**,
+so a malformed poll is still refused and an event never leaves on a channel that owns no category.
+
+Order matters and is part of the decision: the host change lands first. A fixture that sent events
+on long polls before the host could accept one would make our own suite lose them.
+
+The cost is named rather than discovered later: **any `host send lp` issued while an exception is
+still queued now gets an event instead of a reply, and the step fails.** Two cases were relying on
+the preceding assertions having happened to drain the queue — 11.1 and 11.14, both disabling
+reporting after a stimulus — and each gains a `host forget exceptions` first, which waits for three
+poll intervals of quiet before clearing and so drains as well as forgets. 11.7 sends long polls
+with reporting on and no stimulus before them, and carries a comment saying that is why it is safe.

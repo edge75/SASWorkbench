@@ -215,3 +215,134 @@ What changed, with the call sites shown before anything was edited:
 The refusal was originally there to stop a test depending on a fabricated zero. Silence serves that
 equally, so nothing was lost — and the gap is still counted, so a run can still say what it asked
 for in vain.
+
+---
+
+# Three chapters written — 2026-09-22
+
+Chapters 3, 4 and 11: 109 cases, every one of them present whether or not anything can run it.
+They were chosen because the first reading put 46 of the corpus's 69 runnable cases in them.
+
+## 8. What the chapters actually measure
+
+| ch | chapter | cases | run | skip |
+|---:|---|---:|---:|---:|
+| 3 | Communications | 24 | 3 | 21 |
+| 4 | Required exceptions | 60 | 4 | 56 |
+| 11 | Real-time events | 25 | 7 | 18 |
+| | **total** | **109** | **14** | **95** |
+
+Against the estimate of 46 that is a quarter, and the shortfall is the over-count section 4 warned
+about rather than a surprise. Where it went, chapter by chapter:
+
+**Chapter 3 — 3 run, 21 skip.** Eleven of the twenty-one wait on one thing: the ability to put an
+exact sequence of named general and long polls on the line with nothing else between them. Every
+implied acknowledgement and implied NACK case is that shape, and this host cannot produce it for
+two reasons at once — it runs a round on a timer, and it sends a synchronisation poll ahead of
+every message, which section 3.19 says is itself an acknowledgement. Two more wait on watching for
+the machine's chirp, two on measuring a duration, two on setting the machine's address at the
+machine, and one each on a hand pay, a power cycle, a memory fault, a collision and a poll sent
+without the wakeup bit. What runs is the framing, the unsupported poll, and the poll-rate sweep
+from 4800 ms down to 200 ms.
+
+**Chapter 4 — 4 run, 56 skip.** The largest single block is hardware nobody has: ten cases need a
+hand pay, six need a bill acceptor that can be made to jam or reject, five need a printer fault,
+five a memory fault, four a coin path and four a hopper. Four more need the exact poll sequence,
+three a power cycle, two the machine's own exception queue depth. What runs is no activity, the
+four door pairs, the seven note denominations, and the host taking the machine out of service.
+
+**Chapter 11 — 7 run, 18 skip.** The best return of the three, because real-time event reporting is
+one of the few whole features the software machine implements. What runs is the mode itself, a
+backlog of ten draining in the event format, the poll-rate sweep down to 40 ms, notes in both
+formats, what a note event carries, and what a game start and a game end carry. Five of the skips
+are the same acknowledgement sequences as chapter 3, three need a power cycle, and the rest need a
+machine this one is not — a poker game, reels, more than one game, a game recall screen, a bet
+button.
+
+Run it with:
+
+    sasctl run tests/validation/egm-test-scripts-v1.00 --loopback --stimulus software
+
+## 9. Two capabilities would be worth more than anything else
+
+`host.poll_sequence` blocks twenty cases across the two chapters and is the single largest lever in
+the corpus so far. It is not a decoder and not a stimulus: it is a mode in which the host stops
+polling on a timer and sends exactly the messages a case names, in order, to the addresses it
+names, with the synchronisation poll under the case's control rather than the engine's. Everything
+about implied acknowledgement and implied NACK — in this suite and in the machine library's own
+state machine — is unreachable without it.
+
+`host.chirp` is named by six cases — 3.4, 3.5.1, 3.6, 3.23, 11.8 and 11.13 — but it would unblock
+only **two of them on its own**, 3.4 and 11.8. The other four also need `host.poll_sequence`, a
+power cycle, or a service button, so they stay skipped whatever is done about the chirp. After five
+seconds of silence the machine sends its own address with the wakeup bit every 200 ms, and nothing
+here watches the line when no poll is outstanding.
+
+## 10. Two findings, one of them now fixed
+
+Both were found the way section 7's was: our software machine disagrees with the documents, and the
+machine library was read before deciding which of them was wrong. The call sites were listed so the
+work could be agreed first; the second finding has since been agreed as D43 and D44 and built, and
+the first waits on the two capabilities of section 9.
+
+### The software machine never chirps
+
+Sections 3.4, 3.5, 3.6, 3.13, 3.23, 11.8 and 11.13 all turn on it. The machine library has the
+behaviour: `libsas_threads.cpp` keeps a per-channel `syncSas` state with `SAS_CHIRP` as one of its
+values, and `ianChirp()` enters it, resets the consecutive-poll counters and the last-received
+command, and discards every action queued against the reply that was never acknowledged.
+
+Our fixture has no such state and no such timer. It is a gap rather than a disagreement — nothing
+in the suite passes because of it, because the host cannot watch for a chirp either — so the honest
+form is the two capabilities above rather than a defect. Both halves are needed together: a machine
+that chirps and a host that can see one.
+
+### A long poll answered with an event — the machine did not send one, and the host would have thrown it away
+
+This is the one worth deciding about, and it was decided: D43 for the host, D44 for the fixture. With real-time event reporting on and exceptions queued, the
+machine library answers a **long poll** with the event rather than with the long poll's own reply:
+
+    libsas_threads.cpp:3333
+    if ((rxPacket.length == 1 && rxPacket.data[0] == (sc->address + 0x80))
+     || (rxPacket.length > 1 && sc->isRteEnabled && exceptionsCount > 0 && rxPacket.data[0] == sc->address))
+
+The branch that follows sends the event, and the `else` that dispatches long polls by command is
+never reached, so the long poll goes unanswered. The documents say the same thing in several
+places — 11.1's polling loop carries no general polls at all, and its criterion is that the game
+start arrives in answer to a long poll.
+
+Two things follow, and the second is a defect in this build rather than in the fixture:
+
+* **Our software machine only ever puts an event on a general poll.** A test written against it
+  cannot tell the two deliveries apart, which is why the chapter 11 cases that run say so in a
+  note rather than claiming the criterion.
+* **Our host would discard the event if a real machine sent one.** `CouldAnswer` admits the event
+  format only for a general poll; for a long poll it requires the second byte to echo the command.
+  An event arriving in a long poll's window is therefore counted as "this cannot be an answer to
+  long poll $xx", recorded as discarded, and the long poll is reported `Silent`. The event is lost
+  — not misreported, but lost — which is exactly the failure the one-behind work was about, in a
+  case that work did not cover.
+
+The call sites, all of them, as they stood before anything was edited. A long poll answered with an
+event now has an outcome of its own, `AnsweredWithEvent`, which is not a success and is not retried;
+the event reaches the exception stream it would have reached on a general poll; and the software
+machine preempts the way the library does. Three cases beyond the table also changed, because a new
+outcome falling through a default would have reported a machine that spoke as silent: the sweep's
+outcome map, the replay classifier, and `sasctl events`.
+
+| file | line | what it is |
+|---|---:|---|
+| `src/SasWorkbench.Core/Polling/PollEngine.cs` | 706 | `CouldAnswer` — the long-poll branch admits only an acknowledgement, a rejection, a busy response or an echoed command |
+| `src/SasWorkbench.Core/Polling/PollEngine.cs` | 668 | `ReceiveAnswer` — discards and counts anything `CouldAnswer` rejects |
+| `src/SasWorkbench.Core/Polling/PollEngine.cs` | 505 | `RunPendingLongPoll` — would have to route an event frame to the exception stream and decide what the long poll's own outcome then is |
+| `src/SasWorkbench.Core/Polling/PollEngine.cs` | 571 | `Interpret` — classifies what came back; an event frame has no outcome today |
+| `src/SasWorkbench.Core/Polling/PollEngine.cs` | 455 | `ReportRealTimeEvent` — reachable only from the general-poll path |
+| `src/SasWorkbench.Egm/FakeEgm.cs` | 990 | `HandleLongPoll` — would have to answer with a queued event ahead of the command's own reply while reporting is on |
+| `src/SasWorkbench.Egm/FakeEgm.cs` | 967 | `SendRealTimeEvent` — the sender, reused unchanged |
+| `src/SasWorkbench.Egm/FakeEgm.cs` | 884 | `HandlePoll` — the general-poll path, unchanged |
+
+A third, smaller, noted rather than raised as a finding: the fixture's exception queue is a plain
+first-in-first-out with no bound, so it has no priority order and can never overflow. The library
+has both — an overflow state per channel and a priority order the document lists in 4.11. Nothing
+in these three chapters can reach either, because every case that would needs a hand pay or the
+machine's own queue depth, so it is recorded here rather than turned into a case nobody asked for.
