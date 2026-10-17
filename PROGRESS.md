@@ -48,6 +48,14 @@ a machine in the library's default meter mode. On the machine under test it cann
 platform sets full manual. Our own suite goes from 37 to 57 distinct long polls explained and
 `tests/regression` from 28 cases to 33, still with no skips (`docs/M4-meter-index.md`).
 
+M5 and the first eight waves of M7 are recorded below. In October a bridge put the host on the
+virtual SAS port of an unmodified HAL build, and the note acceptor's tickets moved into QPM2
+(`tools/qxcom-hal-bridge/README.md`). On 2026-10-17 the baseline moved to libsas v5.4.5.13, QSP
+v2.3.5.32 and QPM2 pull request 218 (`fixtures/pinned-versions.json`): three more long polls are
+channel-gated, a sweep of the demo decodes every reply it gets, and ticket-in works end to end. The
+committed memory fixtures are arrangement 7 and the new QSP writes 13, so the demo now runs on a
+memory configured by hand until a new golden one is made.
+
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
 PHASE:M0 WAVE:W3-wire-proof STATUS:complete TS:2026-09-04T00:26:30Z
@@ -113,3 +121,4 @@ PHASE:M7 WAVE:W4-chapter-11-real-time-events STATUS:complete TS:2026-09-21T23:24
 PHASE:M7 WAVE:W5-long-poll-answered-with-an-event STATUS:complete TS:2026-09-22T18:48:23Z
 PHASE:M7 WAVE:W6-poll-sequence STATUS:complete TS:2026-09-28T21:58:50Z
 PHASE:M7 WAVE:W7-chapter-10-ticketing STATUS:complete TS:2026-09-28T22:20:38Z
+PHASE:M7 WAVE:W8-baseline-libsas-5.4.5.13 STATUS:complete TS:2026-10-17T06:57:38Z

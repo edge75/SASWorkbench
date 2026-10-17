@@ -8,6 +8,10 @@ Everything here was verified in source or measured from a binary during the
 
 ## 1. THE blocker — no build configuration reaches the goal today
 
+> **Superseded upstream, 2026-10-17.** libsas v5.4.4.62 and later build the real library in HAL
+> builds, and libqxcom v3.4.0.1 added virtual serial ports, which is what `tools/qxcom-hal-bridge`
+> uses. The section below is kept as the reason the M0 preset exists.
+
 ```
 HAL=ON    simulated peripherals ✓   but libsas is REPLACED by a 130-line do-nothing stub
           (runs on a laptop)         → QSP_DemoOpenGL/src/hal/libsas.cpp

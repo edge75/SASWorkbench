@@ -86,10 +86,12 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`4666881b3272d94969babc86076fb90664deae53`), and the checkout must be clean.
+   (`96c5240ca36c9d4e1ebca38fc59df71e387a7dd9`, tag `v5.4.5.13`), and the checkout must be clean.
+   When libsas moves ahead, re-pin to it and run `python tools/protogen/protogen.py --check`.
 
-2. Build the demo with the preset this repository owns. It is the **only** file added to
-   `QSP_DemoOpenGL`, and it is gitignored there (D30, CLAUDE.md constraint 3):
+2. Build the demo with the preset this repository owns, from a Visual Studio developer prompt
+   (`vcvars64.bat`), so that `cmake` and the compiler are on the path. The preset is gitignored in
+   `QSP_DemoOpenGL` (D30, CLAUDE.md constraint 3):
 
    ```
    cd C:\Progetti\QSP_DemoOpenGL
@@ -101,6 +103,13 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    top of `SAS`, and the key in this machine's secure storage carries `SAS` only — built Debug the
    machine raises a licence lockup and takes no money (BLOCKERS.md Trap D).
 
+   A Release build of QSP v2.3.5.32 takes **prebuilt packages** of libsas and QPM2 and silently
+   ignores the source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure
+   prints `libsas built with VALIDATION_DEBUG` and `the simulated printer files its tickets in the
+   wallet`; without both lines it is not this project's build. Until QPM2 pull request 218 is
+   released, the preset also points `FETCHCONTENT_SOURCE_DIR_QPM` at `C:/Progetti/QPM2`, which
+   carries the acceptor that reads tickets.
+
 3. Restore the memory the machine needs. Fresh NVRAM has no printer protocol and no validation
    style, so no ticket prints and no note is accepted:
 
@@ -108,17 +117,26 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    sasctl nvram restore --fixture fixtures/nvram/golden.nvram.gz
    ```
 
-   Use `secure-enhanced.nvram.gz` instead for the redemption cases. The fixtures are **arrangement
-   7**, which is the QSP the preset fetches. The read-only checkout at `C:\Progetti\QSP` is
-   arrangement 6 and must not be used as the build source — a machine master-resets memory not
-   written in the arrangement it was built for.
+   Use `secure-enhanced.nvram.gz` instead for the redemption cases. **The fixtures are arrangement
+   7 and QSP v2.3.5.32 writes arrangement 13**, so today they cannot be restored onto the pinned
+   build; a machine master-resets memory not written in the arrangement it was built for. Until an
+   arrangement-13 golden memory is configured by hand and committed, run on a memory configured by
+   hand, and expect cases that assume the fixture's five-cent denomination to fail on the units.
 
-4. Start the machine, then point the host at it:
+4. Start the machine, which dials the host and keeps retrying, then point the host at it:
 
    ```
-   tools\qxcom-tcp\run-m0.ps1
-   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm
+   cd C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0\x64
+   OpenGL_Game.exe
+   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm --egm-resources C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0\x64\Resources
    ```
+
+   `tools\qxcom-tcp\run-m0.ps1` is the M0 wire proof: it runs its own throwaway host on the same
+   port and closes the machine afterwards, so it is not the way to start one for a suite.
+
+   A case that prints a ticket and leaves its validation record unread makes the machine stop
+   using the printer, and the next cash-out locks it in a hand pay that refuses every note and
+   ticket after it. Measured on 2026-10-17; `tools/qxcom-hal-bridge/README.md` has the read-back.
 
 ---
 
