@@ -209,11 +209,11 @@ internal static class Program
             LinkState = "up",
             IsLinkUp = true,
             IsLinkProven = true,
-            LinkClaim = "over tcp 127.0.0.1:9760 (listen) · stimulus none",
+            LinkClaim = "tcp 127.0.0.1:9760 (listen) · stimulus none",
             Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
             LogBound = "log 9/20000",
             Status = "connected to tcp 127.0.0.1:9760 (listen)",
-            LastReply = "answered in 30.7 ms, 24 symbols",
+            LastReply = "LP $1F ch1 Answered 011F515830303102FF00000030303100000039323130863F (30.7ms)",
             RunSummary = "PASS — 1 passed, 1 skipped in 7.0s",
         };
 
@@ -222,12 +222,12 @@ internal static class Program
 
         model.Fields.Add(new FieldLine("game_id", "QX", string.Empty));
         model.Fields.Add(new FieldLine("additional_id", "001", string.Empty));
-        model.Fields.Add(new FieldLine("denomination", "2", "code"));
-        model.Fields.Add(new FieldLine("max_bet", "255", "credits"));
-        model.Fields.Add(new FieldLine("progressive_group", "0", "index"));
-        model.Fields.Add(new FieldLine("game_options", "0000", "little-endian"));
+        model.Fields.Add(new FieldLine("denomination", "2", "Code"));
+        model.Fields.Add(new FieldLine("max_bet", "255", "Credits"));
+        model.Fields.Add(new FieldLine("progressive_group", "0", "Index"));
+        model.Fields.Add(new FieldLine("game_options", "0", string.Empty));
         model.Fields.Add(new FieldLine("paytable_id", "001", string.Empty));
-        model.Fields.Add(new FieldLine("base_percentage", "9210", "hundredths of a percent"));
+        model.Fields.Add(new FieldLine("base_percentage", "9210", "HundredthsOfPercent"));
 
         model.Meters.Add(new MeterLine("total_bill_value", "$20", "2000", "credits"));
         model.Meters.Add(new MeterLine("games_played", "$15", "14", "count"));
