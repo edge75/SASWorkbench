@@ -208,6 +208,7 @@ internal static class Program
             Target = "127.0.0.1:9760",
             LinkState = "up",
             IsLinkUp = true,
+            IsConnected = true,
             IsLinkProven = true,
             LinkClaim = "tcp 127.0.0.1:9760 (listen) · stimulus none",
             Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
@@ -297,7 +298,8 @@ internal static class Program
             {
                 Stimulus = StimulusBackend.Software,
                 Environment = SoftwareMachineEnvironment.For(),
-                PollInterval = TimeSpan.FromMilliseconds(20),
+                // The window's own default, so the verdicts are the ones a person running the suite sees.
+                PollInterval = TimeSpan.FromMilliseconds(200),
             });
 
             return runner.RunAll(documents);
