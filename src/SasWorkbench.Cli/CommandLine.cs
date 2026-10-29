@@ -10,6 +10,13 @@ namespace SasWorkbench.Cli;
 /// </remarks>
 public sealed class CommandLine
 {
+    /// <summary>The options that never take a value, so the word after one is never swallowed as its value.</summary>
+    private static readonly HashSet<string> Flags = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "all", "causes", "caveats", "dial", "exchanges", "framing", "list", "loopback",
+        "no-sync-polls", "once", "quiet", "real-time-events", "rules", "verbose",
+    };
+
     private readonly Dictionary<string, string?> _options = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<string> _positional = [];
     private readonly HashSet<string> _read = new(StringComparer.OrdinalIgnoreCase);
@@ -48,7 +55,8 @@ public sealed class CommandLine
                 value = name[(equals + 1)..];
                 name = name[..equals];
             }
-            else if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+            else if (!Flags.Contains(name)
+                     && i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
             {
                 value = args[++i];
             }

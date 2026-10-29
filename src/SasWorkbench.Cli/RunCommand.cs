@@ -12,6 +12,38 @@ internal static class RunCommand
 {
     public static int Execute(CommandLine line)
     {
+        // Every option is read and checked before anything can stop early, so a stop never
+        // reports one as unknown for having been skipped.
+        if (!TryReadConnection(line, out ConnectionOverride connection, out string? connectionError))
+        {
+            Console.Error.WriteLine($"error: {connectionError}");
+            return 2;
+        }
+
+        if (!TryBuildOptions(line, out ScriptRunnerOptions options, out string? optionError))
+        {
+            Console.Error.WriteLine($"error: {optionError}");
+            return 2;
+        }
+
+        if (!Reports.TryParse(line.Value("report"), out ReportFormat[] formats, out string? unknown))
+        {
+            Console.Error.WriteLine($"error: '{unknown}' is not a report format. Expected {Reports.Names}.");
+            return 2;
+        }
+
+        string? outDirectory = line.Value("out");
+        if (outDirectory is not null && formats.Length == 0)
+        {
+            Console.Error.WriteLine("error: --out says where reports go, but no --report says which to write.");
+            return 2;
+        }
+
+        string? only = line.Value("tag");
+        string? without = line.Value("skip-tag");
+        bool quiet = line.Flag("quiet");
+        bool list = line.Flag("list");
+
         if (line.Arguments.Count == 0)
         {
             Console.Error.WriteLine("error: 'run' needs a script or a directory of scripts.");
@@ -22,13 +54,7 @@ internal static class RunCommand
             .SelectMany(ScriptLoader.Load)
             .ToList();
 
-        if (!TryOverrideConnection(line, documents, out documents!, out string? connectionError))
-        {
-            Console.Error.WriteLine($"error: {connectionError}");
-            return 2;
-        }
-
-        documents = Filter(line, documents);
+        documents = Filter(only, without, connection.ApplyTo(documents));
 
         int tests = documents.Sum(d => d.Tests.Count);
         if (tests == 0)
@@ -37,7 +63,7 @@ internal static class RunCommand
             return 3;
         }
 
-        if (line.Flag("list"))
+        if (list)
         {
             foreach (ScriptDocument document in documents)
             {
@@ -58,25 +84,12 @@ internal static class RunCommand
             return 0;
         }
 
-        if (!TryBuildOptions(line, out ScriptRunnerOptions options, out string? optionError))
-        {
-            Console.Error.WriteLine($"error: {optionError}");
-            return 2;
-        }
-
-        bool quiet = line.Flag("quiet");
         var runner = new ScriptRunner(options with
         {
             OnTestFinished = quiet ? null : Print,
         });
 
         RunReport report = runner.RunAll(documents);
-
-        if (!Reports.TryParse(line.Value("report"), out ReportFormat[] formats, out string? unknown))
-        {
-            Console.Error.WriteLine($"error: '{unknown}' is not a report format. Expected {Reports.Names}.");
-            return 2;
-        }
 
         Console.WriteLine();
         foreach (RunProvenance provenance in report.Provenance)
@@ -86,7 +99,7 @@ internal static class RunCommand
 
         if (formats.Length > 0)
         {
-            string directory = line.Value("out")
+            string directory = outDirectory
                                ?? Path.Combine("runs", DateTime.Now.ToString("yyyyMMdd-HHmmss"));
             IReadOnlyList<string> written = Reports.Write(report, directory, formats);
 
@@ -251,18 +264,15 @@ internal static class RunCommand
     }
 
     /// <summary>
-    /// Applies <c>--tcp</c>, <c>--serial</c>, <c>--loopback</c>, <c>--address</c> and
-    /// <c>--channel</c> to every connect step, so one suite can be pointed at a different machine
-    /// without editing it.
+    /// Reads <c>--tcp</c>, <c>--serial</c>, <c>--loopback</c>, <c>--address</c> and
+    /// <c>--channel</c>, which are applied to every connect step so one suite can be pointed at a
+    /// different machine without editing it.
     /// </summary>
-    private static bool TryOverrideConnection(
-        CommandLine line,
-        IReadOnlyList<ScriptDocument> documents,
-        out IReadOnlyList<ScriptDocument>? rewritten,
-        out string? error)
+    private static bool TryReadConnection(
+        CommandLine line, out ConnectionOverride change, out string? error)
     {
         error = null;
-        rewritten = documents;
+        change = ConnectionOverride.None;
 
         string? tcp = line.Value("tcp");
         string? serial = line.Value("serial");
@@ -312,19 +322,13 @@ internal static class RunCommand
             overrideChannel = parsed;
         }
 
-        var change = new ConnectionOverride(transport, target, overrideAddress, overrideChannel);
-        if (!change.TryValidate(out error))
-            return false;
-
-        rewritten = change.ApplyTo(documents);
-        return true;
+        change = new ConnectionOverride(transport, target, overrideAddress, overrideChannel);
+        return change.TryValidate(out error);
     }
 
     private static IReadOnlyList<ScriptDocument> Filter(
-        CommandLine line, IReadOnlyList<ScriptDocument> documents)
+        string? only, string? without, IReadOnlyList<ScriptDocument> documents)
     {
-        string? only = line.Value("tag");
-        string? without = line.Value("skip-tag");
         if (only is null && without is null)
             return documents;
 

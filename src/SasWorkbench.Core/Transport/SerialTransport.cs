@@ -30,8 +30,8 @@ public sealed record SerialTransportOptions(string PortName, int BaudRate = 1920
 /// would simply never be sent and every test would pass over a link that does not work.
 /// </para>
 /// <para>
-/// Reported as unverified: no adapter has been measured. A pass here is not evidence about
-/// hardware until someone attaches some.
+/// Reported as unverified, because only an on-board UART has been measured (a Quixant IQ-2 on
+/// serial.sys at 19200 baud) and this transport cannot tell that from a USB adapter, none of which has.
 /// </para>
 /// </remarks>
 public sealed class SerialTransport : ISasTransport
@@ -40,7 +40,8 @@ public sealed class SerialTransport : ISasTransport
         TransportKind.Serial,
         CarriesWakeupBit: true,
         TransportFidelity.Unverified,
-        "Serial timing has never been measured against an adapter; treat a pass as untested.");
+        "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters "
+        + "are unmeasured, so treat a pass over one as untested.");
 
     private static readonly TransportCapabilities RefusedCaps = new(
         TransportKind.Serial,

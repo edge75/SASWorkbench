@@ -823,6 +823,13 @@ public static class SasLayouts
                         Unit = SasUnit.Code,
                         Description = "What to set the selected bits to.",
                     },
+
+                    // The handler reads both whatever the length byte says, so a request without
+                    // them has its check sequence read as expiry days.
+                    Bcd("cashable_ticket_expiration", 2, SasUnit.None,
+                        "Days before a cashable ticket expires; zero leaves the machine's own."),
+                    Bcd("restricted_ticket_expiration", 2, SasUnit.None,
+                        "Days before a restricted ticket expires; zero leaves the machine's own."),
                 ],
                 Response =
                 [

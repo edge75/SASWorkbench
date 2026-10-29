@@ -39,6 +39,11 @@ public sealed class PollEngine : IDisposable
     private readonly ManualResetEventSlim _pendingDone = new(false);
     private readonly Lock _stateGate = new();
 
+    // Taken by the loop to start a timed cycle and by BeginSequence to stop the next one, so a
+    // cycle is either already running when the sequence begins or never starts.
+    private readonly Lock _cycleGate = new();
+    private readonly ManualResetEventSlim _cycleIdle = new(true);
+
     // Guards the handoff of one long poll from the caller to the poll thread and of its result
     // back again. Only taken when a long poll is submitted or dispatched, so the general poll
     // cycle never touches it.
@@ -237,7 +242,15 @@ public sealed class PollEngine : IDisposable
     /// the link marked up while hearing nothing would be reporting something it had not measured.
     /// </para>
     /// </remarks>
-    public void BeginSequence() => _sequenced = true;
+    public void BeginSequence()
+    {
+        lock (_cycleGate)
+            _sequenced = true;
+
+        // The cycle already on the line finishes first, so the next message is the caller's.
+        if (Thread.CurrentThread != _thread)
+            _cycleIdle.Wait(_options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1));
+    }
 
     /// <summary>Gives the line back to the timer, and resumes the round and the synchronisation poll.</summary>
     public void EndSequence() => _sequenced = false;
@@ -449,6 +462,7 @@ public sealed class PollEngine : IDisposable
     {
         Stop();
         _pendingDone.Dispose();
+        _cycleIdle.Dispose();
         _executeGate.Dispose();
         Transport.Dispose();
     }
@@ -501,12 +515,27 @@ public sealed class PollEngine : IDisposable
 
             nextPollAt = now + (long)_options.PollInterval.TotalMilliseconds;
 
-            if (_pendingReady)
-                RunPending();
-            else
-                RunPollCycle();
+            lock (_cycleGate)
+            {
+                if (_sequenced)
+                    continue;
 
-            CheckLinkTimeout();
+                _cycleIdle.Reset();
+            }
+
+            try
+            {
+                if (_pendingReady)
+                    RunPending();
+                else
+                    RunPollCycle();
+
+                CheckLinkTimeout();
+            }
+            finally
+            {
+                _cycleIdle.Set();
+            }
         }
     }
 

@@ -36,7 +36,8 @@ test "asking $7B with an empty control mask reads the machine and sets nothing" 
   host poll every 200ms
   host expect link up within 5s
 
-  host send lp 7B with control_mask=0 status_bit_control_states=0
+  # Zero expiry days leave the machine's own, the other half of what makes this a read.
+  host send lp 7B with control_mask=0 status_bit_control_states=0 cashable_ticket_expiration=0 restricted_ticket_expiration=0
   host expect field length of lp 7B == $0A
 
   # The same asset number $74 reports. Two replies built by different handlers out of the same
@@ -44,6 +45,6 @@ test "asking $7B with an empty control mask reads the machine and sets nothing" 
   # would have to be wrong in exactly the same way in the other to go unnoticed.
   host send lp 74 with lock_code=$FF transfer_condition=00 lock_timeout=0
   host expect field asset_number of lp 74 == 1
-  host send lp 7B with control_mask=0 status_bit_control_states=0
+  host send lp 7B with control_mask=0 status_bit_control_states=0 cashable_ticket_expiration=0 restricted_ticket_expiration=0
   host expect field asset_number of lp 7B == 1
 }

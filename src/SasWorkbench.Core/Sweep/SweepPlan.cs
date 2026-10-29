@@ -134,9 +134,11 @@ public static class SweepPlan
 
             // The handler only touches a status bit where the control mask selects it, so a mask
             // of nothing selects nothing and the reply still carries the machine's own settings.
-            [0x7B] = ([0x04, 0x00, 0x00, 0x00, 0x00],
+            // Both expiry dates go in as zero, which leaves the stored ones alone; a shorter
+            // request would have the handler read them from the check sequence and store them.
+            [0x7B] = ([0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
                 "the handler changes only the status bits the control mask selects, and this mask "
-                + "selects none"),
+                + "selects none; zero expiry dates leave the stored ones as they are"),
         };
 
     private static readonly Dictionary<byte, byte[]> FixedRequests = new()

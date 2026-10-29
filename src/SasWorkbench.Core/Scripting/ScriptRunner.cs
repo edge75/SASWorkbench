@@ -195,6 +195,10 @@ public sealed class ScriptRunner
             return broken;
         }
 
+        // Refused before any port opens, because the second open would only fail with access denied.
+        if (SharedLink(test) is { } shared)
+            return Skipped(test, stopwatch, startedAt, shared, connect.Channel, testBase);
+
         ScriptEnvironment environment;
         try
         {
@@ -260,6 +264,31 @@ public sealed class ScriptRunner
             return Execute(
                 test, connect, environment, capabilities, stopwatch, startedAt, testBase, provenance);
         }
+    }
+
+    /// <summary>
+    /// Why two channels of the case would share one serial port or one TCP endpoint, or null when
+    /// each has a link of its own.
+    /// </summary>
+    private static string? SharedLink(ScriptTest test)
+    {
+        var first = new Dictionary<(ScriptTransport, string), SasChannel>();
+        foreach (ConnectStep step in test.Steps.OfType<ConnectStep>())
+        {
+            if (step.Transport is not (ScriptTransport.Serial or ScriptTransport.Tcp))
+                continue;
+
+            (ScriptTransport, string) link = (step.Transport, step.Target.Trim().ToUpperInvariant());
+            if (!first.TryAdd(link, step.Channel) && first[link] != step.Channel)
+            {
+                string kind = step.Transport == ScriptTransport.Serial ? "serial port" : "TCP endpoint";
+                return $"channels {(int)first[link]} and {(int)step.Channel} would both open {kind} "
+                       + $"{step.Target}, and one link carries one channel; give each channel a link "
+                       + "of its own";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>

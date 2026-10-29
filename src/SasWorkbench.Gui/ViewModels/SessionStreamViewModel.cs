@@ -45,6 +45,9 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
     private static readonly TimeSpan FlushInterval = TimeSpan.FromMilliseconds(100);
 
+    /// <summary>How far either side of a test's own window a narrowed stream reaches.</summary>
+    private static readonly TimeSpan ScopeMargin = TimeSpan.FromMilliseconds(250);
+
     private readonly List<SessionEvent> _pending = [];
     private readonly List<SessionEvent> _shown = [];
     private readonly Lock _gate = new();
@@ -103,6 +106,12 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
     /// </summary>
     [ObservableProperty]
     public partial string? Scope { get; set; }
+
+    /// <summary>The narrowing as the strip above the stream says it, or null when there is none.</summary>
+    public string? ScopeLine =>
+        Scope is null ? null : $"Narrowed to {Scope} ±{ScopeMargin.TotalMilliseconds:F0} ms";
+
+    partial void OnScopeChanged(string? value) => OnPropertyChanged(nameof(ScopeLine));
 
     /// <summary>
     /// What to look for, written as one line: <c>lp 2F</c>, <c>exception 4A</c> or its name,
@@ -181,8 +190,8 @@ public sealed partial class SessionStreamViewModel : ObservableObject, IDisposab
 
         // A margin either side, because the frame that explains a failure is usually the one just
         // before the window rather than inside it.
-        _from = from - TimeSpan.FromMilliseconds(250);
-        _to = to + TimeSpan.FromMilliseconds(250);
+        _from = from - ScopeMargin;
+        _to = to + ScopeMargin;
         Scope = label;
         Rebuild();
     }

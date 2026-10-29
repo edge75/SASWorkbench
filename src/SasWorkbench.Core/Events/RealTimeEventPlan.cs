@@ -95,11 +95,11 @@ public static class RealTimeEventPlan
 
     /// <summary>The commands a measurement of events sends that an ordinary sweep withholds.</summary>
     /// <remarks>
-    /// Named here rather than left implicit, because both are commands the sweep refuses on
+    /// Named here rather than left implicit, because all three are commands the sweep refuses on
     /// purpose and a person running this is entitled to know that before the link opens. Long poll
-    /// <c>$0E</c> changes how the machine answers every general poll after it, and <c>$AA</c>
-    /// makes the machine play rounds by itself. Both are put back the way they were found at the
-    /// end of the run, and the run says whether that succeeded rather than assuming it.
+    /// <c>$0E</c> changes how the machine answers every general poll after it, <c>$AA</c> makes
+    /// the machine play rounds by itself, and <c>$06</c> enables the note acceptor. The first two
+    /// are put back at the end of the run, which says whether that succeeded; the acceptor is left on.
     /// </remarks>
     public static IReadOnlyList<(byte Command, string What)> DeliberatelySent { get; } =
     [

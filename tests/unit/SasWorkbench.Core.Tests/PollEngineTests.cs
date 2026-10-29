@@ -549,6 +549,45 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// Beginning a sequence while the round is mid-cycle has to wait for that cycle to finish.
+    /// Raising a flag and returning left the cycle's general poll still to go out, and it drew
+    /// whatever the case did next - the door a case opened right after asking for a sequence was
+    /// answered to the round, and the case's own first poll then found the wrong exception. That
+    /// was the red 4.6 on a 20 ms poll. Here the cycle is held on the line deliberately, so the
+    /// race is not left to the scheduler.
+    /// </summary>
+    [Fact]
+    public async Task Beginning_a_sequence_waits_for_the_cycle_already_on_the_line()
+    {
+        CancellationToken cancel = TestContext.Current.CancellationToken;
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        var line = new HeldSyncLine(bus.Host);
+        using var engine = new PollEngine(line, FastOptions());
+        engine.Start();
+
+        Assert.True(line.Held.Wait(TimeSpan.FromSeconds(3), cancel), "no cycle reached the line");
+
+        Task begin = Task.Run(engine.BeginSequence, cancel);
+        Task first = await Task.WhenAny(begin, Task.Delay(150, cancel));
+        Assert.True(first != begin, "the sequence began while a cycle was still on the line");
+
+        line.Release();
+        await begin.WaitAsync(TimeSpan.FromSeconds(3), cancel);
+
+        // Queued only now, after the sequence began: the case's own poll draws it, not the round.
+        int before = machine.Snapshot().General;
+        machine.Exceptions.Enqueue(0x11);
+
+        GeneralPollResult drawn = engine.PollGenerally();
+        Assert.Equal(GeneralPollOutcome.Exception, drawn.Outcome);
+        Assert.Equal(0x11, drawn.Code);
+        Assert.Equal(before + 1, machine.Snapshot().General);
+    }
+
+    /// <summary>
     /// The mode is given back, so a case can establish communication the ordinary way, drive an
     /// exact sequence, and then let the round resume.
     /// </summary>
@@ -656,6 +695,50 @@ public class PollEngineTests
     /// without staging it on a clock. The messages are queued when a chosen poll is transmitted,
     /// so they land after the line has been resynchronised: the one window draining cannot close.
     /// </summary>
+    /// <summary>
+    /// Holds the first synchronisation poll on the line until released, which puts a timed cycle
+    /// in flight for exactly as long as a test needs one there.
+    /// </summary>
+    private sealed class HeldSyncLine(ISasTransport inner) : ISasTransport
+    {
+        private readonly ManualResetEventSlim _released = new(false);
+        private int _holds = 1;
+
+        public ManualResetEventSlim Held { get; } = new(false);
+
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Release() => _released.Set();
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols)
+        {
+            bool sync = symbols.Length == 1 && symbols[0].Wakeup && symbols[0].Data == 0x80;
+            if (sync && Interlocked.Exchange(ref _holds, 0) == 1)
+            {
+                Held.Set();
+                _released.Wait(TimeSpan.FromSeconds(5));
+            }
+
+            inner.Write(symbols);
+        }
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout) => inner.Read(destination, timeout);
+
+        public void Dispose()
+        {
+            _released.Set();
+            inner.Dispose();
+        }
+    }
+
     private sealed class ScriptedLine(ISasTransport inner, byte trigger, params byte[][] messages)
         : ISasTransport
     {

@@ -61,7 +61,8 @@ internal static class Help
               --qpm-shm <file>        the peripheral shared region, if it is not in the usual
                                       place for this platform  (--stimulus qpm)
               --report <formats>      {Reports.Names}  (comma-separated)
-              --out <directory>       where to write reports  (default: runs/<timestamp>)
+              --out <directory>       where to write the reports --report asks for  (default:
+                                      runs/<timestamp>)
               --tag <name>            run only tests carrying this label
               --skip-tag <name>       skip tests carrying this label
               --list                  list the tests that would run, and stop
@@ -279,10 +280,11 @@ internal static class Help
               event, and writes down what each one carried. A long poll can be asked for and an
               event can only be caused, which is why this is a command of its own.
 
-              It sends two commands the sweep withholds and says so before opening the link: $0E,
-              because turning reporting on is the measurement, and $AA, because the machine
-              playing by itself is the only lever here that produces a game. Both are turned off
-              again at the end and the run says whether that was acknowledged.
+              It sends three commands the sweep withholds and says so before opening the link:
+              $0E, because turning reporting on is the measurement; $AA, because the machine
+              playing by itself is the only lever here that produces a game; and $06, because a
+              note the acceptor refuses reports nothing. $0E and $AA are turned off again at the
+              end and the run says whether that was acknowledged; $06 leaves the acceptor enabled.
 
               An exception nothing here can cause is reported as unproduced with the reason,
               never as a payload nobody checked. It asserts nothing, so it comes back as a run in
@@ -400,9 +402,9 @@ internal static class Help
             EXAMPLES
               sasctl run tests/regression --loopback --stimulus software
               sasctl run tests/conformance/10.1 --tcp 127.0.0.1:7200 --report html,junit
-              sasctl probe --serial COM12
+              sasctl probe
               sasctl probe --stimulus qpm --egm-resources <demo>/Resources
-              sasctl egm --tcp 127.0.0.1:7200
+              sasctl egm --tcp 127.0.0.1:7200 --dial
               sasctl qpm status --egm-resources <demo>/Resources
               sasctl qpm audit open --egm-resources <demo>/Resources
               sasctl explain runs/20260907-101500/run.jsonl

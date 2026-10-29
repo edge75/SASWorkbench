@@ -112,7 +112,14 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
 
     /// <summary>Whether a pass on this link is evidence, or only a claim.</summary>
     [ObservableProperty]
-    public partial bool IsLinkProven { get; set; } = true;
+    public partial bool IsLinkProven { get; set; }
+
+    /// <summary>Whether an open link is only a claim; with no link there is nothing to qualify.</summary>
+    public bool IsLinkUnverified => IsConnected && !IsLinkProven;
+
+    partial void OnIsLinkProvenChanged(bool value) => OnPropertyChanged(nameof(IsLinkUnverified));
+
+    partial void OnIsConnectedChanged(bool value) => OnPropertyChanged(nameof(IsLinkUnverified));
 
     /// <summary>The link and what is driving it, in one line.</summary>
     [ObservableProperty]
@@ -421,7 +428,7 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
         IsLinkUp = false;
         LinkClaim = "no link";
         LinkCaveat = null;
-        IsLinkProven = true;
+        IsLinkProven = false;
         Status = "disconnected";
     }
 
