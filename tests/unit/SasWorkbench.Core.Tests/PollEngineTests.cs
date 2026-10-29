@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using SasWorkbench.Core.Diagnostics;
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
@@ -588,6 +589,92 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// The wait for the cycle on the line has a ceiling, and running into it used to be ignored:
+    /// the sequence began with the round's poll still on the line, and nothing said so. That poll
+    /// can draw the exception the case is about to send for, so the engine has to report that it
+    /// gave up waiting, and the case has to hear it. Here the cycle is held well past the ceiling.
+    /// </summary>
+    [Fact]
+    public async Task A_sequence_that_outwaits_its_ceiling_says_the_cycle_is_still_on_the_line()
+    {
+        CancellationToken cancel = TestContext.Current.CancellationToken;
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        var line = new HeldSyncLine(bus.Host);
+        using var engine = new PollEngine(line, FastOptions() with
+        {
+            ResponseTimeout = TimeSpan.FromMilliseconds(100),
+        });
+        engine.Start();
+
+        Assert.True(line.Held.Wait(TimeSpan.FromSeconds(3), cancel), "no cycle reached the line");
+
+        bool clear = await Task.Run(engine.BeginSequence, cancel);
+        line.Release();
+
+        Assert.False(clear);
+        Assert.True(engine.IsSequenced);
+    }
+
+    /// <summary>
+    /// A port that takes no data used to time out inside the poll thread, and the exception ended
+    /// the whole process: a serial port with nothing behind it closed sasctl with a stack trace.
+    /// The link is now marked down, polling stops, and the reason is kept for whoever asks next.
+    /// A long poll asked for afterwards is refused at once with that reason, rather than after the
+    /// engine's full wait with a reason that blames the engine.
+    /// </summary>
+    [Fact]
+    public void A_link_that_stops_taking_messages_stops_polling_and_says_why()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(new RefusingLine(bus.Host), FastOptions());
+        engine.Start();
+
+        Assert.True(WaitUntil(() => engine.LinkFault is not null), "the failure was never recorded");
+        Assert.Equal(LinkState.Down, engine.State);
+        Assert.Contains(bus.Host.Description, engine.LinkFault);
+        Assert.Contains("The write timed out.", engine.LinkFault);
+
+        var watch = Stopwatch.StartNew();
+        LongPollResult refused = engine.Execute(0x1F);
+        watch.Stop();
+
+        Assert.Equal(LongPollOutcome.NotSent, refused.Outcome);
+        Assert.Equal(engine.LinkFault, refused.Detail);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"refused after {watch.Elapsed}");
+        Assert.Equal(GeneralPollOutcome.NotSent, engine.PollGenerally().Outcome);
+    }
+
+    /// <summary>
+    /// The caller already waiting when the link fails is the one who most needs the reason: its
+    /// message is the one that did not go out. In a sequence nothing else is on the line, so the
+    /// long poll itself is the write that fails.
+    /// </summary>
+    [Fact]
+    public void A_long_poll_whose_write_fails_is_answered_with_the_reason()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(new RefusingLine(bus.Host), FastOptions());
+        engine.BeginSequence();
+        engine.Start();
+
+        LongPollResult result = engine.Execute(0x1F);
+
+        Assert.Equal(LongPollOutcome.NotSent, result.Outcome);
+        Assert.Contains("stopped taking messages", result.Detail);
+        Assert.Contains("The write timed out.", result.Detail);
+        Assert.Equal(LinkState.Down, engine.State);
+    }
+
+    /// <summary>
     /// The mode is given back, so a case can establish communication the ordinary way, drive an
     /// exact sequence, and then let the round resume.
     /// </summary>
@@ -737,6 +824,30 @@ public class PollEngineTests
             _released.Set();
             inner.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Refuses every write the way a serial port with no device behind it does: the driver takes
+    /// nothing, and the write times out.
+    /// </summary>
+    private sealed class RefusingLine(ISasTransport inner) : ISasTransport
+    {
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols) =>
+            throw new TimeoutException("The write timed out.");
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout) => inner.Read(destination, timeout);
+
+        public void Dispose() => inner.Dispose();
     }
 
     private sealed class ScriptedLine(ISasTransport inner, byte trigger, params byte[][] messages)

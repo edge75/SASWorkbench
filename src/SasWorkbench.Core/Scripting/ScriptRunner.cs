@@ -985,7 +985,17 @@ public sealed class ScriptRunner
     /// <summary>Puts the host into the mode where the line carries only what the case names.</summary>
     private static StepResult Sequence(PollInSequenceStep step, PollEngine engine, TimeSpan at)
     {
-        engine.BeginSequence();
+        if (!engine.BeginSequence())
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: "the round's cycle on the line to finish before the sequence begins",
+                Actual: "a cycle was still on the line when the wait for it ran out",
+                Reason: "that cycle's general poll can still draw what this case sends for, so what "
+                        + "follows is not the sequence the case describes. A cycle normally ends "
+                        + "within one response timeout; a link slow to take bytes holds it longer.",
+                At: at) { IsAssertion = true };
+        }
+
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Actual: "the round and the synchronisation poll are stopped; the line now carries "
                     + "only what this case sends",
@@ -1569,8 +1579,11 @@ public sealed class ScriptRunner
     private static StepResult CheckLink(ExpectLinkStep step, PollEngine engine, TimeSpan at)
     {
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        while (engine.State != step.Expected && Environment.TickCount64 < deadline)
+        while (engine.State != step.Expected && engine.LinkFault is null
+               && Environment.TickCount64 < deadline)
+        {
             Thread.Sleep(5);
+        }
 
         bool held = engine.State == step.Expected;
         return new StepResult(
@@ -1579,6 +1592,7 @@ public sealed class ScriptRunner
             held ? Verdict.Pass : Verdict.Fail,
             Expected: step.Expected.ToString(),
             Actual: engine.State.ToString(),
+            Reason: held ? null : engine.LinkFault,
             At: at) { IsAssertion = true };
     }
 

@@ -53,6 +53,7 @@ public sealed class PollEngine : IDisposable
     private volatile bool _running;
     private volatile bool _pendingReady;
     private volatile bool _sequenced;
+    private volatile string? _linkFault;
     private PendingKind _pendingKind = PendingKind.LongPoll;
     private GeneralPollResult? _pendingPollResult;
     private byte _pendingCommand;
@@ -145,6 +146,12 @@ public sealed class PollEngine : IDisposable
                 return _state;
         }
     }
+
+    /// <summary>
+    /// Why the link stopped taking messages, after which nothing more is polled; null while it
+    /// has not.
+    /// </summary>
+    public string? LinkFault => _linkFault;
 
     /// <summary>Counters for the run so far.</summary>
     public PollStatistics Statistics => new(
@@ -242,14 +249,21 @@ public sealed class PollEngine : IDisposable
     /// the link marked up while hearing nothing would be reporting something it had not measured.
     /// </para>
     /// </remarks>
-    public void BeginSequence()
+    /// <returns>
+    /// False when the cycle already on the line had not finished when the wait for it ran out.
+    /// The sequence has begun anyway, but that cycle's general poll can still draw what the caller
+    /// sends for, so the caller has to report the sequence as broken.
+    /// </returns>
+    public bool BeginSequence()
     {
         lock (_cycleGate)
             _sequenced = true;
 
         // The cycle already on the line finishes first, so the next message is the caller's.
-        if (Thread.CurrentThread != _thread)
-            _cycleIdle.Wait(_options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1));
+        if (Thread.CurrentThread == _thread)
+            return true;
+
+        return _cycleIdle.Wait(_options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1));
     }
 
     /// <summary>Gives the line back to the timer, and resumes the round and the synchronisation poll.</summary>
@@ -314,6 +328,12 @@ public sealed class PollEngine : IDisposable
         {
             lock (_submitGate)
             {
+                if (_linkFault is { } fault)
+                {
+                    return new GeneralPollResult(target, _options.Channel, GeneralPollOutcome.NotSent,
+                        0x00, [], TimeSpan.Zero, fault);
+                }
+
                 _pendingKind = kind;
                 _pendingAddress = target;
                 _pendingPurpose = purpose;
@@ -376,6 +396,12 @@ public sealed class PollEngine : IDisposable
         {
             lock (_submitGate)
             {
+                if (_linkFault is { } fault)
+                {
+                    return new LongPollResult(command, _options.Channel, LongPollOutcome.NotSent,
+                        [], TimeSpan.Zero, fault);
+                }
+
                 _pendingKind = PendingKind.LongPoll;
                 _pendingAddress = target;
                 data.CopyTo(_pendingData);
@@ -460,14 +486,26 @@ public sealed class PollEngine : IDisposable
 
     public void Dispose()
     {
+        // _pendingDone and _cycleIdle are left undisposed: the poll thread can outlive Stop's wait
+        // and still set them, and neither holds a kernel handle.
         Stop();
-        _pendingDone.Dispose();
-        _cycleIdle.Dispose();
         _executeGate.Dispose();
         Transport.Dispose();
     }
 
     private void Loop()
+    {
+        try
+        {
+            Poll();
+        }
+        catch (LinkFailedException failed)
+        {
+            Fail(failed.Message);
+        }
+    }
+
+    private void Poll()
     {
         long nextPollAt = _clock.ElapsedMilliseconds;
 
@@ -848,6 +886,38 @@ public sealed class PollEngine : IDisposable
         _pendingDone.Set();
     }
 
+    /// <summary>
+    /// Stops polling on a link that has stopped taking messages, and hands the reason to whoever
+    /// is waiting rather than letting the failure end the process.
+    /// </summary>
+    /// <remarks>
+    /// A caller whose answer was already handed back keeps it: only a transaction nobody has
+    /// answered yet is told the link failed.
+    /// </remarks>
+    private void Fail(string fault)
+    {
+        // Down before the fault is visible, and the waiter released before any handler runs.
+        bool changed = ChangeState(LinkState.Down);
+
+        lock (_submitGate)
+        {
+            _linkFault = fault;
+            _pendingReady = false;
+            if (!_pendingDone.IsSet)
+            {
+                _pendingResult = new LongPollResult(_pendingCommand, _options.Channel,
+                    LongPollOutcome.NotSent, [], TimeSpan.Zero, fault);
+                _pendingPollResult = new GeneralPollResult(_pendingAddress, _options.Channel,
+                    GeneralPollOutcome.NotSent, 0x00, [], TimeSpan.Zero, fault);
+            }
+        }
+
+        _pendingDone.Set();
+
+        if (changed)
+            LinkStateChanged?.Invoke(LinkState.Down);
+    }
+
     private void RunPendingLongPoll()
     {
         byte command;
@@ -999,7 +1069,16 @@ public sealed class PollEngine : IDisposable
     private void SendAndRecord(int length, string note)
     {
         ReadOnlySpan<SasSymbol> message = _outbound.AsSpan(0, length);
-        _link.Send(message);
+        try
+        {
+            _link.Send(message);
+        }
+        catch (Exception ex) when (ex is IOException or TimeoutException or InvalidOperationException
+                                       or UnauthorizedAccessException)
+        {
+            throw new LinkFailedException($"{Transport.Description} stopped taking messages: {ex.Message}", ex);
+        }
+
         WireLog.Record(WireDirection.Transmit, _options.Channel, _attributed, message, _clock.Elapsed, note);
         Wire?.Invoke(WireDirection.Transmit, _options.Channel, _attributed, message, _clock.Elapsed, note);
     }
@@ -1161,16 +1240,23 @@ public sealed class PollEngine : IDisposable
 
     private void SetState(LinkState state)
     {
-        bool changed;
-        lock (_stateGate)
-        {
-            changed = _state != state;
-            _state = state;
-        }
-
-        if (changed)
+        if (ChangeState(state))
             LinkStateChanged?.Invoke(state);
     }
 
+    /// <summary>Records the state without telling anyone, and says whether it changed.</summary>
+    private bool ChangeState(LinkState state)
+    {
+        lock (_stateGate)
+        {
+            bool changed = _state != state;
+            _state = state;
+            return changed;
+        }
+    }
+
     private static string FormatCaveat(string? caveat) => caveat is null ? string.Empty : $" {caveat}";
+
+    /// <summary>The link refused a message, carried from the write to the poll loop.</summary>
+    private sealed class LinkFailedException(string message, Exception inner) : Exception(message, inner);
 }

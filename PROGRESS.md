@@ -132,3 +132,6 @@ PHASE:R1 WAVE:B-rebase-serial-parity-fix STATUS:complete TS:2026-10-29T19:42:05Z
 PHASE:R1 WAVE:C-code-tests-specimen STATUS:complete TS:2026-10-29T20:13:45Z
 PHASE:R2 WAVE:C-commit-and-board-build STATUS:complete TS:2026-10-29T21:09:38Z
 PHASE:R2 WAVE:D-guides-it-en STATUS:complete TS:2026-10-29T21:30:25Z
+PHASE:R2 WAVE:E-commit-user-guide STATUS:complete TS:2026-10-29T21:50:15Z
+PHASE:R2 WAVE:F-push-and-pr-6 STATUS:complete TS:2026-10-29T21:50:15Z
+PHASE:R3 WAVE:R1-R3-link-faults-and-sequence STATUS:complete TS:2026-10-29T22:49:16Z

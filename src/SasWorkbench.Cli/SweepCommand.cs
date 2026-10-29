@@ -47,8 +47,9 @@ internal static class SweepCommand
         engine.Start();
         if (!WaitForLink(engine))
         {
-            Console.Error.WriteLine(
-                "error: the machine never answered a general poll, so nothing was swept. "
+            Console.Error.WriteLine(engine.LinkFault is { } fault
+                ? $"error: {fault} Nothing was swept."
+                : "error: the machine never answered a general poll, so nothing was swept. "
                 + "Nothing is reported as silent, because a link that was never up says nothing "
                 + "about any command.");
             return 2;
@@ -268,7 +269,7 @@ internal static class SweepCommand
 
     private static bool WaitForLink(PollEngine engine)
     {
-        for (int i = 0; i < 100 && engine.State != LinkState.Up; i++)
+        for (int i = 0; i < 100 && engine.State != LinkState.Up && engine.LinkFault is null; i++)
             Thread.Sleep(100);
 
         return engine.State == LinkState.Up;

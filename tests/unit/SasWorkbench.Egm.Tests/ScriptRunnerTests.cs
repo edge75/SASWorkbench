@@ -1,5 +1,7 @@
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Transport;
+using SasWorkbench.Core.Wire;
 
 namespace SasWorkbench.Egm.Tests;
 
@@ -554,6 +556,136 @@ public class ScriptRunnerTests
 
         Assert.Equal(1, result.Steps[0].Location.Line);
         Assert.Equal(3, result.Steps[2].Location.Line);
+    }
+
+    /// <summary>
+    /// A serial port with no device behind it takes no data, and the write times out. That used
+    /// to end sasctl with a stack trace in the middle of a run. The step that needed the link now
+    /// fails, and its reason names the link and what went wrong with it.
+    /// </summary>
+    [Fact]
+    public void A_link_that_stops_taking_messages_fails_the_step_with_the_reason()
+    {
+        TestOutcome result = RunOver(inner => new RefusingLine(inner), """
+            host connect loopback address 01
+            host poll every 20ms
+            host send lp 1F
+            """);
+
+        StepResult send = result.Steps[2];
+        Assert.Equal(Verdict.Fail, send.Verdict);
+        Assert.Contains("stopped taking messages: The write timed out.", send.Reason);
+        Assert.Equal(Verdict.Fail, result.Verdict);
+    }
+
+    /// <summary>
+    /// The round's cycle on the line is held here for longer than the sequence will wait for it.
+    /// Its general poll can still draw what the case sends for once the sequence has begun, so
+    /// the step that began it fails and says why, instead of the case running a sequence that is
+    /// not the one it describes.
+    /// </summary>
+    [Fact]
+    public void A_sequence_that_cannot_wait_out_the_cycle_on_the_line_fails_and_says_why()
+    {
+        TestOutcome result = RunOver(inner => new HeldAfterReplyLine(inner, TimeSpan.FromSeconds(5)), """
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            host wait 100ms
+            host poll sequence
+            """, responseTimeout: TimeSpan.FromSeconds(1));
+
+        StepResult sequence = result.Steps[4];
+        Assert.Equal(Verdict.Fail, sequence.Verdict);
+        Assert.Contains("still on the line", sequence.Actual);
+        Assert.Contains("general poll can still draw", sequence.Reason);
+        Assert.Equal(Verdict.Fail, result.Verdict);
+    }
+
+    private static TestOutcome RunOver(
+        Func<ISasTransport, ISasTransport> wrap, string script, TimeSpan? responseTimeout = null)
+    {
+        EnvironmentFactory software = SoftwareMachineEnvironment.For();
+        var runner = new ScriptRunner(new ScriptRunnerOptions
+        {
+            Stimulus = StimulusBackend.Software,
+            Environment = (step, options, declared, channels) =>
+            {
+                ScriptEnvironment environment = software(step, options, declared, channels);
+                return environment with { HostTransport = wrap(environment.HostTransport) };
+            },
+            PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = responseTimeout ?? TimeSpan.FromSeconds(5),
+            QuietGap = TimeSpan.FromMilliseconds(15),
+        });
+
+        return runner.Run(ScriptParser.Parse(script, "runner.sas").Tests[0]);
+    }
+
+    /// <summary>Refuses every write, the way a port with no device behind it does.</summary>
+    private sealed class RefusingLine(ISasTransport inner) : ISasTransport
+    {
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols) =>
+            throw new TimeoutException("The write timed out.");
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout) => inner.Read(destination, timeout);
+
+        public void Dispose() => inner.Dispose();
+    }
+
+    /// <summary>
+    /// Holds the first synchronisation poll sent after the machine has answered, which puts a
+    /// timed cycle on the line once the link is up and keeps it there for <paramref name="hold"/>.
+    /// </summary>
+    private sealed class HeldAfterReplyLine(ISasTransport inner, TimeSpan hold) : ISasTransport
+    {
+        private readonly ManualResetEventSlim _released = new(false);
+        private volatile bool _heard;
+        private int _holds = 1;
+
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols)
+        {
+            bool sync = symbols.Length == 1 && symbols[0].Wakeup && symbols[0].Data == 0x80;
+            if (sync && _heard && Interlocked.Exchange(ref _holds, 0) == 1)
+                _released.Wait(hold);
+
+            inner.Write(symbols);
+        }
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout)
+        {
+            int read = inner.Read(destination, timeout);
+            if (read > 0)
+                _heard = true;
+
+            return read;
+        }
+
+        public void Dispose()
+        {
+            _released.Set();
+            inner.Dispose();
+        }
     }
 }
 

@@ -81,8 +81,9 @@ internal static class EventsCommand
         engine.Start();
         if (!WaitForLink(engine))
         {
-            Console.Error.WriteLine(
-                "error: the machine never answered a general poll, so nothing was measured. "
+            Console.Error.WriteLine(engine.LinkFault is { } fault
+                ? $"error: {fault} Nothing was measured."
+                : "error: the machine never answered a general poll, so nothing was measured. "
                 + "No event is reported as unproduced, because a link that was never up says "
                 + "nothing about any of them.");
             return 2;
@@ -529,7 +530,7 @@ internal static class EventsCommand
 
     private static bool WaitForLink(PollEngine engine)
     {
-        for (int i = 0; i < 100 && engine.State != LinkState.Up; i++)
+        for (int i = 0; i < 100 && engine.State != LinkState.Up && engine.LinkFault is null; i++)
             Thread.Sleep(100);
 
         return engine.State == LinkState.Up;

@@ -296,7 +296,7 @@ public static class CapabilityProbe
         if (Ask(engine, layout, [0x00, 0x00]) is not { } result)
         {
             return "the enabled-features poll could not be put on the link, so nothing was asked "
-                   + "of the machine at all";
+                   + "of the machine at all" + Because(engine);
         }
 
         if (!result.Succeeded)
@@ -346,7 +346,7 @@ public static class CapabilityProbe
         if (Ask(engine, layout, []) is not { } result)
         {
             return "the machine identification poll could not be put on the link, so what unit "
-                   + "the machine counts in was never asked";
+                   + "the machine counts in was never asked" + Because(engine);
         }
 
         if (!result.Succeeded)
@@ -391,6 +391,10 @@ public static class CapabilityProbe
 
         return result.Outcome == LongPollOutcome.NotSent ? null : result;
     }
+
+    /// <summary>The link's failure as the end of a reason, or nothing when the link has not failed.</summary>
+    private static string Because(PollEngine engine) =>
+        engine.LinkFault is { } fault ? $": {fault}" : string.Empty;
 
     /// <summary>What a stimulus backend adds.</summary>
     public static IReadOnlyDictionary<string, string?> ForStimulus(StimulusBackend backend) =>

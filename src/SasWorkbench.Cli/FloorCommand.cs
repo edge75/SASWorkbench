@@ -154,8 +154,10 @@ internal static class FloorCommand
             if (!WaitForRounds(engine, rounds + 1))
             {
                 engine.Stop();
-                Console.Error.WriteLine(
-                    $"error: only {engine.RoundsCompleted} round(s) completed, and none has "
+                Console.Error.WriteLine(engine.LinkFault is { } fault
+                    ? $"error: {fault} Only {engine.RoundsCompleted} round(s) completed, and "
+                      + "nothing is reported."
+                    : $"error: only {engine.RoundsCompleted} round(s) completed, and none has "
                     + $"finished in {StallSeconds} seconds. Nothing is reported, because a round "
                     + "count that stopped rising measures a stall rather than a round.");
                 return 2;
@@ -339,9 +341,11 @@ internal static class FloorCommand
                 if (WaitForRounds(engine, rounds + 1))
                     continue;
 
-                Console.Error.WriteLine(
-                    $"error: channel {(int)engine.Channel} completed only "
-                    + $"{engine.RoundsCompleted} round(s) and has stopped making progress.");
+                Console.Error.WriteLine(engine.LinkFault is { } fault
+                    ? $"error: channel {(int)engine.Channel}: {fault} Only "
+                      + $"{engine.RoundsCompleted} round(s) completed."
+                    : $"error: channel {(int)engine.Channel} completed only "
+                      + $"{engine.RoundsCompleted} round(s) and has stopped making progress.");
                 return 2;
             }
 
@@ -632,8 +636,11 @@ internal static class FloorCommand
                 continue;
             }
 
-            if (DateTime.UtcNow - lastProgress > TimeSpan.FromSeconds(StallSeconds))
+            if (engine.LinkFault is not null
+                || DateTime.UtcNow - lastProgress > TimeSpan.FromSeconds(StallSeconds))
+            {
                 return false;
+            }
         }
 
         return true;
