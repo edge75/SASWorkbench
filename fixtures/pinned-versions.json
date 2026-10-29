@@ -3,10 +3,11 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "96c5240ca36c9d4e1ebca38fc59df71e387a7dd9",
+      "commit": "287ba0bea369d777625f572ae4347f19bc418303",
       "branch": "main",
-      "describedAs": "tag v5.4.5.13",
-      "pinnedOn": "2026-10-17",
+      "describedAs": "tag v5.4.6.4",
+      "pinnedOn": "2026-10-29",
+      "measured": "Only the generated protocol catalogue has been checked against this commit (protogen --check: up to date). The demo has not yet been rebuilt or run against it; the last demo measurement is the one taken on 2026-10-17 against v5.4.5.13.",
       "howItIsHeld": "QSP v2.3.5.32 declares libsas as FetchContent 'sas' at tag v5.4.5.11 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
