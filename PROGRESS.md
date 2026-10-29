@@ -130,3 +130,5 @@ PHASE:DOC WAVE:W1-user-guide-it-en-1.0 STATUS:complete TS:2026-10-29T18:31:04Z
 PHASE:R1 WAVE:A-test-fixes-F1-F5 STATUS:complete TS:2026-10-29T19:42:05Z
 PHASE:R1 WAVE:B-rebase-serial-parity-fix STATUS:complete TS:2026-10-29T19:42:05Z
 PHASE:R1 WAVE:C-code-tests-specimen STATUS:complete TS:2026-10-29T20:13:45Z
+PHASE:R2 WAVE:C-commit-and-board-build STATUS:complete TS:2026-10-29T21:09:38Z
+PHASE:R2 WAVE:D-guides-it-en STATUS:complete TS:2026-10-29T21:30:25Z
