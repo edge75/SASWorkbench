@@ -1,3 +1,4 @@
+using System.IO.Ports;
 using System.Runtime.InteropServices;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
@@ -187,6 +188,90 @@ public class SerialTransportTests
     public void Listing_ports_never_throws_on_a_platform_without_any()
     {
         Assert.NotNull(SerialTransport.AvailablePorts());
+    }
+
+    /// <summary>
+    /// A UART driver completes a write once the byte is in the transmit FIFO, not once it is on
+    /// the wire. Changing the parity straight after queueing the address byte re-frames that byte
+    /// while it is still being sent, so it leaves without its wakeup bit and the machine ignores
+    /// the poll. Seen on an on-board UART on 29/10: one-byte polls, which never switch parity
+    /// mid-message, were always answered; longer messages almost never.
+    /// </summary>
+    [Fact]
+    public void The_line_is_drained_before_every_parity_change()
+    {
+        var line = new RecordingSerialLine(Parity.Space);
+
+        SerialTransport.WriteSymbols(line, [SasSymbol.Address(0x01), SasSymbol.Data8(0x1F)]);
+
+        Assert.Equal(
+            ["drain", "parity Mark", "write 01", "drain", "parity Space", "write 1F", "flush"],
+            line.Calls);
+    }
+
+    /// <summary>
+    /// Draining costs about a millisecond, so it is spent only where the parity actually
+    /// changes: a general poll sent while the line is already in mark goes straight out.
+    /// </summary>
+    [Fact]
+    public void A_message_that_needs_no_parity_change_is_not_drained()
+    {
+        var line = new RecordingSerialLine(Parity.Mark);
+
+        SerialTransport.WriteSymbols(line, [SasSymbol.Address(0x81)]);
+
+        Assert.Equal(["write 81", "flush"], line.Calls);
+    }
+
+    /// <summary>
+    /// The port is left in mark parity after a general poll, so the machine's answer arrives with
+    /// a parity error. The framework's default replaces such a byte with '?', which is 0x3F, and
+    /// the host then reported exception $3F for every general poll on 29/10. A gaming machine
+    /// never sets the wakeup bit, so the byte as received is the byte that was sent.
+    /// </summary>
+    [Fact]
+    public void A_parity_error_does_not_turn_a_received_byte_into_a_question_mark()
+    {
+        using SerialPort port = SerialTransport.CreatePort(new SerialTransportOptions("COM99"));
+
+        Assert.Equal(0, port.ParityReplace);
+        Assert.Equal(19200, port.BaudRate);
+        Assert.Equal(8, port.DataBits);
+        Assert.Equal(Parity.Space, port.Parity);
+        Assert.Equal(StopBits.One, port.StopBits);
+    }
+
+    /// <summary>
+    /// Start bit, eight data bits, the parity bit that carries the wakeup flag, and a stop bit:
+    /// eleven bit times, which at 19200 baud is just under 573 microseconds.
+    /// </summary>
+    [Fact]
+    public void One_character_is_eleven_bit_times()
+    {
+        Assert.InRange(SerialTransport.CharacterTime(19200).TotalMicroseconds, 572.9, 573.0);
+    }
+
+    private sealed class RecordingSerialLine(Parity parity) : ISerialLine
+    {
+        private Parity _parity = parity;
+
+        public List<string> Calls { get; } = [];
+
+        public Parity Parity
+        {
+            get => _parity;
+            set
+            {
+                _parity = value;
+                Calls.Add($"parity {value}");
+            }
+        }
+
+        public void Drain() => Calls.Add("drain");
+
+        public void WriteByte(byte value) => Calls.Add($"write {value:X2}");
+
+        public void Flush() => Calls.Add("flush");
     }
 }
 

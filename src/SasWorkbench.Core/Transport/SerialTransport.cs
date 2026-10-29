@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.IO.Ports;
 using System.Runtime.InteropServices;
 using SasWorkbench.Core.Wire;
@@ -19,10 +20,9 @@ public sealed record SerialTransportOptions(string PortName, int BaudRate = 1920
 /// </summary>
 /// <remarks>
 /// <para>
-/// Receiving needs no ninth bit: a gaming machine never sets the wakeup bit, so eight-bit
-/// reads are complete. Transmitting does, and the drain between parity switches is the part
-/// legacy tools omit — they sleep instead, which does not guarantee the previous byte has
-/// left the shift register.
+/// Receiving needs no ninth bit, because a gaming machine never sets it, so a byte that fails the
+/// parity check is kept as received rather than replaced. Transmitting does, so the line is
+/// drained onto the wire before every parity change.
 /// </para>
 /// <para>
 /// On anything other than Windows this refuses to open. The framework's serial layer discards
@@ -95,14 +95,7 @@ public sealed class SerialTransport : ISasTransport
             if (_port is { IsOpen: true })
                 return;
 
-            var port = new SerialPort(_options.PortName, _options.BaudRate, Parity.Space, 8, StopBits.One)
-            {
-                ReadTimeout = 50,
-                WriteTimeout = 500,
-                Handshake = Handshake.None,
-                DtrEnable = false,
-                RtsEnable = false,
-            };
+            SerialPort port = CreatePort(_options);
 
             try
             {
@@ -120,6 +113,40 @@ public sealed class SerialTransport : ISasTransport
         }
     }
 
+    /// <summary>A closed port configured for SAS, with parity-error replacement turned off.</summary>
+    public static SerialPort CreatePort(SerialTransportOptions options) =>
+        new(options.PortName, options.BaudRate, Parity.Space, 8, StopBits.One)
+        {
+            ReadTimeout = 50,
+            WriteTimeout = 500,
+            Handshake = Handshake.None,
+            DtrEnable = false,
+            RtsEnable = false,
+            ParityReplace = 0,
+        };
+
+    /// <summary>How long one character takes on the wire: start, eight data, parity and stop bits.</summary>
+    public static TimeSpan CharacterTime(int baudRate) =>
+        TimeSpan.FromTicks((long)Math.Ceiling(11.0 * TimeSpan.TicksPerSecond / baudRate));
+
+    /// <summary>Writes symbols, draining the line before each parity change so no byte is re-framed in flight.</summary>
+    public static void WriteSymbols(ISerialLine line, ReadOnlySpan<SasSymbol> symbols)
+    {
+        foreach (SasSymbol symbol in symbols)
+        {
+            Parity wanted = symbol.Wakeup ? Parity.Mark : Parity.Space;
+            if (line.Parity != wanted)
+            {
+                line.Drain();
+                line.Parity = wanted;
+            }
+
+            line.WriteByte(symbol.Data);
+        }
+
+        line.Flush();
+    }
+
     public void Write(ReadOnlySpan<SasSymbol> symbols)
     {
         lock (_gate)
@@ -128,21 +155,7 @@ public sealed class SerialTransport : ISasTransport
             if (port is null || !port.IsOpen)
                 return;
 
-            foreach (SasSymbol symbol in symbols)
-            {
-                Parity wanted = symbol.Wakeup ? Parity.Mark : Parity.Space;
-                if (port.Parity != wanted)
-                {
-                    // Let the previous byte leave the shift register before changing the parity
-                    // that will be applied to it. Flush maps to a drain, not a buffer copy.
-                    port.BaseStream.Flush();
-                    port.Parity = wanted;
-                }
-
-                port.BaseStream.WriteByte(symbol.Data);
-            }
-
-            port.BaseStream.Flush();
+            WriteSymbols(new SerialPortLine(port), symbols);
         }
     }
 
@@ -219,5 +232,39 @@ public sealed class SerialTransport : ISasTransport
 
             port.Dispose();
         }
+    }
+
+    private sealed class SerialPortLine(SerialPort port) : ISerialLine
+    {
+        // How long to wait for the driver's queue to empty before giving up on it.
+        private static readonly TimeSpan QueueLimit = TimeSpan.FromMilliseconds(100);
+
+        public Parity Parity
+        {
+            get => port.Parity;
+            set => port.Parity = value;
+        }
+
+        // The driver's queue empties when the UART has taken the byte, not when it is on the wire,
+        // so two character times cover one byte in the holding register and one being shifted out.
+        public void Drain()
+        {
+            port.BaseStream.Flush();
+
+            long queueDeadline = Stopwatch.GetTimestamp() + Ticks(QueueLimit);
+            while (port.BytesToWrite > 0 && Stopwatch.GetTimestamp() < queueDeadline)
+                Thread.SpinWait(50);
+
+            long wireDeadline = Stopwatch.GetTimestamp() + Ticks(2 * CharacterTime(port.BaudRate));
+            while (Stopwatch.GetTimestamp() < wireDeadline)
+                Thread.SpinWait(20);
+        }
+
+        public void WriteByte(byte value) => port.BaseStream.WriteByte(value);
+
+        public void Flush() => port.BaseStream.Flush();
+
+        private static long Ticks(TimeSpan span) =>
+            (long)(span.TotalSeconds * Stopwatch.Frequency);
     }
 }
