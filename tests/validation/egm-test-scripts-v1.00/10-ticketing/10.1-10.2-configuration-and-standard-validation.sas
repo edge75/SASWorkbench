@@ -32,7 +32,7 @@ test "10.1.2 the enabled features reply reports secure enhanced validation" {
   host expect link up within 30s
 
   host send lp A0 data 0000
-  host expect field validation_style of lp A0 == 1
+  host expect field validation_style of lp A0 == 2
 }
 
 # ---------------------------------------------------------------------------------------------

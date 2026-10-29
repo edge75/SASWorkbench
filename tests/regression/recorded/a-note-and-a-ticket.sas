@@ -19,6 +19,8 @@
 
 test "money: a note, a cashout, and the host reading the ticket" {
   tag @needs-stimulus
+  # The enhanced styles keep the printed record waiting for $4D, and this case never reads it.
+  requires egm.validation == standard
   requires decoder.lp1E
   requires decoder.lp3D
   requires printer.wallet

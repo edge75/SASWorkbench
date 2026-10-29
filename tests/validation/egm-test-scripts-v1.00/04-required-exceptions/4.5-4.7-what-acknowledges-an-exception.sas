@@ -33,6 +33,9 @@ test "4.6 a general poll to another address acknowledges" {
 
   host poll sequence
 
+  # A poll of our own first, so the round's last cycle has finished before the doors move.
+  host send gp draws nothing
+
   egm door slot open
   egm door slot close
 

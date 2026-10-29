@@ -11,6 +11,8 @@
 
 test "a cashout prints a ticket into the wallet" {
   tag @needs-stimulus
+  # The enhanced styles keep the printed record waiting for $4D, and this case never reads it.
+  requires egm.validation == standard
   requires stimulus.bill
   requires stimulus.button.collect
   requires printer.wallet
