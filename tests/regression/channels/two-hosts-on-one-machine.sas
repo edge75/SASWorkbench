@@ -65,6 +65,7 @@ test "one machine answers two hosts at two addresses at once" {
 test "an exception in a category this channel was not given never reaches it" {
   tag @needs-stimulus
   requires stimulus.ticket
+  requires decoder.lp4C
 
   machine channel 1 address 01
   machine channel 2 address 02 owns validation
@@ -72,6 +73,8 @@ test "an exception in a category this channel was not given never reaches it" {
   host connect loopback address 02 channel 2
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   host connect loopback address 01 channel 1
   host expect link up within 5s

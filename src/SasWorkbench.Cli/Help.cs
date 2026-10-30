@@ -380,6 +380,9 @@ internal static class Help
               restore                 write a saved fixture back over it, keeping what was there
               validation <style>      write a fixture out again in standard, secure_enhanced or
                                       system validation
+              denomination <amount>   write a fixture out again counting in another accounting
+                                      denomination, as 0.05 or 5c. QSP applies it only when its
+                                      configuration enables Sas.AccountingDenomination.Enable
               channels "<plan>"       write a fixture out again with the machine divided between
                                       hosts, as in "1@01 2@02 validation=2". An address of 00
                                       says the channel has none. A category on a channel with no
@@ -387,7 +390,7 @@ internal static class Help
 
               --fixture <file>        which saved memory  (default: fixtures/nvram/golden.nvram.gz)
               --nvram <file>          the machine's memory, if it is not in the usual place
-              --out <file>            where 'validation' writes  (default: over the fixture)
+              --out <file>            where a rewritten fixture goes  (default: over the fixture)
 
               A machine's note acceptor, its printer, which notes it takes and which validation
               style it performs live in this memory and are otherwise set through its own menu, by
@@ -421,6 +424,7 @@ internal static class Help
               sasctl nvram channels "1@01 2@02 validation=2" --out fixtures/nvram/two.nvram.gz
               sasctl nvram show
               sasctl nvram validation secure_enhanced --out fixtures/nvram/secure-enhanced.nvram.gz
+              sasctl nvram denomination 0.05 --fixture saved.nvram.gz --out fixtures/nvram/golden.nvram.gz
               sasctl nvram restore --fixture fixtures/nvram/secure-enhanced.nvram.gz
             """);
     }

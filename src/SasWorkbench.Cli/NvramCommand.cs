@@ -1,3 +1,4 @@
+using System.Globalization;
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Wire;
 using SasWorkbench.Qpm;
@@ -25,8 +26,8 @@ internal static class NvramCommand
         if (line.Arguments.Count == 0)
         {
             Console.Error.WriteLine(
-                "error: 'nvram' needs an action: status, show, save, restore, validation or "
-                + "channels.");
+                "error: 'nvram' needs an action: status, show, save, restore, validation, "
+                + "denomination or channels.");
             return 2;
         }
 
@@ -39,6 +40,7 @@ internal static class NvramCommand
                 "save" => Save(memory, fixture),
                 "restore" => Restore(memory, fixture),
                 "validation" => Validation(fixture, line),
+                "denomination" => Denomination(fixture, line),
                 "channels" => Channels(fixture, line),
                 _ => Unknown(line.Arguments[0]),
             };
@@ -120,6 +122,7 @@ internal static class NvramCommand
         Console.WriteLine($"             takes tickets    {(configuration.TicketInEnabled ? "yes" : "no")}");
         Console.WriteLine($"             validation id    "
             + (configuration.SecureEnhancedConfigured ? "set by a host" : "not set"));
+        Console.WriteLine($"             accounting unit  {Unit(configuration)}");
 
         if (configuration.ConfigurationRequired != 0)
         {
@@ -137,6 +140,74 @@ internal static class NvramCommand
 
     private static string Peripheral(ushort protocol) =>
         protocol == 0 ? "none, so it cannot be used" : $"protocol {protocol}";
+
+    private static string Unit(NvramMachineConfiguration configuration) =>
+        configuration.StoredAccountingDenominationCents == 0
+            ? "1c (never written)"
+            : $"{configuration.AccountingDenominationCents}c";
+
+    /// <summary>
+    /// Writes a saved copy out again with the machine counting in another accounting denomination.
+    /// </summary>
+    private static int Denomination(string fixture, CommandLine line)
+    {
+        // Read first, so a refusal below is not followed by a warning that '--out' went unused.
+        string output = line.Value("out") ?? fixture;
+
+        if (line.Arguments.Count != 2)
+        {
+            Console.Error.WriteLine(
+                "error: expected 'nvram denomination <amount> --fixture <in> --out <out>', such "
+                + "as 0.05 or 5c.");
+            return 2;
+        }
+
+        if (!TryReadCents(line.Arguments[1], out int cents))
+        {
+            Console.Error.WriteLine(
+                $"error: '{line.Arguments[1]}' is not an amount. Write it in currency units, such "
+                + "as 0.05, or in cents, such as 5c.");
+            return 2;
+        }
+
+        NvramMachineConfiguration written = NvramFixture.ReconfigureDenomination(fixture, output, cents);
+
+        Console.WriteLine($"  wrote {output}");
+        Console.WriteLine($"  accounting unit {Unit(written)} "
+            + $"(long poll 1F code ${SasDenomination.CodeFor(cents):X2})");
+        Console.WriteLine(
+            "  QSP v2.3.6.1 applies it only when its configuration enables "
+            + "Sas.AccountingDenomination.Enable and the unit divides every enabled game's "
+            + "denomination; otherwise it reports in cents. Restore it, boot a machine on it, and "
+            + "check long poll 1F reports that code before trusting it.");
+        return 0;
+    }
+
+    /// <summary>Reads 0.05, 0,05 or 5c as five cents.</summary>
+    private static bool TryReadCents(string text, out int cents)
+    {
+        cents = 0;
+        if (text.EndsWith('c') || text.EndsWith('C'))
+        {
+            return int.TryParse(text[..^1], NumberStyles.None, CultureInfo.InvariantCulture,
+                       out cents)
+                   && cents > 0;
+        }
+
+        if (!decimal.TryParse(text.Replace(',', '.'), NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out decimal units)
+            || units > int.MaxValue / 100m)
+        {
+            return false;
+        }
+
+        decimal exact = units * 100;
+        if (exact != decimal.Truncate(exact) || exact <= 0 || exact > int.MaxValue)
+            return false;
+
+        cents = (int)exact;
+        return true;
+    }
 
     /// <summary>
     /// Writes a saved copy out again with the machine put into a validation style.
@@ -234,7 +305,7 @@ internal static class NvramCommand
     {
         Console.Error.WriteLine(
             $"error: '{action}' is not a memory action. Expected status, show, save, restore, "
-            + "validation or channels.");
+            + "validation, denomination or channels.");
         return 2;
     }
 }

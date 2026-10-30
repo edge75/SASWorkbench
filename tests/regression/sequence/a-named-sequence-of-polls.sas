@@ -23,8 +23,8 @@ test "a case owns every message on the line while it is in a sequence" {
   host send gp draws nothing
 }
 
-# The same mode, with something queued: each general poll draws one exception, in the order the
-# machine queued them, and the poll after them says so rather than going quiet.
+# The same mode, with something queued: each acknowledged general poll draws one exception, in the
+# order the machine queued them, and the poll after them says so rather than going quiet.
 test "each general poll in a sequence draws the next exception" {
   tag @needs-stimulus
   requires host.poll_sequence, stimulus.door.slot, stimulus.door.drop
@@ -36,14 +36,18 @@ test "each general poll in a sequence draws the next exception" {
 
   host poll sequence
 
-  # A poll of our own first, so the round's last cycle has finished before the doors move.
-  host send gp draws nothing
+  # A sync poll of our own first: the round's last cycle has finished before the doors move, and a
+  # machine stops answering a third general poll in a row with nothing between them (section 3.3).
+  host send sync
 
   egm door slot open
   egm door drop open
 
+  # A general poll straight after another is an implied NACK, so a poll elsewhere acknowledges each.
   host send gp draws slot_door_opened
+  host send gp draws silence to 7F
   host send gp draws drop_door_opened
+  host send gp draws silence to 7F
   host send gp draws nothing
 }
 

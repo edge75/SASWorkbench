@@ -143,20 +143,21 @@ public static class NvramFixture
     /// <returns>The configuration the written copy now carries.</returns>
     /// <exception cref="QpmUnavailableException">It is missing, or not a memory this build reads.</exception>
     public static NvramMachineConfiguration Reconfigure(
-        string fixturePath, string outputPath, SasCashoutValidation validation)
-    {
-        byte[] written = NvramConfiguration.WithValidation(Load(fixturePath), validation);
+        string fixturePath, string outputPath, SasCashoutValidation validation) =>
+        Rewrite(outputPath, NvramConfiguration.WithValidation(Load(fixturePath), validation));
 
-        string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
-        if (!string.IsNullOrEmpty(directory))
-            Directory.CreateDirectory(directory);
-
-        using (FileStream output = File.Create(outputPath))
-        using (var compressor = new GZipStream(output, CompressionLevel.SmallestSize))
-            compressor.Write(written);
-
-        return NvramConfiguration.Read(written);
-    }
+    /// <summary>
+    /// Writes a saved copy out again with the machine counting in another accounting denomination.
+    /// </summary>
+    /// <remarks>
+    /// QSP v2.3.6.1's menu offers the setting only while a machine is being commissioned.
+    /// </remarks>
+    /// <exception cref="QpmUnavailableException">
+    /// The unit has no Table C-4 code, or the copy is missing or not a memory this build reads.
+    /// </exception>
+    public static NvramMachineConfiguration ReconfigureDenomination(
+        string fixturePath, string outputPath, int cents) =>
+        Rewrite(outputPath, NvramConfiguration.WithAccountingDenomination(Load(fixturePath), cents));
 
     /// <summary>
     /// Writes a saved copy out again with the machine divided between hosts a given way.
@@ -171,9 +172,12 @@ public static class NvramFixture
         string fixturePath, string outputPath, SasChannelPlan channels)
     {
         ArgumentNullException.ThrowIfNull(channels);
+        return Rewrite(outputPath, NvramConfiguration.WithChannels(Load(fixturePath), channels));
+    }
 
-        byte[] written = NvramConfiguration.WithChannels(Load(fixturePath), channels);
-
+    /// <summary>Compresses a rewritten memory to a file and reads back what it now carries.</summary>
+    private static NvramMachineConfiguration Rewrite(string outputPath, byte[] written)
+    {
         string? directory = Path.GetDirectoryName(Path.GetFullPath(outputPath));
         if (!string.IsNullOrEmpty(directory))
             Directory.CreateDirectory(directory);

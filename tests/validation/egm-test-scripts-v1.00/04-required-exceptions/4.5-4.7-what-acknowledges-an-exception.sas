@@ -33,8 +33,9 @@ test "4.6 a general poll to another address acknowledges" {
 
   host poll sequence
 
-  # A poll of our own first, so the round's last cycle has finished before the doors move.
-  host send gp draws nothing
+  # A sync poll of our own first: the round's last cycle has finished before the doors move, and a
+  # machine stops answering a third general poll in a row with nothing between them (section 3.3).
+  host send sync
 
   egm door slot open
   egm door slot close
@@ -46,6 +47,9 @@ test "4.6 a general poll to another address acknowledges" {
   # to the second rather than repeating the first.
   host send gp draws silence to 7F
   host send gp draws slot_door_closed
+
+  # Polled again straight away the machine would repeat the second, as an implied NACK.
+  host send gp draws silence to 7F
   host send gp draws nothing
 
   note "The document also sends the machine's own general poll three times over, where the first two carry the same exception because a repeated poll is an implied NACK. This build's software machine keeps no implied acknowledgement state - it hands out one exception per general poll whatever came before - so that half is not asserted here. The machine library does keep the state, so the half runs against a real machine and not against this peer."

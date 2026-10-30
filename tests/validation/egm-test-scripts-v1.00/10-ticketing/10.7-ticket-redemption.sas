@@ -19,12 +19,14 @@ test "10.7.1 redemption is enabled through the status poll" {
 
 test "10.7.2 a ticket offered to the machine raises its exception" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, decoder.lp70, decoder.lp71
+  requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1
   host forget exceptions within 2s
 
   egm ticket insert amount=1000 validation=0000000000000001
@@ -38,12 +40,14 @@ test "10.7.2 a ticket offered to the machine raises its exception" {
 
 test "10.7.3 the host reads the ticket the machine is holding" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, decoder.lp70, decoder.lp71
+  requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1
   host forget exceptions within 2s
 
   egm ticket insert amount=1000 validation=0000000000000002
@@ -83,12 +87,14 @@ test "10.7.7 restricted tickets credit the restricted meter" {
 
 test "10.7.8 the transfer complete exception follows the credit" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, decoder.lp70, decoder.lp71
+  requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1
   host forget exceptions within 2s
 
   egm ticket insert amount=1000 validation=0000000000000003
@@ -152,12 +158,14 @@ test "10.7.15 restricted tickets in are counted in cents and quantity" {
 
 test "10.7.18 a ticket inserted is reported in the event format" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, stimulus.real_time_events, decoder.lp70, decoder.lp71
+  requires stimulus.ticket, stimulus.real_time_events, decoder.lp4C, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1
 
   host send lp 0E data 01
   host forget exceptions within 2s

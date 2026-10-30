@@ -454,6 +454,75 @@ public class ScriptRunnerTests
     }
 
     /// <summary>
+    /// A send with a condition goes out only to a machine that says it meets it.
+    /// </summary>
+    /// <remarks>
+    /// The validation identifier is the case this exists for: a machine in secure enhanced
+    /// validation keeps its acceptor off until a host sets one, and every other machine answers the
+    /// command with silence, so a ticket case can neither always send it nor never send it.
+    /// </remarks>
+    [Fact]
+    public void A_conditional_send_reaches_a_machine_that_meets_the_condition()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+            """,
+            new FakeEgmOptions { CashoutValidation = SasCashoutValidation.SecureEnhanced });
+
+        Assert.Equal(Verdict.Pass, result.Verdict);
+        StepResult sent = result.Steps.Single(s => s.Description.StartsWith("send lp 4C", StringComparison.Ordinal));
+        Assert.True(sent.IsAssertion);
+        Assert.Contains("Answered", sent.Actual!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// A machine that answers otherwise is not sent the command, and not sending it is no claim.
+    /// </summary>
+    /// <remarks>
+    /// Sent anyway, the standard machine would answer with silence and fail a case that is about
+    /// something else. Counted as a pass, it would make a case with nothing else in it look green.
+    /// </remarks>
+    [Fact]
+    public void A_conditional_send_is_not_sent_to_a_machine_that_answers_otherwise_and_claims_nothing()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+            """);
+
+        Assert.Equal(Verdict.Skip, result.Verdict);
+        StepResult held = result.Steps.Single(s => s.Description.StartsWith("send lp 4C", StringComparison.Ordinal));
+        Assert.Equal(Verdict.Pass, held.Verdict);
+        Assert.False(held.IsAssertion);
+        Assert.Contains("not sent", held.Actual!, StringComparison.Ordinal);
+        Assert.Contains("standard", held.Actual!, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Wire, w => w.ToHex().StartsWith("1.01 0.4C", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// A machine that cannot be asked fails the step rather than having the command withheld.
+    /// </summary>
+    [Fact]
+    public void A_conditional_send_fails_when_the_machine_cannot_say_whether_it_meets_the_condition()
+    {
+        TestOutcome result = Run("""
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+            """,
+            new FakeEgmOptions { UnansweredCommands = [0xA0] });
+
+        Assert.Equal(Verdict.Fail, result.Verdict);
+        StepResult failed = result.Steps.Single(s => s.Verdict == Verdict.Fail);
+        Assert.Contains("enabled-features", failed.Reason!, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// A stimulus this backend cannot carry out is a skip, and the assertion that would have
     /// depended on it must not be allowed to pass on the machine's earlier state.
     /// </summary>

@@ -678,12 +678,13 @@ public static class ScriptParser
             throw new ScriptParseException(location,
                 $"long poll ${command:X2} is not one the gaming machine library implements");
 
-        // 'to <address>' may close any form of the step, so it is taken off the end first and the
-        // rest is read as it always was.
+        // 'when <condition>' and then 'to <address>' may close any form of the step, so they are
+        // taken off the end first and the rest is read as it always was.
+        words = TakeCondition(words, location, out Requirement? when);
         words = TakeTarget(words, location, out SasAddress? to);
 
         if (words.Length > 4 && words[4].Equals("with", StringComparison.OrdinalIgnoreCase))
-            return ReadSendWithFields(words, location, command) with { To = to };
+            return ReadSendWithFields(words, location, command) with { To = to, When = when };
 
         byte[] data = [];
         if (words.Length > 4)
@@ -691,11 +692,35 @@ public static class ScriptParser
             if (words.Length != 6 || !words[4].Equals("data", StringComparison.OrdinalIgnoreCase))
                 throw new ScriptParseException(location,
                     "expected: host send lp <code> [data <hex> | with <field>=<value> ...] "
-                    + "[to <address>]");
+                    + "[to <address>] [when <capability> == <value>]");
             data = ParseHex(words[5], location);
         }
 
-        return new SendLongPollStep(location, command, data) { To = to };
+        return new SendLongPollStep(location, command, data) { To = to, When = when };
+    }
+
+    /// <summary>
+    /// Takes a closing <c>when &lt;capability&gt; == &lt;value&gt;</c> off a send.
+    /// </summary>
+    /// <remarks>Only the compared form; a bare capability belongs on a 'requires' line.</remarks>
+    private static string[] TakeCondition(
+        string[] words, SourceLocation location, out Requirement? when)
+    {
+        when = null;
+        int at = Array.FindLastIndex(words, w => w.Equals("when", StringComparison.OrdinalIgnoreCase));
+        if (at < 0)
+            return words;
+
+        if (words.Length - at != 4 || words[at + 2] != "==")
+        {
+            throw new ScriptParseException(location,
+                $"'{string.Join(' ', words[at..])}' is not a condition. Expected 'when "
+                + "<capability> == <value>' at the end of the step, after any 'to <address>', such "
+                + "as 'when egm.validation == secure_enhanced'");
+        }
+
+        when = new Requirement(location, words[at + 1], words[at + 3]);
+        return words[..at];
     }
 
     /// <summary>
