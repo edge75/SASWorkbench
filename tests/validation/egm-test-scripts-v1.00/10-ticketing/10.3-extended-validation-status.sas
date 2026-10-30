@@ -12,6 +12,8 @@
 
 test "10.3.1 the machine keeps up with a forty-millisecond poll" {
   tag @egm-test-scripts @chapter-10
+  # The enhanced styles leave $3D unanswered, so the rate could not be told from the style.
+  requires egm.validation == standard
   requires decoder.lp3D
 
   host connect loopback address 01
@@ -35,7 +37,7 @@ test "10.3.2 the extended validation status poll is answered" {
   # Read-only form: no bits asserted and no mask, so the machine reports what it is without being
   # changed. A case that set bits here could not then say whether the reply describes the machine
   # or describes what it was just told.
-  host send lp 7B data 00000000000000
+  host send lp 7B data 080000000000000000
 }
 
 test "10.3.3 the printer is declared a cashout device" {
@@ -88,7 +90,7 @@ test "10.3.9 secure enhanced validation is configured through the status poll" {
   # Read-only form again: the machine is already performing this style, and the poll reports what
   # it is. Which style a machine performs is set at the machine and not over the link, so a case
   # that tried to set it here would be asserting something the protocol cannot do.
-  host send lp 7B data 00000000000000
+  host send lp 7B data 080000000000000000
 }
 
 test "10.3.10 the status poll addressed to everybody is not answered" {

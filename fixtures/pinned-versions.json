@@ -1,22 +1,47 @@
 {
-  "why": "EGM behaviour can change under a passing suite when a dependency moves. These are the revisions every measurement in this repository was taken against. A run record cites them; the runbook checks them before a validation run against a real machine.",
+  "why": "EGM behaviour can change under a passing suite when a dependency moves. These are the revisions every measurement in this repository was taken against. A run record cites them; the runbook checks them before a validation run against a real machine. libsas is re-pinned whenever its version increases.",
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "4666881b3272d94969babc86076fb90664deae53",
+      "commit": "96c5240ca36c9d4e1ebca38fc59df71e387a7dd9",
       "branch": "main",
-      "describedAs": "Merge pull request #163 from quixantplc/feat/progressive-cashout-paid-only",
-      "pinnedOn": "2026-09-28",
-      "howItIsHeld": "QSP declares libsas as FetchContent 'sas' at tag v5.4.4.57 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
+      "describedAs": "tag v5.4.5.13",
+      "pinnedOn": "2026-10-17",
+      "howItIsHeld": "QSP v2.3.5.32 declares libsas as FetchContent 'sas' at tag v5.4.5.11 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
+    "qsp": {
+      "repository": "https://github.com/quixantplc/QSP",
+      "tag": "v2.3.5.32",
+      "commit": "ec16c0e86f0e98dbd64ce34ec2faf40906153f88",
+      "pinnedOn": "2026-10-17",
+      "howItIsHeld": "The GIT_TAG of the qsp FetchContent declaration in QSP_DemoOpenGL/CMakeLists.txt, set there on the user's instruction and left uncommitted in that repository.",
+      "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0/_deps/qsp-src rev-parse HEAD"
+    },
+    "qpm2": {
+      "repository": "https://github.com/quixantplc/QPM2",
+      "commit": "ca3067f550ce2efb4e99386ac91872000e139f7a",
+      "branch": "hal-ticket-acceptor",
+      "pinnedOn": "2026-10-17",
+      "howItIsHeld": "QSP v2.3.5.32 fetches QPM2 v9.0.0.3, whose simulated acceptor never reports a ticket. Until QPM2 pull request 218 is released, the M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_QPM, pointing the build at the checkout at C:/Progetti/QPM2 on this branch.",
+      "verify": "git -C C:/Progetti/QPM2 rev-parse HEAD"
+    },
+    "qpmSimulator": {
+      "repository": "https://github.com/quixantplc/qpm_simulator",
+      "tag": "v2.0.0.5",
+      "commit": "58d0fd0a23dd5b25e89828a3af4efe82951f6e46",
+      "branch": "machine-printed-tickets",
+      "pinnedOn": "2026-10-17",
+      "howItIsHeld": "SASWB_QPM_SIMULATOR_ROOT in the M0 preset points at the checkout at C:/Progetti/qpm_simulator, whose ticket encoder and wallet the substituted printer compiles in.",
+      "verify": "git -C C:/Progetti/qpm_simulator rev-parse HEAD"
+    },
     "nvramArrangement": {
-      "arrangement": 7,
+      "arrangement": 13,
       "fixtures": [
         "fixtures/nvram/golden.nvram.gz",
         "fixtures/nvram/secure-enhanced.nvram.gz"
       ],
-      "note": "A machine master-resets memory not written in the arrangement it was built for. These fixtures are arrangement 7, which is the QSP the M0 preset fetches. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
+      "note": "A machine master-resets memory not written in the arrangement it was built for. QSP v2.3.5.32 writes arrangement 13, measured on 2026-10-17. The committed fixtures are still arrangement 7 and cannot be restored onto it; a golden memory configured by hand in arrangement 13 is pending. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
     }
   }
 }

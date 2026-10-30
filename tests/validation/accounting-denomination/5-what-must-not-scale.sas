@@ -6,6 +6,8 @@
 
 test "AD-25 ticket amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus @blocking
+  # The enhanced styles keep the printed record waiting for $4D, and this case never reads it.
+  requires egm.validation == standard
   requires decoder.lp6F
   requires machine.accounting_denomination
   requires stimulus.ticket

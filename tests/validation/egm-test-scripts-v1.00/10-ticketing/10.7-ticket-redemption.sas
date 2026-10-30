@@ -19,7 +19,7 @@ test "10.7.1 redemption is enabled through the status poll" {
 
 test "10.7.2 a ticket offered to the machine raises its exception" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket
+  requires stimulus.ticket, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
@@ -29,11 +29,16 @@ test "10.7.2 a ticket offered to the machine raises its exception" {
 
   egm ticket insert amount=1000 validation=0000000000000001
   host expect exception ticket_inserted within 8s
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=1000 parsing_code=0 validation_data=0000000000000001
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 }
 
 test "10.7.3 the host reads the ticket the machine is holding" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, decoder.lp70
+  requires stimulus.ticket, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
@@ -46,6 +51,10 @@ test "10.7.3 the host reads the ticket the machine is holding" {
 
   # What the machine read off the paper, handed back so the host can decide about it.
   host send lp 70
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=1000 parsing_code=0 validation_data=0000000000000002
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 }
 
 test "10.7.4 the machine answers the redemption poll" {
@@ -74,7 +83,7 @@ test "10.7.7 restricted tickets credit the restricted meter" {
 
 test "10.7.8 the transfer complete exception follows the credit" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket
+  requires stimulus.ticket, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
@@ -84,6 +93,11 @@ test "10.7.8 the transfer complete exception follows the credit" {
 
   egm ticket insert amount=1000 validation=0000000000000003
   host expect exception ticket_inserted within 8s
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=1000 parsing_code=0 validation_data=0000000000000003
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 
   note "The transfer-complete half needs the host to answer the redemption poll and then watch for the exception, which is written end to end in tests/regression/tickets/. What is asserted here is the half this case owns: the machine asks before it credits."
 }
@@ -138,7 +152,7 @@ test "10.7.15 restricted tickets in are counted in cents and quantity" {
 
 test "10.7.18 a ticket inserted is reported in the event format" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, stimulus.real_time_events
+  requires stimulus.ticket, stimulus.real_time_events, decoder.lp70, decoder.lp71
   requires egm.validation == secure_enhanced
 
   host connect loopback address 01
@@ -150,6 +164,11 @@ test "10.7.18 a ticket inserted is reported in the event format" {
 
   egm ticket insert amount=1000 validation=0000000000000004
   host expect exception ticket_inserted within 8s
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=1000 parsing_code=0 validation_data=0000000000000004
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 }
 
 test "10.7.19 a transfer complete is reported in the event format" {

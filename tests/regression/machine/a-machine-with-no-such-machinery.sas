@@ -76,6 +76,8 @@ test "nothing is waiting to be told how to pay out" {
 
 test "a printed ticket shows up in the validation meters" {
   tag @needs-stimulus
+  # The enhanced styles keep the printed record waiting for $4D, and this case never reads it.
+  requires egm.validation == standard
   requires stimulus.bill
   requires stimulus.button.collect
   requires decoder.lp50

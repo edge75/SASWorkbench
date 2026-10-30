@@ -36,6 +36,9 @@ test "each general poll in a sequence draws the next exception" {
 
   host poll sequence
 
+  # A poll of our own first, so the round's last cycle has finished before the doors move.
+  host send gp draws nothing
+
   egm door slot open
   egm door drop open
 
