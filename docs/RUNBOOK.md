@@ -103,12 +103,11 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    top of `SAS`, and the key in this machine's secure storage carries `SAS` only — built Debug the
    machine raises a licence lockup and takes no money (BLOCKERS.md Trap D).
 
-   A Release build of QSP v2.3.5.32 takes **prebuilt packages** of libsas and QPM2 and silently
-   ignores the source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure
-   prints `libsas built with VALIDATION_DEBUG` and `the simulated printer files its tickets in the
-   wallet`; without both lines it is not this project's build. Until QPM2 pull request 218 is
-   released, the preset also points `FETCHCONTENT_SOURCE_DIR_QPM` at `C:/Progetti/QPM2`, which
-   carries the acceptor that reads tickets.
+   A Release build of QSP takes **prebuilt packages** of libsas and QPM2 and silently ignores the
+   source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure prints
+   `libsas built with VALIDATION_DEBUG` and `the simulated printer files its tickets in the
+   wallet`; without both lines it is not this project's build. QPM2 is fetched as QSP v2.3.6.1
+   declares it (v9.0.0.10), whose acceptor reads tickets, so the preset no longer overrides it.
 
 3. Restore the memory the machine needs. Fresh NVRAM has no printer protocol and no validation
    style, so no ticket prints and no note is accepted:
@@ -118,10 +117,16 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    ```
 
    Use `secure-enhanced.nvram.gz` instead for the redemption cases. **The fixtures are arrangement
-   7 and QSP v2.3.5.32 writes arrangement 13**, so today they cannot be restored onto the pinned
-   build; a machine master-resets memory not written in the arrangement it was built for. Until an
-   arrangement-13 golden memory is configured by hand and committed, run on a memory configured by
-   hand, and expect cases that assume the fixture's five-cent denomination to fail on the units.
+   7 and QSP v2.3.6.1 writes layout 15**, so today they cannot be restored onto the pinned build.
+   On memory of any other layout the machine raises `Memory Error`, polls at address 0 and never
+   opens the SAS link, so every run reports that no machine connected. Only an attendant clearing
+   the memory from the audit menu stamps layout 15. Until a layout-15 golden memory is configured
+   by hand and committed, clear and configure the memory by hand before a run.
+
+   The platform and `C:\ProgramData\quixant\launchpad\nvram.bin` are shared by every Launchpad
+   player on the machine, whatever engine it is built with. Before restoring memory or starting the
+   demo, make sure no other player or Launchpad service holds them; a second platform refuses to
+   start with `qspStart() error Platform already running`.
 
 4. Start the machine, which dials the host and keeps retrying, then point the host at it:
 
