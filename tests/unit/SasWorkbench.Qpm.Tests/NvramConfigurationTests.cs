@@ -26,9 +26,9 @@ public class NvramConfigurationTests
     /// The memory a person configured by hand on QSP v2.3.6.1, which writes layout 15.
     /// </summary>
     /// <remarks>
-    /// Saved as the machine left it after clearing its memory and closing normally. Only its
-    /// first bank is whole: the second still holds the fill of a memory nothing had written. The
-    /// machine starts from the first bank on it, and so does this, saying which bank it read.
+    /// Configured by hand on 2026-10-30, rewritten to a five-cent accounting denomination, then given
+    /// game denominations five cents divides through the machine's menu and saved after a normal
+    /// close, which leaves both banks whole. The machine reported five cents on long poll 1F.
     /// </remarks>
     [Fact]
     public void TheCommittedGoldenMemoryIsTheMachineConfiguredByHandInLayoutFifteen()
@@ -46,8 +46,73 @@ public class NvramConfigurationTests
         Assert.Equal(SasCashoutValidation.Standard, configuration.Validation);
         Assert.False(configuration.TicketInEnabled);
         Assert.False(configuration.SecureEnhancedConfigured);
-        Assert.NotNull(configuration.Caveat);
-        Assert.Contains("bank 0", configuration.Caveat, StringComparison.Ordinal);
+        Assert.Equal(5u, configuration.AccountingDenominationCents);
+        Assert.Null(configuration.Caveat);
+    }
+
+    /// <summary>
+    /// The arrangement-7 memory was configured at five cents through the menu, which pins the offset.
+    /// </summary>
+    [Fact]
+    public void TheArrangementSevenMemoryConfiguredAtFiveCentsReadsFiveCents()
+    {
+        Assert.Equal(5u, NvramFixture.Configuration(Fixture("golden")).AccountingDenominationCents);
+        Assert.Equal(5u, NvramFixture.Configuration(Fixture("secure-enhanced")).AccountingDenominationCents);
+    }
+
+    /// <summary>
+    /// A unit is the configuration block's last record and the marks, and nothing else.
+    /// </summary>
+    [Fact]
+    public void AnAccountingDenominationChangesOnlyItsRecordAndTheMark()
+    {
+        const int record = 0x000A00 + 0x1F0;
+        byte[] before = MemoryAt(CurrentFixture("golden"));
+        byte[] after = NvramConfiguration.WithAccountingDenomination(before, 10);
+
+        int[] changed =
+            [.. Enumerable.Range(0, NvramConfiguration.BankBytes).Where(i => before[i] != after[i])];
+
+        Assert.All(changed, offset =>
+            Assert.True(offset < 2 || (offset >= record && offset < record + 4),
+                $"offset 0x{offset:X6} is neither the mark nor the accounting denomination"));
+        Assert.Equal(10u, NvramConfiguration.Read(after).AccountingDenominationCents);
+        Assert.True(after.AsSpan(0, NvramConfiguration.BankBytes)
+            .SequenceEqual(after.AsSpan(NvramConfiguration.BankBytes)));
+    }
+
+    [Fact]
+    public void ASavedCopyWrittenInAnotherUnitReadsBackInItAndIsOtherwiseTheSameMachine()
+    {
+        using var directory = new TemporaryDirectory();
+        string written = Path.Combine(directory.Path, "quarter.nvram.gz");
+
+        NvramMachineConfiguration returned =
+            NvramFixture.ReconfigureDenomination(CurrentFixture("golden"), written, 25);
+        NvramMachineConfiguration reread = NvramFixture.Configuration(written);
+        NvramMachineConfiguration golden = NvramFixture.Configuration(CurrentFixture("golden"));
+
+        Assert.Equal(25u, returned.AccountingDenominationCents);
+        Assert.Equal(returned, reread with { PollAddresses = returned.PollAddresses });
+        Assert.Equal(golden with { StoredAccountingDenominationCents = 25, PollAddresses = reread.PollAddresses },
+            reread);
+    }
+
+    /// <summary>
+    /// A unit long poll 1F has no code for is refused, because the machine would report in cents.
+    /// </summary>
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(7)]
+    public void AnAccountingDenominationWithNoCodeIsRefused(int cents)
+    {
+        byte[] memory = MemoryAt(CurrentFixture("golden"));
+
+        QpmUnavailableException refused = Assert.Throws<QpmUnavailableException>(
+            () => NvramConfiguration.WithAccountingDenomination(memory, cents));
+
+        Assert.Contains("long poll 1F", refused.Reason, StringComparison.Ordinal);
     }
 
     /// <summary>

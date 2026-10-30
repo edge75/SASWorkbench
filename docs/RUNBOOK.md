@@ -105,8 +105,9 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
 
    A Release build of QSP takes **prebuilt packages** of libsas and QPM2 and silently ignores the
    source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure prints
-   `libsas built with VALIDATION_DEBUG` and `the simulated printer files its tickets in the
-   wallet`; without both lines it is not this project's build. QPM2 is fetched as QSP v2.3.6.1
+   `libsas built with VALIDATION_DEBUG`, `the simulated printer files its tickets in the wallet`
+   and `the demo's configuration turns on Sas.AccountingDenomination.Enable`; without all three it
+   is not this project's build. QPM2 is fetched as QSP v2.3.6.1
    declares it (v9.0.0.10), whose acceptor reads tickets, so the preset no longer overrides it.
 
 3. Restore the memory the machine needs. Fresh NVRAM has no printer protocol and no validation
@@ -123,10 +124,14 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    arrangement-7 fixtures in `fixtures/nvram/arrangement-7` cannot be restored onto this build.
 
    Three things about the layout-15 fixtures change what a run sees:
-   - Their accounting denomination is one cent, because this build's audit menu does not offer
-     the setting. Cases that assume five cents fail on the units.
+   - Their accounting denomination is five cents, and their games are at 5, 10, 50 and 100 cents,
+     which five cents divides. QSP applies the unit only with `Sas.AccountingDenomination.Enable`
+     on, which the preset's build step turns on; built any other way, the machine reports in cents.
+     Long poll `1F` must answer denomination code `$02`. `sasctl nvram denomination` writes another
+     unit into a fixture.
    - The secure-enhanced machine keeps its acceptor off (`Validation ID Not Configured`) until a
-     host sets its validation identifier with `$4C`, so send one before a ticket-in case.
+     host sets its validation identifier with `$4C`. The ticket-in cases send one themselves, only
+     to a machine that reports secure enhanced validation.
    - The machine sets no serial number, so `$54` answers with an empty one.
 
    The platform and `C:\ProgramData\quixant\launchpad\nvram.bin` are shared by every Launchpad

@@ -528,16 +528,24 @@ public sealed class ScriptRunner
             // and before a single step has run. A case that needed one and did not get it is a
             // skip, exactly as it would have been had the answer come from this side of the link.
             List<Requirement> declared = Declared(test).ToList();
+            List<Requirement> conditions = test.Steps
+                .OfType<SendLongPollStep>()
+                .Select(s => s.When)
+                .OfType<Requirement>()
+                .ToList();
             string[] wanted = declared
+                .Concat(conditions)
                 .Select(r => r.Key)
                 .Where(CapabilityProbe.IsAskedOfTheMachine)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 
+            CapabilitySet asked = capabilities;
+            MachineAnswers answers = new(new Dictionary<string, string?>(), WhyNot: null);
             if (wanted.Length > 0)
             {
-                MachineAnswers answers = CapabilityProbe.FromMachine(engine, wanted);
-                CapabilitySet asked = capabilities.With(answers.Values);
+                answers = CapabilityProbe.FromMachine(engine, wanted);
+                asked = capabilities.With(answers.Values);
                 if (asked.FirstUnmet(declared) is { } gap)
                 {
                     return Skipped(test, stopwatch, startedAt,
@@ -573,6 +581,11 @@ public sealed class ScriptRunner
                             hosts.TryUseMachine(onto.Address, out string? notPolled)
                                 ? Moved(onto, hosts, test, baselines, stopwatch.Elapsed)
                                 : Unavailable(onto, stopwatch.Elapsed, notPolled!),
+
+                        SendLongPollStep { When: { } condition } held
+                            when !asked.Satisfies(condition, out string unmet) =>
+                            NotSent(held, condition, asked.Value(condition.Key),
+                                AskedReason(condition, unmet, answers), stopwatch.Elapsed),
 
                         //  A send names its machine, or takes the one the case moved to. On a round
                         //  of more than one with neither, it is refused rather than sent to
@@ -649,6 +662,23 @@ public sealed class ScriptRunner
             Log.TestFinished(outcome, connect.Channel);
             return outcome;
         }
+    }
+
+    /// <summary>
+    /// Records a send the machine's own answer ruled out, which is no claim, or fails it when the
+    /// machine gave no answer.
+    /// </summary>
+    private static StepResult NotSent(
+        SendLongPollStep step, Requirement condition, string? answer, string reason, TimeSpan at)
+    {
+        return answer is not null
+            ? new StepResult(step.Location, step.Describe(), Verdict.Pass,
+                Actual: $"not sent: {reason}", At: at)
+            : new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: $"to know whether {condition}",
+                Actual: "it could not be told",
+                Reason: reason,
+                At: at) { IsAssertion = true };
     }
 
     /// <summary>

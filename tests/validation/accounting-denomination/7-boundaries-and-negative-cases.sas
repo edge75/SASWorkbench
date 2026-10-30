@@ -36,6 +36,7 @@ test "AD-38 a remainder on a meter fed in cents is normal" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp6F
   requires machine.accounting_denomination
+  requires decoder.lp4C
   requires stimulus.ticket
 
   machine accounting denomination 10c
@@ -43,6 +44,8 @@ test "AD-38 a remainder on a meter fed in cents is normal" {
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   # Twenty-five pesos fifty-three, which the accounting denomination does not divide.
   egm ticket insert amount=2553 validation=3333333333333333
@@ -65,6 +68,7 @@ test "AD-39 a meter near its limit is carried at full width" {
   tag @accounting-denomination @slow @needs-stimulus
   requires decoder.lp6F
   requires machine.accounting_denomination
+  requires decoder.lp4C
   requires stimulus.ticket
   requires stimulus.play
 
@@ -73,6 +77,8 @@ test "AD-39 a meter near its limit is carried at full width" {
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   # Ten million pesos, loaded in one document rather than driven up a note at a time, and wagered
   # in one game. A hundred million accounting units needs nine digits and so cannot be carried in

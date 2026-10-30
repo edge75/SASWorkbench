@@ -16,6 +16,9 @@ namespace SasWorkbench.Qpm;
 /// <param name="PollAddresses">The address it answers on, one per channel.</param>
 /// <param name="AssetNumber">Its asset number, which funds transfer needs.</param>
 /// <param name="Flags">The host-link options, as the machine stores them.</param>
+/// <param name="StoredAccountingDenominationCents">
+/// The accounting denomination the memory holds, in cents, where zero is a value never written.
+/// </param>
 /// <param name="Caveat">What is worth saying about the memory itself, when anything is.</param>
 public sealed record NvramMachineConfiguration(
     uint LayoutVersion,
@@ -26,8 +29,17 @@ public sealed record NvramMachineConfiguration(
     IReadOnlyList<ushort> PollAddresses,
     uint AssetNumber,
     uint Flags,
+    uint StoredAccountingDenominationCents,
     string? Caveat = null)
 {
+    /// <summary>The unit the memory asks the machine to report its meters in, in cents.</summary>
+    /// <remarks>
+    /// QSP v2.3.6.1 applies it only with Sas.AccountingDenomination.Enable on and a unit dividing
+    /// every enabled game's denomination; long poll 1F says which happened.
+    /// </remarks>
+    public uint AccountingDenominationCents =>
+        StoredAccountingDenominationCents == 0 ? 1 : StoredAccountingDenominationCents;
+
     /// <summary>Which validation style the machine performs when it cashes out.</summary>
     public SasCashoutValidation Validation => NvramConfiguration.ValidationOnTheWire(Flags);
 
@@ -154,6 +166,9 @@ public static class NvramConfiguration
     private const int BillValidatorProtocolOffset = 0x5E;
     private const int PrinterProtocolOffset = 0x60;
 
+    // A 32-bit count of cents, last in the block: 5 in the arrangement-7 memory, 1 in layout 15.
+    private const int AccountingDenominationOffset = 0x1F0;
+
     private const int ManufacturerIdOffset = 0x00;
     private const int PollAddressOffset = 0x02;
     private const int PollAddressCount = 4;
@@ -245,7 +260,40 @@ public static class NvramConfiguration
             PollAddresses: addresses,
             AssetNumber: DoubleWord(memory, network + AssetNumberOffset),
             Flags: DoubleWord(memory, network + FlagsOffset),
+            StoredAccountingDenominationCents:
+                DoubleWord(memory, configuration + AccountingDenominationOffset),
             Caveat: Caveat(memory, bank));
+    }
+
+    /// <summary>
+    /// Rewrites the accounting denomination, leaving everything else alone.
+    /// </summary>
+    /// <remarks>
+    /// The machine keeps the unit until its next memory clear, so write it only into a memory no
+    /// host has read meters from.
+    /// </remarks>
+    /// <returns>The memory with the change applied, resealed. The original is untouched.</returns>
+    /// <exception cref="QpmUnavailableException">
+    /// The unit has no Table C-4 code, or it is not a machine memory this build knows.
+    /// </exception>
+    public static byte[] WithAccountingDenomination(byte[] memory, int cents)
+    {
+        ArgumentNullException.ThrowIfNull(memory);
+        if (SasDenomination.CodeFor(cents) is null)
+        {
+            throw new QpmUnavailableException(
+                $"{cents} cents is not a denomination long poll 1F can report, so no machine "
+                + "can be configured to count in it");
+        }
+
+        int bank = SoundBank(memory);
+        NvramMap map = MapFor(memory, bank);
+
+        var written = new byte[MemoryBytes];
+        memory.AsSpan(bank, BankBytes).CopyTo(written);
+        WriteDoubleWord(written, map.ConfigurationMeters + AccountingDenominationOffset, (uint)cents);
+        Reseal(written);
+        return written;
     }
 
     /// <summary>

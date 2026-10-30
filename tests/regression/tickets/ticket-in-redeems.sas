@@ -14,12 +14,15 @@ test "a ticket is redeemed and the credits arrive" {
   tag @needs-stimulus
   requires stimulus.ticket
   requires stimulus.settle
+  requires decoder.lp4C
   requires decoder.lp70
   requires decoder.lp71
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   egm settle
   host forget exceptions
@@ -58,12 +61,15 @@ test "a ticket the host will not validate leaves the machine untouched" {
   tag @needs-stimulus
   requires stimulus.ticket
   requires stimulus.settle
+  requires decoder.lp4C
   requires decoder.lp70
   requires decoder.lp71
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   egm settle
   host forget exceptions
@@ -89,12 +95,15 @@ test "a redemption for another ticket's number is refused" {
   tag @needs-stimulus
   requires stimulus.ticket
   requires stimulus.settle
+  requires decoder.lp4C
   requires decoder.lp70
   requires decoder.lp71
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   egm settle
   host forget exceptions
@@ -120,11 +129,14 @@ test "the number the host is told is the whole barcode" {
   tag @needs-stimulus
   requires stimulus.ticket
   requires stimulus.settle
+  requires decoder.lp4C
   requires decoder.lp70
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
 
   egm settle
   host forget exceptions

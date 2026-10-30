@@ -148,6 +148,47 @@ public class ScriptParserTests
         Assert.Equal("stimulus.settle", step.RequiredCapability);
     }
 
+    /// <summary>
+    /// A condition closes a send of any form, after the machine it is sent to.
+    /// </summary>
+    [Fact]
+    public void A_send_may_close_with_the_condition_the_machine_has_to_meet()
+    {
+        ScriptTest test = ParseOne("""
+            host connect loopback address 01
+            host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+            host send lp 1F to 01 when egm.validation == standard
+            host send lp 1F
+            """);
+
+        var fields = Assert.IsType<SendLongPollStep>(test.Steps[1]);
+        Assert.Equal(new Requirement(fields.Location, "egm.validation", "secure_enhanced"), fields.When);
+        Assert.Equal(0x4C, fields.Command);
+        Assert.Equal(
+            "send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced",
+            fields.Describe());
+
+        var addressed = Assert.IsType<SendLongPollStep>(test.Steps[2]);
+        Assert.Equal("standard", addressed.When!.ExpectedValue);
+        Assert.Equal(SasAddress.Of(0x01), addressed.To);
+
+        Assert.Null(Assert.IsType<SendLongPollStep>(test.Steps[3]).When);
+    }
+
+    [Theory]
+    [InlineData("host send lp 1F when egm.validation")]
+    [InlineData("host send lp 1F when egm.validation = standard")]
+    [InlineData("host send lp 1F when egm.validation == standard extra")]
+    public void A_condition_that_is_not_a_comparison_is_refused(string line)
+    {
+        ScriptParseException refused = Assert.Throws<ScriptParseException>(() => ParseOne($"""
+            host connect loopback address 01
+            {line}
+            """));
+
+        Assert.Contains("when <capability> == <value>", refused.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_machine_action_nobody_implements_names_the_ones_that_exist()
     {

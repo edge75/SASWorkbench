@@ -29,3 +29,30 @@ add_compile_definitions(SKIP_INTEGRITY_CHECKS)
 if(NOT TARGET qxcom_static)
 	add_subdirectory("${SASWB_ROOT}/tools/qxcom-tcp" "${CMAKE_BINARY_DIR}/saswb-qxcom-tcp")
 endif()
+
+#	Deferred to the end of the demo's directory, once QSP's resource copy and the demo exist to follow.
+function(saswb_enable_qsp_toggles)
+	foreach(needed qsp_resources OpenGL_Game)
+		if(NOT TARGET ${needed})
+			message(FATAL_ERROR "SasWorkbench: there is no ${needed} target, so Sas.AccountingDenomination.Enable cannot be turned on")
+		endif()
+	endforeach()
+
+	add_custom_target(saswb_qsp_toggles ALL
+		COMMAND "${CMAKE_COMMAND}"
+			"-DQSP_CONFIG_FILE=$<TARGET_FILE_DIR:OpenGL_Game>/Resources/configuration.json"
+			-P "${SASWB_ROOT}/tools/qxcom-tcp/cmake/saswb-config-toggles.cmake"
+		COMMENT "SasWorkbench: turning on Sas.AccountingDenomination.Enable"
+		VERBATIM)
+	add_dependencies(saswb_qsp_toggles qsp_resources)
+	#	So building the demo alone still re-applies it after QSP copies its resources again.
+	add_dependencies(OpenGL_Game saswb_qsp_toggles)
+	message(STATUS "SasWorkbench: the demo's configuration turns on Sas.AccountingDenomination.Enable")
+endfunction()
+
+#	The demo calls project() more than once, and this file runs at the end of each call.
+get_property(saswb_toggles_deferred GLOBAL PROPERTY SASWB_TOGGLES_DEFERRED)
+if(NOT saswb_toggles_deferred)
+	set_property(GLOBAL PROPERTY SASWB_TOGGLES_DEFERRED TRUE)
+	cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL saswb_enable_qsp_toggles)
+endif()

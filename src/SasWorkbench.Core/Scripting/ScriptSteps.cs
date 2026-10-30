@@ -189,6 +189,14 @@ public sealed record SendLongPollStep(SourceLocation Location, byte Command, byt
     /// </remarks>
     public string? NamedData { get; init; }
 
+    /// <summary>
+    /// What the machine has to say about itself for this to be sent, when the step names it.
+    /// </summary>
+    /// <remarks>
+    /// Asked when the case starts, on its first link, as a requirement is; no answer fails the step.
+    /// </remarks>
+    public Requirement? When { get; init; }
+
     public override string Describe()
     {
         string what = NamedData is not null
@@ -197,7 +205,10 @@ public sealed record SendLongPollStep(SourceLocation Location, byte Command, byt
                 ? $"send lp {Command:X2}"
                 : $"send lp {Command:X2} data {Convert.ToHexString(Data)}";
 
-        return To is { } machine ? $"{what} to {machine}" : what;
+        if (To is { } machine)
+            what = $"{what} to {machine}";
+
+        return When is { } condition ? $"{what} when {condition}" : what;
     }
 }
 

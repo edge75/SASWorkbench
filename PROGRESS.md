@@ -143,3 +143,6 @@ PHASE:R6 WAVE:pin-pr-10-draft STATUS:complete TS:2026-10-30T13:34:01Z
 PHASE:R6 WAVE:golden-layout15-by-hand STATUS:complete TS:2026-10-30T15:15:02Z
 PHASE:R6 WAVE:measure-vs-2026-10-17 STATUS:complete TS:2026-10-30T15:15:03Z
 PHASE:R6 WAVE:layout15-fixtures-and-pr-10 STATUS:complete TS:2026-10-30T15:15:03Z
+PHASE:R7 WAVE:demo-rebuild-toggle-and-golden-5c STATUS:complete TS:2026-10-30T16:21:00Z
+PHASE:R7 WAVE:demo-ticket-in-and-conformance STATUS:complete TS:2026-10-30T16:42:00Z
+PHASE:R7 WAVE:p1-p2-p3-code-and-tests STATUS:complete TS:2026-10-30T16:58:00Z
