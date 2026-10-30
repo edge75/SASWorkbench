@@ -148,8 +148,8 @@ public sealed class PollEngine : IDisposable
     }
 
     /// <summary>
-    /// Why the link stopped taking messages, after which nothing more is polled; null while it
-    /// has not.
+    /// Why polling stopped, because the link stopped taking messages or something else failed on
+    /// the poll thread; null while it has not.
     /// </summary>
     public string? LinkFault => _linkFault;
 
@@ -503,6 +503,41 @@ public sealed class PollEngine : IDisposable
         {
             Fail(failed.Message);
         }
+        catch (Exception unexpected)
+        {
+            // Nothing thrown on the poll thread may end the process: it ends the polling, with the reason.
+            Trace.TraceError(unexpected.ToString());
+            Fail($"polling stopped after an unexpected {unexpected.GetType().Name}{Where(unexpected)}: "
+                 + unexpected.Message);
+        }
+    }
+
+    /// <summary>The first method of ours the exception passed through, as " in Type.Method", or nothing.</summary>
+    private static string Where(Exception exception)
+    {
+        try
+        {
+            foreach (StackFrame? frame in new StackTrace(exception).GetFrames())
+            {
+                if (frame?.GetMethod() is not { DeclaringType: { } type } method
+                    || type.Namespace?.StartsWith("SasWorkbench", StringComparison.Ordinal) != true)
+                {
+                    continue;
+                }
+
+                // A lambda compiles into a nested type with a generated name, so name the type it was written in.
+                while (type.DeclaringType is { } outer && type.Name.Contains('<'))
+                    type = outer;
+
+                return method.Name.Contains('<') ? $" in {type.Name}" : $" in {type.Name}.{method.Name}";
+            }
+        }
+        catch (Exception)
+        {
+            // Only the location is lost: the reason still carries the exception's type and message.
+        }
+
+        return string.Empty;
     }
 
     private void Poll()
@@ -887,8 +922,8 @@ public sealed class PollEngine : IDisposable
     }
 
     /// <summary>
-    /// Stops polling on a link that has stopped taking messages, and hands the reason to whoever
-    /// is waiting rather than letting the failure end the process.
+    /// Stops polling after a failure on the poll thread, and hands the reason to whoever is
+    /// waiting rather than letting the failure end the process.
     /// </summary>
     /// <remarks>
     /// A caller whose answer was already handed back keeps it: only a transaction nobody has
@@ -914,8 +949,25 @@ public sealed class PollEngine : IDisposable
 
         _pendingDone.Set();
 
-        if (changed)
-            LinkStateChanged?.Invoke(LinkState.Down);
+        if (!changed || LinkStateChanged is not { } handlers)
+            return;
+
+        // Each handler is told on its own, so one that fails does not keep the others from hearing.
+        foreach (Action<LinkState> handler in handlers.GetInvocationList().Cast<Action<LinkState>>())
+        {
+            try
+            {
+                handler(LinkState.Down);
+            }
+            catch (Exception failed)
+            {
+                // The fault is already recorded, so a handler that fails on hearing it adds to the reason.
+                lock (_submitGate)
+                {
+                    _linkFault += $" Reporting it then failed with {failed.GetType().Name}: {failed.Message}";
+                }
+            }
+        }
     }
 
     private void RunPendingLongPoll()

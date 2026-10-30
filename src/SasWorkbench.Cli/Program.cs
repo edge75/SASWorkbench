@@ -13,6 +13,9 @@ if (args[0] is "--version" or "-v")
     return 0;
 }
 
+// A failure the poll thread survives still prints its stack on stderr, as it did when it ended the process.
+System.Diagnostics.Trace.Listeners.Add(new System.Diagnostics.ConsoleTraceListener(useErrorStream: true));
+
 CommandLine line = CommandLine.Parse(args);
 
 try

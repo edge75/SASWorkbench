@@ -675,6 +675,69 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// Handlers run on the poll thread, so one that throws - a log writer on a full disk, say -
+    /// used to end the whole process from a thread nobody was watching. Polling now stops
+    /// instead, and the reason says what was thrown and where, so a run reports it as a failure
+    /// with a cause rather than vanishing.
+    /// </summary>
+    [Fact]
+    public void A_handler_that_throws_on_the_poll_thread_stops_polling_with_the_reason()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.Wire += (_, _, _, _, _, _) => throw new IOException("There is not enough space on the disk.");
+        engine.Start();
+
+        Assert.True(WaitUntil(() => engine.LinkFault is not null), "the failure was never recorded");
+        Assert.Equal(LinkState.Down, engine.State);
+        Assert.Contains("unexpected IOException", engine.LinkFault);
+        Assert.Contains("There is not enough space on the disk.", engine.LinkFault);
+
+        LongPollResult refused = engine.Execute(0x1F);
+        Assert.Equal(LongPollOutcome.NotSent, refused.Outcome);
+        Assert.Equal(engine.LinkFault, refused.Detail);
+    }
+
+    /// <summary>
+    /// The failure is reported through the same handlers, so one of them can fail again on hearing
+    /// it - a window that has already closed, for instance. That second failure is added to the
+    /// reason rather than being the thing that finally ends the process, and it does not keep a
+    /// handler subscribed after it from hearing that the link is down: one that never heard would
+    /// go on showing a link that is up.
+    /// </summary>
+    [Fact]
+    public void A_link_state_handler_that_throws_on_hearing_of_the_failure_adds_to_the_reason()
+    {
+        using var bus = new LoopbackBus();
+        using var machine = new ScriptedMachine(bus.Egm, Address);
+        machine.Start();
+
+        using var heardDown = new ManualResetEventSlim(false);
+        using var engine = new PollEngine(new RefusingLine(bus.Host), FastOptions());
+        engine.LinkStateChanged += state =>
+        {
+            if (state == LinkState.Down)
+                throw new InvalidOperationException("The window has already closed.");
+        };
+        engine.LinkStateChanged += state =>
+        {
+            if (state == LinkState.Down)
+                heardDown.Set();
+        };
+        engine.Start();
+
+        Assert.True(WaitUntil(() => engine.LinkFault?.Contains("Reporting it then failed") == true),
+            $"the second failure was never added: {engine.LinkFault}");
+        Assert.Contains("The write timed out.", engine.LinkFault);
+        Assert.Contains("The window has already closed.", engine.LinkFault);
+        Assert.True(heardDown.Wait(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken),
+            "the handler after the one that failed never heard the link go down");
+    }
+
+    /// <summary>
     /// The mode is given back, so a case can establish communication the ordinary way, drive an
     /// exact sequence, and then let the round resume.
     /// </summary>
