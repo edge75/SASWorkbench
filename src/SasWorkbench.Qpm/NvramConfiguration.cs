@@ -143,9 +143,11 @@ public static class NvramConfiguration
     // the address lines and the note acceptor's hash pin the configuration block, and the maker's
     // two characters followed by the poll address, the asset number and the option word pin the
     // host-link block. Both were then confirmed against the arrangement the platform declares.
+    // Revision 15 was established the same way, from a memory QSP v2.3.6.1 wrote on 2026-10-30.
     private static readonly NvramMap[] KnownMaps =
     [
         new(LayoutVersion: 7, ConfigurationMeters: 0x000A00, SasNetwork: 0x00FE62),
+        new(LayoutVersion: 15, ConfigurationMeters: 0x000A00, SasNetwork: 0x00FF1E),
     ];
 
     private const int ConfigurationRequiredOffset = 0x52;
@@ -364,8 +366,11 @@ public static class NvramConfiguration
         if (identical && Word(memory, 0) == BankMark(memory, 0))
             return null;
 
-        return $"read from bank {bank / BankBytes}: the other one was left part-written, which is "
-               + "what a machine that was killed rather than closed leaves behind";
+        // Seen both after a kill and after a QSP v2.3.6.1 demo cleared its memory and closed normally.
+        return $"read from bank {bank / BankBytes}: the other one differs from it. "
+               + "A machine killed rather than closed leaves that behind, and so does a QSP v2.3.6.1 "
+               + "demo that has just cleared its memory; the machine starts from the sound bank "
+               + "either way";
     }
 
     /// <summary>The arrangement revision the memory records.</summary>

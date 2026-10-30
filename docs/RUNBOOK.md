@@ -116,17 +116,24 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    sasctl nvram restore --fixture fixtures/nvram/golden.nvram.gz
    ```
 
-   Use `secure-enhanced.nvram.gz` instead for the redemption cases. **The fixtures are arrangement
-   7 and QSP v2.3.6.1 writes layout 15**, so today they cannot be restored onto the pinned build.
-   On memory of any other layout the machine raises `Memory Error`, polls at address 0 and never
-   opens the SAS link, so every run reports that no machine connected. Only an attendant clearing
-   the memory from the audit menu stamps layout 15. Until a layout-15 golden memory is configured
-   by hand and committed, clear and configure the memory by hand before a run.
+   Use `secure-enhanced.nvram.gz` instead for the redemption cases. Both fixtures are layout 15,
+   which QSP v2.3.6.1 writes. On memory of any other layout the machine raises `Memory Error`,
+   polls at address 0 and never opens the SAS link, so every run reports that no machine
+   connected; only an attendant clearing the memory from the audit menu stamps layout 15. The
+   arrangement-7 fixtures in `fixtures/nvram/arrangement-7` cannot be restored onto this build.
+
+   Three things about the layout-15 fixtures change what a run sees:
+   - Their accounting denomination is one cent, because this build's audit menu does not offer
+     the setting. Cases that assume five cents fail on the units.
+   - The secure-enhanced machine keeps its acceptor off (`Validation ID Not Configured`) until a
+     host sets its validation identifier with `$4C`, so send one before a ticket-in case.
+   - The machine sets no serial number, so `$54` answers with an empty one.
 
    The platform and `C:\ProgramData\quixant\launchpad\nvram.bin` are shared by every Launchpad
    player on the machine, whatever engine it is built with. Before restoring memory or starting the
    demo, make sure no other player or Launchpad service holds them; a second platform refuses to
-   start with `qspStart() error Platform already running`.
+   start with `qspStart() error Platform already running`. Close the peripheral simulator's window
+   too: it rewrites the peripheral masks on every frame, so the run refuses the peripheral stimulus.
 
 4. Start the machine, which dials the host and keeps retrying, then point the host at it:
 
