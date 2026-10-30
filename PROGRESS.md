@@ -136,3 +136,4 @@ PHASE:R2 WAVE:E-commit-user-guide STATUS:complete TS:2026-10-29T21:50:15Z
 PHASE:R2 WAVE:F-push-and-pr-6 STATUS:complete TS:2026-10-29T21:50:15Z
 PHASE:R3 WAVE:R1-R3-link-faults-and-sequence STATUS:complete TS:2026-10-29T22:49:16Z
 PHASE:R3 WAVE:repin-libsas-5.4.6.4-pin-and-catalogue STATUS:complete TS:2026-10-29T22:54:03Z
+PHASE:R4 WAVE:R4-poll-thread-catch-all STATUS:complete TS:2026-10-30T06:15:50Z
