@@ -7,42 +7,42 @@
       "branch": "main",
       "describedAs": "tag v5.4.6.4",
       "pinnedOn": "2026-10-29",
-      "measured": "Only the generated protocol catalogue has been checked against this commit (protogen --check: up to date). The demo has not yet been rebuilt or run against it; the last demo measurement is the one taken on 2026-10-17 against v5.4.5.13.",
-      "howItIsHeld": "QSP v2.3.5.32 declares libsas as FetchContent 'sas' at tag v5.4.5.11 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
+      "measured": "Measured on 2026-10-30 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10, in the 2026-10-17 order (ticket-in, conformance, M7 validation, sweep) on the layout-15 secure-enhanced memory, after a host set its validation identifier with $4C as the 2026-10-17 memory already had. Against 2026-10-17 on v5.4.5.13: ticket-in the same (3 pass, 1 fail on one-cent units); conformance 10.1 the same three skips; the sweep the same outcome for all 85 long polls, with the same seven layouts undecoded and a $54 reply with no serial number, which the new memory does not set; M7 from 9 pass, 7 fail to 14 pass, 1 fail, the gains coming from the case fixes made since. On the layout-15 golden memory, conformance 10.1.1 and 10.1.3 pass. No difference was traced to libsas.",
+      "howItIsHeld": "QSP v2.3.6.1 declares libsas as FetchContent 'sas' at tag v5.4.5.28 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
     "qsp": {
       "repository": "https://github.com/quixantplc/QSP",
-      "tag": "v2.3.5.32",
-      "commit": "ec16c0e86f0e98dbd64ce34ec2faf40906153f88",
-      "pinnedOn": "2026-10-17",
-      "howItIsHeld": "The GIT_TAG of the qsp FetchContent declaration in QSP_DemoOpenGL/CMakeLists.txt, set there on the user's instruction and left uncommitted in that repository.",
+      "tag": "v2.3.6.1",
+      "commit": "52606e62f33f47d220644b7c3c3d53fe548f66db",
+      "pinnedOn": "2026-10-30",
+      "howItIsHeld": "The GIT_TAG of the qsp FetchContent declaration in QSP_DemoOpenGL/CMakeLists.txt, as committed upstream on its main branch.",
       "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0/_deps/qsp-src rev-parse HEAD"
     },
     "qpm2": {
       "repository": "https://github.com/quixantplc/QPM2",
-      "commit": "ca3067f550ce2efb4e99386ac91872000e139f7a",
-      "branch": "hal-ticket-acceptor",
-      "pinnedOn": "2026-10-17",
-      "howItIsHeld": "QSP v2.3.5.32 fetches QPM2 v9.0.0.3, whose simulated acceptor never reports a ticket. Until QPM2 pull request 218 is released, the M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_QPM, pointing the build at the checkout at C:/Progetti/QPM2 on this branch.",
-      "verify": "git -C C:/Progetti/QPM2 rev-parse HEAD"
+      "tag": "v9.0.0.10",
+      "commit": "c49d416ad6b968b00f2ea44b7dc549bbaa88e01d",
+      "pinnedOn": "2026-10-30",
+      "howItIsHeld": "Declared by QSP v2.3.6.1 and fetched as released. It carries pull request 218 (released in v9.0.0.6), whose simulated acceptor reports tickets, so the M0 preset no longer overrides it.",
+      "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0/_deps/qpm-src rev-parse HEAD"
     },
     "qpmSimulator": {
       "repository": "https://github.com/quixantplc/qpm_simulator",
       "tag": "v2.0.0.5",
       "commit": "58d0fd0a23dd5b25e89828a3af4efe82951f6e46",
-      "branch": "machine-printed-tickets",
+      "branch": "main",
       "pinnedOn": "2026-10-17",
-      "howItIsHeld": "SASWB_QPM_SIMULATOR_ROOT in the M0 preset points at the checkout at C:/Progetti/qpm_simulator, whose ticket encoder and wallet the substituted printer compiles in.",
+      "howItIsHeld": "The version QSP v2.3.6.1 declares. SASWB_QPM_SIMULATOR_ROOT in the M0 preset points at the checkout at C:/Progetti/qpm_simulator, whose ticket encoder and wallet the substituted printer compiles in.",
       "verify": "git -C C:/Progetti/qpm_simulator rev-parse HEAD"
     },
     "nvramArrangement": {
-      "arrangement": 13,
+      "arrangement": 15,
       "fixtures": [
         "fixtures/nvram/golden.nvram.gz",
         "fixtures/nvram/secure-enhanced.nvram.gz"
       ],
-      "note": "A machine master-resets memory not written in the arrangement it was built for. QSP v2.3.5.32 writes arrangement 13, measured on 2026-10-17. The committed fixtures are still arrangement 7 and cannot be restored onto it; a golden memory configured by hand in arrangement 13 is pending. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
+      "note": "QSP v2.3.6.1 writes NVRAM layout 15, measured on 2026-10-30 from its own log ('NVRAM layout mismatch: stored=13 current=15'). It no longer master-resets memory of another layout by itself: it raises Memory Error until an attendant clears the memory from the audit menu, and only that clear stamps the new layout. The committed fixtures are layout 15, configured by hand on 2026-10-30 (maker QX, address 1 on channel 1, asset 1, note acceptor 102, printer 101, standard validation, no ticket-in), with the secure-enhanced one written from it. Its accounting denomination is one cent, because this build's audit menu does not offer the setting. The arrangement-7 fixtures are kept in fixtures/nvram/arrangement-7 as the evidence for that arrangement. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
     }
   }
 }

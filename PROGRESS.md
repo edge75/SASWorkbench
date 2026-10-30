@@ -137,3 +137,9 @@ PHASE:R2 WAVE:F-push-and-pr-6 STATUS:complete TS:2026-10-29T21:50:15Z
 PHASE:R3 WAVE:R1-R3-link-faults-and-sequence STATUS:complete TS:2026-10-29T22:49:16Z
 PHASE:R3 WAVE:repin-libsas-5.4.6.4-pin-and-catalogue STATUS:complete TS:2026-10-29T22:54:03Z
 PHASE:R4 WAVE:R4-poll-thread-catch-all STATUS:complete TS:2026-10-30T06:15:50Z
+PHASE:R6 WAVE:demo-build-qsp-2.3.6.1-libsas-5.4.6.4 STATUS:complete TS:2026-10-30T12:09:04Z
+PHASE:R6 WAVE:demo-measure-vs-2026-10-17 STATUS:failed TS:2026-10-30T13:32:41Z
+PHASE:R6 WAVE:pin-pr-10-draft STATUS:complete TS:2026-10-30T13:34:01Z
+PHASE:R6 WAVE:golden-layout15-by-hand STATUS:complete TS:2026-10-30T15:15:02Z
+PHASE:R6 WAVE:measure-vs-2026-10-17 STATUS:complete TS:2026-10-30T15:15:03Z
+PHASE:R6 WAVE:layout15-fixtures-and-pr-10 STATUS:complete TS:2026-10-30T15:15:03Z
