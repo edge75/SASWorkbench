@@ -79,12 +79,27 @@
                  IsVisible="{Binding Matches, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
     </Grid>
 
-    <Border Grid.Row="2" Classes="fault" IsVisible="{Binding Gap, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-      <TextBlock Classes="prose" Text="{Binding Gap}" TextWrapping="Wrap" />
-    </Border>
+    <!-- One row for both notices, so a stream that has neither lays out exactly as before. -->
+    <StackPanel Grid.Row="2" Spacing="6">
+      <Border Classes="fault" IsVisible="{Binding Gap, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Classes="prose" Text="{Binding Gap}" TextWrapping="Wrap" />
+      </Border>
+
+      <!-- Said and undoable, because a narrowed stream that does not say so reads as a quiet session. -->
+      <Border Classes="scope"
+              IsVisible="{Binding ScopeLine, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+              AutomationProperties.Name="Stream narrowed">
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+          <TextBlock Grid.Column="0" Classes="prose" Text="{Binding ScopeLine}"
+                     TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Content="Whole session" Command="{Binding ClearScopeCommand}"
+                  AutomationProperties.Name="Show the whole session" />
+        </Grid>
+      </Border>
+    </StackPanel>
 
     <Border Grid.Row="3" Classes="well">
-      <ListBox ItemsSource="{Binding Rows}" AutomationProperties.Name="Events">
+      <ListBox x:Name="Events" ItemsSource="{Binding Rows}" AutomationProperties.Name="Events">
         <ListBox.Styles>
           <Style Selector="ListBoxItem" x:DataType="vm:SessionRow">
             <Setter Property="Classes.tx" Value="{Binding IsTransmit}" />

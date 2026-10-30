@@ -43,6 +43,31 @@ internal static class Program
             .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
             .SetupWithoutStarting();
 
+        //  The three states round 1 of 29/10/2026 changed, each beside its counterpart: the band
+        //  with no link, the stream narrowed to one test, and a stream too long for the window with
+        //  Follow on and off.
+        foreach ((string themeName, ThemeVariant variant) in
+                 new[] { ("light", ThemeVariant.Light), ("dark", ThemeVariant.Dark) })
+        {
+            foreach ((string name, int tab, Func<WorkbenchViewModel> build, Action<WorkbenchViewModel> arrange) in
+                     new (string, int, Func<WorkbenchViewModel>, Action<WorkbenchViewModel>)[]
+                     {
+                         ("link-none", 3, Unlinked, _ => { }),
+                         ("link-connected", 3, () => Specimen(), _ => { }),
+                         ("stream-narrowed", 0, () => Specimen(),
+                             m => m.Stream.ScopeTo(TimeSpan.FromMilliseconds(5950),
+                                 TimeSpan.FromMilliseconds(6200), "link-up")),
+                         ("stream-whole", 0, () => Specimen(), _ => { }),
+                         ("stream-follow-on", 0, () => Specimen(repeats: 30), m => m.Stream.Follow = true),
+                         ("stream-follow-off", 0, () => Specimen(repeats: 30), m => m.Stream.Follow = false),
+                     })
+            {
+                string path = Path.Combine(directory, $"r1-{name}-{themeName}.png");
+                Capture(variant, 1180, 760, tab, allLanes: true, path, build: build, arrange: arrange);
+                Console.WriteLine(path);
+            }
+        }
+
         //  The instruments the matrix below does not reach, once each. Rendered first because
         //  the matrix runs the committed suite for every one of its verdict pictures, and a
         //  binding error is worth hearing about before that rather than after it. A tab control realises the
@@ -160,9 +185,11 @@ internal static class Program
         bool allLanes,
         string path,
         string? find = null,
-        bool onlyMatches = false)
+        bool onlyMatches = false,
+        Func<WorkbenchViewModel>? build = null,
+        Action<WorkbenchViewModel>? arrange = null)
     {
-        WorkbenchViewModel model = Specimen();
+        WorkbenchViewModel model = (build ?? (() => Specimen()))();
         model.SelectedInstrument = model.Instruments[instrument];
 
         if (allLanes)
@@ -177,6 +204,8 @@ internal static class Program
             model.Stream.HideOthers = onlyMatches;
         }
 
+        arrange?.Invoke(model);
+
         var window = new MainWindow
         {
             DataContext = model,
@@ -190,6 +219,10 @@ internal static class Program
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Dispatcher.UIThread.RunJobs();
 
+        // Twice, because a scroll the stream posts after its rows arrive needs a layout of its own.
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+
         using WriteableBitmap frame = window.CaptureRenderedFrame()
             ?? throw new InvalidOperationException("the window rendered no frame");
         using FileStream file = File.Create(path);
@@ -200,7 +233,7 @@ internal static class Program
     }
 
     /// <summary>The captured content from `docs/M1-thin-vertical-slice.md`. Nothing is invented.</summary>
-    private static WorkbenchViewModel Specimen()
+    private static WorkbenchViewModel Specimen(int repeats = 1)
     {
         var model = new WorkbenchViewModel
         {
@@ -208,26 +241,27 @@ internal static class Program
             Target = "127.0.0.1:9760",
             LinkState = "up",
             IsLinkUp = true,
+            IsConnected = true,
             IsLinkProven = true,
-            LinkClaim = "over tcp 127.0.0.1:9760 (listen) · stimulus none",
+            LinkClaim = "tcp 127.0.0.1:9760 (listen) · stimulus none",
             Counters = "34 sync · 34 general · 2 long · 1 exceptions · 0 silences",
             LogBound = "log 9/20000",
             Status = "connected to tcp 127.0.0.1:9760 (listen)",
-            LastReply = "answered in 30.7 ms, 24 symbols",
+            LastReply = "LP $1F ch1 Answered 011F515830303102FF00000030303100000039323130863F (30.7ms)",
             RunSummary = "PASS — 1 passed, 1 skipped in 7.0s",
         };
 
-        model.Stream.Watch(Captured());
+        model.Stream.Watch(Captured(repeats));
         Ran(model);
 
         model.Fields.Add(new FieldLine("game_id", "QX", string.Empty));
         model.Fields.Add(new FieldLine("additional_id", "001", string.Empty));
-        model.Fields.Add(new FieldLine("denomination", "2", "code"));
-        model.Fields.Add(new FieldLine("max_bet", "255", "credits"));
-        model.Fields.Add(new FieldLine("progressive_group", "0", "index"));
-        model.Fields.Add(new FieldLine("game_options", "0000", "little-endian"));
+        model.Fields.Add(new FieldLine("denomination", "2", "Code"));
+        model.Fields.Add(new FieldLine("max_bet", "255", "Credits"));
+        model.Fields.Add(new FieldLine("progressive_group", "0", "Index"));
+        model.Fields.Add(new FieldLine("game_options", "0", string.Empty));
         model.Fields.Add(new FieldLine("paytable_id", "001", string.Empty));
-        model.Fields.Add(new FieldLine("base_percentage", "9210", "hundredths of a percent"));
+        model.Fields.Add(new FieldLine("base_percentage", "9210", "HundredthsOfPercent"));
 
         model.Meters.Add(new MeterLine("total_bill_value", "$20", "2000", "credits"));
         model.Meters.Add(new MeterLine("games_played", "$15", "14", "count"));
@@ -238,6 +272,15 @@ internal static class Program
         model.Exceptions.Add(new ExceptionLine("$4A", "bill_accepted",
             "a bill was accepted by the machine", "6200 ms"));
 
+        return model;
+    }
+
+    /// <summary>The same window before any link is opened, as it starts.</summary>
+    private static WorkbenchViewModel Unlinked()
+    {
+        var model = new WorkbenchViewModel { SelectedTransport = "tcp", Target = "127.0.0.1:9760" };
+        model.Stream.Watch(Captured());
+        Ran(model);
         return model;
     }
 
@@ -297,7 +340,8 @@ internal static class Program
             {
                 Stimulus = StimulusBackend.Software,
                 Environment = SoftwareMachineEnvironment.For(),
-                PollInterval = TimeSpan.FromMilliseconds(20),
+                // The window's own default, so the verdicts are the ones a person running the suite sees.
+                PollInterval = TimeSpan.FromMilliseconds(200),
             });
 
             return runner.RunAll(documents);
@@ -324,10 +368,22 @@ internal static class Program
     }
 
     /// <summary>The frames the first milestone actually captured, replayed into a session log.</summary>
-    private static SessionLog Captured()
+    private static SessionLog Captured(int repeats = 1)
     {
         var log = new SessionLog();
         log.TestStarted("link-up", SourceLocation.None, SasChannel.One, TimeSpan.Zero);
+
+        // Repeated a second apart when a stream longer than the window is wanted.
+        for (int round = 1; round < repeats; round++)
+        {
+            foreach ((double at, WireDirection direction, string hex, string note) in Frames)
+            {
+                SasSymbol[] again = [.. hex.Split(' ').Select(Parse)];
+                log.Wire(direction, SasChannel.One, null, again,
+                    TimeSpan.FromMilliseconds(at + 1000 * round), ClockBase.Session,
+                    note.Length == 0 ? null : note);
+            }
+        }
 
         foreach ((double at, WireDirection direction, string hex, string note) in Frames)
         {

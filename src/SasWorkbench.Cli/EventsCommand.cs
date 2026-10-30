@@ -81,8 +81,9 @@ internal static class EventsCommand
         engine.Start();
         if (!WaitForLink(engine))
         {
-            Console.Error.WriteLine(
-                "error: the machine never answered a general poll, so nothing was measured. "
+            Console.Error.WriteLine(engine.LinkFault is { } fault
+                ? $"error: {fault} Nothing was measured."
+                : "error: the machine never answered a general poll, so nothing was measured. "
                 + "No event is reported as unproduced, because a link that was never up says "
                 + "nothing about any of them.");
             return 2;
@@ -369,8 +370,9 @@ internal static class EventsCommand
             Console.WriteLine($"  ${command:X2}  {what}");
 
         Console.WriteLine();
-        Console.WriteLine($"Both are turned off again at the end, and this says whether that was "
-                          + $"acknowledged. Watching for {seconds}s.");
+        Console.WriteLine($"$0E and $AA are turned off again at the end, and this says whether "
+                          + $"that was acknowledged; $06 leaves the note acceptor enabled. "
+                          + $"Watching for {seconds}s.");
         Console.WriteLine();
     }
 
@@ -478,8 +480,9 @@ internal static class EventsCommand
             transport.Description, transport.Capabilities.Fidelity, StimulusBackend.Qpm,
             "A real-time event measurement asserts nothing. It turns reporting on, causes what it "
             + "can cause, and records the payloads, so an exception's layout can be checked "
-            + "against bytes rather than only against source. It sends two commands the catalogue "
-            + "sweep withholds and turns both off again.")
+            + "against bytes rather than only against source. It sends three commands the "
+            + "catalogue sweep withholds, turns $0E and $AA off again, and leaves the note "
+            + "acceptor enabled.")
         {
             // A single-host command polls one machine on one channel, so the arrangement the
             // record needs is that one: every category reaches the only host there is. Marked as
@@ -527,7 +530,7 @@ internal static class EventsCommand
 
     private static bool WaitForLink(PollEngine engine)
     {
-        for (int i = 0; i < 100 && engine.State != LinkState.Up; i++)
+        for (int i = 0; i < 100 && engine.State != LinkState.Up && engine.LinkFault is null; i++)
             Thread.Sleep(100);
 
         return engine.State == LinkState.Up;

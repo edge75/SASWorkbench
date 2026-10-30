@@ -195,6 +195,10 @@ public sealed class ScriptRunner
             return broken;
         }
 
+        // Refused before any port opens, because the second open would only fail with access denied.
+        if (SharedLink(test) is { } shared)
+            return Skipped(test, stopwatch, startedAt, shared, connect.Channel, testBase);
+
         ScriptEnvironment environment;
         try
         {
@@ -260,6 +264,31 @@ public sealed class ScriptRunner
             return Execute(
                 test, connect, environment, capabilities, stopwatch, startedAt, testBase, provenance);
         }
+    }
+
+    /// <summary>
+    /// Why two channels of the case would share one serial port or one TCP endpoint, or null when
+    /// each has a link of its own.
+    /// </summary>
+    private static string? SharedLink(ScriptTest test)
+    {
+        var first = new Dictionary<(ScriptTransport, string), SasChannel>();
+        foreach (ConnectStep step in test.Steps.OfType<ConnectStep>())
+        {
+            if (step.Transport is not (ScriptTransport.Serial or ScriptTransport.Tcp))
+                continue;
+
+            (ScriptTransport, string) link = (step.Transport, step.Target.Trim().ToUpperInvariant());
+            if (!first.TryAdd(link, step.Channel) && first[link] != step.Channel)
+            {
+                string kind = step.Transport == ScriptTransport.Serial ? "serial port" : "TCP endpoint";
+                return $"channels {(int)first[link]} and {(int)step.Channel} would both open {kind} "
+                       + $"{step.Target}, and one link carries one channel; give each channel a link "
+                       + "of its own";
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -956,7 +985,17 @@ public sealed class ScriptRunner
     /// <summary>Puts the host into the mode where the line carries only what the case names.</summary>
     private static StepResult Sequence(PollInSequenceStep step, PollEngine engine, TimeSpan at)
     {
-        engine.BeginSequence();
+        if (!engine.BeginSequence())
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: "the round's cycle on the line to finish before the sequence begins",
+                Actual: "a cycle was still on the line when the wait for it ran out",
+                Reason: "that cycle's general poll can still draw what this case sends for, so what "
+                        + "follows is not the sequence the case describes. A cycle normally ends "
+                        + "within one response timeout; a link slow to take bytes holds it longer.",
+                At: at) { IsAssertion = true };
+        }
+
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Actual: "the round and the synchronisation poll are stopped; the line now carries "
                     + "only what this case sends",
@@ -1540,8 +1579,11 @@ public sealed class ScriptRunner
     private static StepResult CheckLink(ExpectLinkStep step, PollEngine engine, TimeSpan at)
     {
         long deadline = Environment.TickCount64 + (long)step.Within.TotalMilliseconds;
-        while (engine.State != step.Expected && Environment.TickCount64 < deadline)
+        while (engine.State != step.Expected && engine.LinkFault is null
+               && Environment.TickCount64 < deadline)
+        {
             Thread.Sleep(5);
+        }
 
         bool held = engine.State == step.Expected;
         return new StepResult(
@@ -1550,6 +1592,7 @@ public sealed class ScriptRunner
             held ? Verdict.Pass : Verdict.Fail,
             Expected: step.Expected.ToString(),
             Actual: engine.State.ToString(),
+            Reason: held ? null : engine.LinkFault,
             At: at) { IsAssertion = true };
     }
 

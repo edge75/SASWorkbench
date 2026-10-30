@@ -7,11 +7,13 @@
              AutomationProperties.Name="Provenance"
              AutomationProperties.LiveSetting="Polite">
 
-  <Border Classes="rail" Classes.unverified="{Binding !IsLinkProven}">
+  <!-- With no link the band claims nothing: no seal, and a neutral ground. -->
+  <Border Classes="rail" Classes.unverified="{Binding IsLinkUnverified}"
+          Classes.unlinked="{Binding !IsConnected}">
     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
 
       <c:ProvenanceSeal Grid.Column="0" IsProven="{Binding IsLinkProven}"
-                        Caveat="{Binding LinkCaveat}" />
+                        Caveat="{Binding LinkCaveat}" IsVisible="{Binding IsConnected}" />
 
       <StackPanel Grid.Column="1" VerticalAlignment="Center">
         <TextBlock Classes="strong" Text="{Binding LinkClaim}" TextWrapping="Wrap" />

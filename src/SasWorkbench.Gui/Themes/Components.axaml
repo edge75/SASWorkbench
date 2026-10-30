@@ -270,6 +270,19 @@
     <Setter Property="BorderBrush" Value="{DynamicResource ProvUnverified}" />
   </Style>
 
+  <Style Selector="Border.rail.unlinked">
+    <Setter Property="Background" Value="{DynamicResource SurfaceRaised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource StrokeBorder}" />
+  </Style>
+
+  <!-- The stream narrowed to one test: a leading bar like a selection, because a selection made it. -->
+  <Style Selector="Border.scope">
+    <Setter Property="Background" Value="{DynamicResource AccentGround}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Accent}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+
   <!-- Liveness is one lamp, and it does not blink: a poll that arrives on time is not an event. -->
   <Style Selector="Ellipse.lamp">
     <Setter Property="Width" Value="8" />

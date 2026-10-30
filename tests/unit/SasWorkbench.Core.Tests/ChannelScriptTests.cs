@@ -211,6 +211,65 @@ public class ChannelScriptTests
         Assert.Equal(Enumerable.Range(0, wire.Count).Select(i => (long)i), wire.Select(r => r.Sequence));
     }
 
+    /// <summary>
+    /// A serial port or a TCP endpoint carries one channel, so a case whose two channels both end
+    /// up on one of them - the usual result of pointing a two-channel suite at a port with
+    /// <c>--serial</c> - is skipped saying so. Before any port opens, because opening the second
+    /// would only fail with access denied, and an error says less than the reason does. The names
+    /// differ in case on purpose: COM9 and com9 are one port.
+    /// </summary>
+    [Theory]
+    [InlineData("serial COM9", "serial com9", "serial port")]
+    [InlineData("tcp 127.0.0.1:7200", "tcp 127.0.0.1:7200", "TCP endpoint")]
+    public void Two_channels_on_one_link_skip_before_any_port_opens(
+        string firstLink, string secondLink, string kind)
+    {
+        ScriptTest test = ParseOne($"""
+              host connect {firstLink} address 01 channel 1
+              host connect {secondLink} address 01 channel 2
+            """);
+
+        bool opened = false;
+        var runner = new ScriptRunner(new ScriptRunnerOptions
+        {
+            Environment = (_, _, _, _) =>
+            {
+                opened = true;
+                throw new TransportRefusedException("the environment was asked for a link");
+            },
+        });
+
+        TestOutcome outcome = runner.Run(test);
+
+        Assert.Equal(Verdict.Skip, outcome.Verdict);
+        Assert.False(opened);
+        Assert.Contains($"channels 1 and 2 would both open {kind}", outcome.SkipReason);
+    }
+
+    /// <summary>
+    /// The refusal is about two channels on one link and nothing wider: two channels on two ports
+    /// reach the environment as before.
+    /// </summary>
+    [Fact]
+    public void Two_channels_on_two_ports_are_not_refused_for_sharing()
+    {
+        ScriptTest test = ParseOne("""
+              host connect serial COM9 address 01 channel 1
+              host connect serial COM10 address 01 channel 2
+            """);
+
+        var runner = new ScriptRunner(new ScriptRunnerOptions
+        {
+            Environment = (_, _, _, _) =>
+                throw new TransportRefusedException("the environment was asked for a link"),
+        });
+
+        TestOutcome outcome = runner.Run(test);
+
+        Assert.Equal(Verdict.Skip, outcome.Verdict);
+        Assert.Equal("the environment was asked for a link", outcome.SkipReason);
+    }
+
     private static PollEngine Engine(ISasTransport transport, SasChannel channel) =>
         new(transport, new PollEngineOptions
         {

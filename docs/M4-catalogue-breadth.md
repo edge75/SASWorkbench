@@ -104,7 +104,7 @@ carries **one argument for which the handler takes no branch that writes**:
 | | the argument | the branch |
 |---|---|---|
 | `$74` lock and status | lock code `$FF` | the library's `LC_INTERROGATE`, whose whole branch is one read of the machine's own lock status |
-| `$7B` extended validation status | an all-zero control mask | the handler changes only the status bits the mask selects, and this mask selects none |
+| `$7B` extended validation status | an all-zero control mask and zero expiry dates, at full length | the handler changes only the status bits the mask selects, and this mask selects none; zero expiry dates leave the stored ones alone |
 
 Both are now asked, both answer, and both layouts were read out of the handler and then checked
 against the bytes:

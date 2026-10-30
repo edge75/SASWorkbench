@@ -62,6 +62,16 @@ public class SweepPlanTests
         // A control mask of nothing selects no status bit for the handler to change.
         Assert.Equal(new byte[] { 0x00, 0x00 }, SweepPlan.ReadOnlyArgument(0x7B)![1..3]);
 
+        // And the request is the full eight bytes, with both expiry dates zero. libsas reads the
+        // two BCD expiry fields at fixed offsets whatever the length byte says, so a four-byte
+        // request has it take them from the check sequence and anything after it - and a non-zero
+        // value there is written to NVRAM as the machine's default ticket expiry. Zero is the
+        // handler's "leave as is".
+        byte[] request = SweepPlan.ReadOnlyArgument(0x7B)!;
+        Assert.Equal(0x08, request[0]);
+        Assert.Equal(9, request.Length);
+        Assert.All(request[5..9], b => Assert.Equal(0x00, b));
+
         foreach (byte command in SweepPlan.ReadOnlyWithArgumentCommands)
         {
             Assert.Equal(SweepDisposition.Ask, SweepPlan.For(command).Disposition);

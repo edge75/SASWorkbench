@@ -54,7 +54,10 @@ virtual SAS port of an unmodified HAL build, and the note acceptor's tickets mov
 v2.3.5.32 and QPM2 pull request 218 (`fixtures/pinned-versions.json`): three more long polls are
 channel-gated, a sweep of the demo decodes every reply it gets, and ticket-in works end to end. The
 committed memory fixtures are arrangement 7 and the new QSP writes 13, so the demo now runs on a
-memory configured by hand until a new golden one is made.
+memory configured by hand until a new golden one is made. On 2026-10-29 SasWorkbench first ran on a
+Quixant board over a serial port. Two serial-transport defects were found, fixed in 0.2.1 and
+confirmed on the board. A user guide was also written in Italian and English (`docs/user-guide/`).
+The next steps are in `.planning/HANDOFF-2026-10-29.md`.
 
 PHASE:M0 WAVE:W1-transport STATUS:complete TS:2026-09-04T00:04:14Z
 PHASE:M0 WAVE:W2-build-wiring STATUS:complete TS:2026-09-04T00:18:42Z
@@ -122,3 +125,13 @@ PHASE:M7 WAVE:W5-long-poll-answered-with-an-event STATUS:complete TS:2026-09-22T
 PHASE:M7 WAVE:W6-poll-sequence STATUS:complete TS:2026-09-28T21:58:50Z
 PHASE:M7 WAVE:W7-chapter-10-ticketing STATUS:complete TS:2026-09-28T22:20:38Z
 PHASE:M7 WAVE:W8-baseline-libsas-5.4.5.13 STATUS:complete TS:2026-10-17T06:57:38Z
+PHASE:M7 WAVE:W9-serial-on-a-board STATUS:complete TS:2026-10-29T13:46:18Z
+PHASE:DOC WAVE:W1-user-guide-it-en-1.0 STATUS:complete TS:2026-10-29T18:31:04Z
+PHASE:R1 WAVE:A-test-fixes-F1-F5 STATUS:complete TS:2026-10-29T19:42:05Z
+PHASE:R1 WAVE:B-rebase-serial-parity-fix STATUS:complete TS:2026-10-29T19:42:05Z
+PHASE:R1 WAVE:C-code-tests-specimen STATUS:complete TS:2026-10-29T20:13:45Z
+PHASE:R2 WAVE:C-commit-and-board-build STATUS:complete TS:2026-10-29T21:09:38Z
+PHASE:R2 WAVE:D-guides-it-en STATUS:complete TS:2026-10-29T21:30:25Z
+PHASE:R2 WAVE:E-commit-user-guide STATUS:complete TS:2026-10-29T21:50:15Z
+PHASE:R2 WAVE:F-push-and-pr-6 STATUS:complete TS:2026-10-29T21:50:15Z
+PHASE:R3 WAVE:R1-R3-link-faults-and-sequence STATUS:complete TS:2026-10-29T22:49:16Z

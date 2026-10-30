@@ -53,7 +53,7 @@ public sealed partial class SuiteViewModel : ObservableObject
 
     /// <summary>Whether the selected test ran on a link that has been measured.</summary>
     [ObservableProperty]
-    public partial bool IsProven { get; set; } = true;
+    public partial bool IsProven { get; set; }
 
     /// <summary>Whether anything is selected at all.</summary>
     public bool HasSelection => Selected is not null;
@@ -133,7 +133,7 @@ public sealed partial class SuiteViewModel : ObservableObject
         Steps.Clear();
         Frames.Clear();
         Provenance = null;
-        IsProven = true;
+        IsProven = false;
 
         if (node?.Outcome is not { } outcome)
             return;
