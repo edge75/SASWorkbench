@@ -207,3 +207,114 @@ The user took these after the 1.0 build. The work order is in `.planning/HANDOFF
   unanswered from 81.6 s to 118.7 s, then `$6E`, `$12`, `$16` and `$83` arrived (VERIFIED_RUNTIME).
   The link goes `down` after 5 s of silence (VERIFIED_SOURCE).
 - **Length.** The rebuilt guides are 73 pages (English) and 72 pages (Italian).
+
+# Update for SasWorkbench 0.2.2: decisions (30-31/10/2026)
+
+The two guides are brought to SasWorkbench 0.2.2 as version 1.1. The work order asked for the
+`when` condition of `host send lp` and `sasctl nvram denomination`. Both exist only after the
+v0.2.1 tag, so the product goes to 0.2.2, and the guides describe 0.2.2 as a whole. The decisions
+were taken on 30/10/2026 in a grill-with-ui session.
+
+## Terms
+
+| Term | Meaning | Avoid |
+| --- | --- | --- |
+| held send | A `host send lp ... when <capability> == <value>` whose capability has another value: nothing is sent, the step passes with `not sent: ...`, and it is not an assertion. | skip; `NotSent` (that is a long-poll outcome) |
+| fixture | A saved copy of the demo's memory (`fixtures/nvram/*.nvram.gz`), read, rewritten and restored by `sasctl nvram`. | snapshot; golden (for any fixture) |
+
+## Why
+
+The user merged #10 and #11 and asked for the EN/IT user guide to document `nvram denomination`
+and the `when` clause, following the governance skill, in one pass, on a new branch, with a pull
+request to `main`.
+
+## Locked decisions
+
+### Q1. The product goes to 0.2.2, and the guides say "from 0.2.2"
+
+`Version` in `Directory.Build.props` goes from 0.2.1 to 0.2.2 in the same pull request. Merging it
+publishes v0.2.2, because `release.yml` releases every push to `main` whose version has no tag.
+
+- **Rejected, A: label the features "after 0.2.1, in a build of main".** It changed no version,
+  but every label would have gone stale at the next release.
+- **Rejected, C: no version label.** A reader with the 0.2.1 release would get a load error on
+  `when` and "is not a memory action" on `denomination`.
+
+### Q4. The guides describe 0.2.2 as a whole
+
+A list "What changes in 0.2.2" carries every observable change since v0.2.1: `when` and
+`nvram denomination` in full, and one line each for the layout-15 memories, the accounting unit
+in `nvram show`, the poll-thread failure that stops polling with its reason, and the ticket-in
+cases. The 0.2.1 history (serial fix, board measurement of 29/10) stays 0.2.1. The statements
+about the current version are re-run with 0.2.2 and relabelled.
+
+- **Rejected, B: stay on 0.2.1 and add only the two features.** The guide would have listed two
+  of the release's changes and still described 0.2.1 as current.
+
+### Q5. The guides become version 1.1
+
+The files are renamed `_V1.1` with `git mv`. A new history row is added; the 1.0 row is unchanged.
+This replaces the 29/10 decision "the guides stay 1.0, only the date changes", whose premise
+(the guides never left this machine) ended when PR #6 put them in the repository.
+
+- **Rejected, B: stay 1.0 with a new date and comment.** It rewrites the first-issue row and
+  loses the trace of the 0.2.1 issue.
+
+## Routine choices
+
+- **Q2.** The two sentences that said 0.2.0 and 0.2.1 are unpublished are corrected in both
+  guides: both releases are on GitHub since 30/10/2026, each with the Windows and Linux packages
+  and `SHA256SUMS`. The board chapter's "both versions are local builds" stays, since it describes
+  the bench of 29/10.
+- **Q3.** No Graphify graph for this delta. Every new or relabelled claim is traced to source,
+  unit test or run in a matrix kept outside the repository, in
+  `C:/work/SasWorkbench/guide-build/reports/`.
+- **Q6.** Word and PDF are rebuilt at the end, after the separate verification, into
+  `C:/work/SasWorkbench/Guides`, and the denylist scan is re-run on the extracted text. They are
+  not committed.
+
+## Verified facts
+
+- `when` closes `host send lp` in any form, after any `to <address>`, and only as
+  `<capability> == <value>`; any other shape is a load error naming the expected form
+  (VERIFIED_SOURCE, VERIFIED_RUNTIME with `--list`).
+- The capabilities a `when` names that are asked of the machine are asked when the case starts,
+  as for `requires`. Another value: nothing is sent, the step is PASS with
+  `not sent: '<capability>' is '<x>', not '<y>'` and is not an assertion. No known value: the step
+  fails (VERIFIED_SOURCE, unit tests, VERIFIED_RUNTIME on the software machine).
+- `sasctl nvram denomination <amount>` takes `0.05`, `0,05` or `5c`, writes over the fixture or to
+  `--out`, and prints the unit with its long poll `$1F` code. An amount `$1F` cannot report, such
+  as 7c, is refused with exit code 2. It never touches the live memory (VERIFIED_RUNTIME).
+- QSP v2.3.6.1 applies the unit only when its configuration enables
+  `Sas.AccountingDenomination.Enable` and the unit divides every enabled game's denomination;
+  otherwise it reports in cents (VERIFIED_SOURCE, as `sasctl` prints it; VERIFIED_RUNTIME on the
+  demo on 30/10).
+- v0.2.0 and v0.2.1 were published on 30/10/2026 at 05:46 UTC, each with both packages and
+  `SHA256SUMS`; GitHub marks 0.2.0 as Latest (VERIFIED_LINK).
+
+## Risks
+
+- **Merging publishes.** The pull request's merge creates v0.2.2 on GitHub without a further step.
+- **Two languages.** Every change is made in both guides; the separate verification compares them.
+
+## Deferred
+
+None.
+
+## Open threads
+
+- GitHub marks v0.2.0 as Latest. v0.2.2 will take that mark when it is published; changing it
+  before then is an action on GitHub that needs the user's word.
+
+## Applied (31/10/2026)
+
+- **Rewrite and verification.** The Technical Writer applied the decisions to both guides; a
+  separate agent then checked every changed line against the source and the 0.2.2 build. Its four
+  defects were fixed in both languages: a present-tense sentence on the 29/10 bench, "from 0.2.1
+  on" in troubleshooting, "unexpected" polling failures, and a missing line on the other changed
+  test cases.
+- **Re-runs with 0.2.2.** Tree and tag counts, `catalogue channels` and the sweep plan are the same
+  as in 0.2.1 (VERIFIED_RUNTIME).
+- **Word and PDF.** Rebuilt as V1.1, 74 pages each, with both history rows; the denylist scan of
+  the extracted text finds nothing.
+- **Still to confirm.** "Take release 0.2.2" is true only once the merge publishes v0.2.2.

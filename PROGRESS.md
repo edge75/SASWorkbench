@@ -146,3 +146,6 @@ PHASE:R6 WAVE:layout15-fixtures-and-pr-10 STATUS:complete TS:2026-10-30T15:15:03
 PHASE:R7 WAVE:demo-rebuild-toggle-and-golden-5c STATUS:complete TS:2026-10-30T16:21:00Z
 PHASE:R7 WAVE:demo-ticket-in-and-conformance STATUS:complete TS:2026-10-30T16:42:00Z
 PHASE:R7 WAVE:p1-p2-p3-code-and-tests STATUS:complete TS:2026-10-30T16:58:00Z
+PHASE:R8 WAVE:p4-ticket-in-closes-its-ticket STATUS:complete TS:2026-10-31T00:29:13Z
+PHASE:R8 WAVE:guide-1.1-for-0.2.2 STATUS:complete TS:2026-10-31T00:29:13Z
+PHASE:R8 WAVE:guide-word-pdf-1.1 STATUS:complete TS:2026-10-31T00:29:13Z
