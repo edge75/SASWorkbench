@@ -7,9 +7,8 @@
 
 name: build
 
+# Pull requests only: a merge to main runs `release.yml`, which tests again before it packages.
 on:
-  push:
-    branches: [main]
   pull_request:
   workflow_dispatch:
 

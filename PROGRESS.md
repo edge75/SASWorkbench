@@ -149,3 +149,5 @@ PHASE:R7 WAVE:p1-p2-p3-code-and-tests STATUS:complete TS:2026-10-30T16:58:00Z
 PHASE:R8 WAVE:p4-ticket-in-closes-its-ticket STATUS:complete TS:2026-10-31T00:29:13Z
 PHASE:R8 WAVE:guide-1.1-for-0.2.2 STATUS:complete TS:2026-10-31T00:29:13Z
 PHASE:R8 WAVE:guide-word-pdf-1.1 STATUS:complete TS:2026-10-31T00:29:13Z
+PHASE:R9 WAVE:release-0.2.2-check STATUS:complete TS:2026-11-01T06:20:28Z
+PHASE:R9 WAVE:ci-build-on-pull-requests STATUS:complete TS:2026-11-01T06:20:28Z

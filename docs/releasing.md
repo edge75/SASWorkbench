@@ -4,7 +4,7 @@ Two workflows, with different jobs.
 
 | Workflow | Trigger | What it decides |
 |---|---|---|
-| `build.yml` | push, pull request | whether the code works — the suite on Windows **and** Linux |
+| `ci.yml` (build) | pull request | whether the code works — the suite on Windows **and** Linux |
 | `release.yml` | push to `main` | what gets shipped — packages both platforms and publishes a release |
 
 ---
@@ -84,8 +84,11 @@ Linux is packaged as `tar.gz` because it keeps the executable bit on the launche
 
 That is what makes the workflow runnable locally with `act`, which cannot start Windows
 containers. Nothing is given up by it: cross-publishing produces the same assemblies, and
-Windows-native *testing* still happens on every push in `build.yml`, which is the workflow that
-decides whether the code works at all. This one only decides what gets shipped.
+Windows-native *testing* still happens on every pull request in `ci.yml`, which is the workflow
+that decides whether the code works at all. This one only decides what gets shipped.
+
+A merge to `main` therefore starts `release.yml` alone. It runs the unit tests itself before
+packaging, so nothing reaches a package past a red test.
 
 ---
 
