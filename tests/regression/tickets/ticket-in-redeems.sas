@@ -131,6 +131,7 @@ test "the number the host is told is the whole barcode" {
   requires stimulus.settle
   requires decoder.lp4C
   requires decoder.lp70
+  requires decoder.lp71
 
   host connect loopback address 01
   host poll every 200ms
@@ -146,4 +147,8 @@ test "the number the host is told is the whole barcode" {
 
   host send lp 70
   host expect field validation_data of lp 70 == 649876543210987654
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=2000 parsing_code=0 validation_data=649876543210987654
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
 }

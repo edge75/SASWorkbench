@@ -2,19 +2,20 @@
 
 **User Guide**
 
-Document 303-0XX, version 1.0
+Document 303-0XX, version 1.1
 
 **Document revision history**
 
 | Version | Date | Comments | Author |
 | --- | --- | --- | --- |
 | 1.0 | 29/10/2026 | First issue. Describes SasWorkbench 0.2.1. | Alessio Brizi |
+| 1.1 | 31/10/2026 | Describes SasWorkbench 0.2.2: the `when` condition of `host send lp` and `sasctl nvram denomination`; the release state is corrected. | Alessio Brizi |
 
 # About this document
 
 ## Purpose
 
-This guide explains how to use SasWorkbench 0.2.1 to test a gaming machine over the SAS protocol.
+This guide explains how to use SasWorkbench 0.2.2 to test a gaming machine over the SAS protocol.
 It covers installation, the serial and TCP links, running the suites, the reports, the window and
 reading a recorded run, byte by byte.
 
@@ -108,7 +109,7 @@ These have not been measured yet:
 - a USB-serial adapter;
 - other types of serial port, for example a UART dedicated to SAS.
 
-The reports and the window of 0.2.1 still mark the serial link as UNVERIFIED. Their caveat sentence
+The reports and the window of 0.2.2 still mark the serial link as UNVERIFIED. Their caveat sentence
 says that only the on-board UART of the IQ-2 has been measured, and SasWorkbench cannot tell that
 port from a USB adapter. The test of 29/10 concerns one board, one port and one configuration.
 
@@ -173,7 +174,7 @@ machine's.": the link is faithful, but the other end is the software machine. Fo
 "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters are
 unmeasured, so treat a pass over one as untested."
 
-In 0.2.1 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
+In 0.2.2 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
 on-board UART. The section "What is verified" explains why.
 
 The provenance line appears in the console at the end of a run, in every report and in the window.
@@ -204,14 +205,35 @@ They are divided into three trees.
 
 Inside `tests/validation/`, the folder `egm-test-scripts-v1.00/` contains 181 tests in 28 files.
 
-The numbers in the table come from `sasctl run <tree> --list` on version 0.2.1.
+The numbers in the table come from `sasctl run <tree> --list` on version 0.2.2.
 
 The folder `tests/regression/wire/` contains a single test: the link comes up and the machine
 identifies itself. It is the first test to run on a new link.
 
-## Version 0.2.1 and its status
+## Version 0.2.2 and its status
 
-This guide describes SasWorkbench 0.2.1. Compared with 0.2.0, the serial transport changes:
+This guide describes SasWorkbench 0.2.2. Compared with 0.2.1, these things change in 0.2.2:
+
+- `host send lp` can close with a condition, `when <capability> == <value>`: if the capability has
+  another value, nothing is sent and the step is not an assertion (Appendix B, "Sending messages");
+- `sasctl nvram denomination` rewrites a fixture so that it counts in another accounting
+  denomination, and `sasctl nvram show` prints the `accounting unit` of the machine's memory and of
+  the fixture (section "qpm and nvram");
+- `sasctl nvram` reads and writes the memory of the demo built on QSP v2.3.6.1, memory arrangement
+  15; the fixtures `golden` and `secure-enhanced` are in this arrangement and count in 5 cents, and
+  the arrangement-7 copies are in `fixtures/nvram/arrangement-7/`;
+- an unexpected failure inside polling no longer ends the program: polling stops, the link goes
+  `down`, the pending poll ends `NotSent` with a reason that starts
+  `polling stopped after an unexpected`, and `sasctl` prints the details on the error output;
+- the ticket redemption cases of `tests/regression` send `$4C` only to a machine in
+  `secure_enhanced` validation, and the last case closes its ticket with a `$71` refusal, so the
+  next case finds no ticket left pending;
+- in the same way, cases 10.7.2, 10.7.3, 10.7.8 and 10.7.18 set the validation identifier with
+  `$4C` first, and AD-38, AD-39 and a two-host case of `tests/regression` send it with `when`;
+  case 4.6 and the sequence case of `tests/regression` send a synchronisation poll first, and a
+  general poll to another address between two general polls of their own.
+
+0.2.1 changed the serial transport, compared with 0.2.0:
 
 - before every parity change the line is drained onto the wire;
 - a byte received with a parity error stays the byte that was received, instead of being replaced.
@@ -234,9 +256,10 @@ board, it replies. The chapter "The serial link" explains the two changes and th
 The board measurements in this guide were made with an earlier build of 0.2.1, before these
 corrections. The serial transport has not changed since then, except for its caveat sentence.
 
-Neither 0.2.0 nor 0.2.1 is published as a release on GitHub. The latest published release is
-version 0.1.0, which does not contain many of the functions described here. To use 0.2.1 you must
-build it from source, as the chapter "Installation" explains.
+SasWorkbench is published as a release on GitHub, each release with the Windows and Linux packages
+and a `SHA256SUMS` file. Release 0.1.0 does not contain many of the functions
+described here. To use the functions of 0.2.2, take release 0.2.2 or build it from source, as the
+chapter "Installation" explains.
 
 %%PAGEBREAK
 
@@ -293,7 +316,8 @@ Every release carries two packages: `SasWorkbench-<version>-win-x64.zip` for Win
 `sasctl` in the same folder and requires the .NET 10 runtime. On Linux the serial link is refused;
 loopback and TCP work.
 
-Today the only published release is 0.1.0. Do not use it for the tests described in this guide.
+Each release also carries a `SHA256SUMS` file. Do not use release 0.1.0 for the tests described in
+this guide.
 
 ## The tests folder
 
@@ -318,7 +342,7 @@ sasctl --version
 The reply is the version number alone:
 
 ```
-0.2.1
+0.2.2
 ```
 
 Then ask `sasctl` what it can do in this environment:
@@ -509,7 +533,7 @@ For comparison, the demo over TCP on 17/10 had given 77 / 8 / 0 in the same swee
 The test on the board confirms the cause of the `3F` replies. For the long polls it confirms that the
 two fixes work together, not which of the two was needed: 0.2.1 introduced them together.
 
-0.2.1 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
+0.2.2 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
 the on-board UART of the IQ-2, and says that USB adapters have not been measured.
 
 ## Settings on the machine
@@ -545,7 +569,7 @@ poll `$A0`, which describes the enabled functions.
 The silence of a long poll can therefore be a machine setting, not a fault. Before you look for a
 link problem, check which channel the command's category belongs to.
 
-The following table gives the output of `sasctl catalogue channels` in 0.2.1. The data are read
+The following table gives the output of `sasctl catalogue channels` in 0.2.2. The data are read
 from the machine's library.
 
 | Category | Gated long polls | Filtered exceptions | `$A0` bits cleared |
@@ -648,7 +672,7 @@ Check in this order:
 3. the adapter, if there is one, changes parity byte by byte (see "USB adapters": no adapter has been measured);
 4. the address in `--address` is the one set in the machine;
 5. the machine is switched on, has finished starting up and has left the audit menu;
-6. the SasWorkbench version is 0.2.1: with 0.2.0, on the board tested on 29/10, the long polls got no reply.
+6. the SasWorkbench version is 0.2.1 or later: with 0.2.0, on the board tested on 29/10, the long polls got no reply.
 
 In some QSP configurations the SAS port is activated only when you leave the audit menu.
 
@@ -842,7 +866,7 @@ Every test can carry tags, written in the script with `tag`. Two options use the
 
 The name is written with or without `@`. Each option accepts only one tag.
 
-These are the most used tags in the test trees of 0.2.1:
+These are the most used tags in the test trees of 0.2.2:
 
 | Tag | Tests that carry it |
 | --- | --- |
@@ -996,6 +1020,10 @@ The second form appears when the capability is there but has another value, for 
 in a validation style different from the one required. The third appears when the capability is
 there but its value is not known.
 
+A `when` condition of `host send lp` reports another value in the same words after `not sent:`,
+such as `not sent: 'egm.validation' is 'standard', not 'secure_enhanced'`, and it does not skip the
+test: see "Sending messages" in Appendix B.
+
 Two capabilities are asked of the machine after the link has come up: `egm.validation` and
 `egm.accounting_denomination`. If the machine does not reply, the reason says so with a sentence
 like this:
@@ -1022,7 +1050,7 @@ stimulus.ticket: this environment provides no 'stimulus.ticket'
 stimulus.real_time_events: this environment provides no 'stimulus.real_time_events'
 ```
 
-Some capabilities are not offered by any environment in 0.2.1, for example `stimulus.handpay` and
+Some capabilities are not offered by any environment in 0.2.2, for example `stimulus.handpay` and
 `machine.power_cycle`. The tests that require them are always skipped. Appendix C lists them.
 
 ## What to expect from tests/regression on a board
@@ -1089,7 +1117,7 @@ letting the general polls read the exceptions.
 
 ## The fixed times
 
-Some times are fixed in 0.2.1. Only three can be changed from the command line.
+Some times are fixed in 0.2.2. Only three can be changed from the command line.
 
 | Time | Value | Changed with |
 | --- | --- | --- |
@@ -1135,7 +1163,7 @@ when to use it and what it does on a board. Appendix A lists all the options.
 back. It makes no assertions: it is used to obtain real bytes for every reply, and to check a layout
 against those bytes.
 
-A command that changes the machine is not sent. 0.2.1 asks 85 of the 124 commands in the catalogue
+A command that changes the machine is not sent. 0.2.2 asks 85 of the 124 commands in the catalogue
 and withholds 39. Among those withheld are `$01` (stop play), `$02` (start play), `$0E` (real-time
 events), `$21` (ROM signature) and the commands that move money.
 
@@ -1369,10 +1397,21 @@ The machine stops with Ctrl+C and prints how many general polls and long polls i
 
 `qpm` drives the demo's simulated peripherals by hand: doors, buttons, key, banknotes, audit menu.
 `nvram` saves and restores the demo's configured memory, and writes variants of it with a different
-validation style or a different division of the channels.
+validation style, a different division of the channels or a different accounting denomination.
 
 Both work only with the demo. `nvram` refuses to save or restore while a machine is running. It also
 reports when a memory and the demo build do not match, because they cannot be used together.
+
+`sasctl nvram denomination <amount>` rewrites a fixture so that it counts in another accounting
+denomination. The amount is written `0.05`, `0,05` or `5c`; an amount that long poll `$1F` cannot
+report, such as `7c`, is refused with exit code 2. The command writes only the fixture, over itself
+or to `--out`, and never the machine's memory: `sasctl nvram restore` puts the fixture on the
+machine. QSP v2.3.6.1 applies the unit only when the demo's configuration enables
+`Sas.AccountingDenomination.Enable` and the unit divides the denomination of every enabled game;
+otherwise it reports in cents. To check, read the `accounting unit` line of `sasctl nvram show`;
+then restore the fixture, start the demo, and long poll `$1F` must report the code that
+`nvram denomination` printed, for example `$02` for 5 cents. The repository fixtures `golden` and
+`secure-enhanced` count in 5 cents.
 
 > On a board never use `sasctl qpm` or `sasctl nvram`. By default `nvram` writes to the file `C:\ProgramData\quixant\launchpad\nvram.bin`, which on a board can be the memory of the machine under test.
 
@@ -2071,7 +2110,7 @@ This chapter collects the known problems in one table per topic. For each sympto
 probable cause and what to do.
 
 First of all, check the version with `sasctl --version`. Many symptoms of the serial link disappear
-with 0.2.1.
+from 0.2.1 on.
 
 ## Serial link
 
@@ -2079,9 +2118,9 @@ with 0.2.1.
 | --- | --- | --- |
 | `expect link up` fails | wrong or busy port, different address, machine not ready, unsuitable adapter | follow the list "If the link does not come up" in the chapter "First steps" |
 | After a Save on the Network page of the audit menu no general poll gets a reply, and after 5 s the link goes `down` | with `"start network": "audit exit"` in the machine's configuration, the machine does not answer until the audit menu is closed; on 29/10/2026 the silence lasted 37 s | close the audit menu: the replies resume and the exceptions queued in the meantime arrive. It is silence from the machine, not a broken link |
-| Every reply to a general poll reads `3F`, reported as exception `$3F` | build earlier than 0.2.1: a byte with a parity error was replaced with `?` | use 0.2.1; with 0.2.1 a machine with no exceptions queued replies `00` |
-| The link is `Up` but almost every long poll is `Silent` | build earlier than 0.2.1 | use 0.2.1, verified on 29/10/2026 on port COM6 of an IQ-2 |
-| With 0.2.1 every long poll is still `Silent` | a port that does not change parity byte by byte, for example a USB adapter | try the port used on 29/10, the only measured case; a genuine FTDI with the Latency Timer at 1 ms is unverified advice |
+| Every reply to a general poll reads `3F`, reported as exception `$3F` | build earlier than 0.2.1: a byte with a parity error was replaced with `?` | use 0.2.1 or later; with 0.2.1 a machine with no exceptions queued replies `00` |
+| The link is `Up` but almost every long poll is `Silent` | build earlier than 0.2.1 | use 0.2.1 or later; 0.2.1 was verified on 29/10/2026 on port COM6 of an IQ-2 |
+| With 0.2.1 or later every long poll is still `Silent` | a port that does not change parity byte by byte, for example a USB adapter | try the port used on 29/10, the only measured case; a genuine FTDI with the Latency Timer at 1 ms is unverified advice |
 | Only some long polls are `Silent`, always the same ones | the command's category is not assigned to the channel | check `sasctl catalogue channels` and assign the category in the audit menu |
 | Skip `Cannot open COM6: Access to the path 'COM6' is denied.` | another program holds the port open | close the other program |
 | Skip `channels 1 and 2 would both open serial port COM6, ...` | a test with two hosts, one per channel, run with `--serial` on one port | tests with two hosts need two ports |
@@ -2105,7 +2144,7 @@ with 0.2.1.
 | Code 2 with all tests passed | an option that the command does not read | read the warning `warning: '--...' is not an option of ...` |
 | Code 2 and no test run | error in the command line or in a script | read the `error:` message, which gives the file and line |
 | `error: --out says where reports go, but no --report says which to write.` | `--out` without `--report` | add `--report`, for example `--report html,jsonl` |
-| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.1 (Appendix C) |
+| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.2 (Appendix C) |
 | Outcome `AnsweredWithEvent` | an exception queued, with real-time reporting active | empty the queue with `host forget exceptions` before the long poll; do not leave reporting on |
 
 ## Test failures
@@ -2113,7 +2152,7 @@ with 0.2.1.
 | Symptom | Probable cause | What to do |
 | --- | --- | --- |
 | Failures of `tests/regression` on a board | expectations written for the software machine and for the demo | read the failed step; see "What to expect from tests/regression on a board" |
-| Failures on units: meters or amounts that differ by a factor | the machine's accounting denomination is not the one that the test assumes | check the denomination in the audit menu and the test's `machine accounting denomination` declaration |
+| Failures on units: meters or amounts that differ by a factor | the machine's accounting denomination is not the one that the test assumes | check the denomination in the audit menu and the test's `machine accounting denomination` declaration; on the demo, `sasctl nvram show` prints the `accounting unit` stored in the memory, and long poll `$1F` gives the unit in force |
 | The `send lp` step fails with `AnsweredWithEvent` | exception queued | see the earlier row on `AnsweredWithEvent` |
 | `1 failed (1 labelled a finding)` in `tests/conformance` | case 10.1.4 fails on purpose | it is the expected result; see "The @finding case" |
 | On the demo, after a test with a ticket, every cashout locks up in hand pay and the machine refuses banknotes and tickets | a ticket printed and not read back: the machine stops using the printer | have the ticket read back in every test that prints one; to unlock the machine, work on the machine itself is needed |
@@ -2149,7 +2188,7 @@ chapter gives the results and what can be concluded from them.
 | Stimulus | `none`: nobody acted on the machine |
 | SasWorkbench | 0.2.0 built from source; then 0.2.1 built from source and copied next to 0.2.0 |
 
-Both versions are local builds: neither of them is a published release.
+On 29/10 both versions were local builds; neither had yet been published as a release.
 
 There are five tests:
 
@@ -2284,7 +2323,7 @@ frequent case is an expectation written for another machine.
 
 %%APPENDIX Appendix A - sasctl command reference
 
-This appendix lists every command and every option of `sasctl` 0.2.1. The descriptions come from
+This appendix lists every command and every option of `sasctl` 0.2.2. The descriptions come from
 the text of `sasctl --help`. A duration is written as `200ms`, `5s` or `2m`.
 
 **General options**
@@ -2389,7 +2428,8 @@ folder.
 
 **nvram command (demo only)**
 
-`sasctl nvram <action> [options]` saves or restores the demo's configured memory.
+`sasctl nvram <action> [options]` saves or restores the demo's configured memory, and writes
+variants of a fixture.
 
 | Action | Effect |
 | --- | --- |
@@ -2399,12 +2439,13 @@ folder.
 | `restore` | writes a saved fixture back onto the memory |
 | `validation <style>` | rewrites a fixture in `standard`, `secure_enhanced` or `system` validation |
 | `channels "<plan>"` | rewrites a fixture with the machine divided among several hosts, such as `"1@01 2@02 validation=2"` |
+| `denomination <amount>` | rewrites a fixture counting in another accounting denomination, such as `0.05` or `5c` |
 
 | Option | Effect | Default |
 | --- | --- | --- |
 | `--fixture <file>` | the saved memory | `fixtures/nvram/golden.nvram.gz` |
 | `--nvram <file>` | the machine's memory, if it is not in the usual place | `C:\ProgramData\quixant\launchpad\nvram.bin` |
-| `--out <file>` | where `validation` writes | over the fixture |
+| `--out <file>` | where `validation`, `denomination` and `channels` write | over the fixture |
 
 **find command**
 
@@ -2556,7 +2597,7 @@ polling round costs.
 
 %%APPENDIX Appendix B - The script language
 
-This appendix describes the script language of SasWorkbench 0.2.1. The examples come from the
+This appendix describes the script language of SasWorkbench 0.2.2. The examples come from the
 scripts in the `tests/` folder of the repository, except where stated otherwise.
 
 **Structure of a file**
@@ -2641,8 +2682,8 @@ already on the line to end, so the next message on the line is the script's.
 
 | Statement | Example |
 | --- | --- |
-| `host send lp <hh> [data <hex>] [to <hh>]` | `host send lp 0E data 01` |
-| `host send lp <hh> with <field>=<value> ... [to <hh>]` | `host send lp A0 with game_number=0` |
+| `host send lp <hh> [data <hex>] [to <hh>] [when <capability> == <value>]` | `host send lp 0E data 01` |
+| `host send lp <hh> with <field>=<value> ... [to <hh>] [when <capability> == <value>]` | `host send lp A0 with game_number=0` |
 | `host send gp [draws <exception>\|nothing\|silence] [to <hh>]` | `host send gp draws slot_door_opened` |
 | `host send sync` | `host send sync` |
 | `host expect no reply to lp <hh> [data <hex>]` | `host expect no reply to lp 74 data FF000000` |
@@ -2661,6 +2702,28 @@ passes only with `Silent`.
 `host send gp` and `host send sync` are used only after `host poll sequence`.
 
 `to <hh>` sends the message to another machine of the round, as in `host send lp 1F to 04`.
+
+`when <capability> == <value>` closes the line of a `host send lp`, in any form, after any `to`:
+
+```
+host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+```
+
+Only `==` is accepted, and the comparison is not case-sensitive. A capability that is asked of the
+machine (Appendix C) is asked when the test starts, as for `requires`. The condition decides the
+step:
+
+- same value: the message is sent, and the step is the usual assertion;
+- another value: nothing is sent, and the send is said to be held; the step is PASS, its value
+  obtained reads `not sent: '<capability>' is '<x>', not '<y>'`, and it is not an assertion;
+- value not known, because the machine did not answer or the environment does not offer the
+  capability: the step fails, with expected value `to know whether <condition>`, value obtained
+  `it could not be told` and the reason.
+
+The ticket redemption cases of `tests/regression` use it to send `$4C` only to a machine in
+`secure_enhanced` validation, which keeps its ticket acceptor off until a host sets its validation
+identifier. A send held by its `when` is not the long-poll outcome `NotSent` listed above, which
+makes the step fail.
 
 **Example: AFT registration**
 
@@ -2841,12 +2904,13 @@ YAML has three limits:
 | wrong exception name | `'slot_door_ajar' is not an exception this build knows. Write its name, such as slot_door_opened, or its code, such as $11` |
 | block not closed | `this 'test' block is never closed with '}'` |
 | incomplete `egm` statement | `expected: egm ticket insert <file>, or egm ticket insert amount=<cents> ...` |
+| `when` written with `=`, or before `to` | `'when egm.validation = standard' is not a condition. Expected 'when <capability> == <value>' at the end of the step, after any 'to <address>', such as 'when egm.validation == secure_enhanced'` |
 | `within` on a long-poll field | with `>=`, `<=`, `>` or `<`: `'<field>' holds text, which can only be compared with == or !=`; with `==` or `!=` the comparison fails during the run |
 | `machine_status == 40` | 40 is read as decimal; for the hexadecimal code write `$40` |
 | stimulus without `requires` | the step is skipped and the next assertion fails without a clear reason |
 | two-channel test with `--serial` or `--tcp` | both `host connect` steps point to the same link, and the test is skipped with `channels 1 and 2 would both open ...` |
 
-The first four messages were obtained with `sasctl run <file> --list` on files written for the
+The first five messages were obtained with `sasctl run <file> --list` on files written for the
 purpose. The skip of the last row was obtained with `sasctl run` on a two-channel test of
 `tests/regression`. The other effects come from reading the code and from the runs of 29/10.
 
@@ -2895,15 +2959,16 @@ The value of the `stimulus` capability is the name of the stimulus in use, so a 
 **Asked of the machine**
 
 Two capabilities are asked of the machine after the link has come up, and only if a test requires
-them. If the machine does not reply, the test is skipped with a sentence such as
-`egm.validation: the machine did not answer the enabled-features poll (...)`.
+them or a `when` names them. If the machine does not reply, a test that requires them is skipped
+with a sentence such as `egm.validation: the machine did not answer the enabled-features poll (...)`,
+while a send whose `when` names them fails.
 
 | Capability | Where it comes from | Values |
 | --- | --- | --- |
 | `egm.validation` | long poll `$A0` | `standard`, `system`, `secure_enhanced` |
 | `egm.accounting_denomination` | long poll `$1F` | `<cents>c`, for example `5c` |
 
-**Not offered by any environment in 0.2.1**
+**Not offered by any environment in 0.2.2**
 
 Any other key can be written, but no environment offers it. The tests that require it are always
 skipped. In the tests of 29/10 these appeared, among others:
@@ -2941,6 +3006,10 @@ These are assertions: `host send lp`, `host send gp draws`, `host send sync`, `h
 
 These are not assertions: `note`, `host connect`, the waits, the polling modes,
 `host forget exceptions`, the stimuli, the changes of channel or machine and `egm expect ticket`.
+
+A `host send lp` held by its `when` is not an assertion either: nothing is sent and the step passes.
+A test whose sends are all held, with no other assertion, therefore ends in SKIP: no assertion
+passed (rule 3 of "Outcome of a test").
 
 `egm expect ticket` does not count as an assertion, but it can fail. A test that checks only a
 ticket therefore ends in SKIP even when the ticket matches, because no assertion passed.
