@@ -318,3 +318,10 @@ None.
 - **Word and PDF.** Rebuilt as V1.1, 74 pages each, with both history rows; the denylist scan of
   the extracted text finds nothing.
 - **Still to confirm.** "Take release 0.2.2" is true only once the merge publishes v0.2.2.
+
+## Confirmed (01/11/2026)
+
+- v0.2.2 was published on 01/11/2026 at 06:09 UTC with both packages and `SHA256SUMS`, and GitHub
+  now marks it Latest (VERIFIED_LINK). The Windows package matches its checksum and its `sasctl
+  --version` prints `0.2.2` (VERIFIED_RUNTIME). "Take release 0.2.2" holds, and the open thread
+  on Latest is closed.

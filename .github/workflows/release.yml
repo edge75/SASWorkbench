@@ -6,8 +6,8 @@
 # It runs entirely on ubuntu-latest and cross-publishes the Windows build with `-r win-x64`,
 # rather than using a windows-latest runner. That is what makes the whole workflow runnable
 # locally with `act`, which cannot start Windows containers. Windows-native *testing* is not
-# given up: `build.yml` still runs the suite on both platforms, and that is the workflow that
-# decides whether the code works. This one only decides what gets shipped.
+# given up: `ci.yml` runs the suite on both platforms for every pull request, and that is the
+# workflow that decides whether the code works. This one only decides what gets shipped.
 #
 # The version is not written here. It is read from the projects with MSBuild, so the file that
 # declares it stays the single source of truth and a release cannot be tagged with a number that
@@ -88,8 +88,8 @@ jobs:
       - name: Build
         run: dotnet build SasWorkbench.slnx --configuration Release --no-restore
 
-      # A release should not ship bits nobody ran. This is the same suite build.yml runs; the
-      # point of repeating it here is that packaging must not be reachable past a red test.
+      # A release should not ship bits nobody ran. This is the same suite ci.yml runs on the pull
+      # request; it is the only test run on main, so packaging cannot be reached past a red test.
       - name: Test
         run: dotnet test SasWorkbench.slnx --configuration Release --no-build
 

@@ -86,7 +86,7 @@ First build takes about a minute; later ones a few seconds.
 ## 3. The four checks — the same four CI runs
 
 These are the ones to run. Together they are exactly what `.github/workflows/ci.yml` does on every
-push, so if all four pass here they pass there.
+pull request, so if all four pass here they pass there.
 
 Run them in this order. Each is independent, so a failure in one does not invalidate the others.
 
