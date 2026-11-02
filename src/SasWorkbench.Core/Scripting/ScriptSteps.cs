@@ -158,6 +158,16 @@ public sealed record WaitStep(SourceLocation Location, TimeSpan Duration) : Scri
     public override string Describe() => $"wait {Duration.TotalMilliseconds:F0}ms";
 }
 
+/// <summary>
+/// Lets the general polls run for the given time, once per machine in a run, so a machine that has
+/// just started reports its start-up exceptions before the first case that needs a quiet queue.
+/// </summary>
+public sealed record WarmUpStep(SourceLocation Location, TimeSpan Duration) : ScriptStep(Location)
+{
+    public override string Describe() =>
+        $"warm up for {Duration.TotalMilliseconds:F0}ms, once per machine in a run";
+}
+
 /// <summary>Records a remark in the report. Never affects the verdict.</summary>
 public sealed record NoteStep(SourceLocation Location, string Text) : ScriptStep(Location)
 {

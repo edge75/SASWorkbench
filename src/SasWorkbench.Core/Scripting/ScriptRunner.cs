@@ -112,6 +112,9 @@ public sealed class ScriptRunner
 {
     private readonly ScriptRunnerOptions _options;
 
+    // When each machine was first warmed up in this run, so only the first case pays for it.
+    private readonly Dictionary<string, long> _warmedSince = new(StringComparer.Ordinal);
+
     public ScriptRunner(ScriptRunnerOptions? options = null)
     {
         _options = options ?? new ScriptRunnerOptions();
@@ -596,6 +599,8 @@ public sealed class ScriptRunner
                             ? Moved(use, hosts, test, baselines, stopwatch.Elapsed)
                             : Unavailable(use, stopwatch.Elapsed, refusal!),
 
+                        WarmUpStep warm => WarmUp(warm, connect, hosts, stopwatch.Elapsed),
+
                         UseMachineStep onto =>
                             hosts.TryUseMachine(onto.Address, out string? notPolled)
                                 ? Moved(onto, hosts, test, baselines, stopwatch.Elapsed)
@@ -992,6 +997,41 @@ public sealed class ScriptRunner
         int forgotten = exceptions.ForgetOn(engine.Channel, machine);
         return new StepResult(step.Location, step.Describe(), Verdict.Pass,
             Actual: $"{forgotten} exception(s) left out of what follows", At: at);
+    }
+
+    /// <summary>
+    /// Lets the general polls run for the step's time, counted from the first warm-up of this machine
+    /// in the run, so the cases after it do not wait again.
+    /// </summary>
+    private StepResult WarmUp(WarmUpStep step, ConnectStep connect, ChannelHosts hosts, TimeSpan at)
+    {
+        if (hosts.Engine.State != LinkState.Up)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: LinkState.Up.ToString(), Actual: hosts.Engine.State.ToString(),
+                Reason: "the machine is not answering, so it cannot warm up; put "
+                        + "'host expect link up' before this step",
+                At: at) { IsAssertion = true };
+        }
+
+        string key = $"{connect.Transport}|{connect.Target}|{hosts.Current}|{hosts.Machine ?? connect.Address}";
+        long now = Environment.TickCount64;
+        long since;
+        lock (_warmedSince)
+        {
+            if (!_warmedSince.TryGetValue(key, out since))
+                _warmedSince[key] = since = now;
+        }
+
+        TimeSpan answering = TimeSpan.FromMilliseconds(now - since);
+        TimeSpan left = step.Duration - answering;
+        if (left > TimeSpan.Zero)
+            Thread.Sleep(left);
+
+        string actual = left > TimeSpan.Zero
+            ? $"waited {left.TotalSeconds:F1}s"
+            : $"no wait; warmed up {answering.TotalSeconds:F1}s ago in this run";
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass, Actual: actual, At: at);
     }
 
     private static StepResult Wait(WaitStep step, TimeSpan at)

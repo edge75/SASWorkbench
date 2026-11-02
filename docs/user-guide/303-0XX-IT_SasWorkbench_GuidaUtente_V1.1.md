@@ -2700,10 +2700,15 @@ ripetuto e l'indirizzo `00` sono rifiutati. Un `host connect` su un canale nuovo
 | `host poll every <d>` | avvia i general poll a intervalli fissi | `host poll every 200ms` |
 | `host poll sequence` | ferma il timer e i poll di sincronizzazione: la linea è dello script | `host poll sequence` |
 | `host wait <d>` | aspetta | `host wait 2s` |
+| `host warm up <d>` | lascia correre i general poll per `<d>`, una volta per macchina in una corsa | `host warm up 20s` |
 
 Solo il primo `host poll every` di un test imposta l'intervallo. Un `host poll every` dopo
 `host poll sequence` restituisce la linea al giro. `host poll sequence` aspetta che finisca il poll
 già sulla linea, così il messaggio successivo sulla linea è quello dello script.
+
+`host warm up` lascia a una macchina appena avviata il tempo di riportare le eccezioni di avvio prima
+di un caso che ha bisogno della coda vuota. Aspetta solo il primo caso di una corsa; i successivi
+proseguono subito. Va messo dopo `host expect link up` e prima di `host forget exceptions`.
 
 **Invio di messaggi**
 

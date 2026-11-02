@@ -29,6 +29,8 @@ test "4.9 a full queue loses the oldest" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   host poll sequence
@@ -326,6 +328,8 @@ test "4.10 the machine reports an overflow once" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   host poll sequence

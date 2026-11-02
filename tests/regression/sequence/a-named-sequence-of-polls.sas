@@ -13,6 +13,8 @@ test "a case owns every message on the line while it is in a sequence" {
   host poll every 200ms
   host expect link up within 5s
 
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host poll sequence
 
   # Nothing goes out but these. The broadcast is the one section 3.19 turns on, and no machine
@@ -32,6 +34,8 @@ test "each general poll in a sequence draws the next exception" {
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   host poll sequence
@@ -60,6 +64,8 @@ test "a sequence hands the line back to the round" {
   host poll every 200ms
   host expect link up within 5s
 
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host poll sequence
   host send gp draws nothing
 

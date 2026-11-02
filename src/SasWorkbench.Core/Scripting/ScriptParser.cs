@@ -430,6 +430,12 @@ public static class ScriptParser
                 test.Steps.Add(new WaitStep(location, ParseDuration(words[2], location)));
                 return;
 
+            case "warm":
+                if (words.Length != 4 || !words[2].Equals("up", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: host warm up <duration>");
+                test.Steps.Add(new WarmUpStep(location, ParseDuration(words[3], location)));
+                return;
+
             case "send":
                 if (words.Length > 2 && words[2].Equals("gp", StringComparison.OrdinalIgnoreCase))
                 {
@@ -484,7 +490,7 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'host {words[1]}' is not a host action. Expected connect, channel, machine, "
-                    + "poll, wait, send, forget or expect");
+                    + "poll, wait, warm up, send, forget or expect");
         }
     }
 

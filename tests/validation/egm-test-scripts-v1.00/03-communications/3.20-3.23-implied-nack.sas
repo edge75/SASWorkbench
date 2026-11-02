@@ -34,6 +34,8 @@ test "3.21 the same poll three times is final" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   # The line is the case's from here: the four exceptions wait in the queue until it polls.
@@ -99,6 +101,8 @@ test "3.23 five seconds of silence is a final refusal" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   # The line is the case's from here: the four exceptions wait in the queue until it polls.

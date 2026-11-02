@@ -292,6 +292,8 @@ test "10.5.13 a ticket printed while the link is down is still on the record" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   egm bill insert 2000

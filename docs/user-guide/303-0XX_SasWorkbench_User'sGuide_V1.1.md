@@ -2673,10 +2673,15 @@ and address `00` are refused. A `host connect` on a new channel opens a second h
 | `host poll every <d>` | starts the general polls at fixed intervals | `host poll every 200ms` |
 | `host poll sequence` | stops the timer and the synchronisation polls: the line belongs to the script | `host poll sequence` |
 | `host wait <d>` | waits | `host wait 2s` |
+| `host warm up <d>` | lets the general polls run for `<d>`, once per machine in a run | `host warm up 20s` |
 
 Only the first `host poll every` of a test sets the interval. A `host poll every` after
 `host poll sequence` gives the line back to the round. `host poll sequence` waits for the poll
 already on the line to end, so the next message on the line is the script's.
+
+`host warm up` lets a machine that has just started report its start-up exceptions before a case
+that needs an empty queue. Only the first case of a run waits; the later ones go straight on. Put it
+after `host expect link up` and before `host forget exceptions`.
 
 **Sending messages**
 
