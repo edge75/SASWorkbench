@@ -5,8 +5,8 @@
 # some exceptions jump the queue - a hand pay pending is a person standing at a machine, and it
 # does not wait behind a door that opened an hour ago.
 #
-# Every case needs something this environment does not have: a power cycle, the machine's own
-# queue depth, or a hand pay.
+# The overflow cases run, with the door making the exceptions; the others need a power cycle or a
+# hand pay.
 
 # Twenty is the floor, and they come out oldest first, twice - once with the line down and once
 # across a power cycle.
@@ -18,31 +18,636 @@ test "4.8 the queue holds at least twenty, in order, across a power cycle" {
   note "Do it again, but power cycle before polling. All twenty still come back oldest first, possibly with the machine's own power-down and power-up exceptions among them."
 }
 
-# When it does fill, the oldest are lost and the newest survive. Which needs the queue's depth,
-# and only the machine knows that.
+# When it does fill, the oldest are lost and the newest survive. The depth asserted is the gaming
+# machine library's sixty-four.
 test "4.9 a full queue loses the oldest" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.exception_queue_depth
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.settle
 
-  note "With nothing polling, create more exceptions than the machine can hold, noting the last four that fit. Start polling: the count of non-zero exceptions returned equals the queue's depth, and the last four - the overflow exception $70 aside - are the four noted. The overflow exception is not itself put in the queue."
-  note "Establish the queue's depth first; the document expects it to be done alongside 4.10."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+
+  # Step 2: sixty-eight exceptions, four more than this machine's queue of sixty-four holds. The
+  # door opens on the odd ones and closes on the even ones, and a poll to another machine after
+  # each keeps the link up without drawing anything out.
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+
+  # Step 3: the overflow comes first and is not one of the sixty-four; then the sixty-four that
+  # fit, oldest first - the fifth to the sixty-eighth - and then no activity.
+  host send sync
+  host send gp draws exception_buffer_overflow
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws nothing
+
+  host poll every 200ms
+
+  note "The queue depth of sixty-four is the gaming machine library's; a machine with a different depth fails this case at the first exception that does not match, which says where its queue ends."
 }
 
 # One overflow exception, not one per lost event, and it is a priority exception so it arrives
 # ahead of whatever is still queued.
 test "4.10 the machine reports an overflow once" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.exception_queue_depth, host.poll_sequence
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.settle
+  requires decoder.lp1F
 
-  note "Overflow the queue by three, noting the fourth, fifth and sixth exceptions and the three that were pushed out. With the host's resynchronisation off, establish communication and send the general poll three times then the identification poll: the first two carry $70, the third carries it or is unanswered."
-  note "Send the general poll again: $70 once more, because nothing had acknowledged it. Then alternate the general and identification polls: the next three exceptions are the fourth, fifth and sixth noted."
-  note "Create four more exceptions and re-establish communication. The general poll carries $70 again - the queue overflowed a second time - and then the rest, ending in no activity, with the last three being the last created."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+
+  # Step 1: sixty-seven exceptions, three more than the queue holds, so the first three are lost
+  # and the fourth, fifth and sixth are the oldest left. The door is left open by the last.
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+
+  # Step 3.
+  host send sync
+  host send lp 1F
+
+  # Step 4: three in a row; the overflow comes first, and the identification poll is answered.
+  host send gp draws exception_buffer_overflow
+  host send gp draws exception_buffer_overflow
+  host send gp
+  host send lp 1F
+
+  # Step 5: nothing acknowledged it, so the overflow comes once more.
+  host send gp draws exception_buffer_overflow
+  host send lp 1F
+
+  # Step 6: then the fourth, fifth and sixth.
+  host send sync
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+
+  # Step 7: four more, which overflows the queue a second time and loses the seventh.
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+
+  # Step 8 to 10: the overflow again, then the rest, oldest first, then no activity.
+  host send sync
+  host send lp 1F
+  host send gp draws exception_buffer_overflow
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws nothing
+  host send lp 1F
+
+  # Put the door back.
+  host poll every 200ms
+  egm door main close
+
+  note "The document says the last three of step 10 are the last of step 1; with the four of step 7 added they are the last of step 7, which is what is asserted."
 }
 
 # A hand pay pending goes first even though four exceptions were queued before it.
 test "4.11 a priority exception goes first" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay, host.poll_sequence, stimulus.service_button
+  requires stimulus.handpay, host.poll_sequence, stimulus.button.service
   requires decoder.lp1B
 
   note "Create slot door opened, slot door closed, change lamp on and change lamp off. Then put enough credits on the machine to exceed its cash out limit and press cash out, so it locks up in a cancelled-credit hand pay."

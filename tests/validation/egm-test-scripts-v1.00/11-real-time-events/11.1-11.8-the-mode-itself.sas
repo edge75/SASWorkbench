@@ -57,7 +57,7 @@ test "11.2 every exception follows the mode" {
   requires machine.memory_fault, machine.power_cycle, machine.audit_menu
   requires stimulus.handpay, stimulus.coin, stimulus.hopper
   requires stimulus.note_fault, stimulus.printer_fault, stimulus.reel
-  requires stimulus.service_button
+  requires stimulus.button.service
 
   note "With reporting on, create each exception the document's Table 11.1 lists, by the means its own column gives, and check the message against the format that column specifies - address, marker $FF, code, payload, check sequence."
   note "Then stop polling, create the same exception again, and send a poll to 00, a general poll and the identification poll: the general poll carries it in the event format."

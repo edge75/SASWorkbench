@@ -5,13 +5,15 @@
 # answer once more or say nothing, but either way it moves on. Two things end the retry besides a
 # third try: a power cycle, and five seconds of silence.
 #
-# Like the acknowledgement cases, all four need an exact host-driven sequence with nothing else on
-# the line, which this host cannot produce.
+# They need the host to put an exact sequence of named polls on the line and nothing else, which
+# `host poll sequence` gives them: the timer and its synchronisation polls stop, and the case
+# sends each poll itself. The ones that can make their exceptions here - doors and the service
+# button - run; the rest need a hand pay or a power cycle.
 
 # Two the same is a refusal; three is final.
 test "3.20 the same poll twice is a refusal" {
   tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.handpay, stimulus.service_button
+  requires host.poll_sequence, stimulus.handpay, stimulus.button.service
   requires decoder.lp1B
 
   note "Create four exceptions in order - slot door opened, slot door closed, change lamp on, change lamp off. Establish communication, then send a general poll to the machine's address twice, the identification poll, the general poll, the identification poll."
@@ -23,19 +25,62 @@ test "3.20 the same poll twice is a refusal" {
 # Three the same is final. The third answer is optional - the machine may repeat it or stay quiet -
 # and both are a pass, which is the only place in this chapter where two behaviours are allowed.
 test "3.21 the same poll three times is final" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.service_button
-  requires decoder.lp7E
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.button.service, stimulus.settle
+  requires decoder.lp1F
 
-  note "Create the four door and change lamp exceptions. Establish communication, then a general poll to the machine's address and the identification poll: the general poll draws slot door opened."
-  note "Send the general poll three times then the identification poll. The first two draw slot door closed; the third either draws it again or is not answered at all. Then alternate general and identification polls: the remaining exceptions arrive in order and the general polls end with no activity."
-  note "The same with a long poll. Send date and time three times then the identification poll: the first two carry the same time, the third either repeats it or is unanswered. Send date and time, the identification poll, date and time again - the first carries that same time and the second a new one, because the identification poll in between acknowledged it."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The line is the case's from here: the four exceptions wait in the queue until it polls.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+
+  # Making them can take longer than a loop break, so the machine is synchronised again first.
+  host send sync
+  # Step 3: a poll to 00 and the identification poll establish communication.
+  host send lp 1F
+
+  # Step 4.
+  host send gp draws slot_door_opened
+  host send lp 1F
+
+  # Step 5: three in a row. The first two carry the same exception, and the third may carry it
+  # again or go unanswered - both are allowed, so the third is sent and not asserted. The
+  # identification poll after them is answered.
+  host send gp draws slot_door_closed
+  host send gp draws slot_door_closed
+  host send gp
+  host send lp 1F
+
+  # Step 6: a final refusal acknowledges nothing, so the exception it refused comes round again
+  # before the other two.
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws change_lamp_on
+  host send lp 1F
+  host send gp draws change_lamp_off
+  host send lp 1F
+
+  # Step 7.
+  host send gp draws nothing
+  host send lp 1F
+
+  note "Steps 8 and 9 repeat the shape with the date and time poll: three in a row, where the first two carry the same time and the third repeats it or is unanswered, then date and time, identification, date and time, where the last carries a new time. This build asserts a long poll only by its answer and cannot compare one reply with another, so they are not run."
 }
 
 # A power cycle does not clear the retry. The machine comes back still owing the same exception.
 test "3.22 a power cycle does not clear a final refusal" {
   tag @egm-test-scripts @chapter-3 @needs-a-person @destructive
-  requires host.poll_sequence, machine.power_cycle, stimulus.service_button
+  requires host.poll_sequence, machine.power_cycle, stimulus.button.service
 
   note "Create slot door opened, slot door closed and change lamp on. Establish communication, then a general poll to the machine's address and the identification poll: the general poll draws slot door opened. Send the general poll once more: it draws slot door closed."
   note "Power cycle the machine and let it boot. Establish communication and send the general poll twice: both draw slot door closed. Power cycle again and send it three times: the first two draw slot door closed and the third either repeats it or is unanswered. Power cycle again and repeat with the identification poll on the end."
@@ -45,10 +90,61 @@ test "3.22 a power cycle does not clear a final refusal" {
 # Five seconds of silence is final too, and it is not the same as a power cycle: the machine chirps
 # through it.
 test "3.23 five seconds of silence is a final refusal" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, host.chirp, stimulus.service_button
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.button.service, stimulus.settle
+  requires decoder.lp1F
 
-  note "Create the four door and change lamp exceptions. Establish communication, then general poll, identification poll, general poll: the two general polls draw slot door opened and slot door closed. Send the general poll twice more: the first draws slot door closed again and the second either repeats it or is unanswered."
-  note "Stop polling for more than five seconds - the machine chirps every 200 ms. Establish communication again and send the general poll twice then the identification poll: both general polls draw slot door closed, so the silence did not acknowledge it."
-  note "Send the general poll twice: both draw change lamp on. Go silent again for more than five seconds. Then send a long poll addressed to another machine, a general poll, that foreign poll, a general poll: the foreign polls are not answered, and the two general polls draw change lamp on and change lamp off."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The line is the case's from here: the four exceptions wait in the queue until it polls.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+
+  # Making them can take longer than a loop break, so the machine is synchronised again first.
+  host send sync
+  # Step 3: a poll to 00 and the identification poll establish communication.
+  host send lp 1F
+
+  # Step 4.
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+
+  # Step 5: a refusal, then a final one that may go unanswered.
+  host send gp draws slot_door_closed
+  host send gp
+
+  # Steps 6 to 8: the silence is final too, so after it the same exception comes back.
+  host wait 6s
+  host send sync
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send gp draws slot_door_closed
+  host send lp 1F
+
+  # Step 9: the identification poll acknowledged it, so the next moves on, and is refused once.
+  host send gp draws change_lamp_on
+  host send gp draws change_lamp_on
+
+  # Steps 10 and 11: silence again, then a poll to another machine is what synchronises it.
+  host wait 6s
+  host send gp draws silence to 02
+  host send gp draws change_lamp_on
+  host send gp draws silence to 02
+  host send gp draws change_lamp_off
+
+  # Step 12.
+  host send lp 1F
+  host send gp draws nothing
+
+  note "During each silence the document has the machine chirp every 200 ms; this build does not assert the chirp. Its poll to another machine in step 11 is the identification long poll at address 2; a general poll to address 2 stands in for it, because this build asserts a long poll only by its answer."
 }

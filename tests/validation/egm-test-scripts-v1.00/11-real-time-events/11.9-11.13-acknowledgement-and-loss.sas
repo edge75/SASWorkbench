@@ -11,7 +11,7 @@
 
 test "11.9 a long poll acknowledges an event" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires host.poll_sequence, stimulus.real_time_events, stimulus.service_button
+  requires host.poll_sequence, stimulus.real_time_events, stimulus.button.service
   requires decoder.lp0E, decoder.lp1F, decoder.lp7E
 
   note "With the host's resynchronisation off, establish communication and turn reporting on. Create slot door opened, slot door closed, change lamp on and change lamp off."
@@ -21,7 +21,7 @@ test "11.9 a long poll acknowledges an event" {
 
 test "11.10 a general poll acknowledges an event" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires host.poll_sequence, stimulus.real_time_events, stimulus.service_button
+  requires host.poll_sequence, stimulus.real_time_events, stimulus.button.service
   requires decoder.lp0E, decoder.lp1F
 
   note "With the host's resynchronisation off, establish communication and turn reporting on. Create the same four exceptions."
@@ -31,7 +31,7 @@ test "11.10 a general poll acknowledges an event" {
 
 test "11.11 a global broadcast acknowledges an event" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires host.poll_sequence, stimulus.real_time_events, stimulus.service_button
+  requires host.poll_sequence, stimulus.real_time_events, stimulus.button.service
   requires decoder.lp0E, decoder.lp1F
 
   note "With the host's resynchronisation off, establish communication and turn reporting on. Create the same four exceptions."
