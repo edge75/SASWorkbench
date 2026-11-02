@@ -37,6 +37,17 @@ public sealed record ScriptRunnerOptions
     /// <summary>How long a quiet line means a reply has ended.</summary>
     public TimeSpan QuietGap { get; init; } = TimeSpan.FromMilliseconds(20);
 
+    /// <summary>
+    /// What the stimulus backend would offer, for a case judged without a link; null for the
+    /// backend's fixed table.
+    /// </summary>
+    /// <remarks>
+    /// A backend whose offer depends on the machine, such as the peripheral driver, can still say
+    /// from the machine's configuration what it would offer. Without that, a case that opens no
+    /// link names a button the machine has as the reason it was skipped.
+    /// </remarks>
+    public IReadOnlyDictionary<string, string?>? StimulusOffer { get; init; }
+
     /// <summary>Builds the link and the stimulus. Defaults to a real link with no stimulus.</summary>
     public EnvironmentFactory Environment { get; init; } = DefaultEnvironment.Create;
 
@@ -166,11 +177,14 @@ public sealed class ScriptRunner
             // Nothing was built, so nothing was measured - but what the run's stimulus backend
             // would have offered is knowable without a link, and naming a capability it does
             // provide would send the reader after the wrong thing.
-            CapabilitySet withBackend =
-                baseline.With(CapabilityProbe.ForStimulus(_options.Stimulus));
-
-            if (withBackend.FirstUnmet(Local(Declared(test))) is { } missing)
+            if (WithoutLink(baseline).FirstUnmet(Local(Declared(test))) is { } missing)
                 return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
+                    SasChannel.One, testBase);
+
+            // Written as notes only: a case still to be written, not a broken one.
+            if (test.Steps.Count > 0 && test.Steps.All(step => step is NoteStep))
+                return Skipped(test, stopwatch, startedAt,
+                    "no steps are written yet; the case holds only its notes",
                     SasChannel.One, testBase);
 
             var broken = new TestOutcome
@@ -206,10 +220,11 @@ public sealed class ScriptRunner
         }
         catch (TransportRefusedException refused)
         {
-            // No environment came up, so nothing beyond the baseline can be offered. If the test
-            // was going to be skipped for a missing capability anyway, that is the reason worth
-            // reporting - "no peer on the link" would send somebody looking for the wrong thing.
-            if (baseline.FirstUnmet(Local(Declared(test))) is { } missing)
+            // No environment came up, so only what is knowable without one can be offered. If the
+            // test was going to be skipped for a missing capability anyway, that is the reason
+            // worth reporting - "no peer on the link" would send somebody looking for the wrong
+            // thing.
+            if (WithoutLink(baseline).FirstUnmet(Local(Declared(test))) is { } missing)
                 return Skipped(test, stopwatch, startedAt, $"{missing.Requirement.Key}: {missing.Reason}",
                     connect.Channel, testBase);
 
@@ -290,6 +305,10 @@ public sealed class ScriptRunner
 
         return null;
     }
+
+    /// <summary>What can be offered before any link is up: the baseline and the stimulus.</summary>
+    private CapabilitySet WithoutLink(CapabilitySet baseline) =>
+        baseline.With(_options.StimulusOffer ?? CapabilityProbe.ForStimulus(_options.Stimulus));
 
     /// <summary>
     /// The requirements that can be settled without asking the machine anything.

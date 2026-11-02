@@ -563,6 +563,7 @@ public class ScriptRunnerTests
         ScriptDocument document = ScriptParser.Parse("""
             test "no link" {
               note "this test forgot to connect"
+              egm settle
             }
             """, "noconnect.sas");
 
