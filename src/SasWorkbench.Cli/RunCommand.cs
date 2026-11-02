@@ -222,6 +222,7 @@ internal static class RunCommand
             PromptDeadline = askFor,
             PeerTimeout = peer,
             RealTimeEventsAllowed = line.Flag("real-time-events"),
+            StimulusOffer = backend == StimulusBackend.Qpm ? QpmEnvironment.Offer(peripherals) : null,
 
             // The software machine is only wired in when it was asked for. A run that quietly
             // substituted a fixture for the machine under test would be worthless.

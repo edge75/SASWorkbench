@@ -1,4 +1,5 @@
 using SasWorkbench.Core.Scripting;
+using SasWorkbench.Core.Tickets;
 
 namespace SasWorkbench.Qpm;
 
@@ -53,6 +54,22 @@ public static class QpmEnvironment
                 Owned = stimulus as IDisposable,
             };
         };
+    }
+
+    /// <summary>
+    /// What the peripheral driver would offer, read from the machine's configuration alone.
+    /// </summary>
+    /// <remarks>
+    /// Nothing is attached and nothing is written, so it is safe to ask for a case that never
+    /// opens a link, whether or not a machine is running.
+    /// </remarks>
+    public static IReadOnlyDictionary<string, string?> Offer(
+        QpmOptions? options = null, string? acceptorDirectory = null)
+    {
+        QpmOptions settings = options ?? new QpmOptions();
+        return QpmStimulusBackend.Offer(
+            EgmHardwareProfile.ReadFrom(settings.ResourcesDirectory),
+            acceptorDirectory ?? TicketAcceptor.DefaultDirectory).AsReadOnly();
     }
 
     /// <summary>

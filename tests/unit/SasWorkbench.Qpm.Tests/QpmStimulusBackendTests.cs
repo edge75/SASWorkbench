@@ -9,6 +9,25 @@ namespace SasWorkbench.Qpm.Tests;
 /// </summary>
 public class QpmStimulusBackendTests
 {
+    /// <summary>
+    /// The offer a case without a link is judged against comes from the machine's configuration
+    /// alone: no region is opened, so it is the same whether or not a machine is running.
+    /// </summary>
+    [Fact]
+    public void ItsOfferIsReadFromTheConfigurationWithoutAMachine()
+    {
+        using var directory = new TemporaryDirectory();
+        QpmMachineTests.WriteConfiguration(directory.Path);
+
+        IReadOnlyDictionary<string, string?> offer =
+            QpmEnvironment.Offer(new QpmOptions(ResourcesDirectory: directory.Path));
+
+        Assert.Equal("qpm", offer["stimulus"]);
+        Assert.True(offer.ContainsKey("stimulus.bill"));
+        Assert.True(offer.ContainsKey("stimulus.door.slot"));
+        Assert.True(offer.ContainsKey("stimulus.button.collect"));
+    }
+
     [Fact]
     public void ItOffersTheDoorsAndButtonsTheMachineDeclares()
     {

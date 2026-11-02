@@ -12,9 +12,43 @@
 # document's own decomposition of it rather than a second copy.
 
 test "10.7.1 redemption is enabled through the status poll" {
-  tag @egm-test-scripts @chapter-10
-  requires decoder.lp7B, machine.redemption_switch
-  note "Set the redemption bit and read the status back, then offer a ticket with the bit clear and with it set: refused in one case and taken in the other. The software machine takes its redemption setting from the validation style rather than from a switch, so the two halves cannot be told apart here."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == secure_enhanced
+  requires stimulus.ticket, decoder.lp7B, decoder.lp4C, decoder.lp70, decoder.lp71
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # A mask of nothing changes nothing, whatever states come with it. $8021 is redemption ($0020)
+  # on a machine that prints ($0001) and whose identifier a host has set ($8000).
+  host send lp 7B data 080000000000000000
+  host expect field current_validation_status of lp 7B == 32801
+  host send lp 7B data 080000FFFF00000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  # Redemption off: the ticket is refused before the host is ever asked.
+  host send lp 7B data 082000000000000000
+  host expect field current_validation_status of lp 7B == 32769
+  egm ticket insert amount=1000 validation=0000000000000011
+  host expect no exception ticket_inserted within 8s
+
+  # Redemption on: a different ticket is taken and the host is asked about it, and about it alone.
+  host send lp 7B data 082000200000000000
+  host expect field current_validation_status of lp 7B == 32801
+  egm ticket insert amount=1000 validation=0000000000000012
+  host expect exception ticket_inserted within 8s
+  host send lp 70
+  host expect field validation_data of lp 70 == 0000000000000012
+
+  # Refused, so the escrow is empty for the case after this one.
+  host send lp 71 with transfer_code=ttc_ticket_already_redeemed transfer_amount=1000 parsing_code=0 validation_data=0000000000000012
+  host expect field machine_status of lp 71 == gmsc_ticket_rejected_by_host_or_unknown
+
+  note "The document also disables redemption for another reason, such as a failed bill validator, and expects the bit to read clear. That needs the validator fault the third batch would add."
 }
 
 test "10.7.2 a ticket offered to the machine raises its exception" {
@@ -63,8 +97,34 @@ test "10.7.3 the host reads the ticket the machine is holding" {
 
 test "10.7.4 the machine answers the redemption poll" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires stimulus.ticket, decoder.lp71, host.validation_sequence
-  note "Send the redemption poll carrying the amount and a status saying the ticket is good, and the machine answers with its own status and the amount it will credit."
+  requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
+  requires egm.validation == secure_enhanced
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  egm ticket insert amount=1000 validation=0000000000000013
+  host expect exception ticket_inserted within 8s
+  host send lp 70
+
+  # Good for ten dollars: the machine answers with what it is doing about it.
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1000 parsing_code=0 validation_data=0000000000000013
+  host expect field machine_status of lp 71 == gmsc_ticket_redemption_pending
+  host expect field transfer_amount of lp 71 == 1000
+  host expect field parsing_code of lp 71 == 0
+  host expect field validation_data of lp 71 == 0000000000000013
+  host expect exception ticket_transfer_complete within 8s
+
+  # Once stacked, the status the host asks for is the outcome.
+  host send lp 71 with transfer_code=ttc_request_for_current_ticket_status
+  host expect field machine_status of lp 71 == gmsc_cashable_ticket_redeemed
+  host expect field transfer_amount of lp 71 == 1000
+
+  note "The document repeats this for a restricted and a non-restricted promotional ticket, which are the third batch's subject."
 }
 
 test "10.7.5 the machine status codes cover every refusal" {

@@ -151,3 +151,13 @@ PHASE:R8 WAVE:guide-1.1-for-0.2.2 STATUS:complete TS:2026-10-31T00:29:13Z
 PHASE:R8 WAVE:guide-word-pdf-1.1 STATUS:complete TS:2026-10-31T00:29:13Z
 PHASE:R9 WAVE:release-0.2.2-check STATUS:complete TS:2026-11-01T06:20:28Z
 PHASE:R9 WAVE:ci-build-on-pull-requests STATUS:complete TS:2026-11-01T06:20:28Z
+PHASE:R10 WAVE:pr13-ci-on-pull-requests STATUS:complete TS:2026-11-01T08:21:53Z
+PHASE:R10 WAVE:p4-demo-ticket-in-then-10.7 STATUS:complete TS:2026-11-01T08:21:53Z
+PHASE:R11 WAVE:merge-13-only-release-ran STATUS:complete TS:2026-11-01T09:11:59Z
+PHASE:R11 WAVE:backlog-measured STATUS:complete TS:2026-11-01T09:11:59Z
+PHASE:R12 WAVE:m7-skeleton-triage STATUS:complete TS:2026-11-01T11:12:38Z
+PHASE:R12 WAVE:demo-collect-button STATUS:complete TS:2026-11-01T11:12:38Z
+PHASE:R13 WAVE:skip-reason-fix STATUS:complete TS:2026-11-02T01:01:01Z
+PHASE:R13 WAVE:lot1-cases-written STATUS:complete TS:2026-11-02T01:01:01Z
+PHASE:R13 WAVE:lot1-software-machine STATUS:complete TS:2026-11-02T01:01:02Z
+PHASE:R13 WAVE:lot1-demo-se5c STATUS:complete TS:2026-11-02T01:01:02Z

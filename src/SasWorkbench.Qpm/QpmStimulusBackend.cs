@@ -126,8 +126,19 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
             + string.Join(", ", Machine.Profile.ButtonNames);
     }
 
-    private Dictionary<string, string?> Describe()
+    private Dictionary<string, string?> Describe() => Offer(Machine.Profile, _acceptor.Directory);
+
+    /// <summary>
+    /// What this backend offers a machine with this profile, without attaching to it.
+    /// </summary>
+    /// <remarks>
+    /// A case that opens no link is judged against this, so it names what the machine actually
+    /// lacks rather than everything a backend nobody has attached cannot vouch for.
+    /// </remarks>
+    public static Dictionary<string, string?> Offer(EgmHardwareProfile profile, string acceptorDirectory)
     {
+        ArgumentNullException.ThrowIfNull(profile);
+
         var values = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             ["stimulus"] = "qpm",
@@ -141,7 +152,7 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
 
         // Only when there is somewhere to put one. Whether the machine will do anything with a
         // ticket is its own configuration to answer, on the wire.
-        foreach ((string key, string? value) in CapabilityProbe.ForAcceptor(_acceptor.Directory))
+        foreach ((string key, string? value) in CapabilityProbe.ForAcceptor(acceptorDirectory))
             values[key] = value;
 
         // Named one by one as well, so a test that needs a twenty can require exactly that rather
@@ -149,10 +160,10 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
         foreach (int cents in QpmLayout.NoteValues)
             values[$"stimulus.bill.{cents}"] = "yes";
 
-        foreach (string door in Machine.Profile.DoorNames)
+        foreach (string door in profile.DoorNames)
             values[$"stimulus.door.{door}"] = "yes";
 
-        foreach (string button in Machine.Profile.ButtonNames)
+        foreach (string button in profile.ButtonNames)
             values[$"stimulus.button.{button}"] = "yes";
 
         return values;

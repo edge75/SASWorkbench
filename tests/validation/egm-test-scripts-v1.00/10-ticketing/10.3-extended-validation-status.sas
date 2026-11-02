@@ -41,9 +41,40 @@ test "10.3.2 the extended validation status poll is answered" {
 }
 
 test "10.3.3 the printer is declared a cashout device" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7B, printer.wallet
-  note "Set the cashout-device bit, read the status back and check the bit holds, then cash out and confirm a ticket is what comes out. This build can set and read the bit; the half that matters is the machine's behaviour afterwards, which needs the machine configured with a printer it will use for cashout."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == secure_enhanced
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D
+  requires stimulus.bill, stimulus.button.collect, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # The status is compared whole, so it carries the other bits the machine holds: $8000 because a
+  # host set its validation identifier, $0020 for redemption, and $0001, the bit this case is about.
+  host send lp 7B data 080100010000000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 5s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+  host expect field amount of lp 4D != 0
+
+  # Cleared, and only that bit moves.
+  host send lp 7B data 080100000000000000
+  host expect field current_validation_status of lp 7B == 32800
+
+  # Given back, so the next case finds a machine that prints.
+  host send lp 7B data 080100010000000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  note "The document then cashes out with the bit clear and expects a hopper payout or an attendant hand pay. This machine has no hopper, and a hand pay is one this build cannot yet reset, so that half is not run."
 }
 
 test "10.3.4 the printer is declared a handpay receipt device" {
@@ -71,9 +102,28 @@ test "10.3.7 tickets may be printed for foreign restricted amounts" {
 }
 
 test "10.3.8 ticket redemption is turned on by its own bit" {
-  tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires decoder.lp7B, stimulus.ticket, machine.redemption_switch
-  note "Set the redemption bit, read it back, then offer a ticket and confirm it is taken. With the bit clear the same ticket is refused, which is the half that proves the bit did something - and it is the half this build cannot produce, because the software machine takes its redemption setting from the validation style rather than from a switch of its own."
+  tag @egm-test-scripts @chapter-10
+  requires egm.validation == secure_enhanced
+  requires decoder.lp7B, decoder.lp4C
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+
+  # $8000 because a host set the validation identifier, $0001 for the printer, and $0020, the bit
+  # this case is about.
+  host send lp 7B data 082000200000000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  host send lp 7B data 082000000000000000
+  host expect field current_validation_status of lp 7B == 32769
+
+  # Given back, so the next case finds a machine that takes tickets.
+  host send lp 7B data 082000200000000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  note "Whether the bit changes what the machine does with a ticket is 10.7.1's subject."
 }
 
 test "10.3.9 secure enhanced validation is configured through the status poll" {

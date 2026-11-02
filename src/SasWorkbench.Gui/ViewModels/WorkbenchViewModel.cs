@@ -581,6 +581,9 @@ public sealed partial class WorkbenchViewModel : ObservableObject, IDisposable
                     Stimulus = stimulus,
                     AskPerson = stimulus == StimulusBackend.Manual ? AskAtTheWindow : null,
                     PromptDeadline = promptDeadline,
+                    StimulusOffer = stimulus == StimulusBackend.Qpm
+                        ? QpmEnvironment.Offer(new QpmOptions(ResourcesDirectory: resources))
+                        : null,
 
                     // The software machine is wired in only when it was asked for: a run that
                     // quietly substituted a fixture for the machine under test would be worthless.
