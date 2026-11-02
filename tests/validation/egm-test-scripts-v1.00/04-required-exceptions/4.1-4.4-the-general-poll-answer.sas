@@ -8,16 +8,64 @@
 # told to ignore exception $51 rather than act on it - a host that reset every hand pay it heard
 # about would clear the very state these cases are about.
 
-# The address half and the ordering half, both needing an exact host-driven sequence of general
-# polls to named addresses, which this host does not have. The change lamp exceptions need a
-# service button, which no stimulus here provides.
+# The address half and the ordering half, both an exact host-driven sequence of general polls to
+# named addresses. The change lamp exceptions come from the service button.
 test "4.1 a general poll to this machine's address, and only this machine's" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires host.poll_sequence, stimulus.service_button
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.button.service, stimulus.settle
 
-  note "Create four exceptions in order - slot door opened, slot door closed, change lamp on, change lamp off. With the host's resynchronisation off, poll a loop addressed to another machine: nothing is answered."
-  note "Switch to a loop addressed to this machine: the four exceptions come back one per general poll, in the order they happened."
-  note "Create slot door opened and closed again, then send a general poll to 00, one to another address, one to 00 and one to another address: none is answered. Then 00, this machine, another address, this machine: only the polls to this machine draw the two exceptions."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The line is the case's from here: the four exceptions wait in the queue until it polls.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+
+  # Making them can take longer than a loop break, so the machine is synchronised again first.
+  host send sync
+
+  # Steps 2 and 3: polls to another machine are not answered, and take nothing out of the queue.
+  host send gp draws silence to 02
+  host send gp draws silence to 02
+  host send gp draws silence to 02
+
+  # Step 4: polled itself, it hands the four out one per poll in the order they happened. The
+  # document runs a loop at this address; a poll to another machine between two of its own is
+  # what stands in here for the loop's own acknowledgement.
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+  host send gp draws change_lamp_on
+  host send gp draws silence to 02
+  host send gp draws change_lamp_off
+  host send gp draws silence to 02
+
+  # Steps 6 and 7: two more, and polls to 00 and to another machine draw neither.
+  egm door main open
+  egm door main close
+  host send sync
+  host send gp draws silence to 02
+  host send sync
+  host send gp draws silence to 02
+
+  # Step 8: only the polls to this machine draw them.
+  host send sync
+  host send gp draws slot_door_opened
+  host send gp draws silence to 02
+  host send gp draws slot_door_closed
+
+  # Step 9.
+  host send gp draws silence to 02
+  host send gp draws nothing
 }
 
 # The signature reply arrives on a general poll rather than as the answer to the poll that asked

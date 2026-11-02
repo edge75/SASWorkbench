@@ -550,6 +550,29 @@ public class PollEngineTests
     }
 
     /// <summary>
+    /// Bytes a machine left on the line during a silence - a chirp, a late answer - are not an
+    /// answer to the broadcast a case places next. Without draining first, the host read them as
+    /// a machine answering address 00 and reported a finding the machine never made (3.23).
+    /// </summary>
+    [Fact]
+    public void Bytes_left_on_the_line_before_a_broadcast_are_not_read_as_its_answer()
+    {
+        using var bus = new LoopbackBus();
+        using var engine = new PollEngine(bus.Host, FastOptions());
+        engine.Start();
+        engine.BeginSequence();
+
+        PutOnTheLine(bus, [0x01, 0x01, 0x01]);
+        Thread.Sleep(50);
+
+        GeneralPollResult broadcast = engine.Synchronise();
+
+        Assert.Equal(GeneralPollOutcome.Broadcast, broadcast.Outcome);
+        Assert.True(engine.Statistics.SymbolsDiscarded >= 3,
+            $"only {engine.Statistics.SymbolsDiscarded} discarded symbols were counted");
+    }
+
+    /// <summary>
     /// Beginning a sequence while the round is mid-cycle has to wait for that cycle to finish.
     /// Raising a flag and returning left the cycle's general poll still to go out, and it drew
     /// whatever the case did next - the door a case opened right after asking for a sequence was

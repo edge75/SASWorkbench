@@ -884,6 +884,7 @@ public sealed class PollEngine : IDisposable
         _attributed = null;
         int length = HostMessage.WriteSyncPoll(_outbound);
         long sentAt = _clock.ElapsedTicks;
+        Resynchronise();
         SendAndRecord(length, WirePurpose.Label("sync poll - address zero", purpose)!);
         Interlocked.Increment(ref _syncPolls);
 

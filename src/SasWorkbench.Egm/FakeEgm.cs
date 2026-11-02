@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using System.Diagnostics;
 using SasWorkbench.Core.Protocol;
 using SasWorkbench.Core.Tickets;
 using SasWorkbench.Core.Transport;
@@ -444,7 +445,7 @@ public sealed partial class FakeEgm : IDisposable
             foreach (MachineLink link in _links)
             {
                 if (Channels.Hears(link.Channel, code))
-                    link.Exceptions.Enqueue(new PendingEvent(code, data));
+                    link.Exceptions.Add(new PendingEvent(code, data));
             }
         }
     }
@@ -458,9 +459,6 @@ public sealed partial class FakeEgm : IDisposable
                 return _rteEnabled;
         }
     }
-
-    /// <summary>One queued exception and whatever it carries.</summary>
-    private readonly record struct PendingEvent(byte Code, byte[] Data);
 
     /// <summary>
     /// Accepts a note, raising the exception for that denomination and moving the meters a real
@@ -805,7 +803,16 @@ public sealed partial class FakeEgm : IDisposable
 
         public SasAddress Address { get; } = address;
 
-        public Queue<PendingEvent> Exceptions { get; } = new();
+        public ExceptionQueue Exceptions { get; } = new();
+
+        /// <summary>When this link last saw a message, as a stopwatch timestamp; zero before the first.</summary>
+        public long LastHeard { get; set; }
+
+        /// <summary>True after a loop break, until a message to another address resynchronises it.</summary>
+        public bool AwaitingSync { get; set; }
+
+        /// <summary>True when the last message this link acted on was a general poll to itself.</summary>
+        public bool LastWasOwnGeneralPoll { get; set; }
 
         public SasSymbol[] Incoming { get; } = new SasSymbol[HostMessage.MaxSymbols];
 
@@ -866,12 +873,27 @@ public sealed partial class FakeEgm : IDisposable
             link.Frame[i] = link.Message[i].Data;
         link.Message.Clear();
 
+        bool own = count == 1
+            ? first == (link.Address.Value | HostMessage.GeneralPollFlag)
+            : first == link.Address.Value;
+        if (!Admit(link, own))
+            return;
+
+        bool ownGeneralPoll = count == 1 && own;
+        bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
+        link.LastWasOwnGeneralPoll = ownGeneralPoll;
+        if (!ownGeneralPoll)
+        {
+            lock (_gate)
+                link.Exceptions.Acknowledge();
+        }
+
         if (_options.ResponseDelay > TimeSpan.Zero)
             Thread.Sleep(_options.ResponseDelay);
 
         if (count == 1)
         {
-            HandlePoll(link, first);
+            HandlePoll(link, first, repeat);
             return;
         }
 
@@ -881,7 +903,36 @@ public sealed partial class FakeEgm : IDisposable
         HandleLongPoll(link, link.Frame.AsSpan(0, count));
     }
 
-    private void HandlePoll(MachineLink link, byte first)
+    /// <summary>
+    /// Applies the loop break: after a silence longer than the configured limit the exception last
+    /// sent is refused, and polls to this machine are ignored until one to another address arrives.
+    /// </summary>
+    private bool Admit(MachineLink link, bool own)
+    {
+        long now = Stopwatch.GetTimestamp();
+        bool lost = _options.LinkLossAfter > TimeSpan.Zero
+                    && link.LastHeard != 0
+                    && Stopwatch.GetElapsedTime(link.LastHeard, now) > _options.LinkLossAfter;
+        link.LastHeard = now;
+
+        if (lost)
+        {
+            lock (_gate)
+                link.Exceptions.Refuse();
+            link.AwaitingSync = true;
+            link.LastWasOwnGeneralPoll = false;
+        }
+
+        if (!link.AwaitingSync)
+            return true;
+        if (own)
+            return false;
+
+        link.AwaitingSync = false;
+        return true;
+    }
+
+    private void HandlePoll(MachineLink link, byte first, bool repeat)
     {
         if ((first & HostMessage.GeneralPollFlag) == 0)
             return;
@@ -897,7 +948,7 @@ public sealed partial class FakeEgm : IDisposable
         lock (_gate)
         {
             realTime = _rteEnabled;
-            queued = link.Exceptions.Count > 0 ? link.Exceptions.Dequeue() : null;
+            queued = realTime ? link.Exceptions.Take() : link.Exceptions.NextForGeneralPoll(repeat);
         }
 
         if (realTime)
@@ -918,7 +969,11 @@ public sealed partial class FakeEgm : IDisposable
         // over: a host that treats silence as "nothing queued" is being told something false, and
         // that is a property of the machine a test should be able to see.
         if (SasEventLayouts.RealTimeOnly.Contains(event_.Code))
+        {
+            lock (_gate)
+                link.Exceptions.Acknowledge();
             return;
+        }
 
         Send(link, [SasSymbol.Data8(WithoutReporting(event_))]);
     }
@@ -1021,9 +1076,7 @@ public sealed partial class FakeEgm : IDisposable
             PendingEvent? preempting;
             lock (_gate)
             {
-                preempting = _rteEnabled && link.Exceptions.Count > 0
-                    ? link.Exceptions.Dequeue()
-                    : null;
+                preempting = _rteEnabled ? link.Exceptions.Take() : null;
             }
 
             if (preempting is not null)

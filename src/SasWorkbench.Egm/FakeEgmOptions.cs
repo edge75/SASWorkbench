@@ -173,6 +173,12 @@ public sealed record FakeEgmOptions
     public TimeSpan ResponseDelay { get; init; } = TimeSpan.Zero;
 
     /// <summary>
+    /// The silence after which the machine declares a loop break, as SAS section 3.4 sets it;
+    /// zero never breaks the loop.
+    /// </summary>
+    public TimeSpan LinkLossAfter { get; init; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
     /// How the machine is divided between hosts, or null for one channel owning everything.
     /// </summary>
     /// <remarks>

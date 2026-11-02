@@ -5,19 +5,71 @@
 # and the three shapes that qualify get a case each: a long poll, a general poll to somebody else,
 # and a global broadcast.
 #
-# All three need the host to drive an exact sequence with nothing else on the line, and this host
-# sends a synchronisation poll - a global broadcast, which 4.7 says is itself an acknowledgement -
-# ahead of every message it sends.
+# All three need the host to drive an exact sequence with nothing else on the line, which
+# `host poll sequence` gives them. 4.7 also needs a broadcast long poll this build cannot send.
 
 # A long poll acknowledges, and so does a long poll addressed to another machine.
 test "4.5 a long poll acknowledges an exception" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires host.poll_sequence, stimulus.service_button
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.button.service, stimulus.settle
   requires decoder.lp1F
 
-  note "Create four exceptions in order - slot door opened, slot door closed, change lamp on, change lamp off. With the host's resynchronisation off, establish communication with a poll to 00 and the identification poll."
-  note "Send the general poll three times then the identification poll. The first two carry slot door opened; the third carries it again or is unanswered, and either is a pass. Repeat with the identification poll addressed to another machine on the end: the foreign poll is ignored and acknowledges all the same."
-  note "Work through the four, ending with a general poll that reports no activity. The identification poll is answered with the machine's information every time it is addressed here, and never when it is addressed elsewhere."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The line is the case's from here: the four exceptions wait in the queue until it polls.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+
+  # Making them can take longer than a loop break, so the machine is synchronised again first.
+  host send sync
+  # Step 3: a poll to 00 and the identification poll establish communication.
+  host send lp 1F
+
+  # Step 4: three in a row is a final refusal. The first two carry the exception, the third may
+  # carry it or go unanswered, and the identification poll after them is answered.
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_opened
+  host send gp
+  host send lp 1F
+
+  # Steps 5 and 6: a final refusal acknowledges nothing, so the same exception comes back, with a
+  # poll to another machine after it the first time and the identification poll the second.
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_opened
+  host send gp
+  host send gp draws silence to 02
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_opened
+  host send gp
+  host send lp 1F
+
+  # Step 7: twice is only a refusal, and the identification poll after it acknowledges.
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_opened
+  host send lp 1F
+
+  # Step 8: so the next one moves on, and a poll to another machine acknowledges as well.
+  host send gp draws slot_door_closed
+  host send gp draws silence to 02
+
+  # Steps 9 and 10.
+  host send gp draws change_lamp_on
+  host send lp 1F
+  host send gp draws change_lamp_off
+  host send lp 1F
+  host send gp draws nothing
+  host send lp 1F
+
+  note "The document's poll to another machine is the identification long poll at address 2; this build asserts a long poll only by its answer, so a general poll to address 2 stands in for it, which section 4.6 makes the same acknowledgement."
 }
 
 # A general poll to a different address acknowledges without being answered.

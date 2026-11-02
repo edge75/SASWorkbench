@@ -3,8 +3,7 @@
 # A machine that has heard nothing for five seconds declares the loop broken, throws away
 # everything queued against its last reply, and chirps its own address every 200 ms until some
 # poll arrives. It then waits for a synchronisation poll before it will act on anything addressed
-# to it. None of that is observable from here: this host has no way to watch for a chirp, and no
-# way to stop sending the synchronisation poll it puts ahead of every message.
+# to it. The waiting is observable from a sequence; the chirp is not asserted by this build.
 
 # The chirp itself, and what silences it. Three addresses are polled in turn - another machine's,
 # this machine's, and the synchronisation address - and each stops the chirp, which is the point:
@@ -18,14 +17,45 @@ test "3.4 loop break" {
 }
 
 # What a machine does with the polls that arrive before it has been synchronised. The GSA tool
-# turns its own resynchronisation off to test this; this host sends a synchronisation poll ahead
-# of every message and cannot be told not to, so there is no way to present the machine with an
-# addressed poll it has not been synchronised for.
+# turns its own resynchronisation off to test this; here a sequence does the same.
 test "3.5.1 the machine waits for a synchronisation poll" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, host.chirp
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.settle
+  requires decoder.lp1F
 
-  note "After a loop break, and with the host's own resynchronisation turned off, the machine ignores every poll until a general poll to address 00 has gone by. Send its identification poll, then a poll to address 00, then its identification poll again: only the third is answered. The same with general polls - only the third draws an exception byte."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Steps 1 and 2: one exception waiting, then the line goes quiet for longer than a loop break.
+  host poll sequence
+  host send sync
+  egm door main open
+  host wait 6s
+
+  # Step 6: after the silence the machine ignores its own polls until it sees address 00.
+  host expect no reply to lp 1F
+  host send sync
+  host send lp 1F
+
+  # Steps 7 and 8: the same with general polls - only the one after the poll to 00 is answered.
+  host wait 6s
+  host send gp draws silence
+  host send sync
+  host send gp draws slot_door_opened
+
+  # Step 9.
+  host send sync
+  host send lp 1F
+
+  # Put the door back.
+  host poll every 200ms
+  egm door main close
+
+  note "The document's poll to address 00 in steps 6 and 9 is the identification long poll sent to 00; this host's synchronisation poll, a general poll to 00, stands in for it. During each silence the document has the machine chirp every 200 ms; this build does not assert the chirp."
 }
 
 # A hand pay survives the loop break that discarded its acknowledgement. The machine answers the

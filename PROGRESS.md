@@ -161,3 +161,12 @@ PHASE:R13 WAVE:skip-reason-fix STATUS:complete TS:2026-11-02T01:01:01Z
 PHASE:R13 WAVE:lot1-cases-written STATUS:complete TS:2026-11-02T01:01:01Z
 PHASE:R13 WAVE:lot1-software-machine STATUS:complete TS:2026-11-02T01:01:02Z
 PHASE:R13 WAVE:lot1-demo-se5c STATUS:complete TS:2026-11-02T01:01:02Z
+PHASE:R14 WAVE:commit-pr-14 STATUS:complete TS:2026-11-02T07:33:23Z
+PHASE:R14 WAVE:libsas-issue-248 STATUS:complete TS:2026-11-02T07:33:23Z
+PHASE:R14 WAVE:lot2-cases-written STATUS:complete TS:2026-11-02T08:13:34Z
+PHASE:R14 WAVE:lot2-software-machine STATUS:complete TS:2026-11-02T08:13:34Z
+PHASE:R14 WAVE:lot2-demo-se5c STATUS:complete TS:2026-11-02T08:13:34Z
+PHASE:R15 WAVE:host-sync-drain-fix STATUS:complete TS:2026-11-02T11:07:12Z
+PHASE:R15 WAVE:libsas-issue-250 STATUS:complete TS:2026-11-02T11:07:12Z
+PHASE:R15 WAVE:software-machine-queue-and-loop-break STATUS:complete TS:2026-11-02T11:07:12Z
+PHASE:R15 WAVE:demo-3.23-rerun STATUS:complete TS:2026-11-02T11:07:12Z
