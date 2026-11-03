@@ -3,11 +3,11 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "287ba0bea369d777625f572ae4347f19bc418303",
+      "commit": "d2d1b980a2aa26edfcf8e5a5fd85008d9fcbb044",
       "branch": "main",
-      "describedAs": "tag v5.4.6.4",
-      "pinnedOn": "2026-10-29",
-      "measured": "Measured on 2026-10-30 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10, in the 2026-10-17 order (ticket-in, conformance, M7 validation, sweep) on the layout-15 secure-enhanced memory, after a host set its validation identifier with $4C as the 2026-10-17 memory already had. Against 2026-10-17 on v5.4.5.13: ticket-in the same (3 pass, 1 fail on one-cent units); conformance 10.1 the same three skips; the sweep the same outcome for all 85 long polls, with the same seven layouts undecoded and a $54 reply with no serial number, which the new memory does not set; M7 from 9 pass, 7 fail to 14 pass, 1 fail, the gains coming from the case fixes made since. On the layout-15 golden memory, conformance 10.1.1 and 10.1.3 pass. No difference was traced to libsas. Re-measured the same evening on the five-cent memories, with the cases setting the validation identifier themselves: ticket-in 4 pass; conformance 10.1 the same (two passes on the golden memory, three skips on the secure-enhanced one); M7 4.6 passes after its fix for implied acknowledgement.",
+      "describedAs": "tag v5.4.6.11",
+      "pinnedOn": "2026-11-03",
+      "measured": "Measured on 2026-11-03 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10 on the layout-15 secure-enhanced memory, started seconds before the run: M7 3.20-3.23 and 4.5-4.7 give 4 pass (3.21, 3.23, 4.5, 4.6) and 3 skips for a hand pay, a power cycle and the $80 decoder. On v5.4.6.4 the same run had 3.21 and 4.5 failing at the identification poll after a third repeated general poll; v5.4.6.11 answers it.",
       "howItIsHeld": "QSP v2.3.6.1 declares libsas as FetchContent 'sas' at tag v5.4.5.28 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
