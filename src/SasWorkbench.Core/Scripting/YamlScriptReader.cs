@@ -162,6 +162,7 @@ public static class YamlScriptReader
         ConnectStep s => s with { Location = location },
         PollEveryStep s => s with { Location = location },
         WaitStep s => s with { Location = location },
+        WarmUpStep s => s with { Location = location },
         NoteStep s => s with { Location = location },
         SendLongPollStep s => s with { Location = location },
         ExpectExceptionStep s => s with { Location = location },

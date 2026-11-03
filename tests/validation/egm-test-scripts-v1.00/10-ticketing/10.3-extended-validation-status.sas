@@ -151,6 +151,8 @@ test "10.3.10 the status poll addressed to everybody is not answered" {
   host poll every 200ms
   host expect link up within 30s
 
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host poll sequence
 
   # A broadcast configures every machine on the line and none of them answers it, because several

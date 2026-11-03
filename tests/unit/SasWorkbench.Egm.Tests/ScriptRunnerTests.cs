@@ -757,6 +757,50 @@ public class ScriptRunnerTests
             inner.Dispose();
         }
     }
+
+    /// <summary>
+    /// A warm-up is paid once per machine in a run: a machine just started reports its start-up
+    /// exceptions while the first case waits, and every later case finds it already warm. Without
+    /// that, a suite of nineteen sequenced cases would spend six minutes waiting.
+    /// </summary>
+    [Fact]
+    public void A_warm_up_waits_in_the_first_case_of_a_run_only()
+    {
+        ScriptDocument document = ScriptParser.Parse("""
+            test "first" {
+              host connect loopback address 01
+              host poll every 20ms
+              host expect link up within 2s
+              host warm up 600ms
+            }
+            test "second" {
+              host connect loopback address 01
+              host poll every 20ms
+              host expect link up within 2s
+              host warm up 600ms
+            }
+            """, "warm.sas");
+
+        RunReport report = Runner().RunAll([document], TestContext.Current.CancellationToken);
+
+        StepResult first = report.Tests[0].Steps.Single(s => s.Description.StartsWith("warm up"));
+        StepResult second = report.Tests[1].Steps.Single(s => s.Description.StartsWith("warm up"));
+        Assert.Equal(Verdict.Pass, first.Verdict);
+        Assert.StartsWith("waited", first.Actual);
+        Assert.True(report.Tests[0].Duration >= TimeSpan.FromMilliseconds(500), Explain(report.Tests[0]));
+        Assert.Equal(Verdict.Pass, second.Verdict);
+        Assert.StartsWith("no wait", second.Actual);
+    }
+
+    [Fact]
+    public void A_warm_up_without_a_duration_is_refused()
+    {
+        ScriptParseException error = Assert.Throws<ScriptParseException>(() => ScriptParser.Parse("""
+            host connect loopback address 01
+            host warm up
+            """, "warm.sas"));
+        Assert.Contains("host warm up <duration>", error.Message);
+    }
 }
 
 public class RunReportTests

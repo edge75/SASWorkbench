@@ -19,6 +19,8 @@ test "4.5 a long poll acknowledges an exception" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   # The line is the case's from here: the four exceptions wait in the queue until it polls.
@@ -81,6 +83,8 @@ test "4.6 a general poll to another address acknowledges" {
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   host poll sequence

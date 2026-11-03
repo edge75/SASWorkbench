@@ -22,6 +22,8 @@ test "3.15 a general poll acknowledges a long poll" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   # The line is the case's from here: the four exceptions wait in the queue until it polls.
@@ -75,6 +77,8 @@ test "3.17 a long poll acknowledges a general poll" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   # The line is the case's from here: the four exceptions wait in the queue until it polls.
