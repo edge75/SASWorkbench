@@ -3,11 +3,11 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "d2d1b980a2aa26edfcf8e5a5fd85008d9fcbb044",
+      "commit": "febe0351414a10510bf8a1cd89207fde406955e0",
       "branch": "main",
-      "describedAs": "tag v5.4.6.11",
+      "describedAs": "tag v5.4.6.13",
       "pinnedOn": "2026-11-03",
-      "measured": "Measured on 2026-11-03 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10 on the layout-15 secure-enhanced memory, started seconds before the run: M7 3.20-3.23 and 4.5-4.7 give 4 pass (3.21, 3.23, 4.5, 4.6) and 3 skips for a hand pay, a power cycle and the $80 decoder. On v5.4.6.4 the same run had 3.21 and 4.5 failing at the identification poll after a third repeated general poll; v5.4.6.11 answers it.",
+      "measured": "Measured on 2026-11-03 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10, each tree on a demo started seconds before the run. M7 on the layout-15 secure-enhanced memory: 36 pass, 0 fail, 145 skip, against 14 pass, 1 fail, 166 skip on 2026-10-30; the gains come from the case fixes and libsas #250. Regression on the golden memory: 20 pass, 16 fail, 14 skip, against 14 pass, 20 fail, 14 skip and 2 errors on 2026-10-17. On the secure-enhanced memory the 4 ticket-in cases pass, since the golden one has ticket-in off, and so does the case answering $70 on the second channel. The other 11 failures were already red on 2026-10-17 and assert on the software machine (its identity, second channel or second address). No difference was traced to libsas.",
       "howItIsHeld": "QSP v2.3.6.1 declares libsas as FetchContent 'sas' at tag v5.4.5.28 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
