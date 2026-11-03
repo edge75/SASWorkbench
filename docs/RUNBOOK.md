@@ -86,7 +86,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`287ba0bea369d777625f572ae4347f19bc418303`, tag `v5.4.6.4`), and the checkout must be clean.
+   (`febe0351414a10510bf8a1cd89207fde406955e0`, tag `v5.4.6.13`), and the checkout must be clean.
    When libsas moves ahead, re-pin to it and run `python tools/protogen/protogen.py --check`.
 
 2. Build the demo with the preset this repository owns, from a Visual Studio developer prompt
