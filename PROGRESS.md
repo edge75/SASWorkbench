@@ -175,3 +175,5 @@ PHASE:R16 WAVE:demo-warm-3.21-4.5-probes STATUS:complete TS:2026-11-02T13:53:07Z
 PHASE:R17 WAVE:libsas-250-comment STATUS:complete TS:2026-11-02T23:18:32Z
 PHASE:R17 WAVE:warm-up-step-and-sequenced-cases STATUS:complete TS:2026-11-02T23:45:16Z
 PHASE:R17 WAVE:demo-fresh-3.20-3.23-4.5-4.7 STATUS:complete TS:2026-11-02T23:45:16Z
+PHASE:R18 WAVE:repin-libsas-5.4.6.11-and-rebuild STATUS:complete TS:2026-11-03T17:43:47Z
+PHASE:R18 WAVE:demo-fresh-3.20-3.23-4.5-4.7 STATUS:complete TS:2026-11-03T17:43:47Z
