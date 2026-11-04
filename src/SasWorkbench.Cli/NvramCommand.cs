@@ -18,10 +18,31 @@ internal static class NvramCommand
     /// <summary>Where a saved memory is kept when nobody names one.</summary>
     private const string DefaultFixture = "fixtures/nvram/golden.nvram.gz";
 
+    /// <summary>The options each action reads; anything else stops the command before it acts.</summary>
+    private static readonly Dictionary<string, string[]> OptionsOf = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["status"] = ["nvram", "fixture"],
+        ["show"] = ["nvram", "fixture"],
+        ["save"] = ["nvram", "fixture"],
+        ["restore"] = ["nvram", "fixture"],
+        ["validation"] = ["fixture", "out"],
+        ["denomination"] = ["fixture", "out"],
+        ["channels"] = ["fixture", "out"],
+    };
+
+    /// <summary>The actions that take no word after their own name.</summary>
+    private static readonly HashSet<string> TakeNoArgument = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "status", "show", "save", "restore",
+    };
+
     public static int Execute(CommandLine line)
     {
-        string? memory = line.Value("nvram");
-        string fixture = line.Value("fixture") ?? DefaultFixture;
+        if (AsksForHelp(line))
+        {
+            PrintUsage(Console.Out);
+            return 0;
+        }
 
         if (line.Arguments.Count == 0)
         {
@@ -30,6 +51,18 @@ internal static class NvramCommand
                 + "denomination or channels.");
             return 2;
         }
+
+        if (Refuse(line) is { } refusal)
+        {
+            // Refused before anything is read or written: these actions overwrite a machine's memory.
+            Console.Error.WriteLine($"error: {refusal} Nothing was done.");
+            Console.Error.WriteLine();
+            PrintUsage(Console.Error);
+            return 2;
+        }
+
+        string? memory = line.Value("nvram");
+        string fixture = line.Value("fixture") ?? DefaultFixture;
 
         try
         {
@@ -299,6 +332,51 @@ internal static class NvramCommand
         Console.WriteLine($"  restored from {fixture}");
         Console.WriteLine($"  what was there is kept at {kept}");
         return 0;
+    }
+
+    private static bool AsksForHelp(CommandLine line) =>
+        line.Flag("help") | line.Flag("h")
+        || line.Arguments.Any(a => a is "-h" or "-?" or "/?" || a.Equals("help", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>Why the command line cannot be acted on, or null when it can.</summary>
+    private static string? Refuse(CommandLine line)
+    {
+        string action = line.Arguments[0];
+        if (!OptionsOf.TryGetValue(action, out string[]? allowed))
+            return null; // An unknown action is refused by the dispatch below, which names the valid ones.
+
+        string[] unknown = line.Given
+            .Where(o => !allowed.Contains(o, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(o => o, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (unknown.Length > 0)
+        {
+            return $"'nvram {action.ToLowerInvariant()}' takes "
+                + string.Join(" and ", allowed.Select(o => $"--{o}"))
+                + $", not {string.Join(", ", unknown.Select(o => $"--{o}"))}.";
+        }
+
+        if (TakeNoArgument.Contains(action) && line.Arguments.Count > 1)
+        {
+            return $"'nvram {action.ToLowerInvariant()}' takes no argument, but was given "
+                + string.Join(" ", line.Arguments.Skip(1).Select(a => $"'{a}'")) + ".";
+        }
+
+        string? dashed = line.Arguments.Skip(1).FirstOrDefault(a => a.StartsWith('-') && !IsNumber(a));
+        return dashed is null ? null : $"'{dashed}' is not an option of 'nvram {action.ToLowerInvariant()}'.";
+    }
+
+    private static bool IsNumber(string text) =>
+        decimal.TryParse(text, NumberStyles.Number, CultureInfo.InvariantCulture, out _);
+
+    private static void PrintUsage(TextWriter to)
+    {
+        to.WriteLine("usage: sasctl nvram <action> [options]");
+        to.WriteLine("  status | show | save | restore     [--fixture <file>] [--nvram <file>]");
+        to.WriteLine("  validation <standard|secure_enhanced|system>  [--fixture <in>] [--out <out>]");
+        to.WriteLine("  denomination <amount>              [--fixture <in>] [--out <out>]");
+        to.WriteLine("  channels \"1@01 2@02 validation=2\"  [--fixture <in>] [--out <out>]");
+        to.WriteLine($"  --fixture defaults to {DefaultFixture}.");
     }
 
     private static int Unknown(string action)

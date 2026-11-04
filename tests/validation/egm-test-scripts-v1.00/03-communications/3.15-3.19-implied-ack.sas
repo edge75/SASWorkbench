@@ -58,12 +58,45 @@ test "3.15 a general poll acknowledges a long poll" {
 # A different long poll acknowledges the one before it, and the hand pay information proves it -
 # read once it carries the amount, read again after the acknowledgement it comes back zeroed.
 test "3.16 a different long poll acknowledges the one before it" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.handpay
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.handpay, stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp1B, decoder.lp1F
 
-  note "Create a jackpot hand pay. Establish communication, then send a general poll to the machine's address and the hand pay information poll: the general poll draws the hand-pay-pending exception and the hand pay poll carries the amount."
-  note "Within five seconds send the identification poll and then the hand pay poll again. The identification poll acknowledged the hand pay reading, so this one comes back with its data all zeros."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # The line is the case's from here: the hand pay waits in the queue until it polls.
+  host poll sequence
+  host send sync
+  egm handpay 2000
+  host wait 2s
+
+  # Step 1: establish communication.
+  host send sync
+  host send lp 1F
+
+  # Step 2: the general poll draws hand pay pending, and the hand pay poll carries the amount.
+  host send gp draws handpay_is_pending
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+
+  # Step 3: the identification poll acknowledges the reading, so the next one is all zeros.
+  host send lp 1F
+  host send lp 1B
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  host expect field amount of lp 1B == 0
+  host expect field level of lp 1B == 0
+
+  # Pay it, so the next case finds a machine that is not locked up.
+  host poll every 200ms
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
 }
 
 # The mirror of 3.15: a long poll acknowledges the general poll that carried an exception.
@@ -114,13 +147,60 @@ test "3.17 a long poll acknowledges a general poll" {
 
 # A poll addressed to a different machine acknowledges as well, and must not be answered.
 test "3.18 a poll to another machine acknowledges" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.handpay, stimulus.button.service
-  requires decoder.lp1B, decoder.lp7E
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.handpay, stimulus.handpay.reset, stimulus.door.main
+  requires stimulus.button.service, stimulus.settle
+  requires decoder.lp1B, decoder.lp1F, decoder.lp7E
 
-  note "Configure the machine for a hand pay queue and create a jackpot hand pay, and create the four door and change lamp exceptions. Establish communication, then send a general poll to the machine's address, the hand pay information poll, a send date and time addressed to another machine, the hand pay poll again, and that foreign poll again."
-  note "The general poll draws the hand-pay-pending exception, the first hand pay reading carries the amount, the foreign polls are not answered at all, and the second hand pay reading is all zeros - the foreign poll acknowledged the first."
-  note "Then alternate a general poll to the machine's address with a general poll to another address, and with the foreign date and time poll, until the exceptions run out. Each of the machine's own general polls draws the next exception and none of the foreign polls is answered."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # The four exceptions first, then the hand pay, which goes ahead of them all.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm handpay 2000
+  host wait 2s
+
+  # Step 1: establish communication.
+  host send sync
+  host send lp 1F
+
+  # Step 2: the reading, a date and time poll to another machine, the reading again. The foreign
+  # poll is not answered, and it acknowledged the first reading, so the second is all zeros.
+  host send gp draws handpay_is_pending
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host send lp 7E to 7F
+  host send lp 1B
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  host expect field amount of lp 1B == 0
+  host send lp 7E to 7F
+
+  # Step 3: the machine's own general polls draw the queue in order; the foreign polls between
+  # them are not answered and move it on.
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send lp 7E to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+
+  host poll every 200ms
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "The note the hand pay was made with is reported after the change lamp; what it is reported as depends on the machine's reporting, so it is left to the round."
 }
 
 # A global broadcast - a poll to address 00 - acknowledges too, which is the case that makes this

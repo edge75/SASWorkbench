@@ -123,22 +123,28 @@ test "AD-21 a cancelled-credits handpay reports its amount in accounting units" 
 
   machine accounting denomination 10c
 
+  requires stimulus.handpay.reset
+
   note "Configuration B. Force a cancelled-credits handpay of one hundred pesos."
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
 
+  egm handpay 10000
+  host expect exception handpay_is_pending within 10s
   host send lp 1B
   host expect field level == 128
   host expect field amount == 1000
+
+  egm handpay reset
 }
 
 test "AD-22 a non-progressive top win handpay reports its amount in accounting units" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp1B
   requires machine.accounting_denomination
-  requires stimulus.handpay
+  requires stimulus.handpay.top_award
 
   machine accounting denomination 10c
 
@@ -179,7 +185,7 @@ test "AD-24 a partial pay is in accounting units whatever the amount field is do
   tag @accounting-denomination @needs-stimulus @blocking
   requires decoder.lp1B
   requires machine.accounting_denomination
-  requires stimulus.handpay
+  requires stimulus.handpay.partial_pay
 
   machine accounting denomination 10c
 

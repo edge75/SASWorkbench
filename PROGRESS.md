@@ -179,3 +179,10 @@ PHASE:R18 WAVE:repin-libsas-5.4.6.11-and-rebuild STATUS:complete TS:2026-11-03T1
 PHASE:R18 WAVE:demo-fresh-3.20-3.23-4.5-4.7 STATUS:complete TS:2026-11-03T17:43:47Z
 PHASE:R19 WAVE:repin-libsas-5.4.6.13-and-rebuild STATUS:complete TS:2026-11-03T18:53:17Z
 PHASE:R19 WAVE:demo-fresh-full-m7-and-regression STATUS:complete TS:2026-11-03T19:09:36Z
+PHASE:R20 WAVE:pr18-repin-5.4.6.13 STATUS:complete TS:2026-11-03T21:04:07Z
+PHASE:R20 WAVE:nvram-unknown-option-refused STATUS:complete TS:2026-11-03T21:04:07Z
+PHASE:R20 WAVE:handpay-stimulus-and-lp80 STATUS:complete TS:2026-11-03T21:04:07Z
+PHASE:R20 WAVE:handpay-cases-software-machine STATUS:complete TS:2026-11-03T21:04:07Z
+PHASE:R20 WAVE:handpay-cases-demo-fresh STATUS:complete TS:2026-11-03T21:04:07Z
+PHASE:R21 WAVE:gsa-1B-libsas-issue STATUS:complete TS:2026-11-04T15:53:33Z
+PHASE:R21 WAVE:reset-after-1B-read STATUS:complete TS:2026-11-04T15:53:33Z

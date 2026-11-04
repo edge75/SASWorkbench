@@ -80,6 +80,27 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.Cashout(walletDirectory);
                 return;
 
+            case HandpayStep handpay:
+                try
+                {
+                    machine.RaiseHandpay(handpay.Kind, handpay.AmountCents);
+                }
+                catch (Exception refused) when (refused is InvalidOperationException
+                                                    or ArgumentOutOfRangeException)
+                {
+                    throw new StimulusUnavailableException(
+                        $"the software machine cannot owe '{handpay.Describe()}': {refused.Message.Split('(')[0].Trim()}");
+                }
+
+                return;
+
+            case HandpayResetStep:
+                if (!machine.ResetHandpay())
+                    throw new StimulusUnavailableException(
+                        "the software machine holds no hand pay, so there is nothing to reset");
+
+                return;
+
             // Refused by every other backend, and honoured here only because this machine is one
             // this build made. Values already counted stay in the unit they were counted in.
             case SetDenominationStep set:

@@ -38,6 +38,9 @@ internal sealed class ExceptionQueue
         _queue.AddLast(pending);
     }
 
+    /// <summary>Queues a priority exception ahead of every ordinary one, as the library sends them first.</summary>
+    public void AddPriority(PendingEvent pending) => _queue.AddFirst(pending);
+
     /// <summary>Takes the next exception outright, with no acknowledgement to wait for.</summary>
     public PendingEvent? Take()
     {

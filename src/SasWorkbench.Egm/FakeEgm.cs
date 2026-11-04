@@ -60,7 +60,7 @@ public sealed partial class FakeEgm : IDisposable
     /// this machine is built without is a property of the machine and belongs where a reader
     /// looks for one. The machine library behaves the same way and was read rather than assumed:
     /// the legacy bonus polls open with a test of the legacy-bonus feature bit and return without
-    /// sending when it is clear, and none of these nine ever sends a refusal — a real machine
+    /// sending when it is clear, and none of these ten ever sends a refusal — a real machine
     /// answers or says nothing.
     /// <para>
     /// Kept apart from <see cref="FakeEgmOptions.UnansweredCommands"/>, which a test sets to build
@@ -70,7 +70,7 @@ public sealed partial class FakeEgm : IDisposable
     /// </remarks>
     private static readonly FrozenSet<byte> WithoutMachinery = new byte[]
     {
-        0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+        0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
     }.ToFrozenSet();
 
     // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
@@ -428,7 +428,9 @@ public sealed partial class FakeEgm : IDisposable
     /// transmit path decides what to do with it when the exception leaves. So turning reporting on
     /// changes how an event is sent and never whether it happened.
     /// </remarks>
-    public void RaiseEvent(byte code, params byte[] data)
+    public void RaiseEvent(byte code, params byte[] data) => Queue(code, data, priority: false);
+
+    private void Queue(byte code, byte[] data, bool priority)
     {
         ArgumentNullException.ThrowIfNull(data);
 
@@ -444,7 +446,12 @@ public sealed partial class FakeEgm : IDisposable
         {
             foreach (MachineLink link in _links)
             {
-                if (Channels.Hears(link.Channel, code))
+                if (!Channels.Hears(link.Channel, code))
+                    continue;
+
+                if (priority)
+                    link.Exceptions.AddPriority(new PendingEvent(code, data));
+                else
                     link.Exceptions.Add(new PendingEvent(code, data));
             }
         }
@@ -814,6 +821,9 @@ public sealed partial class FakeEgm : IDisposable
         /// <summary>True when the last message this link acted on was a general poll to itself.</summary>
         public bool LastWasOwnGeneralPoll { get; set; }
 
+        /// <summary>The hand pay reading last sent on this link and not yet acknowledged, or null.</summary>
+        public byte[]? UnacknowledgedHandpayPoll { get; set; }
+
         public SasSymbol[] Incoming { get; } = new SasSymbol[HostMessage.MaxSymbols];
 
         public List<SasSymbol> Message { get; } = new(HostMessage.MaxSymbols);
@@ -879,6 +889,8 @@ public sealed partial class FakeEgm : IDisposable
         if (!Admit(link, own))
             return;
 
+        NoteHandpayAcknowledgement(link, link.Frame.AsSpan(0, count));
+
         bool ownGeneralPoll = count == 1 && own;
         bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
         link.LastWasOwnGeneralPoll = ownGeneralPoll;
@@ -918,7 +930,11 @@ public sealed partial class FakeEgm : IDisposable
         if (lost)
         {
             lock (_gate)
+            {
                 link.Exceptions.Refuse();
+                ForgetHandpayReading(link);
+            }
+
             link.AwaitingSync = true;
             link.LastWasOwnGeneralPoll = false;
         }
@@ -1140,6 +1156,8 @@ public sealed partial class FakeEgm : IDisposable
 
             case SasResponseShape.Data:
                 SendData(link, layout, frame);
+                if (command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO)
+                    RememberHandpayReading(link, frame);
                 return;
 
             default:

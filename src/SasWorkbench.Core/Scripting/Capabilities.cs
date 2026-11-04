@@ -396,6 +396,12 @@ public static class CapabilityProbe
     private static string Because(PollEngine engine) =>
         engine.LinkFault is { } fault ? $": {fault}" : string.Empty;
 
+    /// <summary>
+    /// The value a hand pay capability carries when the host must first take the printer out of use
+    /// as the cash-out device (long poll 7B bit 0) for a cash-out to become a hand pay.
+    /// </summary>
+    public const string HandpayByWithdrawnPrinter = "printer_withdrawn";
+
     /// <summary>What a stimulus backend adds.</summary>
     public static IReadOnlyDictionary<string, string?> ForStimulus(StimulusBackend backend) =>
         backend switch
@@ -433,6 +439,11 @@ public static class CapabilityProbe
                 ["stimulus.door.stacker"] = "yes",
                 ["stimulus.door.drop"] = "yes",
                 ["stimulus.door.belly"] = "yes",
+
+                // The machine is told the outcome, so a jackpot is as available as a cash-out.
+                ["stimulus.handpay"] = "yes",
+                ["stimulus.handpay.jackpot"] = "yes",
+                ["stimulus.handpay.reset"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>

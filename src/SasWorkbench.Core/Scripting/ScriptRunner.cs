@@ -1044,6 +1044,20 @@ public sealed class ScriptRunner
         SendLongPollStep step, PollEngine engine, AnsweredPolls answered, TimeSpan at)
     {
         LongPollResult result = engine.Execute(step.Command, step.Data, to: step.To);
+
+        // A broadcast to 00, or a poll a sequence sends to an address this host does not poll, is one
+        // no machine here may answer; an answer is the failure.
+        if (step.To is { } to && (to.IsSync || (engine.IsSequenced && !engine.Round.Contains(to))))
+        {
+            bool unanswered = result.Outcome == LongPollOutcome.Silent;
+            return new StepResult(step.Location, step.Describe(),
+                unanswered ? Verdict.Pass : Verdict.Fail,
+                Expected: to.IsSync ? "no machine to answer a broadcast" : $"no answer from ${to}, which is not this machine",
+                Actual: result.ToString(),
+                Reason: unanswered ? null : result.Detail,
+                At: at) { IsAssertion = true };
+        }
+
         Verdict verdict = result.Succeeded ? Verdict.Pass : Verdict.Fail;
 
         if (result.Succeeded)
@@ -1229,14 +1243,70 @@ public sealed class ScriptRunner
 
         try
         {
+            bool printerWithdrawn = WithdrawsPrinter(environment.Stimulus, step);
+            if (printerWithdrawn && step is HandpayStep
+                && SetPrinterAsCashoutDevice(engine, machine, allowed: false) is { } refused)
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                    Expected: "the machine to accept long poll 7B withdrawing the printer",
+                    Actual: refused,
+                    Reason: "without it the cash-out prints a ticket instead of owing a hand pay",
+                    At: at) { IsAssertion = true };
+            }
+
             environment.Stimulus.Apply(step, machine);
-            return new StepResult(step.Location, step.Describe(), Verdict.Pass, At: at);
+
+            if (printerWithdrawn && step is HandpayResetStep
+                && SetPrinterAsCashoutDevice(engine, machine, allowed: true) is { } notRestored)
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                    Expected: "the machine to accept long poll 7B giving the printer back",
+                    Actual: notRestored,
+                    Reason: "every later cash-out in this run would owe a hand pay instead of printing",
+                    At: at) { IsAssertion = true };
+            }
+
+            return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+                Actual: printerWithdrawn
+                    ? step is HandpayStep
+                        ? "the host withdrew the printer as cash-out device (7B bit 0) first"
+                        : "the host gave the printer back as cash-out device (7B bit 0) after"
+                    : null,
+                At: at);
         }
         catch (StimulusUnavailableException unavailable)
         {
             return new StepResult(step.Location, step.Describe(), Verdict.Skip,
                 Reason: unavailable.Reason, At: at);
         }
+    }
+
+    /// <summary>True when this backend's hand pay needs the host to withdraw the printer, or give it back.</summary>
+    private static bool WithdrawsPrinter(IStimulusBackend backend, StimulusStep step)
+    {
+        string key = step switch
+        {
+            HandpayStep => "stimulus.handpay",
+            HandpayResetStep => "stimulus.handpay.reset",
+            _ => string.Empty,
+        };
+
+        return key.Length > 0
+               && backend.Capabilities.TryGetValue(key, out string? how)
+               && how == CapabilityProbe.HandpayByWithdrawnPrinter;
+    }
+
+    /// <summary>
+    /// Sends long poll 7B selecting only control bit 0, "use printer as cash-out device".
+    /// </summary>
+    /// <returns>Null when the machine answered, or what it did instead.</returns>
+    private static string? SetPrinterAsCashoutDevice(PollEngine engine, SasAddress? machine, bool allowed)
+    {
+        // Length 8, control mask 0001, status 0001 or 0000 (both little-endian), and zero expirations,
+        // which leave the machine's own.
+        byte[] data = [0x08, 0x01, 0x00, allowed ? (byte)0x01 : (byte)0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        LongPollResult result = engine.Execute(0x7B, data, to: machine);
+        return result.Succeeded ? null : result.ToString();
     }
 
     private static StepResult CheckException(

@@ -64,12 +64,49 @@ test "3.5.1 the machine waits for a synchronisation poll" {
 # hand pay poll with the same information again after the link comes back, and only the second
 # reading - the acknowledged one - comes back zeroed.
 test "3.5.2 a hand pay survives an implied NACK" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires stimulus.handpay, host.poll_sequence
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires stimulus.handpay, stimulus.handpay.reset, host.poll_sequence, stimulus.settle
+  requires decoder.lp1B, decoder.lp1F
 
-  note "Put enough credits on the machine to exceed its hopper limit and cash out, so it locks up in a cancelled-credit hand pay. Stop polling, ask for the hand pay information, and wait more than five seconds. The reply carries the amount in accounting credits."
-  note "Bring the link back and ask again: the same amount. Ask a third time: the data is all zeros. A machine that lost the hand pay over the loop break, or that zeroed it on the first reading, fails - and it fails the same way whether it keeps a queue of hand pays or the single legacy one."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+  egm handpay 2000
+  host wait 2s
+  host send sync
+  host send lp 1F
+  host send gp draws handpay_is_pending
+  host send lp 1F
+
+  # The reading, then more than five seconds of silence: the loop break is an implied NACK.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 6s
+
+  # The link comes back and the same reading is given again, since it was never acknowledged.
+  host send sync
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+
+  # Acknowledged this time, so the third reading is all zeros.
+  host send lp 1F
+  host send lp 1B
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  host expect field amount of lp 1B == 0
+
+  host poll every 200ms
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "The document asks a third time straight after the second; the identification poll is put between them so the second reading is acknowledged rather than repeated, which the same 1B twice in a row would be."
 }
 
 # The same waiting-for-synchronisation rule, established from a cold start rather than from a

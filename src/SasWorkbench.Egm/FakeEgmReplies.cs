@@ -216,26 +216,6 @@ public sealed partial class FakeEgm
     };
 
     /// <summary>
-    /// The handpay this machine is holding, which is never one.
-    /// </summary>
-    /// <remarks>
-    /// Nothing here raises a handpay, so every field is zero - and that is the reply the library
-    /// gives on a machine holding none: its handler starts from a zeroed record and fills in
-    /// nothing when its search finds no item. So this is a machine with no handpay saying so,
-    /// rather than a fixture inventing an answer.
-    /// </remarks>
-    private static Dictionary<string, object> HandpayInformation() => new()
-    {
-        ["progressive_group"] = (byte)0,
-        ["level"] = (byte)0,
-        ["amount"] = 0L,
-        ["partial_pay"] = 0L,
-        ["reset_id"] = (byte)0,
-        ["session_game_win"] = 0L,
-        ["session_game_pay"] = 0L,
-    };
-
-    /// <summary>
     /// Credits cancelled by a handpay for one game, which on this machine is none.
     /// </summary>
     /// <remarks>

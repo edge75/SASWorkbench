@@ -13,7 +13,7 @@ public sealed class CommandLine
     /// <summary>The options that never take a value, so the word after one is never swallowed as its value.</summary>
     private static readonly HashSet<string> Flags = new(StringComparer.OrdinalIgnoreCase)
     {
-        "all", "causes", "caveats", "dial", "exchanges", "framing", "list", "loopback",
+        "all", "causes", "caveats", "dial", "exchanges", "framing", "h", "help", "list", "loopback",
         "no-sync-polls", "once", "quiet", "real-time-events", "rules", "verbose",
     };
 
@@ -80,6 +80,9 @@ public sealed class CommandLine
         _read.Add(name);
         return _options.GetValueOrDefault(name);
     }
+
+    /// <summary>Every option given, by name, whether or not anything has read it.</summary>
+    public IReadOnlyCollection<string> Given => _options.Keys;
 
     /// <summary>
     /// Any option that was given but never read, so a mistyped flag is reported rather than

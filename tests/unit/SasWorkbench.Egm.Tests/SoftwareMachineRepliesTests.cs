@@ -77,6 +77,7 @@ public class SoftwareMachineRepliesTests
     /// </remarks>
     public static TheoryData<byte, string> UnansweredForWantOfMachinery => new()
     {
+        { 0x80, "00010000000100" },
         { 0x83, "0000" },
         { 0x84, "" },
         { 0x85, "" },
@@ -128,7 +129,7 @@ public class SoftwareMachineRepliesTests
             0x4C, 0x4D, 0xB2,
 
             // No progressive, no legacy bonus, no cards, no reels — see WithoutMachinery.
-            0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+            0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -152,7 +153,7 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(85, SasLayouts.All.Count);
+        Assert.Equal(86, SasLayouts.All.Count);
         Assert.Equal(73, answered);
     }
 

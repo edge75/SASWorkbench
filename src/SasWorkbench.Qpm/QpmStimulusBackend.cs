@@ -90,6 +90,33 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
                 Machine.PressButton(button);
                 return;
 
+            // The host has already taken the printer out of use as the cash-out device (long poll
+            // 7B bit 0), which the runner does for this backend; a note and the collect button then
+            // leave the machine owing a cancelled-credit hand pay, as the GSA documents create one.
+            case HandpayStep { Kind: HandpayKind.CancelledCredit } handpay:
+                if (!Machine.Profile.TryFindButton("collect", out EgmButton collect))
+                    throw new StimulusUnavailableException(WhyNoButton("collect"));
+                if (handpay.AmountCents > int.MaxValue)
+                    throw new StimulusUnavailableException($"no note is worth {handpay.AmountCents} cents");
+
+                Machine.InsertNote((int)handpay.AmountCents);
+                Machine.PressButton(collect);
+                return;
+
+            case HandpayStep jackpot:
+                throw new StimulusUnavailableException(
+                    $"'{jackpot.Describe()}' cannot be driven through the peripherals: the machine "
+                    + "decides its own outcomes, so a jackpot cannot be asked for from outside");
+
+            case HandpayResetStep:
+                if (ResetKey(Machine.Profile) is not { } key)
+                    throw new StimulusUnavailableException(
+                        "the machine declares no reset keyswitch, so an attendant cannot reset a "
+                        + "hand pay from here. It has: " + string.Join(", ", Machine.Profile.ButtonNames));
+
+                Machine.PressButton(key);
+                return;
+
             // Playing a game through the button deck would need the machine to have credit, a bet
             // selected and no condition inhibiting play, and its outcome is decided by a
             // free-running generator, so a step asking for two games and a win of fifty cannot be
@@ -166,6 +193,23 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
         foreach (string button in profile.ButtonNames)
             values[$"stimulus.button.{button}"] = "yes";
 
+        // Named for how it is done, because the host takes part: the runner withdraws the printer
+        // with long poll 7B before the note and the collect, and restores it after the reset.
+        if (profile.TryFindButton("collect", out _))
+            values["stimulus.handpay"] = HandpayByWithdrawnPrinter;
+
+        if (ResetKey(profile) is not null)
+            values["stimulus.handpay.reset"] = HandpayByWithdrawnPrinter;
+
         return values;
     }
+
+    /// <summary>The value of the hand pay capabilities when the host must withdraw the printer.</summary>
+    public const string HandpayByWithdrawnPrinter = CapabilityProbe.HandpayByWithdrawnPrinter;
+
+    /// <summary>The keyswitch an attendant turns to reset a hand pay, or null when the machine has none.</summary>
+    private static EgmButton? ResetKey(EgmHardwareProfile profile) =>
+        profile.Buttons.FirstOrDefault(b =>
+            b.Kind.Equals("keyswitch", StringComparison.OrdinalIgnoreCase)
+            && b.Label.Contains("reset", StringComparison.OrdinalIgnoreCase));
 }

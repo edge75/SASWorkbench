@@ -12,14 +12,66 @@
 
 # Two the same is a refusal; three is final.
 test "3.20 the same poll twice is a refusal" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.handpay, stimulus.button.service
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-3 @needs-stimulus
+  requires host.poll_sequence, stimulus.handpay, stimulus.handpay.reset, stimulus.door.main
+  requires stimulus.button.service, stimulus.settle
+  requires decoder.lp1B, decoder.lp1F
 
-  note "Create four exceptions in order - slot door opened, slot door closed, change lamp on, change lamp off. Establish communication, then send a general poll to the machine's address twice, the identification poll, the general poll, the identification poll."
-  note "The first two general polls both draw slot door opened - the repeat is a refusal, so the machine sends it again - and the third draws slot door closed. Repeat the sequence for change lamp on and change lamp off."
-  note "Then a jackpot hand pay, with the hand pay information poll standing in for the general one: the first two readings carry the same amount, the third comes back all zeros."
-  note "The rule holds whatever the gap: the same three general polls forty milliseconds apart behave exactly as they do two hundred apart."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  host send sync
+  host send lp 1F
+
+  # Step 1: twice the same general poll draws the same exception; the identification poll then
+  # acknowledges it and the next general poll moves on.
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+
+  # Step 2: the same for the change lamp.
+  host send gp draws change_lamp_on
+  host send gp draws change_lamp_on
+  host send lp 1F
+  host send gp draws change_lamp_off
+  host send lp 1F
+  host send gp draws nothing
+
+  # Step 3: the hand pay information poll in place of the general one.
+  egm handpay 2000
+  host wait 2s
+  host send sync
+  host send lp 1F
+  host send gp draws handpay_is_pending
+  host send lp 1F
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host send lp 1F
+  host send lp 1B
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  host expect field amount of lp 1B == 0
+
+  host poll every 200ms
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "The document makes the hand pay a jackpot; a cancelled-credit hand pay reads the same on 1B. It also repeats the sequence forty milliseconds apart, which this case does not time."
 }
 
 # Three the same is final. The third answer is optional - the machine may repeat it or stay quiet -

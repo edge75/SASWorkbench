@@ -173,6 +173,8 @@ public static class YamlScriptReader
         PlayGamesStep s => s with { Location = location },
         PressButtonStep s => s with { Location = location },
         DoorStep s => s with { Location = location },
+        HandpayStep s => s with { Location = location },
+        HandpayResetStep s => s with { Location = location },
         _ => step,
     };
 
