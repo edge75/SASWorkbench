@@ -535,6 +535,42 @@ public sealed record ExpectTicketFieldStep(
     }
 }
 
+/// <summary>What kind of hand pay a case asks the machine to owe.</summary>
+public enum HandpayKind
+{
+    /// <summary>Credits put on and cashed out with no device able to pay them, so an attendant must.</summary>
+    CancelledCredit,
+
+    /// <summary>A game win too large for the machine to pay itself.</summary>
+    Jackpot,
+}
+
+/// <summary>Makes the machine lock up owing a hand pay of about this amount.</summary>
+/// <remarks>
+/// A cancelled-credit hand pay is the one the GSA documents themselves create - credits past the
+/// cash-out limit, then cash out - and the one any machine can be driven into. A jackpot needs the
+/// game's outcome, which only a machine that takes it from outside can honour.
+/// </remarks>
+public sealed record HandpayStep(SourceLocation Location, HandpayKind Kind, long AmountCents)
+    : StimulusStep(Location)
+{
+    public override string RequiredCapability => Kind == HandpayKind.Jackpot
+        ? "stimulus.handpay.jackpot"
+        : "stimulus.handpay";
+
+    public override string Describe() => Kind == HandpayKind.Jackpot
+        ? $"handpay jackpot {AmountCents}"
+        : $"handpay {AmountCents}";
+}
+
+/// <summary>Has the attendant reset the hand pay the machine is holding.</summary>
+public sealed record HandpayResetStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.handpay.reset";
+
+    public override string Describe() => "handpay reset";
+}
+
 /// <summary>Changes the accounting denomination the machine is counting in, during a run.</summary>
 /// <remarks>
 /// <para>

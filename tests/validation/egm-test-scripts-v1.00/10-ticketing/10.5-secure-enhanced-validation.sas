@@ -148,15 +148,46 @@ test "10.5.5 a non-validating host must not read the ticket under this style" {
 test "10.5.6 a non-validating host must not read a validated hand pay" {
   tag @egm-test-scripts @chapter-10 @channel2 @needs-stimulus
   requires egm.validation == secure_enhanced
-  requires stimulus.handpay, decoder.lp3E
+  requires stimulus.handpay, stimulus.handpay.reset, decoder.lp4D
   note "Force a hand pay on a machine validating hand pays, then ask for it from the channel that owns no validation."
+  note "Not written yet: it needs a secure enhanced memory with validation on a second channel, and the committed one keeps every category on channel 1."
 }
 
 test "10.5.7 a validated hand pay carries a number and an amount" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires egm.validation == secure_enhanced
-  requires stimulus.handpay, decoder.lp3E
-  note "Force a hand pay and read the handpay-validated poll: it carries the number spent from the host's sequence and the amount paid."
+  requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
+  requires machine.handpay_validation
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 7B data 080400040000000000
+
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+
+  # A cancelled-credit hand pay with no receipt is type $40, numbered from the host's sequence.
+  host wait 1s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 64
+  host expect field validation_number of lp 4D != 0
+  host expect field amount of lp 4D >= 2000
+  host wait 1s
+
+  host send lp 7B data 080400000000000000
+
+  note "The document reads the hand pay with the handpay-validated exception's own poll; that exception is answered by $4D, which is what is read here."
 }
 
 test "10.5.8 the enhanced validation information poll reads the buffer back" {
@@ -210,8 +241,59 @@ test "10.5.8 the enhanced validation information poll reads the buffer back" {
 test "10.5.9 the validation type field says what kind of transaction it was" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires egm.validation == secure_enhanced
-  requires stimulus.handpay, decoder.lp4D
-  note "Produce a cashout ticket, a hand pay receipt and a hand pay with no receipt, and check each buffer record names its own type. A machine that recorded them all alike would satisfy every other case in this section."
+  requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
+  requires stimulus.bill, stimulus.button.collect, printer.wallet
+  requires machine.handpay_validation, machine.handpay_receipts
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # A cashout ticket: type 0.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 5s
+  host wait 1s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 0
+  host wait 1s
+
+  # A hand pay with a receipt: type $10. Receipts and hand pay validation both on.
+  host send lp 7B data 080600060000000000
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 16
+  host wait 1s
+
+  # A hand pay with no receipt: type $40. Receipts off, validation still on.
+  host send lp 7B data 080200000000000000
+  host forget exceptions within 2s
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 64
+  host wait 1s
+
+  host send lp 7B data 080400000000000000
 }
 
 test "10.5.10 the machine generates a sixteen-digit validation number" {

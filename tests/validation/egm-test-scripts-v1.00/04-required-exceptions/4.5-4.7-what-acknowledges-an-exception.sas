@@ -114,10 +114,35 @@ test "4.6 a general poll to another address acknowledges" {
 # A global broadcast acknowledges. This is the one that makes the whole group unreachable from
 # here, because the host's own synchronisation poll is a global broadcast.
 test "4.7 a global broadcast acknowledges" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires host.poll_sequence
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires host.poll_sequence, stimulus.door.main, stimulus.settle
   requires decoder.lp1F, decoder.lp80
 
-  note "Create slot door opened and slot door closed. With the host's resynchronisation off, establish communication, then send the general poll to this machine three times followed by a receive progressive amount addressed to 00."
-  note "The first two carry slot door opened, the third carries it or is unanswered, and the broadcast is not answered. Alternate the general poll and the broadcast: the next general poll carries slot door closed, and the one after reports no activity or a third exception if one has arisen."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  host send sync
+  host send lp 1F
+
+  host send gp draws slot_door_opened
+
+  # The receive progressive amount poll to 00 is not answered by any machine - and it acknowledges,
+  # so the next general poll moves on to the second rather than repeating the first.
+  host send lp 80 with progressive_group=0 level=1 amount=100 to 00
+  host send gp draws slot_door_closed
+
+  host send lp 80 with progressive_group=0 level=1 amount=100 to 00
+  host send gp draws nothing
+
+  note "As in 4.6, the document also sends the machine's own general poll three times first, where the first two carry the same exception; that half is asserted by 3.20 and 3.21."
 }

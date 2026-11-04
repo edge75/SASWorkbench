@@ -458,6 +458,10 @@ public static class ScriptEmitter
         PressButtonStep press => $"egm press {press.Button}",
         DoorStep door => $"egm door {door.Door} {(door.Open ? "open" : "close")}",
         SettleStep => "egm settle",
+        HandpayStep handpay => handpay.Kind == HandpayKind.Jackpot
+            ? $"egm handpay jackpot {handpay.AmountCents}"
+            : $"egm handpay {handpay.AmountCents}",
+        HandpayResetStep => "egm handpay reset",
         InsertTicketStep ticket =>
             $"egm ticket insert amount={ticket.Ticket.AmountCents} "
             + $"validation={ticket.Ticket.ValidationNumber}",

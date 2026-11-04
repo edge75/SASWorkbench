@@ -696,4 +696,51 @@ public class MachineDeclarationTests
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void A_hand_pay_is_a_stimulus_in_three_forms()
+    {
+        ScriptTest test = Assert.Single(ScriptParser.Parse("""
+            egm handpay 2000
+            egm handpay jackpot 150000
+            egm handpay reset
+            """, "test.sas").Tests);
+
+        HandpayStep cashout = Assert.IsType<HandpayStep>(test.Steps[0]);
+        Assert.Equal((HandpayKind.CancelledCredit, 2000L), (cashout.Kind, cashout.AmountCents));
+        Assert.Equal("stimulus.handpay", cashout.RequiredCapability);
+
+        HandpayStep jackpot = Assert.IsType<HandpayStep>(test.Steps[1]);
+        Assert.Equal("stimulus.handpay.jackpot", jackpot.RequiredCapability);
+
+        Assert.Equal("stimulus.handpay.reset", Assert.IsType<HandpayResetStep>(test.Steps[2]).RequiredCapability);
+    }
+
+    [Theory]
+    [InlineData("egm handpay")]
+    [InlineData("egm handpay 0")]
+    [InlineData("egm handpay twenty")]
+    [InlineData("egm handpay jackpot")]
+    [InlineData("egm handpay reset now")]
+    public void A_hand_pay_without_an_amount_is_a_mistake_in_the_script(string line)
+    {
+        Assert.Throws<ScriptParseException>(() => ScriptParser.Parse(line, "bad.sas"));
+    }
+
+    /// <summary>
+    /// Address 00 reaches every machine, so it is accepted only for a long poll the protocol lets a
+    /// host broadcast - $80 here - and still refused for one it does not, such as $1F.
+    /// </summary>
+    [Fact]
+    public void Only_a_broadcast_long_poll_may_be_sent_to_00()
+    {
+        ScriptTest test = Assert.Single(ScriptParser.Parse("""
+            host send lp 80 with progressive_group=1 level=1 amount=1000 to 00
+            """, "test.sas").Tests);
+
+        SendLongPollStep send = Assert.IsType<SendLongPollStep>(Assert.Single(test.Steps));
+        Assert.True(send.To is { IsSync: true });
+
+        Assert.Throws<ScriptParseException>(() => ScriptParser.Parse("host send lp 1F to 00", "bad.sas"));
+    }
 }

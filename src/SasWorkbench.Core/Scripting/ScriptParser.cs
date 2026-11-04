@@ -687,7 +687,8 @@ public static class ScriptParser
         // 'when <condition>' and then 'to <address>' may close any form of the step, so they are
         // taken off the end first and the rest is read as it always was.
         words = TakeCondition(words, location, out Requirement? when);
-        words = TakeTarget(words, location, out SasAddress? to);
+        words = TakeTarget(words, location, out SasAddress? to,
+            broadcast: SasLayouts.For(command)?.Broadcast == true ? command : null);
 
         if (words.Length > 4 && words[4].Equals("with", StringComparison.OrdinalIgnoreCase))
             return ReadSendWithFields(words, location, command) with { To = to, When = when };
@@ -737,11 +738,22 @@ public static class ScriptParser
     /// these fields, to that machine — and so every form of the step gains it without any of them
     /// being reordered.
     /// </remarks>
-    private static string[] TakeTarget(string[] words, SourceLocation location, out SasAddress? to)
+    /// <param name="broadcast">
+    /// The command when its layout may be broadcast, so <c>to 00</c> sends it to every machine and
+    /// expects none to answer; null when 00 is refused.
+    /// </param>
+    private static string[] TakeTarget(
+        string[] words, SourceLocation location, out SasAddress? to, byte? broadcast = null)
     {
         to = null;
         if (words.Length < 2 || !words[^2].Equals("to", StringComparison.OrdinalIgnoreCase))
             return words;
+
+        if (broadcast is not null && SasAddress.TryParse(words[^1], out SasAddress all) && all.IsSync)
+        {
+            to = all;
+            return words[..^2];
+        }
 
         if (!SasAddress.TryParse(words[^1], out SasAddress named) || named.IsSync)
         {
@@ -1257,7 +1269,7 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|play|press|door|set|settle|expect ...");
+                "expected: egm bill|ticket|play|press|door|handpay|set|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -1307,6 +1319,10 @@ public static class ScriptParser
                 test.Steps.Add(new SetDenominationStep(location, code, unit));
                 return;
 
+            case "handpay":
+                test.Steps.Add(ReadHandpay(words, location));
+                return;
+
             case "door":
                 if (words.Length != 4)
                     throw new ScriptParseException(location, "expected: egm door <name> open|close");
@@ -1320,8 +1336,27 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, set or settle");
+                    + "press, door, handpay, set or settle");
         }
+    }
+
+    /// <summary>Reads <c>egm handpay &lt;cents&gt;</c>, <c>egm handpay jackpot &lt;cents&gt;</c> or <c>egm handpay reset</c>.</summary>
+    private static StimulusStep ReadHandpay(string[] words, SourceLocation location)
+    {
+        const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents> or egm handpay reset";
+
+        if (words.Length == 3 && words[2].Equals("reset", StringComparison.OrdinalIgnoreCase))
+            return new HandpayResetStep(location);
+
+        bool jackpot = words.Length == 4 && words[2].Equals("jackpot", StringComparison.OrdinalIgnoreCase);
+        if (!jackpot && words.Length != 3)
+            throw new ScriptParseException(location, Expected);
+
+        string amount = words[^1];
+        if (!long.TryParse(amount, NumberStyles.None, CultureInfo.InvariantCulture, out long cents) || cents <= 0)
+            throw new ScriptParseException(location, $"'{amount}' is not an amount in cents. {Expected}");
+
+        return new HandpayStep(location, jackpot ? HandpayKind.Jackpot : HandpayKind.CancelledCredit, cents);
     }
 
     /// <summary>

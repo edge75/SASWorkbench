@@ -1103,6 +1103,25 @@ public static class SasLayouts
                 Broadcast = true,
                 ConfirmedByCapture = true,
             },
+            // One level's amount, sent either to one machine, which acknowledges it, or to 00, which
+            // none answers. The level is checked against the machine's own configuration.
+            new()
+            {
+                Command = 0x80,
+                Name = "receive_progressive_amount",
+                Description = "The current amount of one progressive level.",
+                Request =
+                [
+                    Byte("progressive_group", SasUnit.Index,
+                        "Which progressive group the level belongs to."),
+                    Byte("level", SasUnit.Index, "Which level, one to thirty-two.",
+                        SasConstraint.Between(1, 32)),
+                    Bcd("amount", 5, SasUnit.Cents, "What that level currently stands at."),
+                ],
+                Shape = SasResponseShape.Acknowledgement,
+                DerivedFrom = "lp80_SingleLevelProgressive",
+                Broadcast = true,
+            },
             new()
             {
                 Command = 0xB1,

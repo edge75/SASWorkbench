@@ -79,14 +79,76 @@ test "10.3.3 the printer is declared a cashout device" {
 
 test "10.3.4 the printer is declared a handpay receipt device" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires decoder.lp7B, stimulus.handpay, printer.wallet
-  note "Set the handpay-receipt bit, read it back, then force a hand pay and confirm a receipt is printed rather than the machine waiting on an attendant alone."
+  requires egm.validation == secure_enhanced
+  requires decoder.lp7B, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, printer.wallet, decoder.lp1B
+  requires machine.handpay_receipts
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # Bit 1, "use printer as handpay receipt device", and only that bit moves.
+  host send lp 7B data 080200020000000000
+  host expect field current_validation_status of lp 7B == 32803
+
+  # A hand pay, paid by the attendant: the printer prints its receipt.
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  egm expect ticket printed within 20s
+
+  # Given back, so the next case finds the machine as it was.
+  host send lp 7B data 080200000000000000
+  host expect field current_validation_status of lp 7B == 32801
+
+  note "Run on the secure enhanced configuration, where the status word without this bit reads 32801; the values asserted assume it."
+  note "A machine keeps only the long poll 7B bits it declares it supports. The demo declares neither handpay receipts nor handpay validation, so on 2026-11-03 bits 1 and 2 stayed clear and this case needs a machine that offers them."
 }
 
 test "10.3.5 hand pays and their receipts are validated" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires decoder.lp7B, stimulus.handpay, decoder.lp3E
-  note "Set the validate-handpays bit, read it back, force a hand pay and check that the handpay-validated poll carries a number and an amount rather than zeros."
+  requires egm.validation == secure_enhanced
+  requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
+  requires machine.handpay_validation
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # Bit 2, "validate handpays and handpay receipts".
+  host send lp 7B data 080400040000000000
+  host expect field current_validation_status of lp 7B == 32805
+
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+
+  # The record carries a number and an amount rather than zeros. Read once, so it is not left
+  # unread for the next case's cash-out.
+  host wait 1s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D != 0
+  host expect field amount of lp 4D >= 2000
+  host wait 1s
+
+  host send lp 7B data 080400000000000000
+  host expect field current_validation_status of lp 7B == 32801
 }
 
 test "10.3.6 restricted tickets may be printed" {

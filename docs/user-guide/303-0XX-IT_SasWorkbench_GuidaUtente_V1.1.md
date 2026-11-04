@@ -2863,7 +2863,17 @@ l'asserzione successiva fallisce: scrivi sempre il `requires` corrispondente.
 | `egm press <pulsante>` | `stimulus.button.<pulsante>` | `egm press collect` |
 | `egm door <nome> open\|close` | `stimulus.door.<nome>` | `egm door slot open` |
 | `egm settle` | `stimulus.settle` | `egm settle` |
+| `egm handpay <centesimi>` | `stimulus.handpay` | `egm handpay 2000` |
+| `egm handpay jackpot <centesimi>` | `stimulus.handpay.jackpot` | `egm handpay jackpot 150000` |
+| `egm handpay reset` | `stimulus.handpay.reset` | `egm handpay reset` |
 | `egm set accounting denomination <N>c\|code <hh>` | `stimulus.accounting_denomination` | |
+
+`egm handpay <centesimi>` inserisce una banconota di quel valore e incassa senza alcun dispositivo in
+grado di pagare, così la macchina deve un hand pay di credito annullato. Su una macchina pilotata dal
+peripheral manager l'host manda prima il long poll `7B` che spegne "use printer as cash-out device", e
+`egm handpay reset` gira il keyswitch di reset e poi manda `7B` che lo riaccende. Un jackpot si può
+chiedere solo alla macchina software. Una macchina che accoda gli hand pay manda l'eccezione `52` solo dopo che
+l'host ha letto il long poll `1B` e il poll successivo ha confermato la lettura: leggetelo prima del reset.
 
 Il percorso di `egm ticket insert <file>` è relativo alla cartella corrente, non alla cartella dello
 script.

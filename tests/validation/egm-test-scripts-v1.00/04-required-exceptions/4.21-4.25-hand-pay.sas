@@ -10,12 +10,26 @@
 # over its hopper limit and a cash out, and this build has no stimulus for either.
 
 test "4.21.1 a jackpot win raises hand pay pending" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
 
-  note "Configure the machine with a small jackpot payout limit and a hand pay queue. With the link up, insert money and play until a jackpot win occurs: one hand pay pending $51 on a general poll."
-  note "Read the hand pay information and reset the hand pay at the machine when the case is done."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host expect field level of lp 1B == 0
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "A machine that decides its own outcomes cannot be asked for a jackpot, so this case runs only where the outcome is taken from outside."
 }
 
 test "4.21.2 a cash out over the hopper limit raises hand pay pending" {

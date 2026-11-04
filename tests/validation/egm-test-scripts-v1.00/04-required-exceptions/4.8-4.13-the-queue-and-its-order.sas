@@ -650,24 +650,87 @@ test "4.10 the machine reports an overflow once" {
 
 # A hand pay pending goes first even though four exceptions were queued before it.
 test "4.11 a priority exception goes first" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay, host.poll_sequence, stimulus.button.service
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay, stimulus.handpay.reset, host.poll_sequence, stimulus.door.main
+  requires stimulus.button.service, stimulus.settle
+  requires decoder.lp1B, decoder.lp1F
 
-  note "Create slot door opened, slot door closed, change lamp on and change lamp off. Then put enough credits on the machine to exceed its cash out limit and press cash out, so it locks up in a cancelled-credit hand pay."
-  note "With the host's resynchronisation off, establish communication and send the general poll three times then the identification poll: the first two carry hand pay pending $51, ahead of all four queued exceptions. Then the four arrive in the order they happened, then no activity."
-  note "The same shape is owed by every priority exception, highest first: $57, $67, $68, $3F, $6A, $6B, $6F, $56, $3D, $3E, $69, $6C, $6D, $51, $52, $8F, $70."
-  note "Reset the hand pay when the case is done."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # Four exceptions queued first, then the cancelled-credit hand pay.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm handpay 2000
+  host wait 2s
+  host send sync
+  host send lp 1F
+
+  # Hand pay pending goes ahead of all four, twice because the repeat is a refusal.
+  host send gp draws handpay_is_pending
+  host send gp draws handpay_is_pending
+  host send lp 1F
+
+  # Then the four in the order they happened.
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws change_lamp_on
+  host send lp 1F
+  host send gp draws change_lamp_off
+  host send lp 1F
+
+  host poll every 200ms
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "The document sends the general poll three times; the third is a final refusal, after which the machine sends the refused exception again, so this case acknowledges after two. The note the hand pay was made with is reported after the four and left to the round."
 }
 
 # A priority exception that is never acknowledged is reissued on a timer rather than sent once.
 test "4.12 a priority exception is reissued until it is acknowledged" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
 
-  note "Put the machine into a cancelled-credit hand pay, then poll it. Hand pay pending $51 comes back on a general poll every fifteen seconds, with other exceptions on the general polls in between, and long polls answered normally throughout."
-  note "Reset the hand pay when the case is done. The same is owed by every other priority exception."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Polled normally throughout: hand pay pending comes once, then again fifteen seconds later.
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  host expect exception handpay_is_pending within 20s
+
+  # Long polls are answered normally throughout.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+
+  # The reading is acknowledged by the round's next poll, and the reissue stops.
+  host wait 1s
+  host forget exceptions within 2s
+  host expect no exception handpay_is_pending within 20s
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
 }
 
 # Priority against priority: the hand pay goes before the overflow, and both go before the queue.

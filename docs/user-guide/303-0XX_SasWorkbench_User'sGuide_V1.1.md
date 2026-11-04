@@ -2836,10 +2836,20 @@ next assertion fails: always write the corresponding `requires`.
 | `egm press <button>` | `stimulus.button.<button>` | `egm press collect` |
 | `egm door <name> open\|close` | `stimulus.door.<name>` | `egm door slot open` |
 | `egm settle` | `stimulus.settle` | `egm settle` |
+| `egm handpay <cents>` | `stimulus.handpay` | `egm handpay 2000` |
+| `egm handpay jackpot <cents>` | `stimulus.handpay.jackpot` | `egm handpay jackpot 150000` |
+| `egm handpay reset` | `stimulus.handpay.reset` | `egm handpay reset` |
 | `egm set accounting denomination <N>c\|code <hh>` | `stimulus.accounting_denomination` | |
 
 The path of `egm ticket insert <file>` is relative to the current folder, not to the script's
 folder.
+
+`egm handpay <cents>` inserts a note of that value and cashes out with no device able to pay, so
+the machine owes a cancelled-credit hand pay. On a machine driven through the peripheral manager the
+host first sends long poll `7B` clearing "use printer as cash-out device", and `egm handpay reset`
+turns the reset keyswitch and then sends `7B` setting it again. A jackpot can be asked for only from
+the software machine. A machine that queues its hand pays reports exception `52` only after the host
+has read long poll `1B` and the next poll has acknowledged the reading, so read it before the reset.
 
 **Tickets**
 
