@@ -186,3 +186,11 @@ PHASE:R20 WAVE:handpay-cases-software-machine STATUS:complete TS:2026-11-03T21:0
 PHASE:R20 WAVE:handpay-cases-demo-fresh STATUS:complete TS:2026-11-03T21:04:07Z
 PHASE:R21 WAVE:gsa-1B-libsas-issue STATUS:complete TS:2026-11-04T15:53:33Z
 PHASE:R21 WAVE:reset-after-1B-read STATUS:complete TS:2026-11-04T15:53:33Z
+PHASE:R21 WAVE:pr-19 STATUS:complete TS:2026-11-04T15:58:02Z
+PHASE:R21 WAVE:demo-rerun STATUS:failed TS:2026-11-04T15:58:03Z
+PHASE:R21 WAVE:demo-rerun STATUS:complete TS:2026-11-04T16:49:50Z
+PHASE:R22 WAVE:libsas-repin-5.4.6.14 STATUS:complete TS:2026-11-04T23:39:09Z
+PHASE:R22 WAVE:demo-build-qsp-815 STATUS:complete TS:2026-11-04T23:39:09Z
+PHASE:R22 WAVE:nvram-layout-19-fixtures STATUS:complete TS:2026-11-04T23:39:10Z
+PHASE:R22 WAVE:demo-handpay-qsp815-se STATUS:complete TS:2026-11-05T06:11:11Z
+PHASE:R22 WAVE:pinned-versions-and-runbook STATUS:complete TS:2026-11-05T06:11:11Z

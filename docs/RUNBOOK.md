@@ -86,7 +86,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`febe0351414a10510bf8a1cd89207fde406955e0`, tag `v5.4.6.13`), and the checkout must be clean.
+   (`1dff30371577c180b88c92324a5fab27a147089c`, tag `v5.4.6.14`), and the checkout must be clean.
    When libsas moves ahead, re-pin to it and run `python tools/protogen/protogen.py --check`.
 
 2. Build the demo with the preset this repository owns, from a Visual Studio developer prompt
@@ -95,9 +95,14 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
 
    ```
    cd C:\Progetti\QSP_DemoOpenGL
-   cmake --preset SasWorkbenchM0
-   cmake --build out/build/SasWorkbenchM0
+   cmake --preset SasWorkbenchM0-QSP815
+   cmake --build --preset SasWorkbenchM0-QSP815
    ```
+
+   `SasWorkbenchM0-QSP815` inherits `SasWorkbenchM0` and adds `FETCHCONTENT_SOURCE_DIR_QSP`
+   pointing at a separate clone of QSP pull request 815 (`C:/work/qsp-pr815`, commit `e131631a`),
+   because the demo still declares QSP v2.3.6.1. It builds into its own folder, and the demo runs
+   from `bin\SasWorkbenchM0-QSP815\x64`.
 
    It must be built **Release**. A Debug build of the platform needs the `DEMO` licence feature on
    top of `SAS`, and the key in this machine's secure storage carries `SAS` only — built Debug the
@@ -107,8 +112,8 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure prints
    `libsas built with VALIDATION_DEBUG`, `the simulated printer files its tickets in the wallet`
    and `the demo's configuration turns on Sas.AccountingDenomination.Enable`; without all three it
-   is not this project's build. QPM2 is fetched as QSP v2.3.6.1
-   declares it (v9.0.0.10), whose acceptor reads tickets, so the preset no longer overrides it.
+   is not this project's build. QPM2 is fetched as QSP declares it (v9.0.0.13 in pull request
+   815), and its acceptor reads tickets, so the preset no longer overrides it.
 
 3. Restore the memory the machine needs. Fresh NVRAM has no printer protocol and no validation
    style, so no ticket prints and no note is accepted:
@@ -117,13 +122,19 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    sasctl nvram restore --fixture fixtures/nvram/golden.nvram.gz
    ```
 
-   Use `secure-enhanced.nvram.gz` instead for the redemption cases. Both fixtures are layout 15,
-   which QSP v2.3.6.1 writes. On memory of any other layout the machine raises `Memory Error`,
+   Use `secure-enhanced.nvram.gz` instead for the redemption cases. Both fixtures are layout 19,
+   which QSP 2.3.6.32 (pull request 815) writes. On memory of any other layout the machine raises `Memory Error`,
    polls at address 0 and never opens the SAS link, so every run reports that no machine
-   connected; only an attendant clearing the memory from the audit menu stamps layout 15. The
-   arrangement-7 fixtures in `fixtures/nvram/arrangement-7` cannot be restored onto this build.
+   connected; only an attendant clearing the memory from the audit menu stamps layout 19. The
+   arrangement-7 and layout-15 fixtures in `fixtures/nvram/arrangement-7` and
+   `fixtures/nvram/arrangement-15` cannot be restored onto this build; the layout-15 ones are for
+   a demo built with QSP v2.3.6.1 (preset `SasWorkbenchM0`).
 
-   Three things about the layout-15 fixtures change what a run sees:
+   A layout-19 memory made by hand needs one more step: after the attendant NVRAM reset the demo
+   raises vendor condition 1 (licence key, "Custom Condition 1" on screen), which keeps the note
+   acceptor off until it is cleared on the Licence Key audit page.
+
+   Three things about the layout-19 fixtures change what a run sees:
    - Their accounting denomination is five cents, and their games are at 5, 10, 50 and 100 cents,
      which five cents divides. QSP applies the unit only with `Sas.AccountingDenomination.Enable`
      on, which the preset's build step turns on; built any other way, the machine reports in cents.
@@ -143,9 +154,9 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
 4. Start the machine, which dials the host and keeps retrying, then point the host at it:
 
    ```
-   cd C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0\x64
+   cd C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0-QSP815\x64
    OpenGL_Game.exe
-   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm --egm-resources C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0\x64\Resources
+   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm --egm-resources C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0-QSP815\x64\Resources
    ```
 
    `tools\qxcom-tcp\run-m0.ps1` is the M0 wire proof: it runs its own throwaway host on the same

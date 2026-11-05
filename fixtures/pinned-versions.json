@@ -3,29 +3,30 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "febe0351414a10510bf8a1cd89207fde406955e0",
+      "commit": "1dff30371577c180b88c92324a5fab27a147089c",
       "branch": "main",
-      "describedAs": "tag v5.4.6.13",
-      "pinnedOn": "2026-11-03",
-      "measured": "Measured on 2026-11-03 against the demo built with QSP v2.3.6.1 and QPM2 v9.0.0.10, each tree on a demo started seconds before the run. M7 on the layout-15 secure-enhanced memory: 36 pass, 0 fail, 145 skip, against 14 pass, 1 fail, 166 skip on 2026-10-30; the gains come from the case fixes and libsas #250. Regression on the golden memory: 20 pass, 16 fail, 14 skip, against 14 pass, 20 fail, 14 skip and 2 errors on 2026-10-17. On the secure-enhanced memory the 4 ticket-in cases pass, since the golden one has ticket-in off, and so does the case answering $70 on the second channel. The other 11 failures were already red on 2026-10-17 and assert on the software machine (its identity, second channel or second address). No difference was traced to libsas.",
-      "howItIsHeld": "QSP v2.3.6.1 declares libsas as FetchContent 'sas' at tag v5.4.5.28 and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
+      "describedAs": "tag v5.4.6.14",
+      "pinnedOn": "2026-11-05",
+      "measured": "Measured on 2026-11-05 against the demo built with QSP 2.3.6.32 (pull request 815) and QPM2 v9.0.0.13, on a demo started seconds before the run, with the layout-19 secure-enhanced memory. The 13 hand pay cases: 7 pass, 0 fail, 6 skip, against 3 pass, 4 fail, 6 skip on 2026-11-04 with v5.4.6.13. The four that now pass (3.5.2, 3.16, 3.18, 3.20) read long poll 1B as zeros after its hand pay reading is acknowledged, which is libsas #258. The six skips need capabilities the demo does not declare. The full M7 and regression trees were not rerun against this pin.",
+      "howItIsHeld": "QSP declares libsas as FetchContent 'sas' (v5.4.6.13 in pull request 815), and that declaration is not ours to edit. The M0 preset overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at the checkout at C:/Progetti/libsas, which must be at this commit and clean.",
       "verify": "git -C C:/Progetti/libsas rev-parse HEAD"
     },
     "qsp": {
       "repository": "https://github.com/quixantplc/QSP",
-      "tag": "v2.3.6.1",
-      "commit": "52606e62f33f47d220644b7c3c3d53fe548f66db",
-      "pinnedOn": "2026-10-30",
-      "howItIsHeld": "The GIT_TAG of the qsp FetchContent declaration in QSP_DemoOpenGL/CMakeLists.txt, as committed upstream on its main branch.",
-      "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0/_deps/qsp-src rev-parse HEAD"
+      "pullRequest": 815,
+      "describedAs": "QSP 2.3.6.32, pull request 815, open and untagged",
+      "commit": "e131631a5c9e0491a0ae06d61d155bcdd78e7d6e",
+      "pinnedOn": "2026-11-05",
+      "howItIsHeld": "The demo still declares QSP v2.3.6.1, and its CMakeLists is not ours to edit. The gitignored preset SasWorkbenchM0-QSP815 inherits SasWorkbenchM0 and sets FETCHCONTENT_SOURCE_DIR_QSP to a separate clone at C:/work/qsp-pr815, checked out at this commit. It builds into out/build/SasWorkbenchM0-QSP815 and bin/SasWorkbenchM0-QSP815.",
+      "verify": "git -C C:/work/qsp-pr815 rev-parse HEAD"
     },
     "qpm2": {
       "repository": "https://github.com/quixantplc/QPM2",
-      "tag": "v9.0.0.10",
-      "commit": "c49d416ad6b968b00f2ea44b7dc549bbaa88e01d",
-      "pinnedOn": "2026-10-30",
-      "howItIsHeld": "Declared by QSP v2.3.6.1 and fetched as released. It carries pull request 218 (released in v9.0.0.6), whose simulated acceptor reports tickets, so the M0 preset no longer overrides it.",
-      "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0/_deps/qpm-src rev-parse HEAD"
+      "tag": "v9.0.0.13",
+      "commit": "79a5a9c8376555e545216f88f0558cdef3c70f9d",
+      "pinnedOn": "2026-11-05",
+      "howItIsHeld": "Declared by QSP pull request 815 and fetched as released. Its simulated acceptor reports tickets, so the M0 preset does not override it.",
+      "verify": "git -C C:/Progetti/QSP_DemoOpenGL/out/build/SasWorkbenchM0-QSP815/_deps/qpm-src rev-parse HEAD"
     },
     "qpmSimulator": {
       "repository": "https://github.com/quixantplc/qpm_simulator",
@@ -33,16 +34,16 @@
       "commit": "58d0fd0a23dd5b25e89828a3af4efe82951f6e46",
       "branch": "main",
       "pinnedOn": "2026-10-17",
-      "howItIsHeld": "The version QSP v2.3.6.1 declares. SASWB_QPM_SIMULATOR_ROOT in the M0 preset points at the checkout at C:/Progetti/qpm_simulator, whose ticket encoder and wallet the substituted printer compiles in.",
+      "howItIsHeld": "The version QSP pull request 815 declares. SASWB_QPM_SIMULATOR_ROOT in the M0 preset points at the checkout at C:/Progetti/qpm_simulator, whose ticket encoder and wallet the substituted printer compiles in.",
       "verify": "git -C C:/Progetti/qpm_simulator rev-parse HEAD"
     },
     "nvramArrangement": {
-      "arrangement": 15,
+      "arrangement": 19,
       "fixtures": [
         "fixtures/nvram/golden.nvram.gz",
         "fixtures/nvram/secure-enhanced.nvram.gz"
       ],
-      "note": "QSP v2.3.6.1 writes NVRAM layout 15, measured on 2026-10-30 from its own log ('NVRAM layout mismatch: stored=13 current=15'). It no longer master-resets memory of another layout by itself: it raises Memory Error until an attendant clears the memory from the audit menu, and only that clear stamps the new layout. The committed fixtures are layout 15, configured by hand on 2026-10-30 (maker QX, address 1 on channel 1, asset 1, note acceptor 102, printer 101, standard validation, no ticket-in), with the secure-enhanced one written from it. Their accounting denomination is five cents, written with 'sasctl nvram denomination 0.05', and their game denominations are 5, 10, 50 and 100 cents, set through the audit menu, because QSP refuses a unit that does not divide every enabled game's denomination. QSP applies the unit only with Sas.AccountingDenomination.Enable on, which the M0 preset's hook sets in the demo's own configuration.json; the machine reported code $02 on long poll 1F. The arrangement-7 fixtures are kept in fixtures/nvram/arrangement-7 as the evidence for that arrangement. The read-only checkout at C:/Progetti/QSP is arrangement 6 and must not be used as the build source."
+      "note": "QSP 2.3.6.32 (pull request 815) writes NVRAM layout 19. The committed fixtures were configured by hand on 2026-11-05: an attendant NVRAM reset, then maker QX, address 1 on channel 1, asset 1, note acceptor 102, printer 101, standard validation, no ticket-in, and game denominations of 5, 10, 50 and 100 cents. After a reset the demo raises vendor condition 1 (licence key, 'Custom Condition 1') itself, which keeps the bill acceptor off, so it was cleared on the Licence Key audit page before saving. The accounting denomination of five cents was written with 'sasctl nvram denomination 0.05', and the secure-enhanced memory was written from the golden one. The configuration block is still at 0x000A00, and the host-link block moved from 0x00FF1E to 0x00FF22. The machine reported code $02 on long poll 1F. The layout-15 fixtures for a QSP v2.3.6.1 demo are kept in fixtures/nvram/arrangement-15, and the arrangement-7 ones in fixtures/nvram/arrangement-7."
     }
   }
 }

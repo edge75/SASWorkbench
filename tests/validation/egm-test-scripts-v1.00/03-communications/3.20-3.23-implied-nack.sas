@@ -64,7 +64,7 @@ test "3.20 the same poll twice is a refusal" {
   host expect field amount of lp 1B != 0
   host send lp 1F
   host send lp 1B
-  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas answers it from v5.4.6.14 (quixantplc/libsas#258).
   host expect field amount of lp 1B == 0
 
   host poll every 200ms

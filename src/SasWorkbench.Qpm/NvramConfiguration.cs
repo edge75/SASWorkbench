@@ -160,13 +160,15 @@ public static class NvramConfiguration
     [
         new(LayoutVersion: 7, ConfigurationMeters: 0x000A00, SasNetwork: 0x00FE62),
         new(LayoutVersion: 15, ConfigurationMeters: 0x000A00, SasNetwork: 0x00FF1E),
+        // Revision 19 from a memory QSP 2.3.6.32 (pull request 815) wrote on 2026-11-05.
+        new(LayoutVersion: 19, ConfigurationMeters: 0x000A00, SasNetwork: 0x00FF22),
     ];
 
     private const int ConfigurationRequiredOffset = 0x52;
     private const int BillValidatorProtocolOffset = 0x5E;
     private const int PrinterProtocolOffset = 0x60;
 
-    // A 32-bit count of cents, last in the block: 5 in the arrangement-7 memory, 1 in layout 15.
+    // A 32-bit count of cents, last in the block: 5 in the arrangement-7 memory, 1 in layouts 15 and 19.
     private const int AccountingDenominationOffset = 0x1F0;
 
     private const int ManufacturerIdOffset = 0x00;
