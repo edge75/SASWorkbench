@@ -17,7 +17,7 @@ test "the game configuration reply says what the identification reply says" {
   host expect field denomination == 2
   host expect field max_bet == 255
   host expect field paytable_id == 001
-  host expect field base_percentage == 9210
+  host expect field base_percentage == 9211
 
   # The same machine, asked about the machine as a whole rather than about itself.
   host send lp 53 with game_number=0
@@ -26,7 +26,7 @@ test "the game configuration reply says what the identification reply says" {
   host expect field additional_id == 001
   host expect field denomination == 2
   host expect field max_bet == 255
-  host expect field base_percentage == 9210
+  host expect field base_percentage == 9211
 }
 
 test "one game, implemented and enabled, and none selected" {
@@ -95,7 +95,7 @@ test "the wager category reply reports the payback as text and the meter as wide
   # payback percentage. The percentage is four characters of text: read as a number it comes out
   # as nine hundred and forty-three million.
   host send lp B4 with game_number=0 wager_category=0
-  host expect field payback_percentage == 9210
+  host expect field payback_percentage == 9211
   host expect field meter_size == 4
   host expect field coin_in == 40
 

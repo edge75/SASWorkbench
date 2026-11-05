@@ -83,11 +83,11 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    never from `C:\Progetti\libsas`, which other work moves between branches:
 
    ```
-   git -C C:/work/libsas-5.4.6.14 rev-parse HEAD
+   git -C C:/work/libsas-5.4.6.15 rev-parse HEAD
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`1dff30371577c180b88c92324a5fab27a147089c`, tag `v5.4.6.14`), and the clone must be clean.
+   (`49518b9a08a4a4274d26b6080c73bc2f6740baab`, tag `v5.4.6.15`), and the clone must be clean.
    When libsas moves ahead, clone the new tag beside it, point the preset's
    `FETCHCONTENT_SOURCE_DIR_SAS` at the new clone, re-pin, and run
    `python tools/protogen/protogen.py --libsas C:/work/libsas-<version> --check`.

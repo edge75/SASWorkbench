@@ -212,3 +212,7 @@ PHASE:R27 WAVE:sasctl-nvram-games STATUS:complete TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:l19-fixtures-games-on STATUS:complete TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:demo-regression-golden STATUS:failed TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:qsp-fix-new-denomination-enabled STATUS:complete TS:2026-11-05T22:21:01Z
+PHASE:R28 WAVE:foreign-platform-check STATUS:complete TS:2026-11-05T23:46:37Z
+PHASE:R28 WAVE:demo-regression-golden STATUS:complete TS:2026-11-05T23:46:37Z
+PHASE:R28 WAVE:base-percentage-9211 STATUS:complete TS:2026-11-05T23:46:37Z
+PHASE:R28 WAVE:libsas-repin-5.4.6.15 STATUS:complete TS:2026-11-05T23:46:37Z

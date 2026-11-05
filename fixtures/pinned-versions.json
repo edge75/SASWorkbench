@@ -3,13 +3,13 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "1dff30371577c180b88c92324a5fab27a147089c",
+      "commit": "49518b9a08a4a4274d26b6080c73bc2f6740baab",
       "branch": "main",
-      "describedAs": "tag v5.4.6.14",
-      "pinnedOn": "2026-11-05",
-      "measured": "Measured on 2026-11-05 against the demo built with QSP 2.3.6.32 (pull request 815) and QPM2 v9.0.0.13, on a demo started seconds before the run, with the layout-19 secure-enhanced memory. The 13 hand pay cases: 7 pass, 0 fail, 6 skip, against 3 pass, 4 fail, 6 skip on 2026-11-04 with v5.4.6.13. The four that now pass (3.5.2, 3.16, 3.18, 3.20) read long poll 1B as zeros after its hand pay reading is acknowledged, which is libsas #258. The six skips need capabilities the demo does not declare. On the same demo the full M7 tree gave 42 pass, 1 fail (4.12, which passed in the four runs after it), 138 skip, and the regression tree on the golden memory 18 pass, 18 fail, 14 skip; the two new failures were long poll 1F reporting a maximum bet of 0 and a base percentage of '0' padded with NULs, because long poll 56 reported no game enabled on the layout-19 memories. On 2026-11-05 the fixtures were rewritten with their games switched on; on them long poll 56 lists games 1 to 4, and long poll 1F reports a maximum bet of FF and '9211'. That run also had every note returned, but two other QSP platforms were running on the machine beside the demo, so its money cases are not a measurement.",
-      "howItIsHeld": "QSP declares libsas as FetchContent 'sas' (v5.4.6.13 in pull request 815), and that declaration is not ours to edit. The preset SasWorkbenchM0-QSP815 overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at a clone held at this commit, C:/work/libsas-5.4.6.14, because the checkout at C:/Progetti/libsas is moved between branches by other work.",
-      "verify": "git -C C:/work/libsas-5.4.6.14 rev-parse HEAD"
+      "describedAs": "tag v5.4.6.15",
+      "pinnedOn": "2026-11-06",
+      "measured": "Measured on 2026-11-06 against the demo built with QSP 2.3.6.32 (pull request 815, commit e131631a) and QPM2 v9.0.0.13, with the layout-19 golden memory whose games are switched on. The regression tree gave 19 pass, 17 fail, 14 skip, the same verdicts as with v5.4.6.14 on the same evening; against 18, 18, 14 on 2026-11-05 the one change is that long poll 1F now reports a maximum bet of FF and a base percentage of '9211', because long poll 56 lists games 1 to 4. The software machine now reports 9211 as well. Notes are accepted only with the shared qpm_storage.bin the earlier runs used (6183DE07); with the one written at 21:01Z on 2026-11-05 (EB94F8B9) the demo returned every note. With v5.4.6.14 on the same demo the full M7 tree gave 42 pass, 1 fail (4.12, which passed in the four runs after it), 138 skip, and the 13 hand pay cases 7 pass, 0 fail, 6 skip; neither was repeated on v5.4.6.15, whose only change is a test of long poll 1B after a hand pay is acknowledged.",
+      "howItIsHeld": "QSP declares libsas as FetchContent 'sas' (v5.4.6.15 on its main branch), and that declaration is not ours to edit. The preset SasWorkbenchM0-QSP815 overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at a clone held at this commit, C:/work/libsas-5.4.6.15, because the checkout at C:/Progetti/libsas is moved between branches by other work.",
+      "verify": "git -C C:/work/libsas-5.4.6.15 rev-parse HEAD"
     },
     "qsp": {
       "repository": "https://github.com/quixantplc/QSP",
