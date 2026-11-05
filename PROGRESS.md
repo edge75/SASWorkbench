@@ -211,3 +211,4 @@ PHASE:R27 WAVE:libsas-issue-261 STATUS:complete TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:sasctl-nvram-games STATUS:complete TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:l19-fixtures-games-on STATUS:complete TS:2026-11-05T22:06:57Z
 PHASE:R27 WAVE:demo-regression-golden STATUS:failed TS:2026-11-05T22:06:57Z
+PHASE:R27 WAVE:qsp-fix-new-denomination-enabled STATUS:complete TS:2026-11-05T22:21:01Z
