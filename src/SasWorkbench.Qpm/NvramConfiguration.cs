@@ -473,7 +473,7 @@ public static class NvramConfiguration
     /// <summary>
     /// Copies bank zero over bank one and rewrites both marks, so the memory reads whole.
     /// </summary>
-    private static void Reseal(byte[] memory)
+    internal static void Reseal(byte[] memory)
     {
         memory.AsSpan(0, BankBytes).CopyTo(memory.AsSpan(BankBytes, BankBytes));
 

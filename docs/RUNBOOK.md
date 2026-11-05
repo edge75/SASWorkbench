@@ -138,7 +138,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    raises vendor condition 1 (licence key, "Custom Condition 1" on screen), which keeps the note
    acceptor off until it is cleared on the Licence Key audit page.
 
-   Three things about the layout-19 fixtures change what a run sees:
+   Four things about the layout-19 fixtures change what a run sees:
    - Their accounting denomination is five cents, and their games are at 5, 10, 50 and 100 cents,
      which five cents divides. QSP applies the unit only with `Sas.AccountingDenomination.Enable`
      on, which the preset's build step turns on; built any other way, the machine reports in cents.
@@ -148,6 +148,9 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
      host sets its validation identifier with `$4C`. The ticket-in cases send one themselves, only
      to a machine that reports secure enhanced validation.
    - The machine sets no serial number, so `$54` answers with an empty one.
+   - Their games are switched on with `sasctl nvram games enable`. Saved by hand they were all off,
+     because QSP 2.3.6.32 starts a newly chosen denomination switched off, and long poll 56 listed no game.
+     `sasctl nvram games` lists each game's denominations and whether they are on.
 
    The platform and `C:\ProgramData\quixant\launchpad\nvram.bin` are shared by every Launchpad
    player on the machine, whatever engine it is built with. Before restoring memory or starting the

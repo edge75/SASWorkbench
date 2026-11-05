@@ -28,6 +28,7 @@ internal static class NvramCommand
         ["validation"] = ["fixture", "out"],
         ["denomination"] = ["fixture", "out"],
         ["channels"] = ["fixture", "out"],
+        ["games"] = ["fixture", "out"],
     };
 
     /// <summary>The actions that take no word after their own name.</summary>
@@ -48,7 +49,7 @@ internal static class NvramCommand
         {
             Console.Error.WriteLine(
                 "error: 'nvram' needs an action: status, show, save, restore, validation, "
-                + "denomination or channels.");
+                + "denomination, channels or games.");
             return 2;
         }
 
@@ -75,6 +76,7 @@ internal static class NvramCommand
                 "validation" => Validation(fixture, line),
                 "denomination" => Denomination(fixture, line),
                 "channels" => Channels(fixture, line),
+                "games" => Games(fixture, line),
                 _ => Unknown(line.Arguments[0]),
             };
         }
@@ -318,6 +320,43 @@ internal static class NvramCommand
         return 0;
     }
 
+    /// <summary>
+    /// Lists the games' denominations in a saved copy, or writes it out again with them switched on.
+    /// </summary>
+    private static int Games(string fixture, CommandLine line)
+    {
+        string output = line.Value("out") ?? fixture;
+        bool enable = line.Arguments.Count == 2
+            && line.Arguments[1].Equals("enable", StringComparison.OrdinalIgnoreCase);
+        if (line.Arguments.Count > 2 || (line.Arguments.Count == 2 && !enable))
+        {
+            Console.Error.WriteLine(
+                "error: expected 'nvram games [enable] --fixture <in> --out <out>'.");
+            return 2;
+        }
+
+        IReadOnlyList<NvramGameSlot> slots = enable
+            ? NvramFixture.ReconfigureGamesEnabled(fixture, output)
+            : NvramFixture.Games(fixture);
+
+        if (enable)
+            Console.WriteLine($"  wrote {output}");
+        foreach (NvramGameSlot slot in slots)
+        {
+            Console.WriteLine($"  game {slot.Game} slot {slot.Slot}  {slot.DenominationCents,5}c  "
+                + $"menu {(slot.MasterEnabled ? "on " : "off")}  host {(slot.NetworkEnabled ? "on" : "off")}");
+        }
+
+        if (enable)
+        {
+            Console.WriteLine(
+                "  Every slot the accounting unit divides is now on. Restore it, boot a machine on "
+                + "it, and check long poll 56 lists the games before trusting it.");
+        }
+
+        return 0;
+    }
+
     private static int Save(string? memory, string fixture)
     {
         NvramSnapshot saved = NvramFixture.Save(memory, fixture);
@@ -376,6 +415,7 @@ internal static class NvramCommand
         to.WriteLine("  validation <standard|secure_enhanced|system>  [--fixture <in>] [--out <out>]");
         to.WriteLine("  denomination <amount>              [--fixture <in>] [--out <out>]");
         to.WriteLine("  channels \"1@01 2@02 validation=2\"  [--fixture <in>] [--out <out>]");
+        to.WriteLine("  games [enable]                     [--fixture <in>] [--out <out>]");
         to.WriteLine($"  --fixture defaults to {DefaultFixture}.");
     }
 
@@ -383,7 +423,7 @@ internal static class NvramCommand
     {
         Console.Error.WriteLine(
             $"error: '{action}' is not a memory action. Expected status, show, save, restore, "
-            + "validation, denomination or channels.");
+            + "validation, denomination, channels or games.");
         return 2;
     }
 }

@@ -203,3 +203,11 @@ PHASE:R24 WAVE:lp1F-regression-l15-golden STATUS:failed TS:2026-11-05T14:03:31Z
 PHASE:R24 WAVE:lp1F-cause STATUS:complete TS:2026-11-05T14:17:27Z
 PHASE:R24 WAVE:case-4.12-three-runs STATUS:complete TS:2026-11-05T14:13:37Z
 PHASE:R24 WAVE:runbook-libsas-clone STATUS:complete TS:2026-11-05T14:19:13Z
+PHASE:R25 WAVE:games-enable-from-bytes STATUS:complete TS:2026-11-05T15:12:12Z
+PHASE:R25 WAVE:games-enable-page STATUS:failed TS:2026-11-05T15:12:12Z
+PHASE:R26 WAVE:slot-enable-cause STATUS:complete TS:2026-11-05T20:53:14Z
+PHASE:R26 WAVE:pr815-comment-draft STATUS:complete TS:2026-11-05T20:53:15Z
+PHASE:R27 WAVE:libsas-issue-261 STATUS:complete TS:2026-11-05T22:06:57Z
+PHASE:R27 WAVE:sasctl-nvram-games STATUS:complete TS:2026-11-05T22:06:57Z
+PHASE:R27 WAVE:l19-fixtures-games-on STATUS:complete TS:2026-11-05T22:06:57Z
+PHASE:R27 WAVE:demo-regression-golden STATUS:failed TS:2026-11-05T22:06:57Z
