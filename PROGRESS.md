@@ -194,3 +194,12 @@ PHASE:R22 WAVE:demo-build-qsp-815 STATUS:complete TS:2026-11-04T23:39:09Z
 PHASE:R22 WAVE:nvram-layout-19-fixtures STATUS:complete TS:2026-11-04T23:39:10Z
 PHASE:R22 WAVE:demo-handpay-qsp815-se STATUS:complete TS:2026-11-05T06:11:11Z
 PHASE:R22 WAVE:pinned-versions-and-runbook STATUS:complete TS:2026-11-05T06:11:11Z
+PHASE:R23 WAVE:commit-and-pr-20 STATUS:complete TS:2026-11-05T11:31:12Z
+PHASE:R23 WAVE:demo-m7-se STATUS:failed TS:2026-11-05T11:46:38Z
+PHASE:R23 WAVE:demo-m7-se STATUS:complete TS:2026-11-05T12:12:22Z
+PHASE:R23 WAVE:demo-regression-golden STATUS:complete TS:2026-11-05T12:18:56Z
+PHASE:R23 WAVE:demo-ch4-recheck STATUS:complete TS:2026-11-05T12:26:57Z
+PHASE:R24 WAVE:lp1F-regression-l15-golden STATUS:failed TS:2026-11-05T14:03:31Z
+PHASE:R24 WAVE:lp1F-cause STATUS:complete TS:2026-11-05T14:17:27Z
+PHASE:R24 WAVE:case-4.12-three-runs STATUS:complete TS:2026-11-05T14:13:37Z
+PHASE:R24 WAVE:runbook-libsas-clone STATUS:complete TS:2026-11-05T14:19:13Z

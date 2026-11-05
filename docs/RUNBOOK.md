@@ -79,15 +79,18 @@ expected.
 The demo EGM runs in another process and the SAS link is carried over a TCP socket.
 
 1. Check the pinned libsas revision, because EGM behaviour changes underneath a passing suite if
-   it moves:
+   it moves. The demo is built from a clone of libsas held at the pin, `C:\work\libsas-<version>`,
+   never from `C:\Progetti\libsas`, which other work moves between branches:
 
    ```
-   git -C C:/Progetti/libsas rev-parse HEAD
+   git -C C:/work/libsas-5.4.6.14 rev-parse HEAD
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`1dff30371577c180b88c92324a5fab27a147089c`, tag `v5.4.6.14`), and the checkout must be clean.
-   When libsas moves ahead, re-pin to it and run `python tools/protogen/protogen.py --check`.
+   (`1dff30371577c180b88c92324a5fab27a147089c`, tag `v5.4.6.14`), and the clone must be clean.
+   When libsas moves ahead, clone the new tag beside it, point the preset's
+   `FETCHCONTENT_SOURCE_DIR_SAS` at the new clone, re-pin, and run
+   `python tools/protogen/protogen.py --libsas C:/work/libsas-<version> --check`.
 
 2. Build the demo with the preset this repository owns, from a Visual Studio developer prompt
    (`vcvars64.bat`), so that `cmake` and the compiler are on the path. The preset is gitignored in
@@ -101,7 +104,8 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
 
    `SasWorkbenchM0-QSP815` inherits `SasWorkbenchM0` and adds `FETCHCONTENT_SOURCE_DIR_QSP`
    pointing at a separate clone of QSP pull request 815 (`C:/work/qsp-pr815`, commit `e131631a`),
-   because the demo still declares QSP v2.3.6.1. It builds into its own folder, and the demo runs
+   because the demo still declares QSP v2.3.6.1, and `FETCHCONTENT_SOURCE_DIR_SAS` pointing at the
+   libsas clone of step 1. It builds into its own folder, and the demo runs
    from `bin\SasWorkbenchM0-QSP815\x64`.
 
    It must be built **Release**. A Debug build of the platform needs the `DEMO` licence feature on
