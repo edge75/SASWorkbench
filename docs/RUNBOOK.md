@@ -83,31 +83,30 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    never from `C:\Progetti\libsas`, which other work moves between branches:
 
    ```
-   git -C C:/work/libsas-5.4.6.15 rev-parse HEAD
+   git -C C:/work/libsas-5.4.6.16 rev-parse HEAD
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`49518b9a08a4a4274d26b6080c73bc2f6740baab`, tag `v5.4.6.15`), and the clone must be clean.
+   (`0ada3fb12cfba3b4ecd62c37a55724d02514ba2b`, tag `v5.4.6.16`), and the clone must be clean.
    When libsas moves ahead, clone the new tag beside it, point the preset's
    `FETCHCONTENT_SOURCE_DIR_SAS` at the new clone, re-pin, and run
    `python tools/protogen/protogen.py --libsas C:/work/libsas-<version> --check`.
 
 2. Build the demo with the preset this repository owns, from a Visual Studio developer prompt
    (`vcvars64.bat`), so that `cmake` and the compiler are on the path. The preset is gitignored in
-   `QSP_DemoOpenGL` (D30, CLAUDE.md constraint 3):
+   `QSP_DemoOpenGL` (D30, CLAUDE.md constraint 3), and it lives in a separate clone of the demo
+   held at the pinned tag, so the shared checkout at `C:\Progetti\QSP_DemoOpenGL` is never moved:
 
    ```
-   cd C:\Progetti\QSP_DemoOpenGL
-   cmake --preset SasWorkbenchM0-QSP815
-   cmake --build --preset SasWorkbenchM0-QSP815
+   git clone --branch v2.0.4.37 https://github.com/quixantplc/QSP_DemoOpenGL C:\work\QSP_DemoOpenGL-2.0.4.37
+   cd C:\work\QSP_DemoOpenGL-2.0.4.37
+   cmake --preset SasWorkbenchM0
+   cmake --build --preset SasWorkbenchM0
    ```
 
-   `SasWorkbenchM0-QSP815` inherits `SasWorkbenchM0` and adds `FETCHCONTENT_SOURCE_DIR_QSP`
-   pointing at a separate clone of QSP pull request 815 (`C:/work/qsp-pr815`, commit `e131631a`),
-   because the demo still declares QSP v2.3.6.1, and `FETCHCONTENT_SOURCE_DIR_SAS` pointing at the
-   libsas clone of step 1. It builds into its own folder, and the demo runs
-   from `bin\SasWorkbenchM0-QSP815\x64`.
-
+   The demo v2.0.4.37 declares QSP v2.3.6.34, which declares libsas v5.4.6.16 and QPM2 v9.0.0.14,
+   so the preset overrides only libsas, with `FETCHCONTENT_SOURCE_DIR_SAS` pointing at the clone of
+   step 1. The demo runs from `bin\SasWorkbenchM0\x64`.
    It must be built **Release**. A Debug build of the platform needs the `DEMO` licence feature on
    top of `SAS`, and the key in this machine's secure storage carries `SAS` only — built Debug the
    machine raises a licence lockup and takes no money (BLOCKERS.md Trap D).
@@ -116,8 +115,8 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    source overrides, so the preset sets `QX_SOURCE_ONLY` to `ON`. Check that configure prints
    `libsas built with VALIDATION_DEBUG`, `the simulated printer files its tickets in the wallet`
    and `the demo's configuration turns on Sas.AccountingDenomination.Enable`; without all three it
-   is not this project's build. QPM2 is fetched as QSP declares it (v9.0.0.13 in pull request
-   815), and its acceptor reads tickets, so the preset no longer overrides it.
+   is not this project's build. QPM2 is fetched as QSP declares it, and its acceptor reads
+   tickets, so the preset does not override it.
 
 3. Restore the memory the machine needs. Fresh NVRAM has no printer protocol and no validation
    style, so no ticket prints and no note is accepted:
@@ -127,7 +126,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    ```
 
    Use `secure-enhanced.nvram.gz` instead for the redemption cases. Both fixtures are layout 19,
-   which QSP 2.3.6.32 (pull request 815) writes. On memory of any other layout the machine raises `Memory Error`,
+   which QSP 2.3.6.34 writes, as QSP 2.3.6.32 did. On memory of any other layout the machine raises `Memory Error`,
    polls at address 0 and never opens the SAS link, so every run reports that no machine
    connected; only an attendant clearing the memory from the audit menu stamps layout 19. The
    arrangement-7 and layout-15 fixtures in `fixtures/nvram/arrangement-7` and
@@ -149,7 +148,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
      to a machine that reports secure enhanced validation.
    - The machine sets no serial number, so `$54` answers with an empty one.
    - Their games are switched on with `sasctl nvram games enable`. Saved by hand they were all off,
-     because QSP 2.3.6.32 starts a newly chosen denomination switched off, and long poll 56 listed no game.
+     because QSP 2.3.6.32 started a newly chosen denomination switched off (2.3.6.34 starts it on), and long poll 56 listed no game.
      `sasctl nvram games` lists each game's denominations and whether they are on.
 
    The platform and `C:\ProgramData\quixant\launchpad\nvram.bin` are shared by every Launchpad
@@ -161,9 +160,9 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
 4. Start the machine, which dials the host and keeps retrying, then point the host at it:
 
    ```
-   cd C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0-QSP815\x64
+   cd C:\work\QSP_DemoOpenGL-2.0.4.37\bin\SasWorkbenchM0\x64
    OpenGL_Game.exe
-   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm --egm-resources C:\Progetti\QSP_DemoOpenGL\bin\SasWorkbenchM0-QSP815\x64\Resources
+   sasctl run tests/regression --tcp 127.0.0.1:9760 --address 01 --stimulus qpm --egm-resources C:\work\QSP_DemoOpenGL-2.0.4.37\bin\SasWorkbenchM0\x64\Resources
    ```
 
    `tools\qxcom-tcp\run-m0.ps1` is the M0 wire proof: it runs its own throwaway host on the same
