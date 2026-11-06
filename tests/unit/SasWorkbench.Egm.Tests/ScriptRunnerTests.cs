@@ -585,7 +585,7 @@ public class ScriptRunnerTests
         Assert.Equal(Verdict.Fail, result.Verdict);
         StepResult failed = result.Steps.Single(s => s.Verdict == Verdict.Fail);
         Assert.Equal("8000", failed.Expected);
-        Assert.Equal("9210", failed.Actual);
+        Assert.Equal("9211", failed.Actual);
     }
 
     [Fact]

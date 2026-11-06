@@ -28,6 +28,9 @@ public sealed class PollEngine : IDisposable
     /// <summary>Stands in for a command where a general poll is being answered. No command is negative.</summary>
     private const int GeneralPoll = -1;
 
+    /// <summary>What a caller allows beyond one poll and its answer before saying the engine never reached it, sized for a saturated CI runner.</summary>
+    private static readonly TimeSpan SchedulerMargin = TimeSpan.FromSeconds(5);
+
     private readonly SasLink _link;
     private readonly PollEngineOptions _options;
     private readonly Stopwatch _clock = new();
@@ -315,7 +318,7 @@ public sealed class PollEngine : IDisposable
         PendingKind kind, SasAddress target, string? purpose, TimeSpan? timeout)
     {
         TimeSpan wait = timeout
-                        ?? _options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1);
+                        ?? _options.PollInterval + _options.ResponseTimeout + SchedulerMargin;
 
         if (!_running)
         {
@@ -379,7 +382,7 @@ public sealed class PollEngine : IDisposable
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
                 $"A long poll carries at most {_pendingData.Length} data bytes.");
 
-        TimeSpan wait = timeout ?? _options.PollInterval + _options.ResponseTimeout + TimeSpan.FromSeconds(1);
+        TimeSpan wait = timeout ?? _options.PollInterval + _options.ResponseTimeout + SchedulerMargin;
 
         if (!_running)
             return new LongPollResult(command, _options.Channel, LongPollOutcome.NotSent,

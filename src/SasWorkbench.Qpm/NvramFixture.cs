@@ -175,6 +175,21 @@ public static class NvramFixture
         return Rewrite(outputPath, NvramConfiguration.WithChannels(Load(fixturePath), channels));
     }
 
+    /// <summary>The games' denomination slots in a saved copy.</summary>
+    public static IReadOnlyList<NvramGameSlot> Games(string fixturePath) =>
+        NvramGames.Read(Load(fixturePath));
+
+    /// <summary>
+    /// Writes a saved copy out again with every game switched on, as the Games Enable page would.
+    /// </summary>
+    public static IReadOnlyList<NvramGameSlot> ReconfigureGamesEnabled(
+        string fixturePath, string outputPath)
+    {
+        byte[] written = NvramGames.WithGamesEnabled(Load(fixturePath));
+        _ = Rewrite(outputPath, written);
+        return NvramGames.Read(written);
+    }
+
     /// <summary>Compresses a rewritten memory to a file and reads back what it now carries.</summary>
     private static NvramMachineConfiguration Rewrite(string outputPath, byte[] written)
     {

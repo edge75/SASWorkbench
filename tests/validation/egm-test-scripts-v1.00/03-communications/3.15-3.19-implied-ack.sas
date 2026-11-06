@@ -89,7 +89,7 @@ test "3.16 a different long poll acknowledges the one before it" {
   # Step 3: the identification poll acknowledges the reading, so the next one is all zeros.
   host send lp 1F
   host send lp 1B
-  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas answers it from v5.4.6.14 (quixantplc/libsas#258).
   host expect field amount of lp 1B == 0
   host expect field level of lp 1B == 0
 
@@ -182,7 +182,7 @@ test "3.18 a poll to another machine acknowledges" {
   host expect field amount of lp 1B != 0
   host send lp 7E to 7F
   host send lp 1B
-  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas v5.4.6.13 still answers the live record (quixantplc/libsas#258).
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas answers it from v5.4.6.14 (quixantplc/libsas#258).
   host expect field amount of lp 1B == 0
   host send lp 7E to 7F
 

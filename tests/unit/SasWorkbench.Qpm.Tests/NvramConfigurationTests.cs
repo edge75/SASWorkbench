@@ -23,6 +23,20 @@ public class NvramConfigurationTests
     private const uint FixtureLayout = 7;
 
     /// <summary>
+    /// The memory a person configured by hand on QSP 2.3.6.32 (pull request 815), which writes layout 19.
+    /// </summary>
+    /// <remarks>
+    /// Cleared and configured through the machine's menu on 2026-11-05, with game denominations of 5,
+    /// 10, 50 and 100 cents and the demo's licence-key vendor condition cleared, then rewritten to a
+    /// five-cent accounting denomination, which also makes the second bank a copy of the first.
+    /// </remarks>
+    [Fact]
+    public void TheCommittedGoldenMemoryIsTheMachineConfiguredByHandInLayoutNineteen()
+    {
+        AssertConfiguredByHand(NvramFixture.Configuration(CurrentFixture("golden")), 19u);
+    }
+
+    /// <summary>
     /// The memory a person configured by hand on QSP v2.3.6.1, which writes layout 15.
     /// </summary>
     /// <remarks>
@@ -31,12 +45,14 @@ public class NvramConfigurationTests
     /// close, which leaves both banks whole. The machine reported five cents on long poll 1F.
     /// </remarks>
     [Fact]
-    public void TheCommittedGoldenMemoryIsTheMachineConfiguredByHandInLayoutFifteen()
+    public void TheLayoutFifteenGoldenMemoryIsTheMachineConfiguredByHand()
     {
-        NvramMachineConfiguration configuration =
-            NvramFixture.Configuration(CurrentFixture("golden"));
+        AssertConfiguredByHand(NvramFixture.Configuration(Layout15Fixture("golden")), 15u);
+    }
 
-        Assert.Equal(15u, configuration.LayoutVersion);
+    private static void AssertConfiguredByHand(NvramMachineConfiguration configuration, uint layout)
+    {
+        Assert.Equal(layout, configuration.LayoutVersion);
         Assert.Equal(0, configuration.ConfigurationRequired);
         Assert.Equal(102, configuration.BillValidatorProtocol);
         Assert.Equal(101, configuration.PrinterProtocol);
@@ -123,12 +139,14 @@ public class NvramConfigurationTests
     /// be reproduced rather than taken on trust. Writing it makes the second bank a copy of the
     /// first, which is the repair the machine makes itself, so it reads with no caveat.
     /// </remarks>
-    [Fact]
-    public void TheCommittedSecureEnhancedMemoryInLayoutFifteenIsWrittenFromTheGoldenOne()
+    [Theory]
+    [InlineData("")]
+    [InlineData("arrangement-15")]
+    public void TheCommittedSecureEnhancedMemoryIsWrittenFromTheGoldenOne(string folder)
     {
         byte[] rebuilt = NvramConfiguration.WithValidation(
-            MemoryAt(CurrentFixture("golden")), SasCashoutValidation.SecureEnhanced);
-        byte[] committed = MemoryAt(CurrentFixture("secure-enhanced"));
+            MemoryAt(FixtureIn(folder, "golden")), SasCashoutValidation.SecureEnhanced);
+        byte[] committed = MemoryAt(FixtureIn(folder, "secure-enhanced"));
 
         Assert.True(rebuilt.AsSpan().SequenceEqual(committed),
             "the committed secure enhanced memory is not the golden one written in that style");
@@ -141,17 +159,20 @@ public class NvramConfigurationTests
     }
 
     /// <summary>
-    /// In layout 15 a style is the option word at its new place, and only that and the mark.
+    /// A style is the option word at the layout's own place, and only that and the mark.
     /// </summary>
     /// <remarks>
-    /// Compared within the bank that is read, since the write replaces the stale second bank as a
-    /// whole and every byte of it differs for that reason alone.
+    /// Compared within the bank that is read, since the write replaces a stale second bank as a
+    /// whole and every byte of it differs for that reason alone. The host-link block moved four
+    /// bytes between layouts 15 and 19.
     /// </remarks>
-    [Fact]
-    public void InLayoutFifteenAStyleChangesOnlyTheOptionWordAndTheMark()
+    [Theory]
+    [InlineData("arrangement-15", 0x00FF1E)]
+    [InlineData("", 0x00FF22)]
+    public void AStyleChangesOnlyTheOptionWordAndTheMark(string folder, int sasNetwork)
     {
-        const int optionWord = 0x00FF1E + 0x0C + 0x04;
-        byte[] before = MemoryAt(CurrentFixture("golden"));
+        int optionWord = sasNetwork + 0x0C + 0x04;
+        byte[] before = MemoryAt(FixtureIn(folder, "golden"));
         byte[] after = NvramConfiguration.WithValidation(before, SasCashoutValidation.SecureEnhanced);
 
         int[] changed =
@@ -399,6 +420,11 @@ public class NvramConfigurationTests
 
     private static string CurrentFixture(string name) =>
         Path.Combine(RepoRoot(), "fixtures", "nvram", $"{name}.nvram.gz");
+
+    private static string Layout15Fixture(string name) => FixtureIn("arrangement-15", name);
+
+    private static string FixtureIn(string folder, string name) =>
+        Path.Combine(RepoRoot(), "fixtures", "nvram", folder, $"{name}.nvram.gz");
 
     private static string RepoRoot()
     {

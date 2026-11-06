@@ -37,7 +37,7 @@ test "no money at all: a door opened and shut, the machine identified, the meter
   host expect field progressive_group of lp 1F == 0
   host expect field game_options of lp 1F == 0
   host expect field paytable_id of lp 1F == 001
-  host expect field base_percentage of lp 1F == 9210
+  host expect field base_percentage of lp 1F == 9211
   host send lp 54
   host expect field sas_version of lp 54 == 602
   host expect field serial_number of lp 54 == QXFAKE0001

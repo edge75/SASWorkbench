@@ -81,7 +81,7 @@ public class FakeEgmTests
 
         Assert.Equal(LongPollOutcome.Answered, result.Outcome);
         Assert.Equal("011F5158303031" + "02" + "FF" + "00" + "0000" + "303031000000"
-                     + "39323130" + "863F", result.ToHex());
+                     + "39323131" + "0F2E", result.ToHex());
     }
 
     [Fact]

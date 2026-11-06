@@ -66,7 +66,8 @@ public sealed record FakeEgmOptions
     public byte TokenDenomination { get; init; }
 
     /// <summary>Theoretical payback percentage, in hundredths of a percent.</summary>
-    public int BasePercentage { get; init; } = 9210;
+    /// <remarks>9211 because the demo on QSP 2.3.6.32 reports it, averaged over its four enabled games.</remarks>
+    public int BasePercentage { get; init; } = 9211;
 
     /// <summary>Protocol revision this machine claims, as three digits.</summary>
     public string SasVersion { get; init; } = "602";
