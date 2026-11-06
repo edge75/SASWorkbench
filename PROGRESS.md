@@ -219,3 +219,5 @@ PHASE:R28 WAVE:libsas-repin-5.4.6.15 STATUS:complete TS:2026-11-05T23:46:37Z
 PHASE:R29 WAVE:demo-m7-se-libsas-5.4.6.15 STATUS:complete TS:2026-11-06T00:47:29Z
 PHASE:R29 WAVE:demo-handpay-se-libsas-5.4.6.15 STATUS:complete TS:2026-11-06T00:47:29Z
 PHASE:R29 WAVE:pr-20-title-and-description STATUS:complete TS:2026-11-06T00:47:29Z
+PHASE:R30 WAVE:pr-20-ci-scheduler-margin STATUS:complete TS:2026-11-06T09:55:11Z
+PHASE:R30 WAVE:iq2-wire-com6 STATUS:failed TS:2026-11-06T09:55:11Z
