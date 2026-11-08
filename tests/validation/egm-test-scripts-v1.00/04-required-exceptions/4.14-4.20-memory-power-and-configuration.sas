@@ -8,51 +8,164 @@
 # Power applied always; power lost only if something in the machine stayed awake to notice.
 test "4.14 AC power on and off" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires machine.power_cycle, stimulus.settle
 
-  note "With the link up, cut the machine's power and restore it. It reports power applied $17 on a general poll, once."
-  note "It reports power lost $18 as well if its communications board keeps power when the machine does not, or if it can tell afterwards that power was lost. A machine that can do neither is not failing this."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm power cycle
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+
+  # Power applied, once.
+  host expect exception ac_power_applied within 30s
+  host expect no exception ac_power_applied within 10s
+
+  note "It reports power lost $18 as well if its communications board keeps power when the machine does not, or if it can tell afterwards that power was lost. A machine that can do neither is not failing this, so $18 is not asserted."
 }
 
 # Three CMOS faults with three codes, and the codes still come out even if the fault cost the
 # machine its address - it reports them once an address has been set again.
 test "4.15 CMOS RAM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, stimulus.settle
 
-  note "Induce a recoverable CMOS error, a non-recoverable one and a bad device, if the machine can be made to. Each is reported on a general poll as $31, $32 and $33 - recovered, lost, bad device."
-  note "Recoverable means the meters survived; non-recoverable means they did not. The codes are still owed if the fault reset the machine's address to zero - see 3.9."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Recovered, lost, bad device: $31, $32 and $33, one fault at a time.
+  egm memory fault cmos-recovered
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception cmosram_error_data_recovered within 30s
+
+  egm memory fault cmos-lost
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception cmosram_error_no_data_recovered within 30s
+
+  egm memory fault cmos-bad-device
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception cmosram_error_bad_device within 30s
+
+  note "A fault may cost the machine its address. If it does, set the address back to 1 before confirming the prompt: the code is still owed once an address is set again - see 3.9."
+  note "Recoverable means the meters survived; non-recoverable means they did not. This build does not compare the meters before and after."
 }
 
 test "4.16 EEPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, stimulus.settle
 
-  note "Induce an EEPROM data error and a bad EEPROM device, if the machine can be made to. They are reported on a general poll as $34 and $35."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm memory fault eeprom-data
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception eeprom_error_data within 30s
+
+  egm memory fault eeprom-bad-device
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception eeprom_error_bad_device within 30s
+
+  note "A fault may cost the machine its address. If it does, set the address back to 1 before confirming the prompt: the code is still owed once an address is set again - see 3.9."
 }
 
 test "4.17 EPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, stimulus.settle
 
-  note "Fit a different EPROM version and power up. The machine reports a changed checksum $36 on a general poll, once."
-  note "Then create a bad EPROM checksum, if the machine can be made to: $37, once."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # A different version fitted: a changed checksum, once.
+  egm memory fault eprom-changed
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception eeprom_error_version_changed within 30s
+  host expect no exception eeprom_error_version_changed within 10s
+
+  # Then a bad checksum, once.
+  egm memory fault eprom-bad-checksum
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception eeprom_error_bad_checksum within 30s
+  host expect no exception eeprom_error_bad_checksum within 10s
 }
 
 test "4.18 partitioned EPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, stimulus.settle
 
-  note "On a machine with a partitioned EPROM, fit a different version and power up: a changed partitioned checksum $38 on a general poll, once. Then create a bad partitioned checksum: $39, once."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm memory fault partitioned-eprom-changed
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception partitioned_eeprom_error_version_changed within 30s
+  host expect no exception partitioned_eeprom_error_version_changed within 10s
+
+  egm memory fault partitioned-eprom-bad-checksum
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception partitioned_eeprom_error_bad_checksum within 30s
+  host expect no exception partitioned_eeprom_error_bad_checksum within 10s
+
+  note "Only a machine with a partitioned EPROM owes these. On one without, decline both prompts and the case skips."
 }
 
 # The reset is the operator's acknowledgement of the fault, and it has its own code.
 test "4.19 memory error reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, stimulus.settle
 
-  note "Induce a CMOS error: $32 on a general poll if the machine kept its address. Clear it at the machine: $3A. If the fault cost the machine its address, set the address again - both $32 and $3A then arrive on general polls."
-  note "Repeat with an EEPROM error: $34, then $3A on the reset, and the same rule about a lost address."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # A CMOS error, then the operator's reset of it.
+  egm memory fault cmos-lost
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception cmosram_error_no_data_recovered within 30s
+  egm memory fault clear
+  host expect exception memory_error_reset within 30s
+
+  # The same with an EEPROM error.
+  egm memory fault eeprom-data
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception eeprom_error_data within 30s
+  egm memory fault clear
+  host expect exception memory_error_reset within 30s
+
+  note "If the fault cost the machine its address, set the address again before confirming the prompt - both the fault and $3A then arrive on general polls."
 }
 
 # Any configuration change, including changing the machine's own poll address - which the host then

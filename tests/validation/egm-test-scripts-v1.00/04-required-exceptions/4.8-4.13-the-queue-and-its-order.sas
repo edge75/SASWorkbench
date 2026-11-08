@@ -12,10 +12,152 @@
 # across a power cycle.
 test "4.8 the queue holds at least twenty, in order, across a power cycle" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires host.poll_sequence, machine.power_cycle, stimulus.door.main, stimulus.button.service, stimulus.settle
 
-  note "With nothing polling, create twenty exceptions - doors, the audit menu, the service button. Start polling: all twenty come back one per general poll in the order they happened, then $00 on every poll after. No buffer overflow exception $70 appears, because twenty did not overflow anything."
-  note "Do it again, but power cycle before polling. All twenty still come back oldest first, possibly with the machine's own power-down and power-up exceptions among them."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # Twenty exceptions with the line held, drawn back in order, then nothing: no overflow $70.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  host send sync
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws nothing
+
+  # The same twenty again, with a power cycle before polling.
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+
+  note "After a power cycle the machine's own power-down and power-up exceptions may follow the twenty, so the tail is not asserted."
 }
 
 # When it does fill, the oldest are lost and the newest survive. The depth asserted is the gaming

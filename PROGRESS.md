@@ -232,3 +232,6 @@ PHASE:R33 WAVE:iq2-layout-19-stdout STATUS:complete TS:2026-11-08T06:59:53Z
 PHASE:R33 WAVE:iq2-wire-com6 STATUS:complete TS:2026-11-08T06:59:53Z
 PHASE:R33 WAVE:iq2-m7-manual STATUS:complete TS:2026-11-08T06:59:53Z
 PHASE:R33 WAVE:iq2-m7-destructive STATUS:failed TS:2026-11-08T06:59:53Z
+PHASE:R35 WAVE:manual-capabilities STATUS:complete TS:2026-11-08T08:35:45Z
+PHASE:R35 WAVE:power-cycle-memory-fault-verbs STATUS:complete TS:2026-11-08T08:35:45Z
+PHASE:R35 WAVE:m7-destructive-steps STATUS:complete TS:2026-11-08T08:35:45Z

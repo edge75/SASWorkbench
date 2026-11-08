@@ -824,7 +824,9 @@ There are three possible answers:
 The default waiting time is 2 minutes. You change it with `--ask-for`, for example `--ask-for 5m`.
 
 The `manual` stimulus offers these actions: banknote, ticket, game, closing all the doors (settle),
-the slot door (`door.slot`) and the cashout button (`button.collect`).
+the slot door (`door.slot`, also called the main door, `door.main`), the cashout and service buttons
+(`button.collect`, `button.service`), a hand pay, a jackpot hand pay and its reset, a power cycle and
+a memory fault. A power cycle or a memory fault is confirmed once the machine has booted again.
 
 ### software
 
@@ -2839,10 +2841,18 @@ next assertion fails: always write the corresponding `requires`.
 | `egm handpay <cents>` | `stimulus.handpay` | `egm handpay 2000` |
 | `egm handpay jackpot <cents>` | `stimulus.handpay.jackpot` | `egm handpay jackpot 150000` |
 | `egm handpay reset` | `stimulus.handpay.reset` | `egm handpay reset` |
+| `egm power cycle` | `machine.power_cycle` | `egm power cycle` |
+| `egm memory fault <kind>` | `machine.memory_fault` | `egm memory fault cmos-lost` |
 | `egm set accounting denomination <N>c\|code <hh>` | `stimulus.accounting_denomination` | |
 
 The path of `egm ticket insert <file>` is relative to the current folder, not to the script's
 folder.
+
+The kind of `egm memory fault` names the exception the fault should raise: `cmos-recovered` ($31),
+`cmos-lost` ($32), `cmos-bad-device` ($33), `eeprom-data` ($34), `eeprom-bad-device` ($35),
+`eprom-changed` ($36), `eprom-bad-checksum` ($37), `partitioned-eprom-changed` ($38),
+`partitioned-eprom-bad-checksum` ($39). `clear` asks the operator to clear the fault ($3A). Only the
+`manual` stimulus offers a power cycle or a memory fault.
 
 `egm handpay <cents>` inserts a note of that value and cashes out with no device able to pay, so
 the machine owes a cancelled-credit hand pay. On a machine driven through the peripheral manager the
@@ -2964,7 +2974,7 @@ capability, with a reason in one of the forms described in "Skips and their reas
 | Stimulus | Capabilities |
 | --- | --- |
 | `none` | `stimulus` = `none` |
-| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `stimulus.button.collect` |
+| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `.main`, `stimulus.button.collect`, `.service`, `stimulus.handpay`, `.jackpot`, `.reset`, `machine.power_cycle`, `machine.memory_fault` |
 | `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `machine.accounting_denomination` |
 | `qpm` | always `stimulus.settle`, `stimulus.bill` and `stimulus.bill.<cents>`; `stimulus.ticket` if the ticket reader folder can be created; the doors and buttons that the demo declares in its resources; never `stimulus.play` |
 

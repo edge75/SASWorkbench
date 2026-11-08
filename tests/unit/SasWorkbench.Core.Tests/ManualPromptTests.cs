@@ -73,6 +73,53 @@ public class ManualPromptTests
             () => new ManualStimulusBackend((_, _) => PromptAnswer.Done, TimeSpan.Zero));
     }
 
+    /// <summary>
+    /// The destructive and attendant actions the GSA scripts ask for are offered to a person, and
+    /// the prompt says what to do in words a person at the cabinet can follow.
+    /// </summary>
+    [Theory]
+    [InlineData("stimulus.door.main")]
+    [InlineData("stimulus.button.service")]
+    [InlineData("stimulus.handpay")]
+    [InlineData("stimulus.handpay.jackpot")]
+    [InlineData("stimulus.handpay.reset")]
+    [InlineData("machine.power_cycle")]
+    [InlineData("machine.memory_fault")]
+    public void APersonIsOfferedTheActionsTheGsaScriptsNeed(string capability)
+    {
+        var backend = new ManualStimulusBackend((_, _) => PromptAnswer.Done, TimeSpan.FromSeconds(1));
+
+        Assert.Equal("yes", backend.Capabilities[capability]);
+    }
+
+    [Fact]
+    public void APowerCycleAndAMemoryFaultAreAskedForInPlainWords()
+    {
+        var asked = new List<string>();
+        var backend = new ManualStimulusBackend(
+            (request, _) =>
+            {
+                asked.Add(request);
+                return PromptAnswer.Done;
+            },
+            TimeSpan.FromSeconds(1));
+
+        backend.Apply(new PowerCycleStep(SourceLocation.None));
+        backend.Apply(new MemoryFaultStep(SourceLocation.None, MemoryFaultKind.CmosRecovered));
+
+        Assert.Contains("cut the machine's power", asked[0], StringComparison.Ordinal);
+        Assert.Contains("CMOS RAM error the meters survive", asked[1], StringComparison.Ordinal);
+    }
+
+    /// <summary>Real-time event reporting stays an opt-in by name, never a claim of the manual backend.</summary>
+    [Fact]
+    public void RealTimeEventsAreNotClaimedByAPerson()
+    {
+        var backend = new ManualStimulusBackend((_, _) => PromptAnswer.Done, TimeSpan.FromSeconds(1));
+
+        Assert.False(backend.Capabilities.ContainsKey("stimulus.real_time_events"));
+    }
+
     /// <summary>The deadline a run was configured with is the one the backend actually enforces.</summary>
     [Fact]
     public void TheRunnerHandsItsDeadlineToTheBackend()

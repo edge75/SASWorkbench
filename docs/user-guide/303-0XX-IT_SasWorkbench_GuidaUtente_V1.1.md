@@ -836,7 +836,9 @@ Le risposte possibili sono tre:
 Il tempo di attesa predefinito è 2 minuti. Si cambia con `--ask-for`, per esempio `--ask-for 5m`.
 
 Lo stimolo `manual` offre queste azioni: banconota, ticket, partita, chiusura di tutte le porte
-(settle), porta principale (slot door, `door.slot`) e pulsante di cashout (`button.collect`).
+(settle), porta principale (slot door, `door.slot` o `door.main`), pulsanti di cashout e di servizio
+(`button.collect`, `button.service`), hand pay, hand pay da jackpot e relativo reset, power cycle e
+memory fault. Un power cycle o un memory fault si conferma quando la macchina ha finito di riavviarsi.
 
 ### software
 
@@ -2866,6 +2868,8 @@ l'asserzione successiva fallisce: scrivi sempre il `requires` corrispondente.
 | `egm handpay <centesimi>` | `stimulus.handpay` | `egm handpay 2000` |
 | `egm handpay jackpot <centesimi>` | `stimulus.handpay.jackpot` | `egm handpay jackpot 150000` |
 | `egm handpay reset` | `stimulus.handpay.reset` | `egm handpay reset` |
+| `egm power cycle` | `machine.power_cycle` | `egm power cycle` |
+| `egm memory fault <tipo>` | `machine.memory_fault` | `egm memory fault cmos-lost` |
 | `egm set accounting denomination <N>c\|code <hh>` | `stimulus.accounting_denomination` | |
 
 `egm handpay <centesimi>` inserisce una banconota di quel valore e incassa senza alcun dispositivo in
@@ -2877,6 +2881,12 @@ l'host ha letto il long poll `1B` e il poll successivo ha confermato la lettura:
 
 Il percorso di `egm ticket insert <file>` è relativo alla cartella corrente, non alla cartella dello
 script.
+
+Il tipo di `egm memory fault` indica l'eccezione che il guasto deve provocare: `cmos-recovered` ($31),
+`cmos-lost` ($32), `cmos-bad-device` ($33), `eeprom-data` ($34), `eeprom-bad-device` ($35),
+`eprom-changed` ($36), `eprom-bad-checksum` ($37), `partitioned-eprom-changed` ($38),
+`partitioned-eprom-bad-checksum` ($39). `clear` chiede all'operatore di azzerare il guasto ($3A). Solo
+lo stimolo `manual` offre power cycle e memory fault.
 
 **Ticket**
 
@@ -2991,7 +3001,7 @@ capacità dell'ambiente.
 | Stimolo | Capacità |
 | --- | --- |
 | `none` | `stimulus` = `none` |
-| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `stimulus.button.collect` |
+| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `.main`, `stimulus.button.collect`, `.service`, `stimulus.handpay`, `.jackpot`, `.reset`, `machine.power_cycle`, `machine.memory_fault` |
 | `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `machine.accounting_denomination` |
 | `qpm` | sempre `stimulus.settle`, `stimulus.bill` e `stimulus.bill.<centesimi>`; `stimulus.ticket` se la cartella del lettore di ticket si può creare; le porte e i pulsanti che la demo dichiara nelle sue risorse; mai `stimulus.play` |
 

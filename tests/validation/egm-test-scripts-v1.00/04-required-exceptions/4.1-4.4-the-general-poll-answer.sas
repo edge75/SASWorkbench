@@ -114,8 +114,59 @@ test "4.3 no activity" {
 # machine losing power, and the machine picks up where it left off.
 test "4.4 the queue survives a power cycle" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires host.poll_sequence, machine.power_cycle, stimulus.door.main, stimulus.button.service, stimulus.settle
 
-  note "With nothing polling, create ten exceptions - doors opened and closed, the meter display entered and left, the service button pressed and cleared. Power cycle the machine, then start polling."
-  note "Every one of the ten comes back, one per general poll, as a non-zero byte. Keep polling until $00 comes back, then open and close the door: the next two general polls carry slot door opened and slot door closed."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # Ten exceptions taken with the line held, so they wait in the queue.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+  egm press service
+  egm press service
+  egm door main open
+  egm door main close
+
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+
+  # All ten come back in the order they happened. A poll to another machine between two of its own
+  # stands in for the loop's acknowledgement.
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_on
+  host send gp draws silence to 7F
+  host send gp draws change_lamp_off
+  host send gp draws silence to 7F
+  host send gp draws slot_door_opened
+  host send gp draws silence to 7F
+  host send gp draws slot_door_closed
+
+  note "The document then polls until $00 and opens and closes the door once more. The power exceptions that may follow the ten are the machine's own to choose, so that tail is not run."
 }
