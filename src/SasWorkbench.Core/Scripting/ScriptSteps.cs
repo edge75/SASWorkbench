@@ -571,6 +571,92 @@ public sealed record HandpayResetStep(SourceLocation Location) : StimulusStep(Lo
     public override string Describe() => "handpay reset";
 }
 
+/// <summary>Cuts the machine's power, restores it, and lets it boot.</summary>
+public sealed record PowerCycleStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "machine.power_cycle";
+
+    public override string Describe() =>
+        "power cycle (cut the machine's power, restore it, and wait until it has booted)";
+}
+
+/// <summary>Which memory fault a case asks for, by the exception it should raise.</summary>
+public enum MemoryFaultKind
+{
+    /// <summary>A CMOS RAM error with the meters recovered, $31.</summary>
+    CmosRecovered,
+
+    /// <summary>A CMOS RAM error with the meters lost, $32.</summary>
+    CmosLost,
+
+    /// <summary>A bad CMOS RAM device, $33.</summary>
+    CmosBadDevice,
+
+    /// <summary>An EEPROM data error, $34.</summary>
+    EepromData,
+
+    /// <summary>A bad EEPROM device, $35.</summary>
+    EepromBadDevice,
+
+    /// <summary>A different program version fitted, $36.</summary>
+    EpromChanged,
+
+    /// <summary>A bad program checksum, $37.</summary>
+    EpromBadChecksum,
+
+    /// <summary>A different partitioned program version fitted, $38.</summary>
+    PartitionedEpromChanged,
+
+    /// <summary>A bad partitioned program checksum, $39.</summary>
+    PartitionedEpromBadChecksum,
+
+    /// <summary>The operator clears the memory fault at the machine, $3A.</summary>
+    Clear,
+}
+
+/// <summary>Has a person induce a memory fault, or clear one, at the machine.</summary>
+/// <remarks>
+/// Nothing in this build can make a memory device fail, and section 4 leaves the method to the
+/// manufacturer, so the step names the fault by the exception it should raise and leaves the how
+/// to whoever is at the machine.
+/// </remarks>
+public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Kind)
+    : StimulusStep(Location)
+{
+    /// <summary>The word a script writes for each kind.</summary>
+    public static IReadOnlyDictionary<string, MemoryFaultKind> Words { get; } =
+        new Dictionary<string, MemoryFaultKind>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["cmos-recovered"] = MemoryFaultKind.CmosRecovered,
+            ["cmos-lost"] = MemoryFaultKind.CmosLost,
+            ["cmos-bad-device"] = MemoryFaultKind.CmosBadDevice,
+            ["eeprom-data"] = MemoryFaultKind.EepromData,
+            ["eeprom-bad-device"] = MemoryFaultKind.EepromBadDevice,
+            ["eprom-changed"] = MemoryFaultKind.EpromChanged,
+            ["eprom-bad-checksum"] = MemoryFaultKind.EpromBadChecksum,
+            ["partitioned-eprom-changed"] = MemoryFaultKind.PartitionedEpromChanged,
+            ["partitioned-eprom-bad-checksum"] = MemoryFaultKind.PartitionedEpromBadChecksum,
+            ["clear"] = MemoryFaultKind.Clear,
+        };
+
+    public override string RequiredCapability => "machine.memory_fault";
+
+    public override string Describe() => Kind switch
+    {
+        MemoryFaultKind.CmosRecovered => "memory fault: a CMOS RAM error the meters survive",
+        MemoryFaultKind.CmosLost => "memory fault: a CMOS RAM error that loses the meters",
+        MemoryFaultKind.CmosBadDevice => "memory fault: a bad CMOS RAM device",
+        MemoryFaultKind.EepromData => "memory fault: an EEPROM data error",
+        MemoryFaultKind.EepromBadDevice => "memory fault: a bad EEPROM device",
+        MemoryFaultKind.EpromChanged => "memory fault: fit a different program version and power up",
+        MemoryFaultKind.EpromBadChecksum => "memory fault: a bad program checksum",
+        MemoryFaultKind.PartitionedEpromChanged =>
+            "memory fault: fit a different partitioned program version and power up",
+        MemoryFaultKind.PartitionedEpromBadChecksum => "memory fault: a bad partitioned program checksum",
+        _ => "memory fault: clear it at the machine, as the operator does",
+    };
+}
+
 /// <summary>Changes the accounting denomination the machine is counting in, during a run.</summary>
 /// <remarks>
 /// <para>

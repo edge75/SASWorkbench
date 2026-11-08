@@ -134,11 +134,70 @@ test "3.21 the same poll three times is final" {
 # A power cycle does not clear the retry. The machine comes back still owing the same exception.
 test "3.22 a power cycle does not clear a final refusal" {
   tag @egm-test-scripts @chapter-3 @needs-a-person @destructive
-  requires host.poll_sequence, machine.power_cycle, stimulus.button.service
+  requires host.poll_sequence, machine.power_cycle, stimulus.door.main, stimulus.button.service, stimulus.settle
+  requires decoder.lp1F
 
-  note "Create slot door opened, slot door closed and change lamp on. Establish communication, then a general poll to the machine's address and the identification poll: the general poll draws slot door opened. Send the general poll once more: it draws slot door closed."
-  note "Power cycle the machine and let it boot. Establish communication and send the general poll twice: both draw slot door closed. Power cycle again and send it three times: the first two draw slot door closed and the third either repeats it or is unanswered. Power cycle again and repeat with the identification poll on the end."
-  note "Then general poll, identification poll, general poll: the first draws slot door closed, and the second draws change lamp on - the identification poll in between was the acknowledgement the retries never had."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # Step 1: slot door opened, slot door closed and change lamp on wait in the queue.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm press service
+  host send sync
+  host send lp 1F
+
+  # Step 2: the first is drawn and acknowledged, the second is drawn and left unacknowledged.
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+
+  # Step 3: after a power cycle, two general polls both carry the unacknowledged exception.
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+  host send gp draws slot_door_closed
+  host send gp draws slot_door_closed
+
+  # Step 4: three in a row; the third may repeat it or go unanswered, so it is sent, not asserted.
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+  host send gp draws slot_door_closed
+  host send gp draws slot_door_closed
+  host send gp
+
+  # Step 5: the same with the identification poll on the end.
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+  host send gp draws slot_door_closed
+  host send gp draws slot_door_closed
+  host send gp
+  host send lp 1F
+
+  # Step 6: the identification poll in between is the acknowledgement the retries never had.
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws change_lamp_on
+
+  # Leaves the change lamp off for the next case.
+  egm press service
 }
 
 # Five seconds of silence is final too, and it is not the same as a power cycle: the machine chirps

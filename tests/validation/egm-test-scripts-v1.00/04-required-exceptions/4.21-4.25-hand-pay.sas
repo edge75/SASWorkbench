@@ -55,24 +55,88 @@ test "4.22 a queued hand pay is reissued every fifteen seconds" {
 
 test "4.23.1 one hand pay, read once" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires stimulus.handpay, machine.power_cycle
+  requires stimulus.handpay.jackpot, stimulus.handpay.reset, machine.power_cycle, stimulus.settle
   requires decoder.lp1B
 
-  note "Configure the machine for a hand pay queue and a small jackpot win limit. Play until a jackpot win occurs: $51 on a general poll, and every fifteen seconds after."
-  note "Reset the hand pay at the machine. $51 keeps coming every fifteen seconds, because the host has not read it yet. Power cycle: still every fifteen seconds."
-  note "Read the hand pay information. The machine answers it, and one $52 follows on a general poll."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # A jackpot over the machine's limit: $51, and again fifteen seconds later.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host expect exception handpay_is_pending within 20s
+
+  # Reset at the machine before the host has read it: no $52, and $51 goes on.
+  egm handpay reset
+  host expect no exception handpay_was_reset within 5s
+  host forget exceptions within 2s
+  host expect exception handpay_is_pending within 20s
+
+  # The hand pay is in non-volatile memory, so a power cycle does not end it.
+  egm power cycle
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host forget exceptions within 2s
+  host expect exception handpay_is_pending within 20s
+
+  # Read: the machine answers, and one $52 follows.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host expect exception handpay_was_reset within 15s
+
+  note "Before the run, configure the machine for a hand pay queue with a jackpot win limit below the amount the prompt asks for. The amount is in cents."
 }
 
 # Two hand pays, which is where the queue form earns its name: the second $51 must appear behind
 # the first one's $52 rather than being merged with it.
 test "4.23.2 two hand pays, in turn" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires stimulus.handpay, machine.power_cycle
+  requires stimulus.handpay.jackpot, stimulus.handpay.reset, machine.power_cycle, stimulus.settle
   requires decoder.lp1B
 
-  note "With a hand pay queue and a small jackpot limit, play until a jackpot win occurs: $51 every fifteen seconds. Reset it at the machine - no $52 yet, and $51 goes on arriving. Power cycle: still every fifteen seconds."
-  note "Play until a second jackpot occurs. Read the hand pay information: the machine answers, one $52 follows, and then one $51 for the second hand pay on the next general poll, repeating every fifteen seconds."
-  note "Read it again: the machine answers and $51 stops. Reset the hand pay at the machine: one $52."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The first jackpot, reset at the machine before it is read: no $52, and $51 goes on.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  egm handpay reset
+  host expect no exception handpay_was_reset within 5s
+  host forget exceptions within 2s
+  host expect exception handpay_is_pending within 20s
+
+  # Across a power cycle, still every fifteen seconds.
+  egm power cycle
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host forget exceptions within 2s
+  host expect exception handpay_is_pending within 20s
+
+  # The second jackpot. Reading the first brings its $52, then the second's $51.
+  egm handpay jackpot 150000
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host expect exception handpay_was_reset within 15s
+  host expect exception handpay_is_pending within 20s
+
+  # Reading the second stops its $51; the attendant's reset brings one $52.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  host forget exceptions within 2s
+  host expect no exception handpay_is_pending within 20s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "Before the run, configure the machine for a hand pay queue with a jackpot win limit below the amount the prompt asks for. The amount is in cents."
 }
 
 # The legacy form, which is the opposite shape: $51 once, $52 on the reset, and the host's reading

@@ -716,6 +716,52 @@ public class MachineDeclarationTests
         Assert.Equal("stimulus.handpay.reset", Assert.IsType<HandpayResetStep>(test.Steps[2]).RequiredCapability);
     }
 
+    // Power cycles and memory faults are things only a person at the cabinet can do, so they are
+    // stimuli like a door: a backend that cannot do them makes the case skip with the reason.
+    [Fact]
+    public void A_power_cycle_and_a_memory_fault_are_machine_stimuli()
+    {
+        ScriptTest test = Assert.Single(ScriptParser.Parse("""
+            egm power cycle
+            egm memory fault cmos-lost
+            egm memory fault clear
+            """, "test.sas").Tests);
+
+        Assert.Equal("machine.power_cycle", Assert.IsType<PowerCycleStep>(test.Steps[0]).RequiredCapability);
+
+        MemoryFaultStep lost = Assert.IsType<MemoryFaultStep>(test.Steps[1]);
+        Assert.Equal((MemoryFaultKind.CmosLost, "machine.memory_fault"), (lost.Kind, lost.RequiredCapability));
+        Assert.Equal(MemoryFaultKind.Clear, Assert.IsType<MemoryFaultStep>(test.Steps[2]).Kind);
+    }
+
+    [Theory]
+    [InlineData("egm power")]
+    [InlineData("egm power off")]
+    [InlineData("egm memory fault")]
+    [InlineData("egm memory fault cmos")]
+    [InlineData("egm memory error cmos-lost")]
+    public void A_power_cycle_or_memory_fault_written_wrongly_is_a_mistake_in_the_script(string line)
+    {
+        Assert.Throws<ScriptParseException>(() => ScriptParser.Parse(line));
+    }
+
+    // Neither the software machine nor the peripheral driver can cut power or break a memory
+    // device, so only the manual backend claims them; claiming them elsewhere would turn a skip
+    // into a case that waits on nothing.
+    [Fact]
+    public void Only_a_person_offers_power_cycles_and_memory_faults()
+    {
+        foreach (string key in new[] { "machine.power_cycle", "machine.memory_fault" })
+        {
+            Assert.True(CapabilityProbe.ForStimulus(StimulusBackend.Manual).ContainsKey(key));
+            foreach (StimulusBackend backend in new[]
+                     { StimulusBackend.Software, StimulusBackend.Qpm, StimulusBackend.None })
+            {
+                Assert.False(CapabilityProbe.ForStimulus(backend).ContainsKey(key));
+            }
+        }
+    }
+
     [Theory]
     [InlineData("egm handpay")]
     [InlineData("egm handpay 0")]

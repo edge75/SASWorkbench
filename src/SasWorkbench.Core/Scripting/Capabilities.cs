@@ -454,7 +454,19 @@ public static class CapabilityProbe
                 ["stimulus.play"] = "yes",
                 ["stimulus.settle"] = "yes",
                 ["stimulus.door.slot"] = "yes",
+                ["stimulus.door.main"] = "yes",
                 ["stimulus.button.collect"] = "yes",
+                ["stimulus.button.service"] = "yes",
+
+                // A person makes the machine owe it at the cabinet, so the host never withdraws
+                // the printer the way it must for the peripheral driver.
+                ["stimulus.handpay"] = "yes",
+                ["stimulus.handpay.jackpot"] = "yes",
+                ["stimulus.handpay.reset"] = "yes",
+
+                // Only a person at the cabinet can do either, and the cases that need them carry @destructive.
+                ["machine.power_cycle"] = "yes",
+                ["machine.memory_fault"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

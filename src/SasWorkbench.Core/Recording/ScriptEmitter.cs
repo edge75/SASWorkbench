@@ -462,6 +462,9 @@ public static class ScriptEmitter
             ? $"egm handpay jackpot {handpay.AmountCents}"
             : $"egm handpay {handpay.AmountCents}",
         HandpayResetStep => "egm handpay reset",
+        PowerCycleStep => "egm power cycle",
+        MemoryFaultStep fault =>
+            $"egm memory fault {MemoryFaultStep.Words.First(w => w.Value == fault.Kind).Key}",
         InsertTicketStep ticket =>
             $"egm ticket insert amount={ticket.Ticket.AmountCents} "
             + $"validation={ticket.Ticket.ValidationNumber}",

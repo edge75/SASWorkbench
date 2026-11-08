@@ -1333,14 +1333,39 @@ public static class ScriptParser
                 test.Steps.Add(new DoorStep(location, words[2].ToLowerInvariant(), open));
                 return;
 
+            case "power":
+                if (words.Length != 3 || !words[2].Equals("cycle", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: egm power cycle");
+                test.Steps.Add(new PowerCycleStep(location));
+                return;
+
+            case "memory":
+                test.Steps.Add(ReadMemoryFault(words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, set or settle");
+                    + "press, door, handpay, power, memory, set or settle");
         }
     }
 
-    /// <summary>Reads <c>egm handpay &lt;cents&gt;</c>, <c>egm handpay jackpot &lt;cents&gt;</c> or <c>egm handpay reset</c>.</summary>
+    /// <summary>Reads <c>egm memory fault &lt;kind&gt;</c>.</summary>
+    private static MemoryFaultStep ReadMemoryFault(string[] words, SourceLocation location)
+    {
+        string expected = "expected: egm memory fault <kind>, where the kind is one of "
+                          + string.Join(", ", MemoryFaultStep.Words.Keys);
+
+        if (words.Length != 4 || !words[2].Equals("fault", StringComparison.OrdinalIgnoreCase))
+            throw new ScriptParseException(location, expected);
+
+        if (!MemoryFaultStep.Words.TryGetValue(words[3], out MemoryFaultKind kind))
+            throw new ScriptParseException(location, $"'{words[3]}' is not a memory fault. {expected}");
+
+        return new MemoryFaultStep(location, kind);
+    }
+
+    /// <summary>Reads <c>egm handpay &lt;cents&gt;</c>,<c>egm handpay jackpot &lt;cents&gt;</c> or <c>egm handpay reset</c>.</summary>
     private static StimulusStep ReadHandpay(string[] words, SourceLocation location)
     {
         const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents> or egm handpay reset";
