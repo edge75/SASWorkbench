@@ -49,6 +49,28 @@ test "10.2.1 a machine that redeems no tickets refuses one" {
   note "This build's software machine has no switch for redemption on its own - the validation style decides it - so the configuration half is declared rather than performed."
 }
 
+# The poll itself, asked of a machine that has printed nothing. It runs ahead of 10.2.2 on purpose:
+# the poll answers with the last ticket printed, so after 10.2.2 in the same run it would read that
+# ticket back instead of zeros.
+test "10.2.5 the cashout ticket information poll answers before anything is printed" {
+  tag @egm-test-scripts @chapter-10
+  requires egm.validation == standard
+  requires decoder.lp3D
+
+  note "The zeros hold only on a memory that has printed no ticket since it was cleared or restored. A machine with a printing history answers with its last ticket, and this case is then red for that reason."
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # Nothing has been printed, so the machine answers with a number of zero rather than refusing
+  # the poll or staying quiet. Zero here means "no ticket", which is a statement and not an
+  # absence - and it is the same reply shape the poll gives after a print.
+  host send lp 3D
+  host expect field validation_number of lp 3D == 0
+  host expect field ticket_amount of lp 3D == 0
+}
+
 # The exception that says a ticket came out, and the poll that says what was on it.
 test "10.2.2 a printed ticket raises its exception and can be read back" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
@@ -86,24 +108,6 @@ test "10.2.3 a non-validating host must not be able to read the ticket" {
 
   note "The same case is written out in full at tests/conformance/10.1/, against the same machine, where it is numbered 10.1.4 because that tree is revision 1.2 of this suite. It fails there on purpose and for a reason that is a property of the machine library rather than of either tree: the cashout ticket information poll carries no channel gate at all, so a host that owns no validation is answered with the real number and the real amount where this document asks to be ignored or answered with zeros."
   note "Not duplicated here. Two copies of one finding would have to be kept red together, and the day the library gates that poll somebody would find only one of them."
-}
-
-# The poll itself, asked of a machine that has printed nothing.
-test "10.2.5 the cashout ticket information poll answers before anything is printed" {
-  tag @egm-test-scripts @chapter-10
-  requires egm.validation == standard
-  requires decoder.lp3D
-
-  host connect loopback address 01
-  host poll every 200ms
-  host expect link up within 30s
-
-  # Nothing has been printed, so the machine answers with a number of zero rather than refusing
-  # the poll or staying quiet. Zero here means "no ticket", which is a statement and not an
-  # absence - and it is the same reply shape the poll gives after a print.
-  host send lp 3D
-  host expect field validation_number of lp 3D == 0
-  host expect field ticket_amount of lp 3D == 0
 }
 
 # Standard validation does not answer the enhanced-validation commands.
