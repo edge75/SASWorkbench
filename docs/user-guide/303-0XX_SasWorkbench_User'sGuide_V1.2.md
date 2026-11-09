@@ -852,6 +852,7 @@ There are three possible answers:
   with the reason `nobody answered within 120s, so '<step>' did not happen`.
 
 The default waiting time is 2 minutes. You change it with `--ask-for`, for example `--ask-for 5m`.
+Only an answer typed after the question appears counts: lines typed before it are ignored.
 
 The `manual` stimulus offers these actions: banknote, ticket, game, closing all the doors (settle),
 the slot door (`door.slot`, also called the main door, `door.main`), the cashout and service buttons
@@ -1450,7 +1451,7 @@ reports when a memory and the demo build do not match, because they cannot be us
 denomination. The amount is written `0.05`, `0,05` or `5c`; an amount that long poll `$1F` cannot
 report, such as `7c`, is refused with exit code 2. The command writes only the fixture, over itself
 or to `--out`, and never the machine's memory: `sasctl nvram restore` puts the fixture on the
-machine. QSP v2.3.6.1 applies the unit only when the demo's configuration enables
+machine. With the arrangement-15 fixtures, QSP v2.3.6.1 applies the unit only when the demo's configuration enables
 `Sas.AccountingDenomination.Enable` and the unit divides the denomination of every enabled game;
 otherwise it reports in cents. To check, read the `accounting unit` line of `sasctl nvram show`;
 then restore the fixture, start the demo, and long poll `$1F` must report the code that

@@ -867,6 +867,7 @@ Le risposte possibili sono tre:
   con il motivo `nobody answered within 120s, so '<passo>' did not happen`.
 
 Il tempo di attesa predefinito è 2 minuti. Si cambia con `--ask-for`, per esempio `--ask-for 5m`.
+Conta solo la risposta scritta dopo la comparsa della domanda: le righe scritte prima vengono ignorate.
 
 Lo stimolo `manual` offre queste azioni: banconota, ticket, partita, chiusura di tutte le porte
 (settle), porta principale (slot door, `door.slot` o `door.main`), pulsanti di cashout e di servizio
@@ -1474,7 +1475,7 @@ si possono usare insieme.
 contabile. L'importo si scrive `0.05`, `0,05` o `5c`; un importo che il long poll `$1F` non può
 riportare, come `7c`, viene rifiutato con codice di uscita 2. Il comando scrive solo la fixture,
 sopra se stessa o in `--out`, e mai la memoria della macchina: è `sasctl nvram restore` a mettere la
-fixture sulla macchina. QSP v2.3.6.1 applica l'unità solo quando la configurazione della demo abilita
+fixture sulla macchina. Con le fixture della disposizione 15, QSP v2.3.6.1 applica l'unità solo quando la configurazione della demo abilita
 `Sas.AccountingDenomination.Enable` e l'unità divide la denominazione di ogni gioco abilitato;
 altrimenti riporta in centesimi. Per controllare, leggi la riga `accounting unit` di
 `sasctl nvram show`; poi ripristina la fixture, avvia la demo, e il long poll `$1F` deve riportare il

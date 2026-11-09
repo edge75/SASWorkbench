@@ -347,5 +347,6 @@ None.
 ## Open threads
 
 - "Take release 0.2.3" holds only once the merge publishes v0.2.3.
-- The accounting-unit rule in "qpm and nvram" still describes QSP v2.3.6.1; with the arrangement-19
-  fixtures (1c and 2c games on) the v2.3.6.34 demo was recorded reporting 5 cents. Awaiting the user.
+- The accounting-unit rule in "qpm and nvram" is limited to the arrangement-15 fixtures (user, 09/11):
+  with the arrangement-19 fixtures (1c and 2c games on) the v2.3.6.34 demo was recorded reporting
+  5 cents, which this rule does not explain and the guide does not claim.

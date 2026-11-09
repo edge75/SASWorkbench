@@ -239,3 +239,6 @@ PHASE:R36 WAVE:guide-1.2-history STATUS:complete TS:2026-11-08T10:10:03Z
 PHASE:R36 WAVE:iq2-destructive-prep STATUS:complete TS:2026-11-08T10:10:04Z
 PHASE:R36 WAVE:iq2-pre-run-dump STATUS:complete TS:2026-11-08T10:43:44Z
 PHASE:R36 WAVE:guide-1.2-release-0.2.3 STATUS:complete TS:2026-11-09T11:15:44Z
+PHASE:R37 WAVE:iq2-destructive-r36-stopped STATUS:failed TS:2026-11-09T14:42:36Z
+PHASE:R37 WAVE:manual-prompt-reader-fix STATUS:complete TS:2026-11-09T14:42:36Z
+PHASE:R37 WAVE:guide-1.2-accounting-unit-layout15 STATUS:complete TS:2026-11-09T14:42:36Z
