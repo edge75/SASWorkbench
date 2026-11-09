@@ -875,7 +875,16 @@ Lo stimolo `manual` offre queste azioni: banconota, ticket, partita, chiusura di
 memory fault. Per un power cycle la console chiede alla persona di togliere l'alimentazione alla
 macchina, ridarla e aspettare che abbia finito di avviarsi: conferma solo a quel punto. Il prompt di un guasto di memoria
 aggiunge una riga che comincia con `How:`: dice come provocare il guasto e, per i guasti che una
-macchina QSP non alza mai, di rispondere `N`.
+macchina QSP non alza mai, di rispondere `N`. Su una macchina QSP, `cmos-lost` ($32) si provoca
+facendo il dump della NVRAM con lo strumento NVRAM della piattaforma, cambiando un byte del dump e
+riscrivendolo prima che il gioco si avvii; così si perdono i meter.
+
+In un caso che manda i propri poll (`host poll sequence`), mentre aspetta la persona l'host manda un
+poll di sincronizzazione al secondo, così la macchina non dichiara mai un loop break. Dopo un power
+cycle o un guasto di memoria continua a mandare poll di sincronizzazione finché la macchina smette di
+mandare il proprio indirizzo, e solo allora prosegue con il caso; il passo fallisce se dopo 15 secondi
+la macchina lo sta ancora facendo. Una macchina che manda il proprio indirizzo dopo un poll di
+sincronizzazione viene registrata come chirp di loop break, non come una risposta al broadcast.
 
 ### software
 

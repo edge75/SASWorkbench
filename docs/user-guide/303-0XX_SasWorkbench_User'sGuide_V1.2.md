@@ -860,6 +860,15 @@ the slot door (`door.slot`, also called the main door, `door.main`), the cashout
 a memory fault. For a power cycle the console asks the person to cut the machine's power, restore it
 and wait until it has booted: confirm only then. A memory fault prompt adds a line that starts with
 `How:`: it says how to cause the fault and, for the faults a QSP machine never raises, to answer `N`.
+On a QSP machine, `cmos-lost` ($32) is caused by dumping the NVRAM with the platform's NVRAM tool,
+changing one byte of the dump and writing it back before the game starts; this loses the meters.
+
+In a case that sends its own polls (`host poll sequence`), the host sends a synchronisation poll
+every second while it waits for the person, so the machine never declares a loop break. After a
+power cycle or a memory fault it keeps sending synchronisation polls until the machine stops
+sending its own address, and only then goes on with the case; the step fails if the machine is
+still doing so after 15 seconds. A machine sending its own address after a synchronisation poll is
+reported as a loop-break chirp, not as a machine answering the broadcast.
 
 ### software
 
