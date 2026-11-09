@@ -237,32 +237,12 @@ internal static class RunCommand
         return true;
     }
 
-    /// <summary>
-    /// Asks at the console, and gives up when nobody is there.
-    /// </summary>
-    /// <remarks>
-    /// The read happens on a background thread so the deadline can actually expire: a console read
-    /// cannot be cancelled, and an unattended run that blocked here would never reach a verdict.
-    /// The abandoned read is harmless — the process is about to skip the step and move on.
-    /// </remarks>
-    private static PromptAnswer AskAtTheConsole(string prompt, TimeSpan deadline)
-    {
-        Console.WriteLine();
-        Console.WriteLine($"  {prompt}");
-        Console.Write($"  done? [y/N] (giving up in {deadline.TotalSeconds:F0}s) ");
+    // One reader for the whole run, so a prompt that timed out cannot swallow the next answer.
+    private static readonly LinePrompt ConsolePrompt = new(Console.In, Console.Out);
 
-        Task<string?> read = Task.Run(Console.ReadLine);
-        if (!read.Wait(deadline))
-        {
-            Console.WriteLine();
-            Console.WriteLine("  nobody answered.");
-            return PromptAnswer.NoAnswer;
-        }
-
-        return read.Result?.Trim().StartsWith("y", StringComparison.OrdinalIgnoreCase) == true
-            ? PromptAnswer.Done
-            : PromptAnswer.Declined;
-    }
+    /// <summary>Asks at the console, and gives up when nobody is there.</summary>
+    private static PromptAnswer AskAtTheConsole(string prompt, TimeSpan deadline) =>
+        ConsolePrompt.Ask(prompt, deadline);
 
     /// <summary>
     /// Reads <c>--tcp</c>, <c>--serial</c>, <c>--loopback</c>, <c>--address</c> and

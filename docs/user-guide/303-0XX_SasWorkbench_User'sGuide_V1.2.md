@@ -2,7 +2,7 @@
 
 **User Guide**
 
-Document 303-0XX, version 1.1
+Document 303-0XX, version 1.2
 
 **Document revision history**
 
@@ -10,12 +10,13 @@ Document 303-0XX, version 1.1
 | --- | --- | --- | --- |
 | 1.0 | 29/10/2026 | First issue. Describes SasWorkbench 0.2.1. | Alessio Brizi |
 | 1.1 | 31/10/2026 | Describes SasWorkbench 0.2.2: the `when` condition of `host send lp` and `sasctl nvram denomination`; the release state is corrected. | Alessio Brizi |
+| 1.2 | 09/11/2026 | Describes SasWorkbench 0.2.3: the `host warm up`, hand pay, power cycle and memory fault steps, more manual stimuli, and `sasctl nvram games`. | Alessio Brizi |
 
 # About this document
 
 ## Purpose
 
-This guide explains how to use SasWorkbench 0.2.2 to test a gaming machine over the SAS protocol.
+This guide explains how to use SasWorkbench 0.2.3 to test a gaming machine over the SAS protocol.
 It covers installation, the serial and TCP links, running the suites, the reports, the window and
 reading a recorded run, byte by byte.
 
@@ -109,7 +110,7 @@ These have not been measured yet:
 - a USB-serial adapter;
 - other types of serial port, for example a UART dedicated to SAS.
 
-The reports and the window of 0.2.2 still mark the serial link as UNVERIFIED. Their caveat sentence
+The reports and the window of 0.2.3 still mark the serial link as UNVERIFIED. Their caveat sentence
 says that only the on-board UART of the IQ-2 has been measured, and SasWorkbench cannot tell that
 port from a USB adapter. The test of 29/10 concerns one board, one port and one configuration.
 
@@ -174,7 +175,7 @@ machine's.": the link is faithful, but the other end is the software machine. Fo
 "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters are
 unmeasured, so treat a pass over one as untested."
 
-In 0.2.2 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
+In 0.2.3 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
 on-board UART. The section "What is verified" explains why.
 
 The provenance line appears in the console at the end of a run, in every report and in the window.
@@ -205,14 +206,43 @@ They are divided into three trees.
 
 Inside `tests/validation/`, the folder `egm-test-scripts-v1.00/` contains 181 tests in 28 files.
 
-The numbers in the table come from `sasctl run <tree> --list` on version 0.2.2.
+The numbers in the table come from `sasctl run <tree> --list` on version 0.2.3.
 
 The folder `tests/regression/wire/` contains a single test: the link comes up and the machine
 identifies itself. It is the first test to run on a new link.
 
-## Version 0.2.2 and its status
+## Version 0.2.3 and its status
 
-This guide describes SasWorkbench 0.2.2. Compared with 0.2.1, these things change in 0.2.2:
+This guide describes SasWorkbench 0.2.3. Compared with 0.2.2, these things change in 0.2.3:
+
+- a script can make the machine owe a hand pay with `egm handpay <cents>` or
+  `egm handpay jackpot <cents>`, reset it with `egm handpay reset`, and ask for a power cycle with
+  `egm power cycle` or a memory fault with `egm memory fault <kind>` (Appendix B, "Stimuli");
+- the `manual` stimulus also offers the main door, the service button, hand pays, power cycles and
+  memory faults; the `software` stimulus offers hand pays; the `qpm` stimulus offers a cash-out hand
+  pay and its reset when the demo declares the buttons for them (Appendix C);
+- `host warm up <duration>` lets a machine that has just started report its start-up exceptions,
+  once per machine in a run, and many sequenced cases start with it (Appendix B, "Polling");
+- long poll `$80` can be written with named fields (`with progressive_group=… level=… amount=…`);
+  during a sequence, `host send lp ... to 00` sends a long poll that may be broadcast, such as
+  `$80`, and a message `to` an address that the host does not poll passes only if no machine
+  answers (Appendix B, "Sending messages");
+- `host send sync` first discards any bytes that a late reply left on the line, and the log records
+  them;
+- `sasctl nvram games` lists the games' denominations in a fixture, and `sasctl nvram games enable`
+  switches on those that the accounting unit divides; `sasctl nvram` refuses an option that the
+  action does not read, before it reads or writes anything (section "qpm and nvram");
+- the fixtures `golden` and `secure-enhanced` are in memory arrangement 19, for the demo built on
+  QSP v2.3.6.34, count in 5 cents and have their games on; the arrangement-15 copies, for a demo
+  built on QSP v2.3.6.1, are in `fixtures/nvram/arrangement-15/`;
+- the software machine keeps an exception queue 64 deep, applies the implied NACK and the loop
+  break, can hold a hand pay, and reports a base percentage of 9211; after a hand pay reset it
+  reports exception `$52` only once its long poll `$1B` reading has been acknowledged;
+- in `tests/validation`, the queue, implied-acknowledgement and synchronisation cases and the
+  secure-enhanced ticket cases now have their steps written; a case written only as notes is
+  skipped with the reason `no steps are written yet; the case holds only its notes`.
+
+0.2.2 changed these things, compared with 0.2.1:
 
 - `host send lp` can close with a condition, `when <capability> == <value>`: if the capability has
   another value, nothing is sent and the step is not an assertion (Appendix B, "Sending messages");
@@ -258,7 +288,7 @@ corrections. The serial transport has not changed since then, except for its cav
 
 SasWorkbench is published as a release on GitHub, each release with the Windows and Linux packages
 and a `SHA256SUMS` file. Release 0.1.0 does not contain many of the functions
-described here. To use the functions of 0.2.2, take release 0.2.2 or build it from source, as the
+described here. To use the functions of 0.2.3, take release 0.2.3 or build it from source, as the
 chapter "Installation" explains.
 
 %%PAGEBREAK
@@ -342,7 +372,7 @@ sasctl --version
 The reply is the version number alone:
 
 ```
-0.2.2
+0.2.3
 ```
 
 Then ask `sasctl` what it can do in this environment:
@@ -533,7 +563,7 @@ For comparison, the demo over TCP on 17/10 had given 77 / 8 / 0 in the same swee
 The test on the board confirms the cause of the `3F` replies. For the long polls it confirms that the
 two fixes work together, not which of the two was needed: 0.2.1 introduced them together.
 
-0.2.2 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
+0.2.3 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
 the on-board UART of the IQ-2, and says that USB adapters have not been measured.
 
 ## Settings on the machine
@@ -569,7 +599,7 @@ poll `$A0`, which describes the enabled functions.
 The silence of a long poll can therefore be a machine setting, not a fault. Before you look for a
 link problem, check which channel the command's category belongs to.
 
-The following table gives the output of `sasctl catalogue channels` in 0.2.2. The data are read
+The following table gives the output of `sasctl catalogue channels` in 0.2.3. The data are read
 from the machine's library.
 
 | Category | Gated long polls | Filtered exceptions | `$A0` bits cleared |
@@ -822,22 +852,30 @@ There are three possible answers:
   with the reason `nobody answered within 120s, so '<step>' did not happen`.
 
 The default waiting time is 2 minutes. You change it with `--ask-for`, for example `--ask-for 5m`.
+Only an answer typed after the question appears counts: lines typed before it are ignored.
 
 The `manual` stimulus offers these actions: banknote, ticket, game, closing all the doors (settle),
 the slot door (`door.slot`, also called the main door, `door.main`), the cashout and service buttons
 (`button.collect`, `button.service`), a hand pay, a jackpot hand pay and its reset, a power cycle and
-a memory fault. A power cycle or a memory fault is confirmed once the machine has booted again.
+a memory fault. For a power cycle the console asks the person to cut the machine's power, restore it
+and wait until it has booted: confirm only then. A memory fault prompt adds a line that starts with
+`How:`: it says how to cause the fault and, for the faults a QSP machine never raises, to answer `N`.
 
 ### software
 
 With `software` the software machine acts: banknotes, tickets, games, the cashout button, eight
-doors, a change of the accounting denomination and real-time events. It is used only in loopback.
+doors, hand pays, a change of the accounting denomination and real-time events. It is used only in
+loopback.
 
 ### qpm
 
 With `qpm` SasWorkbench writes into the shared memory region of the demo's simulated peripherals.
 It requires `--egm-resources`, the demo's `Resources` folder, where the demo declares its doors and
 its buttons. You change the shared region with `--qpm-shm`, if it is not in the usual place.
+
+With `qpm` a hand pay is a banknote followed by the cashout button, and its reset is the reset
+keyswitch, if the demo declares those buttons. Appendix B, "Stimuli", says what the host sends
+around them.
 
 The two options make sense only with `qpm`. With another stimulus the command replies
 `error: --qpm-shm and --egm-resources only mean something with --stimulus qpm.`
@@ -868,13 +906,13 @@ Every test can carry tags, written in the script with `tag`. Two options use the
 
 The name is written with or without `@`. Each option accepts only one tag.
 
-These are the most used tags in the test trees of 0.2.2:
+These are the most used tags in the test trees of 0.2.3:
 
 | Tag | Tests that carry it |
 | --- | --- |
 | `@egm-test-scripts` | 181 |
-| `@needs-a-person` | 119 |
-| `@needs-stimulus` | 90 |
+| `@needs-stimulus` | 115 |
+| `@needs-a-person` | 99 |
 | `@chapter-10`, `@chapter-4`, `@chapter-11`, `@chapter-3` | 72, 60, 25, 24 |
 | `@accounting-denomination` | 44 |
 | `@destructive` | 25 |
@@ -888,9 +926,9 @@ For example, `--tag wire-only` runs only the tests tagged `@wire-only`, such as 
 ### On a board
 
 The `@destructive` tag marks the 25 tests that change the machine heavily: memory or meter resets,
-power cycles, hand pays. They are all in `tests/validation`. Almost all of them also require a
-person or a capability that no environment offers, so they are usually skipped. On a board, exclude
-them anyway:
+power cycles, hand pays. They are all in `tests/validation`. Almost all of them require a person at
+the machine, with `--stimulus manual`, or a capability that no environment offers, so with
+`--stimulus none` they are skipped. On a board, exclude them anyway:
 
 ```
 sasctl run tests/validation/egm-test-scripts-v1.00 --serial COM6 --skip-tag destructive
@@ -1043,6 +1081,9 @@ Other reasons come from the link:
 | `Cannot open COM6: ...` | the serial port cannot be opened |
 | `Cannot listen on ...` | the TCP address cannot be opened for listening |
 
+A test written only as notes, still to be written, is skipped with the reason
+`no steps are written yet; the case holds only its notes`.
+
 In the run of `tests/regression` on the board on 29/10, with `--stimulus none`, the most frequent
 skips were these three, with 17, 5 and 4 tests, the same with 0.2.0 and with 0.2.1:
 
@@ -1052,8 +1093,10 @@ stimulus.ticket: this environment provides no 'stimulus.ticket'
 stimulus.real_time_events: this environment provides no 'stimulus.real_time_events'
 ```
 
-Some capabilities are not offered by any environment in 0.2.2, for example `stimulus.handpay` and
-`machine.power_cycle`. The tests that require them are always skipped. Appendix C lists them.
+Some capabilities are not offered by any environment in 0.2.3, for example `stimulus.note_fault`
+and `host.chirp`. The tests that require them are always skipped. Others, such as
+`stimulus.handpay` and `machine.power_cycle`, are offered only by some stimuli: with
+`--stimulus none` the tests that require them are skipped. Appendix C lists them.
 
 ## What to expect from tests/regression on a board
 
@@ -1119,7 +1162,7 @@ letting the general polls read the exceptions.
 
 ## The fixed times
 
-Some times are fixed in 0.2.2. Only three can be changed from the command line.
+Some times are fixed in 0.2.3. Only three can be changed from the command line.
 
 | Time | Value | Changed with |
 | --- | --- | --- |
@@ -1165,7 +1208,7 @@ when to use it and what it does on a board. Appendix A lists all the options.
 back. It makes no assertions: it is used to obtain real bytes for every reply, and to check a layout
 against those bytes.
 
-A command that changes the machine is not sent. 0.2.2 asks 85 of the 124 commands in the catalogue
+A command that changes the machine is not sent. 0.2.3 asks 85 of the 124 commands in the catalogue
 and withholds 39. Among those withheld are `$01` (stop play), `$02` (start play), `$0E` (real-time
 events), `$21` (ROM signature) and the commands that move money.
 
@@ -1368,7 +1411,7 @@ Catalogue, generated from the gaming machine library's own headers
   meters       196
 
 Of those, what this build can decode field by field
-  replies      85 of 124
+  replies      86 of 124
   events       10 exception payloads, and 2 the library names and never produces
   meters       40 readable by name
 ```
@@ -1399,7 +1442,8 @@ The machine stops with Ctrl+C and prints how many general polls and long polls i
 
 `qpm` drives the demo's simulated peripherals by hand: doors, buttons, key, banknotes, audit menu.
 `nvram` saves and restores the demo's configured memory, and writes variants of it with a different
-validation style, a different division of the channels or a different accounting denomination.
+validation style, a different division of the channels, a different accounting denomination or its
+games switched on.
 
 Both work only with the demo. `nvram` refuses to save or restore while a machine is running. It also
 reports when a memory and the demo build do not match, because they cannot be used together.
@@ -1408,12 +1452,33 @@ reports when a memory and the demo build do not match, because they cannot be us
 denomination. The amount is written `0.05`, `0,05` or `5c`; an amount that long poll `$1F` cannot
 report, such as `7c`, is refused with exit code 2. The command writes only the fixture, over itself
 or to `--out`, and never the machine's memory: `sasctl nvram restore` puts the fixture on the
-machine. QSP v2.3.6.1 applies the unit only when the demo's configuration enables
+machine. With the arrangement-15 fixtures, QSP v2.3.6.1 applies the unit only when the demo's configuration enables
 `Sas.AccountingDenomination.Enable` and the unit divides the denomination of every enabled game;
 otherwise it reports in cents. To check, read the `accounting unit` line of `sasctl nvram show`;
 then restore the fixture, start the demo, and long poll `$1F` must report the code that
 `nvram denomination` printed, for example `$02` for 5 cents. The repository fixtures `golden` and
 `secure-enhanced` count in 5 cents.
+
+`sasctl nvram games` lists, for each game of a fixture, its denominations and whether each is on
+from the menu and from the host. `sasctl nvram games enable` switches on every denomination that the
+accounting unit divides, and writes the fixture over itself or to `--out`. It reads only memories in
+arrangement 19. Then restore the fixture, start the demo, and check that long poll `$56` lists the
+games. In the repository fixtures the games are already on; the memory as it was saved by hand,
+with four of its denominations off, is in `fixtures/nvram/arrangement-19-as-saved/`.
+
+The fixtures `golden` and `secure-enhanced` are in memory arrangement 19, for the demo built on QSP
+v2.3.6.34. The copies for a demo built on QSP v2.3.6.1, arrangement 15, are in
+`fixtures/nvram/arrangement-15/`, and those for arrangement 7 in `fixtures/nvram/arrangement-7/`.
+
+Each `nvram` action reads only its own options. Any other option, or an argument after an action
+that takes none, stops the command before it reads or writes anything, with exit code 2 and the
+usage. `sasctl nvram --help` prints the usage. For example:
+
+```
+sasctl nvram show --bogus
+
+error: 'nvram show' takes --nvram and --fixture, not --bogus. Nothing was done.
+```
 
 > On a board never use `sasctl qpm` or `sasctl nvram`. By default `nvram` writes to the file `C:\ProgramData\quixant\launchpad\nvram.bin`, which on a board can be the memory of the machine under test.
 
@@ -2146,7 +2211,7 @@ from 0.2.1 on.
 | Code 2 with all tests passed | an option that the command does not read | read the warning `warning: '--...' is not an option of ...` |
 | Code 2 and no test run | error in the command line or in a script | read the `error:` message, which gives the file and line |
 | `error: --out says where reports go, but no --report says which to write.` | `--out` without `--report` | add `--report`, for example `--report html,jsonl` |
-| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.2 (Appendix C) |
+| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.3 (Appendix C) |
 | Outcome `AnsweredWithEvent` | an exception queued, with real-time reporting active | empty the queue with `host forget exceptions` before the long poll; do not leave reporting on |
 
 ## Test failures
@@ -2325,8 +2390,9 @@ frequent case is an expectation written for another machine.
 
 %%APPENDIX Appendix A - sasctl command reference
 
-This appendix lists every command and every option of `sasctl` 0.2.2. The descriptions come from
-the text of `sasctl --help`. A duration is written as `200ms`, `5s` or `2m`.
+This appendix lists every command and every option of `sasctl` 0.2.3. The descriptions come from
+the text of `sasctl --help`, and for `nvram` also from `sasctl nvram --help`. A duration is written
+as `200ms`, `5s` or `2m`.
 
 **General options**
 
@@ -2442,12 +2508,18 @@ variants of a fixture.
 | `validation <style>` | rewrites a fixture in `standard`, `secure_enhanced` or `system` validation |
 | `channels "<plan>"` | rewrites a fixture with the machine divided among several hosts, such as `"1@01 2@02 validation=2"` |
 | `denomination <amount>` | rewrites a fixture counting in another accounting denomination, such as `0.05` or `5c` |
+| `games` | lists the games' denominations in a fixture, and whether each is on |
+| `games enable` | rewrites a fixture with every denomination that the accounting unit divides switched on |
 
 | Option | Effect | Default |
 | --- | --- | --- |
 | `--fixture <file>` | the saved memory | `fixtures/nvram/golden.nvram.gz` |
-| `--nvram <file>` | the machine's memory, if it is not in the usual place | `C:\ProgramData\quixant\launchpad\nvram.bin` |
-| `--out <file>` | where `validation`, `denomination` and `channels` write | over the fixture |
+| `--nvram <file>` | the machine's memory, if it is not in the usual place; only `status`, `show`, `save` and `restore` | `C:\ProgramData\quixant\launchpad\nvram.bin` |
+| `--out <file>` | where `validation`, `denomination`, `channels` and `games enable` write | over the fixture |
+
+Unlike the other commands, `nvram` refuses an option that the action does not read before it does
+anything, with exit code 2. `sasctl nvram --help` prints the usage of every action. `sasctl --help`
+does not list `games`.
 
 **find command**
 
@@ -2599,7 +2671,7 @@ polling round costs.
 
 %%APPENDIX Appendix B - The script language
 
-This appendix describes the script language of SasWorkbench 0.2.2. The examples come from the
+This appendix describes the script language of SasWorkbench 0.2.3. The examples come from the
 scripts in the `tests/` folder of the repository, except where stated otherwise.
 
 **Structure of a file**
@@ -2682,8 +2754,10 @@ Only the first `host poll every` of a test sets the interval. A `host poll every
 already on the line to end, so the next message on the line is the script's.
 
 `host warm up` lets a machine that has just started report its start-up exceptions before a case
-that needs an empty queue. Only the first case of a run waits; the later ones go straight on. Put it
-after `host expect link up` and before `host forget exceptions`.
+that needs an empty queue. The time counts from the first warm-up of that machine in the run, so
+only the first case waits; the later ones go straight on. Put it after `host expect link up` and
+before `host forget exceptions`: if the link is not up, the step fails with
+`the machine is not answering, so it cannot warm up; put 'host expect link up' before this step`.
 
 **Sending messages**
 
@@ -2706,9 +2780,23 @@ are decimal, `$hex`, `0x` or library names.
 `AnsweredWithEvent`, `BadCheckSequence`, `WrongAddress` and `NotSent`. `host expect no reply`
 passes only with `Silent`.
 
-`host send gp` and `host send sync` are used only after `host poll sequence`.
+`host send gp` and `host send sync` are used only after `host poll sequence`. `host send sync` first
+discards any bytes that a late reply left on the line, and the log records them with the note
+`left on the line by an answer that came too late`.
 
 `to <hh>` sends the message to another machine of the round, as in `host send lp 1F to 04`.
+
+After `host poll sequence`, `to` can also name an address that the host does not poll, or `00` for a
+long poll that may be broadcast, such as `$7E`, `$80` or `$86`. The step then passes only if no
+machine answers. This example, written for the purpose, passes on the software machine:
+
+```
+host poll sequence
+host send lp 80 with progressive_group=1 level=1 amount=1000 to 00
+host send lp 7E to 7F
+```
+
+`to 00` with any other long poll is a loading error.
 
 `when <capability> == <value>` closes the line of a `host send lp`, in any form, after any `to`:
 
@@ -2854,12 +2942,14 @@ The kind of `egm memory fault` names the exception the fault should raise: `cmos
 `partitioned-eprom-bad-checksum` ($39). `clear` asks the operator to clear the fault ($3A). Only the
 `manual` stimulus offers a power cycle or a memory fault.
 
-`egm handpay <cents>` inserts a note of that value and cashes out with no device able to pay, so
-the machine owes a cancelled-credit hand pay. On a machine driven through the peripheral manager the
-host first sends long poll `7B` clearing "use printer as cash-out device", and `egm handpay reset`
-turns the reset keyswitch and then sends `7B` setting it again. A jackpot can be asked for only from
-the software machine. A machine that queues its hand pays reports exception `52` only after the host
-has read long poll `1B` and the next poll has acknowledged the reading, so read it before the reset.
+`egm handpay <cents>` puts a note of that value on the machine and cashes out with no device able to
+pay, so the machine owes a cancelled-credit hand pay. With `--stimulus qpm` the host first sends
+long poll `$7B` clearing "use printer as cash-out device", and `egm handpay reset` turns the reset
+keyswitch and then sends `$7B` setting it again; the step fails if the machine does not accept
+`$7B`. A jackpot can be asked for from the software machine or from a person (`manual`), not
+through `qpm`. A machine that queues its hand pays, the software machine included, reports
+exception `$52` only after the host has read long poll `$1B` and the next poll has acknowledged the
+reading, so read it before the reset.
 
 **Tickets**
 
@@ -2975,8 +3065,8 @@ capability, with a reason in one of the forms described in "Skips and their reas
 | --- | --- |
 | `none` | `stimulus` = `none` |
 | `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `.main`, `stimulus.button.collect`, `.service`, `stimulus.handpay`, `.jackpot`, `.reset`, `machine.power_cycle`, `machine.memory_fault` |
-| `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `machine.accounting_denomination` |
-| `qpm` | always `stimulus.settle`, `stimulus.bill` and `stimulus.bill.<cents>`; `stimulus.ticket` if the ticket reader folder can be created; the doors and buttons that the demo declares in its resources; never `stimulus.play` |
+| `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.handpay`, `.jackpot`, `.reset`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `machine.accounting_denomination` |
+| `qpm` | always `stimulus.settle`, `stimulus.bill` and `stimulus.bill.<cents>`; `stimulus.ticket` if the ticket reader folder can be created; the doors and buttons that the demo declares in its resources; `stimulus.handpay` if it declares a cashout button and `stimulus.handpay.reset` if it declares a reset keyswitch, both with the value `printer_withdrawn`; never `stimulus.play` or `stimulus.handpay.jackpot` |
 
 The value of the `stimulus` capability is the name of the stimulus in use, so a test can write
 `requires stimulus == none`.
@@ -2993,25 +3083,26 @@ while a send whose `when` names them fails.
 | `egm.validation` | long poll `$A0` | `standard`, `system`, `secure_enhanced` |
 | `egm.accounting_denomination` | long poll `$1F` | `<cents>c`, for example `5c` |
 
-**Not offered by any environment in 0.2.2**
+**Capabilities skipped on 29/10, and in 0.2.3**
 
-Any other key can be written, but no environment offers it. The tests that require it are always
-skipped. In the tests of 29/10 these appeared, among others:
+Any other key can be written, but no environment offers it, and the tests that require it are always
+skipped. These keys were among the most frequent skips in the tests of 29/10; the last column says
+which of them 0.2.3 offers:
 
-| Capability | Tests skipped in the validation suite |
-| --- | --- |
-| `stimulus.handpay` | 21 |
-| `host.validation_sequence` | 10 |
-| `machine.power_cycle` | 9 |
-| `machine.memory_fault` | 7 |
-| `stimulus.service_button` | 6 |
-| `stimulus.note_fault` | 6 |
-| `host.chirp` | 5 |
-| `stimulus.printer_fault` | 5 |
-| `machine.restricted_credits` | 5 |
+| Capability | Tests skipped in the validation suite on 29/10 | In 0.2.3 |
+| --- | --- | --- |
+| `stimulus.handpay` | 21 | offered by `manual`, `software` and, with a cashout button, `qpm` |
+| `host.validation_sequence` | 10 | not offered |
+| `machine.power_cycle` | 9 | offered by `manual` |
+| `machine.memory_fault` | 7 | offered by `manual` |
+| `stimulus.service_button` | 6 | the tests now require `stimulus.button.service`, offered by `manual`, and by `qpm` if the demo declares a service button |
+| `stimulus.note_fault` | 6 | not offered |
+| `host.chirp` | 5 | not offered |
+| `stimulus.printer_fault` | 5 | not offered |
+| `machine.restricted_credits` | 5 | not offered |
 
-These counts come from the run of the `egm-test-scripts-v1.00` suite with 0.2.0 and
-`--stimulus none`.
+The counts come from the run of the `egm-test-scripts-v1.00` suite with 0.2.0 and
+`--stimulus none`. They have not been measured again with 0.2.3.
 
 %%PAGEBREAK
 

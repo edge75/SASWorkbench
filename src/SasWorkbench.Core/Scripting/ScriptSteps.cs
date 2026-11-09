@@ -433,6 +433,9 @@ public abstract record StimulusStep(SourceLocation Location) : ScriptStep(Locati
 {
     /// <summary>The capability this step needs, so an unmet one can be named in a skip.</summary>
     public abstract string RequiredCapability { get; }
+
+    /// <summary>How a person brings this about, and when to say no; null when the step says enough.</summary>
+    public virtual string? Guidance => null;
 }
 
 /// <summary>Inserts a note.</summary>
@@ -654,6 +657,33 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
             "memory fault: fit a different partitioned program version and power up",
         MemoryFaultKind.PartitionedEpromBadChecksum => "memory fault: a bad partitioned program checksum",
         _ => "memory fault: clear it at the machine, as the operator does",
+    };
+
+    // What QSP can raise is read from its source: $32 only for memory with no valid copy at
+    // power-up, $36 when the program changes, $3A after an NVRAM reset, never the others.
+    public override string Guidance => Kind switch
+    {
+        MemoryFaultKind.CmosRecovered =>
+            "How: the machine must find a memory error at power-up and recover the meters. "
+            + "A QSP machine never raises $31: answer N.",
+        MemoryFaultKind.CmosLost =>
+            "How: the machine must find its memory invalid at power-up; confirm once it has booted. "
+            + "This loses the meters. On a QSP machine only memory with no valid copy raises $32: "
+            + "answer N to keep the meters.",
+        MemoryFaultKind.CmosBadDevice => "How: a failing memory device. A QSP machine never raises $33: answer N.",
+        MemoryFaultKind.EepromData => "How: corrupted EEPROM data. A QSP machine never raises $34: answer N.",
+        MemoryFaultKind.EepromBadDevice => "How: a failing EEPROM. A QSP machine never raises $35: answer N.",
+        MemoryFaultKind.EpromChanged =>
+            "How: install a different version of the program, power up, and confirm once it has "
+            + "booted. Answer N if only one build of the program is installed.",
+        MemoryFaultKind.EpromBadChecksum =>
+            "How: a program whose checksum fails. A QSP machine never raises $37: answer N.",
+        MemoryFaultKind.PartitionedEpromChanged =>
+            "How: a different version of one program partition. A QSP machine never raises $38: answer N.",
+        MemoryFaultKind.PartitionedEpromBadChecksum =>
+            "How: a program partition whose checksum fails. A QSP machine never raises $39: answer N.",
+        _ => "How: on a QSP machine, the NVRAM reset in the audit menu, which clears the meters; "
+             + "set the SAS address again if it was lost, then confirm.",
     };
 }
 
