@@ -858,7 +858,8 @@ The `manual` stimulus offers these actions: banknote, ticket, game, closing all 
 the slot door (`door.slot`, also called the main door, `door.main`), the cashout and service buttons
 (`button.collect`, `button.service`), a hand pay, a jackpot hand pay and its reset, a power cycle and
 a memory fault. For a power cycle the console asks the person to cut the machine's power, restore it
-and wait until it has booted: confirm only then.
+and wait until it has booted: confirm only then. A memory fault prompt adds a line that starts with
+`How:`: it says how to cause the fault and, for the faults a QSP machine never raises, to answer `N`.
 
 ### software
 

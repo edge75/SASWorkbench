@@ -104,8 +104,11 @@ public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
         //  person has to walk to the right cabinet and "do this on the machine" does not say which.
         string where = machine is { } address ? $"on machine ${address}" : "on the machine";
 
-        PromptAnswer answer = ask(
-            $"Please do this {where}, then confirm: {step.Describe()}", Deadline);
+        string request = $"Please do this {where}, then confirm: {step.Describe()}";
+        if (step.Guidance is { } guidance)
+            request += Environment.NewLine + "  " + guidance;
+
+        PromptAnswer answer = ask(request, Deadline);
 
         switch (answer)
         {

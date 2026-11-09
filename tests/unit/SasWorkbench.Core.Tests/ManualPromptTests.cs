@@ -111,6 +111,59 @@ public class ManualPromptTests
         Assert.Contains("CMOS RAM error the meters survive", asked[1], StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// A memory fault prompt says how to cause the fault and when to answer no. On the board a
+    /// person met "an EEPROM data error" with no idea what to do; most of these faults cannot
+    /// happen on a QSP machine at all, and the prompt has to say so.
+    /// </summary>
+    [Theory]
+    [InlineData(MemoryFaultKind.CmosRecovered, "never raises $31")]
+    [InlineData(MemoryFaultKind.CmosLost, "loses the meters")]
+    [InlineData(MemoryFaultKind.CmosBadDevice, "never raises $33")]
+    [InlineData(MemoryFaultKind.EepromData, "never raises $34")]
+    [InlineData(MemoryFaultKind.EepromBadDevice, "never raises $35")]
+    [InlineData(MemoryFaultKind.EpromChanged, "different version of the program")]
+    [InlineData(MemoryFaultKind.EpromBadChecksum, "never raises $37")]
+    [InlineData(MemoryFaultKind.PartitionedEpromChanged, "never raises $38")]
+    [InlineData(MemoryFaultKind.PartitionedEpromBadChecksum, "never raises $39")]
+    [InlineData(MemoryFaultKind.Clear, "NVRAM reset in the audit menu")]
+    public void AMemoryFaultPromptSaysHowAndWhenToAnswerNo(MemoryFaultKind kind, string advice)
+    {
+        string? asked = null;
+        var backend = new ManualStimulusBackend(
+            (request, _) =>
+            {
+                asked = request;
+                return PromptAnswer.Done;
+            },
+            TimeSpan.FromSeconds(1));
+
+        backend.Apply(new MemoryFaultStep(SourceLocation.None, kind));
+
+        Assert.NotNull(asked);
+        Assert.Contains("How:", asked, StringComparison.Ordinal);
+        Assert.Contains(advice, asked, StringComparison.Ordinal);
+    }
+
+    /// <summary>A step with nothing more to say keeps its one-line prompt.</summary>
+    [Fact]
+    public void AStepWithoutGuidanceIsAskedOnOneLine()
+    {
+        string? asked = null;
+        var backend = new ManualStimulusBackend(
+            (request, _) =>
+            {
+                asked = request;
+                return PromptAnswer.Done;
+            },
+            TimeSpan.FromSeconds(1));
+
+        backend.Apply(Step);
+
+        Assert.DoesNotContain(Environment.NewLine, asked!, StringComparison.Ordinal);
+        Assert.DoesNotContain("How:", asked!, StringComparison.Ordinal);
+    }
+
     /// <summary>Real-time event reporting stays an opt-in by name, never a claim of the manual backend.</summary>
     [Fact]
     public void RealTimeEventsAreNotClaimedByAPerson()

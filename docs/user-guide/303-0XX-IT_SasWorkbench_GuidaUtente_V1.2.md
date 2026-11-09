@@ -873,7 +873,9 @@ Lo stimolo `manual` offre queste azioni: banconota, ticket, partita, chiusura di
 (settle), porta principale (slot door, `door.slot` o `door.main`), pulsanti di cashout e di servizio
 (`button.collect`, `button.service`), hand pay, hand pay da jackpot e relativo reset, power cycle e
 memory fault. Per un power cycle la console chiede alla persona di togliere l'alimentazione alla
-macchina, ridarla e aspettare che abbia finito di avviarsi: conferma solo a quel punto.
+macchina, ridarla e aspettare che abbia finito di avviarsi: conferma solo a quel punto. Il prompt di un guasto di memoria
+aggiunge una riga che comincia con `How:`: dice come provocare il guasto e, per i guasti che una
+macchina QSP non alza mai, di rispondere `N`.
 
 ### software
 
