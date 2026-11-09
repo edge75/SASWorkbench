@@ -325,3 +325,27 @@ None.
   now marks it Latest (VERIFIED_LINK). The Windows package matches its checksum and its `sasctl
   --version` prints `0.2.2` (VERIFIED_RUNTIME). "Take release 0.2.2" holds, and the open thread
   on Latest is closed.
+
+# Guide 1.2 (09/11/2026)
+
+## Decisions
+
+- **The guides describe 0.2.3.** The steps and stimuli added after v0.2.2 made the "0.2.2"
+  statements false for the code they now document. `Version` becomes 0.2.3, so merging publishes
+  v0.2.3; a list "Compared with 0.2.2" leads the version section and the 0.2.2 list stays as history.
+- **Version 1.2.** Files renamed `_V1.2` with `git mv`; one new history row, rows 1.0 and 1.1 unchanged.
+- **Word and PDF** rebuilt as V1.2 into `C:/work/SasWorkbench/Guides`, not committed.
+
+## Applied
+
+- The Technical Writer rewrote both guides; a separate pass checked every changed line against the
+  source and the 0.2.3 build. Four of its five defects were fixed in both languages; the fifth was
+  contradicted by the test trees (8 tests still require `host.validation_sequence`).
+- Word and PDF V1.2: EN 75 pages, IT 76; the denylist scan of the PDF text finds nothing; the twin
+  check shows only the translated placeholder of `sasctl run`, as in 1.0 and 1.1.
+
+## Open threads
+
+- "Take release 0.2.3" holds only once the merge publishes v0.2.3.
+- The accounting-unit rule in "qpm and nvram" still describes QSP v2.3.6.1; with the arrangement-19
+  fixtures (1c and 2c games on) the v2.3.6.34 demo was recorded reporting 5 cents. Awaiting the user.
