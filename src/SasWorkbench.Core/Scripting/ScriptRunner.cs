@@ -1166,7 +1166,7 @@ public sealed class ScriptRunner
             held ? Verdict.Pass : Verdict.Fail,
             Expected: "a broadcast no machine answers",
             Actual: result.ToString(),
-            Reason: held ? null : result.Detail,
+            Reason: held && !result.IsLoopBreakChirp ? null : result.Detail,
             At: at)
         {
             IsAssertion = true,
@@ -1254,7 +1254,23 @@ public sealed class ScriptRunner
                     At: at) { IsAssertion = true };
             }
 
-            environment.Stimulus.Apply(step, machine);
+            // A person can take minutes; a sequenced host sends nothing meanwhile, and five silent
+            // seconds put the machine into a loop break.
+            using (environment.Stimulus is ManualStimulusBackend ? LinkKeepAlive.Start(engine) : null)
+                environment.Stimulus.Apply(step, machine);
+
+            MachineResynchronisation? resync = step is PowerCycleStep or MemoryFaultStep
+                ? MachineResynchronisation.Run(engine)
+                : null;
+            if (resync is { Failed: true } stillChirping)
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                    Expected: "the machine to stop chirping once the host synchronises it",
+                    Actual: stillChirping.Summary,
+                    Reason: "a machine still in a loop break ignores polls for itself, so every "
+                            + "assertion after this step would read the wrong thing",
+                    At: at) { IsAssertion = true };
+            }
 
             if (printerWithdrawn && step is HandpayResetStep
                 && SetPrinterAsCashoutDevice(engine, machine, allowed: true) is { } notRestored)
@@ -1271,7 +1287,7 @@ public sealed class ScriptRunner
                     ? step is HandpayStep
                         ? "the host withdrew the printer as cash-out device (7B bit 0) first"
                         : "the host gave the printer back as cash-out device (7B bit 0) after"
-                    : null,
+                    : resync?.Summary,
                 At: at);
         }
         catch (StimulusUnavailableException unavailable)

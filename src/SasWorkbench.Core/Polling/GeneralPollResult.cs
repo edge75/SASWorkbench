@@ -70,6 +70,12 @@ public sealed record GeneralPollResult(
     /// <summary>What the exception carried after its code, when it came in the event format.</summary>
     public byte[]? Data { get; init; }
 
+    /// <summary>
+    /// True when what came back after a broadcast was a machine chirping its own address after a
+    /// loop break (SAS 6.02 section 3.3), which is not an answer to the broadcast.
+    /// </summary>
+    public bool IsLoopBreakChirp { get; init; }
+
     /// <summary>A single line for a report or a log.</summary>
     public override string ToString()
     {

@@ -902,11 +902,37 @@ public sealed class PollEngine : IDisposable
             return;
         }
 
+        ReadOnlySpan<byte> heard = _inbound.AsSpan(0, received);
+        if (IsChirp(heard))
+        {
+            RecordReceive(received, wakeup,
+                "loop-break chirp - the machine is sending its own address, not answering the broadcast");
+            Finish(ticket, new GeneralPollResult(SasAddress.Sync, _options.Channel,
+                GeneralPollOutcome.Broadcast, 0x00, heard.ToArray(), latency,
+                "The machine was chirping its address after a loop break, as SAS allows; no machine answered the broadcast.")
+            {
+                IsLoopBreakChirp = true,
+            });
+            return;
+        }
+
         RecordReceive(received, wakeup,
             "a machine answered a broadcast to address 00, which no machine may answer");
         Finish(ticket, new GeneralPollResult(SasAddress.Sync, _options.Channel,
             GeneralPollOutcome.Unreadable, 0x00, _inbound.AsSpan(0, received).ToArray(), latency,
             "A machine answered the broadcast to address 00. No machine may answer one."));
+    }
+
+    // Only bytes that are each one of this host's own machine addresses read as a chirp.
+    private bool IsChirp(ReadOnlySpan<byte> heard)
+    {
+        foreach (byte value in heard)
+        {
+            if (value == 0 || !_options.Round.Any(a => a.Value == value))
+                return false;
+        }
+
+        return true;
     }
 
     /// <summary>Hands a poll's answer back to whoever asked, when they are still waiting for it.</summary>

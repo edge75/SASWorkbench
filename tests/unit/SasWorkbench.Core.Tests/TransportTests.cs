@@ -251,6 +251,99 @@ public class SerialTransportTests
         Assert.InRange(SerialTransport.CharacterTime(19200).TotalMicroseconds, 572.9, 573.0);
     }
 
+    /// <summary>
+    /// The drain before every poll reads with no wait at all. On the board the reader computed its
+    /// deadline as "now" and never looked, so the drain never drained: while a person answered a
+    /// prompt the machine chirped its address for half a minute, and the next synchronisation poll
+    /// read all of it as a machine answering a broadcast.
+    /// </summary>
+    [Fact]
+    public void A_read_with_no_wait_still_takes_what_is_already_waiting()
+    {
+        var input = new WaitingInput([0x01, 0x01, 0x01]);
+        var destination = new SasSymbol[16];
+
+        int read = SerialTransport.ReadSymbols(input, destination, TimeSpan.Zero, new byte[512]);
+
+        Assert.Equal(3, read);
+        Assert.All(destination[..3], s => Assert.Equal(0x01, s.Data));
+        Assert.Equal(0, input.BytesToRead);
+    }
+
+    /// <summary>A link draining an empty line does not wait, and finds nothing.</summary>
+    [Fact]
+    public void A_drain_of_an_empty_serial_line_returns_at_once()
+    {
+        var input = new WaitingInput([]);
+        var link = new SasLink(new InputOnlyTransport(input));
+
+        System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
+        int discarded = link.Drain(new SasSymbol[64], TimeSpan.Zero);
+
+        Assert.Equal(0, discarded);
+        Assert.True(watch.ElapsedMilliseconds < 100, $"took {watch.ElapsedMilliseconds}ms");
+    }
+
+    /// <summary>Everything waiting on the line is drained, not just the first read's worth.</summary>
+    [Fact]
+    public void A_drain_of_a_serial_line_empties_it()
+    {
+        var input = new WaitingInput(Enumerable.Repeat((byte)0x01, 700).ToArray());
+        var link = new SasLink(new InputOnlyTransport(input));
+
+        int discarded = link.Drain(new SasSymbol[64], TimeSpan.Zero);
+
+        Assert.Equal(700, discarded);
+        Assert.Equal(0, input.BytesToRead);
+    }
+
+    private sealed class WaitingInput(byte[] waiting) : ISerialInput
+    {
+        private readonly Queue<byte> _waiting = new(waiting);
+
+        public int BytesToRead => _waiting.Count;
+
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            int read = 0;
+            while (read < count && _waiting.Count > 0)
+                buffer[offset + read++] = _waiting.Dequeue();
+            return read;
+        }
+    }
+
+    /// <summary>A transport that reads through the serial reader and never sends.</summary>
+    private sealed class InputOnlyTransport(ISerialInput input) : ISasTransport
+    {
+        private readonly byte[] _buffer = new byte[512];
+
+        public string Description => "waiting input";
+
+        public TransportCapabilities Capabilities { get; } = new(
+            TransportKind.Serial, CarriesWakeupBit: true, TransportFidelity.Unverified, null);
+
+        public bool IsConnected => true;
+
+        public void Open()
+        {
+        }
+
+        public void Close()
+        {
+        }
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols)
+        {
+        }
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout) =>
+            SerialTransport.ReadSymbols(input, destination, timeout, _buffer);
+
+        public void Dispose()
+        {
+        }
+    }
+
     private sealed class RecordingSerialLine(Parity parity) : ISerialLine
     {
         private Parity _parity = parity;

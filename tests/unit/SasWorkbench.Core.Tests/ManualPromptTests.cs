@@ -118,7 +118,7 @@ public class ManualPromptTests
     /// </summary>
     [Theory]
     [InlineData(MemoryFaultKind.CmosRecovered, "never raises $31")]
-    [InlineData(MemoryFaultKind.CmosLost, "loses the meters")]
+    [InlineData(MemoryFaultKind.CmosLost, "change one byte of the dump")]
     [InlineData(MemoryFaultKind.CmosBadDevice, "never raises $33")]
     [InlineData(MemoryFaultKind.EepromData, "never raises $34")]
     [InlineData(MemoryFaultKind.EepromBadDevice, "never raises $35")]

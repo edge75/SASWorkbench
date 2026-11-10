@@ -667,9 +667,9 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
             "How: the machine must find a memory error at power-up and recover the meters. "
             + "A QSP machine never raises $31: answer N.",
         MemoryFaultKind.CmosLost =>
-            "How: the machine must find its memory invalid at power-up; confirm once it has booted. "
-            + "This loses the meters. On a QSP machine only memory with no valid copy raises $32: "
-            + "answer N to keep the meters.",
+            "How: on a QSP machine, with the game closed, dump the NVRAM with nvman, change one byte "
+            + "of the dump by hand, write it back with nvman, then start the game and confirm once it "
+            + "has booted. This loses the meters: answer N to keep them.",
         MemoryFaultKind.CmosBadDevice => "How: a failing memory device. A QSP machine never raises $33: answer N.",
         MemoryFaultKind.EepromData => "How: corrupted EEPROM data. A QSP machine never raises $34: answer N.",
         MemoryFaultKind.EepromBadDevice => "How: a failing EEPROM. A QSP machine never raises $35: answer N.",

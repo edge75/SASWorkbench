@@ -163,51 +163,67 @@ public sealed class SerialTransport : ISasTransport
     public int Read(Span<SasSymbol> destination, TimeSpan timeout)
     {
         SerialPort? port = _port;
-        if (port is null || !port.IsOpen || destination.IsEmpty)
+        if (port is null || !port.IsOpen)
+            return 0;
+
+        return ReadSymbols(new SerialPortInput(port), destination, timeout, _readBuffer);
+    }
+
+    /// <summary>
+    /// Reads what has arrived, waiting up to <paramref name="timeout"/> for the first byte; a zero
+    /// timeout still takes what is already waiting, so a drain before a poll empties the line.
+    /// </summary>
+    public static int ReadSymbols(
+        ISerialInput input, Span<SasSymbol> destination, TimeSpan timeout, byte[] buffer)
+    {
+        if (destination.IsEmpty)
             return 0;
 
         long deadline = Environment.TickCount64 + (long)timeout.TotalMilliseconds;
         int produced = 0;
 
-        while (produced == 0 && Environment.TickCount64 < deadline)
+        while (true)
         {
             int available;
             try
             {
-                available = port.BytesToRead;
+                available = input.BytesToRead;
             }
             catch (InvalidOperationException)
             {
                 return 0;
             }
 
-            if (available == 0)
+            if (available > 0)
             {
-                Thread.Sleep(1);
-                continue;
+                int wanted = Math.Min(Math.Min(available, buffer.Length), destination.Length);
+                int read;
+                try
+                {
+                    read = input.Read(buffer, 0, wanted);
+                }
+                catch (TimeoutException)
+                {
+                    read = 0;
+                }
+                catch (Exception ex) when (ex is IOException or InvalidOperationException)
+                {
+                    return 0;
+                }
+
+                // A gaming machine never sets the wakeup bit, so every received byte is data.
+                for (int i = 0; i < read; i++)
+                    destination[produced++] = SasSymbol.Data8(buffer[i]);
+
+                if (produced > 0)
+                    return produced;
             }
 
-            int wanted = Math.Min(Math.Min(available, _readBuffer.Length), destination.Length);
-            int read;
-            try
-            {
-                read = port.Read(_readBuffer, 0, wanted);
-            }
-            catch (TimeoutException)
-            {
-                continue;
-            }
-            catch (Exception ex) when (ex is IOException or InvalidOperationException)
-            {
-                return 0;
-            }
+            if (Environment.TickCount64 >= deadline)
+                return produced;
 
-            // A gaming machine never sets the wakeup bit, so every received byte is data.
-            for (int i = 0; i < read; i++)
-                destination[produced++] = SasSymbol.Data8(_readBuffer[i]);
+            Thread.Sleep(1);
         }
-
-        return produced;
     }
 
     public void Close() => Dispose();
@@ -233,6 +249,13 @@ public sealed class SerialTransport : ISasTransport
 
             port.Dispose();
         }
+    }
+
+    private sealed class SerialPortInput(SerialPort port) : ISerialInput
+    {
+        public int BytesToRead => port.BytesToRead;
+
+        public int Read(byte[] buffer, int offset, int count) => port.Read(buffer, offset, count);
     }
 
     private sealed class SerialPortLine(SerialPort port) : ISerialLine
