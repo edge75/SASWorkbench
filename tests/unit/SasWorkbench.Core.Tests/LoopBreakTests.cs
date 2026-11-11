@@ -117,14 +117,15 @@ public class LoopBreakTests
         engine.BeginSequence();
         long before = engine.Statistics.SyncPolls;
 
+        // Each sync waits about 200 ms for a reply nobody sends, so 1.5 s holds about five of them.
         using (LinkKeepAlive.Start(engine, TimeSpan.FromMilliseconds(100)))
-            Thread.Sleep(650);
+            Thread.Sleep(1500);
 
         long during = engine.Statistics.SyncPolls - before;
         Thread.Sleep(300);
         long after = engine.Statistics.SyncPolls - before;
 
-        Assert.InRange(during, 2, 8);
+        Assert.InRange(during, 2, 15);
         Assert.Equal(during, after);
     }
 

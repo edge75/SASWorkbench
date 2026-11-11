@@ -350,3 +350,16 @@ None.
 - The accounting-unit rule in "qpm and nvram" is limited to the arrangement-15 fixtures (user, 09/11):
   with the arrangement-19 fixtures (1c and 2c games on) the v2.3.6.34 demo was recorded reporting
   5 cents, which this rule does not explain and the guide does not claim.
+
+# Guide 1.3 (11/11/2026)
+
+## Decisions
+
+- **Version 1.3** (user, 11/11): files renamed `_V1.3` with `git mv`; one new history row, earlier rows unchanged.
+- **nvman may be named** (user, 11/11): the `$32` paragraph names it in both languages.
+- **Word and PDF** rebuilt as V1.3 into `C:/work/SasWorkbench/Guides`, not committed: EN 75 pages, IT 76; no denylist hit; twin check as in 1.2.
+
+## Open threads
+
+- **Version 0.2.4** (user, 11/11): the body describes 0.2.4, with a list "Compared with 0.2.3"; the 0.2.3 list stays as history.
+- "Take release 0.2.4" holds only once the merge publishes v0.2.4.

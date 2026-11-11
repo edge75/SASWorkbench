@@ -247,3 +247,6 @@ PHASE:R37 WAVE:iq2-post-run-dump STATUS:complete TS:2026-11-09T17:26:05Z
 PHASE:R37 WAVE:memory-fault-prompt-guidance STATUS:complete TS:2026-11-09T17:26:05Z
 PHASE:R38 WAVE:loop-break-analysis STATUS:complete TS:2026-11-09T22:43:24Z
 PHASE:R38 WAVE:serial-drain-chirp-keepalive-resync STATUS:complete TS:2026-11-09T22:43:24Z
+PHASE:R38 WAVE:guide-1.3 STATUS:complete TS:2026-11-11T15:02:33Z
+PHASE:R38 WAVE:run-and-dump STATUS:complete TS:2026-11-11T15:31:10Z
+PHASE:R38 WAVE:version-0.2.4 STATUS:complete TS:2026-11-11T15:31:10Z
