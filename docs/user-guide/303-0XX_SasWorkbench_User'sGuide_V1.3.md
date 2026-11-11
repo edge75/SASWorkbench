@@ -2,7 +2,7 @@
 
 **User Guide**
 
-Document 303-0XX, version 1.2
+Document 303-0XX, version 1.3
 
 **Document revision history**
 
@@ -11,6 +11,7 @@ Document 303-0XX, version 1.2
 | 1.0 | 29/10/2026 | First issue. Describes SasWorkbench 0.2.1. | Alessio Brizi |
 | 1.1 | 31/10/2026 | Describes SasWorkbench 0.2.2: the `when` condition of `host send lp` and `sasctl nvram denomination`; the release state is corrected. | Alessio Brizi |
 | 1.2 | 09/11/2026 | Describes SasWorkbench 0.2.3: the `host warm up`, hand pay, power cycle and memory fault steps, more manual stimuli, and `sasctl nvram games`. | Alessio Brizi |
+| 1.3 | 11/11/2026 | Says how to cause `$32` with nvman, and how sequenced cases keep the link alive and resynchronise the machine around manual steps. | Alessio Brizi |
 
 # About this document
 
@@ -860,8 +861,8 @@ the slot door (`door.slot`, also called the main door, `door.main`), the cashout
 a memory fault. For a power cycle the console asks the person to cut the machine's power, restore it
 and wait until it has booted: confirm only then. A memory fault prompt adds a line that starts with
 `How:`: it says how to cause the fault and, for the faults a QSP machine never raises, to answer `N`.
-On a QSP machine, `cmos-lost` ($32) is caused by dumping the NVRAM with the platform's NVRAM tool,
-changing one byte of the dump and writing it back before the game starts; this loses the meters.
+On a QSP machine, `cmos-lost` ($32) is caused by dumping the NVRAM with nvman,
+changing one byte of the dump by hand and writing it back with nvman before the game starts; this loses the meters.
 
 In a case that sends its own polls (`host poll sequence`), the host sends a synchronisation poll
 every second while it waits for the person, so the machine never declares a loop break. After a

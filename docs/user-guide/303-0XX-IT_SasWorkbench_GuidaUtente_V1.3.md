@@ -2,7 +2,7 @@
 
 **Guida utente**
 
-Documento 303-0XX-IT, versione 1.2
+Documento 303-0XX-IT, versione 1.3
 
 **Storia delle revisioni**
 
@@ -11,6 +11,7 @@ Documento 303-0XX-IT, versione 1.2
 | 1.0 | 29/10/2026 | Prima emissione. Descrive SasWorkbench 0.2.1. | Alessio Brizi |
 | 1.1 | 31/10/2026 | Descrive SasWorkbench 0.2.2: la condizione `when` di `host send lp` e `sasctl nvram denomination`; corretto lo stato delle release. | Alessio Brizi |
 | 1.2 | 09/11/2026 | Descrive SasWorkbench 0.2.3: i passi `host warm up`, hand pay, power cycle e memory fault, nuovi stimoli manuali e `sasctl nvram games`. | Alessio Brizi |
+| 1.3 | 11/11/2026 | Spiega come provocare `$32` con nvman, e come i casi in sequenza tengono vivo il collegamento e risincronizzano la macchina attorno ai passi manuali. | Alessio Brizi |
 
 # Informazioni su questo documento
 
@@ -876,8 +877,8 @@ memory fault. Per un power cycle la console chiede alla persona di togliere l'al
 macchina, ridarla e aspettare che abbia finito di avviarsi: conferma solo a quel punto. Il prompt di un guasto di memoria
 aggiunge una riga che comincia con `How:`: dice come provocare il guasto e, per i guasti che una
 macchina QSP non alza mai, di rispondere `N`. Su una macchina QSP, `cmos-lost` ($32) si provoca
-facendo il dump della NVRAM con lo strumento NVRAM della piattaforma, cambiando un byte del dump e
-riscrivendolo prima che il gioco si avvii; così si perdono i meter.
+facendo il dump della NVRAM con nvman, cambiando a mano un byte del dump e
+riscrivendolo con nvman prima che il gioco si avvii; così si perdono i meter.
 
 In un caso che manda i propri poll (`host poll sequence`), mentre aspetta la persona l'host manda un
 poll di sincronizzazione al secondo, così la macchina non dichiara mai un loop break. Dopo un power
