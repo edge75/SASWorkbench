@@ -11,7 +11,7 @@
     <Company>Quixant Plc</Company>
     <Product>SasWorkbench</Product>
     <Authors>quixantplc</Authors>
-    <Version>0.2.3</Version>
+    <Version>0.2.4</Version>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>

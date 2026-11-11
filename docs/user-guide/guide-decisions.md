@@ -361,4 +361,5 @@ None.
 
 ## Open threads
 
-- The body still describes 0.2.3, but the keep-alive, the resynchronisation and the chirp report arrive only with the next release.
+- **Version 0.2.4** (user, 11/11): the body describes 0.2.4, with a list "Compared with 0.2.3"; the 0.2.3 list stays as history.
+- "Take release 0.2.4" holds only once the merge publishes v0.2.4.

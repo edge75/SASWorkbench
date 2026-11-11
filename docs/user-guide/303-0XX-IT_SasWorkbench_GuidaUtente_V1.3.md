@@ -11,13 +11,13 @@ Documento 303-0XX-IT, versione 1.3
 | 1.0 | 29/10/2026 | Prima emissione. Descrive SasWorkbench 0.2.1. | Alessio Brizi |
 | 1.1 | 31/10/2026 | Descrive SasWorkbench 0.2.2: la condizione `when` di `host send lp` e `sasctl nvram denomination`; corretto lo stato delle release. | Alessio Brizi |
 | 1.2 | 09/11/2026 | Descrive SasWorkbench 0.2.3: i passi `host warm up`, hand pay, power cycle e memory fault, nuovi stimoli manuali e `sasctl nvram games`. | Alessio Brizi |
-| 1.3 | 11/11/2026 | Spiega come provocare `$32` con nvman, e come i casi in sequenza tengono vivo il collegamento e risincronizzano la macchina attorno ai passi manuali. | Alessio Brizi |
+| 1.3 | 11/11/2026 | Descrive SasWorkbench 0.2.4: spiega come provocare `$32` con nvman, e come i casi in sequenza tengono vivo il collegamento e risincronizzano la macchina attorno ai passi manuali. | Alessio Brizi |
 
 # Informazioni su questo documento
 
 ## Scopo
 
-Questa guida spiega come usare SasWorkbench 0.2.3 per provare una macchina da gioco sul protocollo
+Questa guida spiega come usare SasWorkbench 0.2.4 per provare una macchina da gioco sul protocollo
 SAS. Copre l'installazione, il collegamento seriale e TCP, l'esecuzione delle suite, i report, la
 finestra e la lettura di una run registrata, byte per byte.
 
@@ -111,7 +111,7 @@ Non sono ancora stati misurati:
 - un adattatore USB-seriale;
 - altri tipi di porta seriale, per esempio una UART dedicata a SAS.
 
-I report e la finestra della 0.2.3 continuano a segnare il collegamento seriale come UNVERIFIED. La
+I report e la finestra della 0.2.4 continuano a segnare il collegamento seriale come UNVERIFIED. La
 loro frase di avvertenza dice che è stata misurata solo la UART di scheda della IQ-2, e SasWorkbench
 non sa distinguere quella porta da un adattatore USB. La prova del 29/10 riguarda una sola scheda,
 una sola porta e una sola configurazione.
@@ -177,7 +177,7 @@ il collegamento è fedele, ma l'altro capo è la macchina software. Per la seria
 a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters are unmeasured, so treat a pass
 over one as untested."
 
-Nella 0.2.3 la seriale porta ancora l'etichetta UNVERIFIED, anche dopo la prova del 29/10/2026 su
+Nella 0.2.4 la seriale porta ancora l'etichetta UNVERIFIED, anche dopo la prova del 29/10/2026 su
 una UART di scheda. La sezione "Che cosa è verificato" spiega perché.
 
 La riga di provenienza compare nella console alla fine di una run, in ogni report e nella finestra.
@@ -209,14 +209,26 @@ divisi in tre alberi.
 
 Dentro `tests/validation/`, la cartella `egm-test-scripts-v1.00/` contiene 181 test in 28 file.
 
-I numeri della tabella vengono da `sasctl run <albero> --list` sulla versione 0.2.3.
+I numeri della tabella vengono da `sasctl run <albero> --list` sulla versione 0.2.4.
 
 La cartella `tests/regression/wire/` contiene un solo test: il collegamento sale e la macchina si
 identifica. È il primo test da eseguire su un collegamento nuovo.
 
-## La versione 0.2.3 e il suo stato
+## La versione 0.2.4 e il suo stato
 
-Questa guida descrive SasWorkbench 0.2.3. Rispetto alla 0.2.2, nella 0.2.3 cambiano queste cose:
+Questa guida descrive SasWorkbench 0.2.4. Rispetto alla 0.2.3, nella 0.2.4 cambiano queste cose:
+
+- su un collegamento seriale l'host scarta quello che aspetta sulla linea prima di ogni poll; nella
+  0.2.3 sulla seriale questo non succedeva, e un byte in ritardo poteva essere letto come la
+  risposta al poll successivo;
+- in un caso che manda i propri poll, l'host manda un poll di sincronizzazione al secondo mentre una
+  persona agisce su un prompt manuale, e dopo un power cycle o un guasto di memoria aspetta che la
+  macchina smetta di mandare il proprio indirizzo prima di proseguire (sezione "Lo stimolo", `manual`);
+- una macchina che dopo un poll di sincronizzazione manda solo il proprio indirizzo viene
+  registrata come chirp di loop break, e il passo passa;
+- il prompt di `cmos-lost` dice come provocare `$32` con nvman.
+
+La 0.2.3 ha cambiato queste cose, rispetto alla 0.2.2:
 
 - uno script può far sì che la macchina debba un hand pay con `egm handpay <centesimi>` o
   `egm handpay jackpot <centesimi>`, azzerarlo con `egm handpay reset`, e chiedere un power cycle con
@@ -296,7 +308,7 @@ di avvertenza.
 
 SasWorkbench è pubblicato come release su GitHub, ogni release con i pacchetti per Windows e Linux
 e un file `SHA256SUMS`. La release 0.1.0 non contiene molte delle funzioni
-descritte qui. Per usare le funzioni della 0.2.3, prendi la release 0.2.3 oppure compilala dal
+descritte qui. Per usare le funzioni della 0.2.4, prendi la release 0.2.4 oppure compilala dal
 sorgente, come spiega il capitolo "Installazione".
 
 %%PAGEBREAK
@@ -380,7 +392,7 @@ sasctl --version
 La risposta è il solo numero di versione:
 
 ```
-0.2.3
+0.2.4
 ```
 
 Poi chiedi a `sasctl` che cosa può fare in questo ambiente:
@@ -573,7 +585,7 @@ Per confronto, la demo via TCP il 17/10 aveva dato 77 / 8 / 0 nella stessa sweep
 La prova sulla scheda conferma la causa dei `3F`. Per i long poll conferma che le due correzioni
 insieme funzionano, non quale delle due sia servita: la 0.2.1 le ha introdotte insieme.
 
-La 0.2.3 continua a segnare il collegamento seriale come UNVERIFIED. La frase di avvertenza nomina
+La 0.2.4 continua a segnare il collegamento seriale come UNVERIFIED. La frase di avvertenza nomina
 l'unica porta misurata, la UART di scheda della IQ-2, e dice che gli adattatori USB non sono stati
 misurati.
 
@@ -610,7 +622,7 @@ poll `$A0`, che descrive le funzioni abilitate.
 Il silenzio di un long poll può quindi essere un'impostazione della macchina, non un guasto. Prima di
 cercare un problema di collegamento, controlla a quale canale appartiene la categoria del comando.
 
-La tabella seguente riporta l'output di `sasctl catalogue channels` della 0.2.3. I dati sono letti
+La tabella seguente riporta l'output di `sasctl catalogue channels` della 0.2.4. I dati sono letti
 dalla libreria della macchina.
 
 | Categoria | Long poll con gate | Eccezioni filtrate | Bit di `$A0` azzerati |
@@ -933,7 +945,7 @@ Ogni test può portare delle etichette, scritte nello script con `tag`. Due opzi
 
 Il nome si scrive con o senza `@`. Ogni opzione accetta una sola etichetta.
 
-Queste sono le etichette più usate negli alberi di test della 0.2.3:
+Queste sono le etichette più usate negli alberi di test della 0.2.4:
 
 | Etichetta | Test che la portano |
 | --- | --- |
@@ -1122,7 +1134,7 @@ stimulus.ticket: this environment provides no 'stimulus.ticket'
 stimulus.real_time_events: this environment provides no 'stimulus.real_time_events'
 ```
 
-Alcune capacità non sono offerte da nessun ambiente in 0.2.3, per esempio `stimulus.note_fault` e
+Alcune capacità non sono offerte da nessun ambiente in 0.2.4, per esempio `stimulus.note_fault` e
 `host.chirp`. I test che le richiedono vengono sempre saltati. Altre, come `stimulus.handpay` e
 `machine.power_cycle`, sono offerte solo da alcuni stimoli: con `--stimulus none` i test che le
 richiedono vengono saltati. L'Appendice C le elenca.
@@ -1191,7 +1203,7 @@ lasciando che i general poll le leggano.
 
 ## I tempi fissi
 
-Alcuni tempi sono fissi nella 0.2.3. Solo tre si cambiano dalla riga di comando.
+Alcuni tempi sono fissi nella 0.2.4. Solo tre si cambiano dalla riga di comando.
 
 | Tempo | Valore | Si cambia con |
 | --- | --- | --- |
@@ -1238,7 +1250,7 @@ quando usarlo e che cosa fa su una scheda. L'Appendice A elenca tutte le opzioni
 torna. Non fa asserzioni: serve a ottenere byte reali per ogni risposta, e a verificare un layout
 contro quei byte.
 
-Un comando che cambia la macchina non viene mandato. La 0.2.3 chiede 85 dei 124 comandi del catalogo
+Un comando che cambia la macchina non viene mandato. La 0.2.4 chiede 85 dei 124 comandi del catalogo
 e ne trattiene 39. Tra i trattenuti ci sono `$01` (stop del gioco), `$02` (avvio del gioco), `$0E`
 (eventi in tempo reale), `$21` (firma della ROM) e i comandi che muovono denaro.
 
@@ -2248,7 +2260,7 @@ spariscono dalla 0.2.1 in poi.
 | Codice 2 con tutti i test passati | un'opzione che il comando non legge | leggi l'avviso `warning: '--...' is not an option of ...` |
 | Codice 2 e nessun test eseguito | errore nella riga di comando o in uno script | leggi il messaggio `error:`, che indica file e riga |
 | `error: --out says where reports go, but no --report says which to write.` | `--out` senza `--report` | aggiungi `--report`, per esempio `--report html,jsonl` |
-| Skip `<capacità>: this environment provides no '<capacità>'` | manca uno stimolo o una funzione | scegli lo stimolo giusto; alcune capacità non esistono nella 0.2.3 (Appendice C) |
+| Skip `<capacità>: this environment provides no '<capacità>'` | manca uno stimolo o una funzione | scegli lo stimolo giusto; alcune capacità non esistono nella 0.2.4 (Appendice C) |
 | Esito `AnsweredWithEvent` | un'eccezione in coda, con il reporting in tempo reale attivo | svuota la coda con `host forget exceptions` prima del long poll; non lasciare acceso il reporting |
 
 ## Fallimenti dei test
@@ -2431,7 +2443,7 @@ Il caso più frequente è un'aspettativa scritta per un'altra macchina.
 
 %%APPENDIX Appendice A - Riferimento dei comandi sasctl
 
-Questa appendice elenca ogni comando e ogni opzione di `sasctl` 0.2.3. Le descrizioni vengono dal
+Questa appendice elenca ogni comando e ogni opzione di `sasctl` 0.2.4. Le descrizioni vengono dal
 testo di `sasctl --help`, e per `nvram` anche da `sasctl nvram --help`. Una durata si scrive come
 `200ms`, `5s` o `2m`.
 
@@ -2712,7 +2724,7 @@ un giro di poll.
 
 %%APPENDIX Appendice B - Il linguaggio degli script
 
-Questa appendice descrive il linguaggio degli script di SasWorkbench 0.2.3. Gli esempi vengono dagli
+Questa appendice descrive il linguaggio degli script di SasWorkbench 0.2.4. Gli esempi vengono dagli
 script della cartella `tests/` del repository, salvo dove è indicato diversamente.
 
 **Struttura di un file**
@@ -3127,13 +3139,13 @@ mentre un invio il cui `when` le nomina fallisce.
 | `egm.validation` | long poll `$A0` | `standard`, `system`, `secure_enhanced` |
 | `egm.accounting_denomination` | long poll `$1F` | `<centesimi>c`, per esempio `5c` |
 
-**Capacità saltate il 29/10, e nella 0.2.3**
+**Capacità saltate il 29/10, e nella 0.2.4**
 
 Qualsiasi altra chiave si può scrivere, ma nessun ambiente la offre, e i test che la richiedono vengono
 sempre saltati. Queste chiavi erano tra gli skip più frequenti nelle prove del 29/10; l'ultima
-colonna dice quali offre la 0.2.3:
+colonna dice quali offre la 0.2.4:
 
-| Capacità | Test saltati nella suite di validazione il 29/10 | Nella 0.2.3 |
+| Capacità | Test saltati nella suite di validazione il 29/10 | Nella 0.2.4 |
 | --- | --- | --- |
 | `stimulus.handpay` | 21 | offerta da `manual`, `software` e, con un pulsante di cashout, `qpm` |
 | `host.validation_sequence` | 10 | non offerta |
@@ -3146,7 +3158,7 @@ colonna dice quali offre la 0.2.3:
 | `machine.restricted_credits` | 5 | non offerta |
 
 I conteggi vengono dalla run della suite `egm-test-scripts-v1.00` con la 0.2.0 e
-`--stimulus none`. Non sono stati misurati di nuovo con la 0.2.3.
+`--stimulus none`. Non sono stati misurati di nuovo con la 0.2.4.
 
 %%PAGEBREAK
 

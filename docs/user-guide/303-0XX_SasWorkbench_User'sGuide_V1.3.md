@@ -11,13 +11,13 @@ Document 303-0XX, version 1.3
 | 1.0 | 29/10/2026 | First issue. Describes SasWorkbench 0.2.1. | Alessio Brizi |
 | 1.1 | 31/10/2026 | Describes SasWorkbench 0.2.2: the `when` condition of `host send lp` and `sasctl nvram denomination`; the release state is corrected. | Alessio Brizi |
 | 1.2 | 09/11/2026 | Describes SasWorkbench 0.2.3: the `host warm up`, hand pay, power cycle and memory fault steps, more manual stimuli, and `sasctl nvram games`. | Alessio Brizi |
-| 1.3 | 11/11/2026 | Says how to cause `$32` with nvman, and how sequenced cases keep the link alive and resynchronise the machine around manual steps. | Alessio Brizi |
+| 1.3 | 11/11/2026 | Describes SasWorkbench 0.2.4: says how to cause `$32` with nvman, and how sequenced cases keep the link alive and resynchronise the machine around manual steps. | Alessio Brizi |
 
 # About this document
 
 ## Purpose
 
-This guide explains how to use SasWorkbench 0.2.3 to test a gaming machine over the SAS protocol.
+This guide explains how to use SasWorkbench 0.2.4 to test a gaming machine over the SAS protocol.
 It covers installation, the serial and TCP links, running the suites, the reports, the window and
 reading a recorded run, byte by byte.
 
@@ -111,7 +111,7 @@ These have not been measured yet:
 - a USB-serial adapter;
 - other types of serial port, for example a UART dedicated to SAS.
 
-The reports and the window of 0.2.3 still mark the serial link as UNVERIFIED. Their caveat sentence
+The reports and the window of 0.2.4 still mark the serial link as UNVERIFIED. Their caveat sentence
 says that only the on-board UART of the IQ-2 has been measured, and SasWorkbench cannot tell that
 port from a USB adapter. The test of 29/10 concerns one board, one port and one configuration.
 
@@ -176,7 +176,7 @@ machine's.": the link is faithful, but the other end is the software machine. Fo
 "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters are
 unmeasured, so treat a pass over one as untested."
 
-In 0.2.3 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
+In 0.2.4 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
 on-board UART. The section "What is verified" explains why.
 
 The provenance line appears in the console at the end of a run, in every report and in the window.
@@ -207,14 +207,25 @@ They are divided into three trees.
 
 Inside `tests/validation/`, the folder `egm-test-scripts-v1.00/` contains 181 tests in 28 files.
 
-The numbers in the table come from `sasctl run <tree> --list` on version 0.2.3.
+The numbers in the table come from `sasctl run <tree> --list` on version 0.2.4.
 
 The folder `tests/regression/wire/` contains a single test: the link comes up and the machine
 identifies itself. It is the first test to run on a new link.
 
-## Version 0.2.3 and its status
+## Version 0.2.4 and its status
 
-This guide describes SasWorkbench 0.2.3. Compared with 0.2.2, these things change in 0.2.3:
+This guide describes SasWorkbench 0.2.4. Compared with 0.2.3, these things change in 0.2.4:
+
+- on a serial link, the host discards whatever is waiting on the line before every poll; in 0.2.3
+  this did not happen on serial, so a late byte could be read as the reply to the next poll;
+- in a case that sends its own polls, the host sends a synchronisation poll every second while a
+  person acts on a manual prompt, and after a power cycle or a memory fault it waits until the
+  machine stops sending its own address before it goes on (section "The stimulus", `manual`);
+- a machine that sends only its own address after a synchronisation poll is reported as a
+  loop-break chirp, and the step passes;
+- the `cmos-lost` prompt says how to cause `$32` with nvman.
+
+0.2.3 changed these things, compared with 0.2.2:
 
 - a script can make the machine owe a hand pay with `egm handpay <cents>` or
   `egm handpay jackpot <cents>`, reset it with `egm handpay reset`, and ask for a power cycle with
@@ -289,7 +300,7 @@ corrections. The serial transport has not changed since then, except for its cav
 
 SasWorkbench is published as a release on GitHub, each release with the Windows and Linux packages
 and a `SHA256SUMS` file. Release 0.1.0 does not contain many of the functions
-described here. To use the functions of 0.2.3, take release 0.2.3 or build it from source, as the
+described here. To use the functions of 0.2.4, take release 0.2.4 or build it from source, as the
 chapter "Installation" explains.
 
 %%PAGEBREAK
@@ -373,7 +384,7 @@ sasctl --version
 The reply is the version number alone:
 
 ```
-0.2.3
+0.2.4
 ```
 
 Then ask `sasctl` what it can do in this environment:
@@ -564,7 +575,7 @@ For comparison, the demo over TCP on 17/10 had given 77 / 8 / 0 in the same swee
 The test on the board confirms the cause of the `3F` replies. For the long polls it confirms that the
 two fixes work together, not which of the two was needed: 0.2.1 introduced them together.
 
-0.2.3 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
+0.2.4 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
 the on-board UART of the IQ-2, and says that USB adapters have not been measured.
 
 ## Settings on the machine
@@ -600,7 +611,7 @@ poll `$A0`, which describes the enabled functions.
 The silence of a long poll can therefore be a machine setting, not a fault. Before you look for a
 link problem, check which channel the command's category belongs to.
 
-The following table gives the output of `sasctl catalogue channels` in 0.2.3. The data are read
+The following table gives the output of `sasctl catalogue channels` in 0.2.4. The data are read
 from the machine's library.
 
 | Category | Gated long polls | Filtered exceptions | `$A0` bits cleared |
@@ -916,7 +927,7 @@ Every test can carry tags, written in the script with `tag`. Two options use the
 
 The name is written with or without `@`. Each option accepts only one tag.
 
-These are the most used tags in the test trees of 0.2.3:
+These are the most used tags in the test trees of 0.2.4:
 
 | Tag | Tests that carry it |
 | --- | --- |
@@ -1103,7 +1114,7 @@ stimulus.ticket: this environment provides no 'stimulus.ticket'
 stimulus.real_time_events: this environment provides no 'stimulus.real_time_events'
 ```
 
-Some capabilities are not offered by any environment in 0.2.3, for example `stimulus.note_fault`
+Some capabilities are not offered by any environment in 0.2.4, for example `stimulus.note_fault`
 and `host.chirp`. The tests that require them are always skipped. Others, such as
 `stimulus.handpay` and `machine.power_cycle`, are offered only by some stimuli: with
 `--stimulus none` the tests that require them are skipped. Appendix C lists them.
@@ -1172,7 +1183,7 @@ letting the general polls read the exceptions.
 
 ## The fixed times
 
-Some times are fixed in 0.2.3. Only three can be changed from the command line.
+Some times are fixed in 0.2.4. Only three can be changed from the command line.
 
 | Time | Value | Changed with |
 | --- | --- | --- |
@@ -1218,7 +1229,7 @@ when to use it and what it does on a board. Appendix A lists all the options.
 back. It makes no assertions: it is used to obtain real bytes for every reply, and to check a layout
 against those bytes.
 
-A command that changes the machine is not sent. 0.2.3 asks 85 of the 124 commands in the catalogue
+A command that changes the machine is not sent. 0.2.4 asks 85 of the 124 commands in the catalogue
 and withholds 39. Among those withheld are `$01` (stop play), `$02` (start play), `$0E` (real-time
 events), `$21` (ROM signature) and the commands that move money.
 
@@ -2221,7 +2232,7 @@ from 0.2.1 on.
 | Code 2 with all tests passed | an option that the command does not read | read the warning `warning: '--...' is not an option of ...` |
 | Code 2 and no test run | error in the command line or in a script | read the `error:` message, which gives the file and line |
 | `error: --out says where reports go, but no --report says which to write.` | `--out` without `--report` | add `--report`, for example `--report html,jsonl` |
-| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.3 (Appendix C) |
+| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.4 (Appendix C) |
 | Outcome `AnsweredWithEvent` | an exception queued, with real-time reporting active | empty the queue with `host forget exceptions` before the long poll; do not leave reporting on |
 
 ## Test failures
@@ -2400,7 +2411,7 @@ frequent case is an expectation written for another machine.
 
 %%APPENDIX Appendix A - sasctl command reference
 
-This appendix lists every command and every option of `sasctl` 0.2.3. The descriptions come from
+This appendix lists every command and every option of `sasctl` 0.2.4. The descriptions come from
 the text of `sasctl --help`, and for `nvram` also from `sasctl nvram --help`. A duration is written
 as `200ms`, `5s` or `2m`.
 
@@ -2681,7 +2692,7 @@ polling round costs.
 
 %%APPENDIX Appendix B - The script language
 
-This appendix describes the script language of SasWorkbench 0.2.3. The examples come from the
+This appendix describes the script language of SasWorkbench 0.2.4. The examples come from the
 scripts in the `tests/` folder of the repository, except where stated otherwise.
 
 **Structure of a file**
@@ -3093,13 +3104,13 @@ while a send whose `when` names them fails.
 | `egm.validation` | long poll `$A0` | `standard`, `system`, `secure_enhanced` |
 | `egm.accounting_denomination` | long poll `$1F` | `<cents>c`, for example `5c` |
 
-**Capabilities skipped on 29/10, and in 0.2.3**
+**Capabilities skipped on 29/10, and in 0.2.4**
 
 Any other key can be written, but no environment offers it, and the tests that require it are always
 skipped. These keys were among the most frequent skips in the tests of 29/10; the last column says
-which of them 0.2.3 offers:
+which of them 0.2.4 offers:
 
-| Capability | Tests skipped in the validation suite on 29/10 | In 0.2.3 |
+| Capability | Tests skipped in the validation suite on 29/10 | In 0.2.4 |
 | --- | --- | --- |
 | `stimulus.handpay` | 21 | offered by `manual`, `software` and, with a cashout button, `qpm` |
 | `host.validation_sequence` | 10 | not offered |
@@ -3112,7 +3123,7 @@ which of them 0.2.3 offers:
 | `machine.restricted_credits` | 5 | not offered |
 
 The counts come from the run of the `egm-test-scripts-v1.00` suite with 0.2.0 and
-`--stimulus none`. They have not been measured again with 0.2.3.
+`--stimulus none`. They have not been measured again with 0.2.4.
 
 %%PAGEBREAK
 
