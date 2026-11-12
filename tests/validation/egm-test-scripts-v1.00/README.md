@@ -26,25 +26,24 @@ for how the documents were read and what the estimate is worth.
 
 ### Written so far
 
-Three chapters, 109 cases, measured against the software machine:
+Eight chapters, 327 cases, measured against the software machine (`run` counts passes and
+failures together):
 
 | ch | chapter | cases | run | skip | what blocks the most of them |
 |---:|---|---:|---:|---:|---|
-| 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
-| 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
+| 3 | Communications | 24 | 7 | 17 | the service button (7), host timing (2), a power cycle (2) |
+| 4 | Required exceptions | 60 | 10 | 50 | a hopper (8), note faults (6), a power cycle (5), memory faults (5) |
 | 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
-| 6 | Required meters | 72 | 59 | 13 | comparing two replies (4), a coin (4), a credit limit (2) |
+| 6 | Required meters | 72 | 59 | 13 | comparing two replies (4), a coin (4), a credit limit (2); 7 of the 59 fail, 4 of them findings |
 | 7 | Multi-game | 23 | 6 | 17 | a multi-game machine (13), choosing which game is played (11) |
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15), adding replies together (11) |
-| 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
-| | **total** | **109** | **14** | **95** | |
+| 10 | Tickets | 72 | 7 | 65 | secure-enhanced validation (17), a host validation sequence (8), restricted credits (5) |
+| 11 | Real-time events | 25 | 7 | 18 | a power cycle (4), comparing two replies (3), a multi-denomination machine (3) |
+| | **total** | **327** | **111** | **216** | |
 
-Two host capabilities account for twenty of the ninety-five on their own. `host.poll_sequence` is
-the ability to put an exact sequence of named general and long polls on the line with nothing else
-between them — no round on a timer, and no synchronisation poll ahead of every message, which is
-itself a global broadcast and so an acknowledgement. `host.chirp` is the ability to watch for the
-machine's own address arriving every 200 ms after five seconds of silence. Every implied
-acknowledgement and implied NACK case in both chapters waits on the first.
+When the first three chapters were written, two host capabilities blocked twenty of their cases.
+`host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
+built. `host.chirp`, watching for the machine's own address after five seconds of silence, has not.
 
     sasctl run tests/validation/egm-test-scripts-v1.00 --loopback --stimulus software
 
