@@ -46,6 +46,7 @@ failures together):
 | 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
+| 23 | Legacy meters | 17 | 16 | 1 | restricted credit (1); comparing two replies is a note in 15 |
 | | **total** | **109** | **14** | **95** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
