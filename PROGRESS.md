@@ -250,3 +250,5 @@ PHASE:R38 WAVE:serial-drain-chirp-keepalive-resync STATUS:complete TS:2026-11-09
 PHASE:R38 WAVE:guide-1.3 STATUS:complete TS:2026-11-11T15:02:33Z
 PHASE:R38 WAVE:run-and-dump STATUS:complete TS:2026-11-11T15:31:10Z
 PHASE:R38 WAVE:version-0.2.4 STATUS:complete TS:2026-11-11T15:31:10Z
+PHASE:R39 WAVE:merge-and-prepare STATUS:complete TS:2026-11-11T16:37:48Z
+PHASE:R39 WAVE:grouped-prompts STATUS:complete TS:2026-11-12T14:51:16Z
