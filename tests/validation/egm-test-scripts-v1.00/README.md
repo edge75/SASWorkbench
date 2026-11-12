@@ -26,7 +26,7 @@ for how the documents were read and what the estimate is worth.
 
 ### Written so far
 
-Eight chapters, 327 cases, measured against the software machine (`run` counts passes and
+Twelve chapters, 365 cases, measured against the software machine (`run` counts passes and
 failures together):
 
 | ch | chapter | cases | run | skip | what blocks the most of them |
@@ -36,18 +36,14 @@ failures together):
 | 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
 | 6 | Required meters | 72 | 59 | 13 | comparing two replies (4), a coin (4), a credit limit (2); 7 of the 59 fail, 4 of them findings |
 | 7 | Multi-game | 23 | 6 | 17 | a multi-game machine (13), choosing which game is played (11) |
+| 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15), adding replies together (11) |
 | 10 | Tickets | 72 | 7 | 65 | secure-enhanced validation (17), a host validation sequence (8), restricted credits (5) |
 | 11 | Real-time events | 25 | 7 | 18 | a power cycle (4), comparing two replies (3), a multi-denomination machine (3) |
-| | **total** | **327** | **111** | **216** | |
-| 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
-| 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
-| 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
-| 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
-| 23 | Legacy meters | 17 | 16 | 1 | restricted credit (1); comparing two replies is a note in 15 |
-| | **total** | **109** | **14** | **95** | |
+| 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
+| | **total** | **365** | **131** | **234** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
