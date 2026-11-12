@@ -33,6 +33,7 @@ Three chapters, 109 cases, measured against the software machine:
 | 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
 | 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
 | 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
+| 23 | Legacy meters | 17 | 16 | 1 | restricted credit (1); comparing two replies is a note in 15 |
 | | **total** | **109** | **14** | **95** | |
 
 Two host capabilities account for twenty of the ninety-five on their own. `host.poll_sequence` is
