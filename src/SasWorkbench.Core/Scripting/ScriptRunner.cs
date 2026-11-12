@@ -115,6 +115,9 @@ public sealed class ScriptRunner
     // When each machine was first warmed up in this run, so only the first case pays for it.
     private readonly Dictionary<string, long> _warmedSince = new(StringComparer.Ordinal);
 
+    /// <summary>Steps a person did from one grouped prompt, with the skip reason when they did not.</summary>
+    private readonly Dictionary<StimulusStep, string?> _doneInGroup = new(ReferenceEqualityComparer.Instance);
+
     public ScriptRunner(ScriptRunnerOptions? options = null)
     {
         _options = options ?? new ScriptRunnerOptions();
@@ -1254,10 +1257,26 @@ public sealed class ScriptRunner
                     At: at) { IsAssertion = true };
             }
 
+            // A step a person already did as part of a group is not asked for again.
+            if (_doneInGroup.Remove(step, out string? groupedSkip))
+            {
+                return groupedSkip is null
+                    ? new StepResult(step.Location, step.Describe(), Verdict.Pass,
+                        Actual: "done with the actions before it, from one prompt", At: at)
+                    : new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                        Reason: groupedSkip, At: at);
+            }
+
             // A person can take minutes; a sequenced host sends nothing meanwhile, and five silent
             // seconds put the machine into a loop break.
             using (environment.Stimulus is ManualStimulusBackend ? LinkKeepAlive.Start(engine) : null)
-                environment.Stimulus.Apply(step, machine);
+            {
+                if (environment.Stimulus is ManualStimulusBackend manual
+                    && GroupStartingAt(test, step) is { Count: > 1 } group)
+                    ApplyGroup(manual, group, machine);
+                else
+                    environment.Stimulus.Apply(step, machine);
+            }
 
             MachineResynchronisation? resync = step is PowerCycleStep or MemoryFaultStep
                 ? MachineResynchronisation.Run(engine)
@@ -1294,6 +1313,46 @@ public sealed class ScriptRunner
         {
             return new StepResult(step.Location, step.Describe(), Verdict.Skip,
                 Reason: unavailable.Reason, At: at);
+        }
+    }
+
+    /// <summary>The run of door and button steps that starts at this one, with nothing else between them.</summary>
+    private static List<StimulusStep> GroupStartingAt(ScriptTest test, StimulusStep first)
+    {
+        var group = new List<StimulusStep>();
+        int start = -1;
+        for (int i = 0; i < test.Steps.Count; i++)
+        {
+            if (ReferenceEquals(test.Steps[i], first))
+            {
+                start = i;
+                break;
+            }
+        }
+
+        if (start < 0 || !ManualStimulusBackend.CanGroup(first))
+            return group;
+
+        for (int i = start; i < test.Steps.Count && test.Steps[i] is StimulusStep next
+             && ManualStimulusBackend.CanGroup(next); i++)
+            group.Add(next);
+        return group;
+    }
+
+    /// <summary>Asks once for the whole group, and settles the steps after the first from that one answer.</summary>
+    private void ApplyGroup(ManualStimulusBackend manual, List<StimulusStep> group, SasAddress? machine)
+    {
+        try
+        {
+            manual.ApplyGroup(group, machine);
+            foreach (StimulusStep rest in group.Skip(1))
+                _doneInGroup[rest] = null;
+        }
+        catch (StimulusUnavailableException unavailable)
+        {
+            foreach (StimulusStep rest in group.Skip(1))
+                _doneInGroup[rest] = unavailable.Reason;
+            throw;
         }
     }
 

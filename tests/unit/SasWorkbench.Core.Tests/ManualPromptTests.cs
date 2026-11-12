@@ -209,4 +209,96 @@ public class ManualPromptTests
 
         Assert.Contains("2000", asked, StringComparison.Ordinal);
     }
+    /// <summary>A repeated run of actions is folded, so a person reads one line instead of twenty.</summary>
+    [Fact]
+    public void ARepeatedRunOfActionsIsFoldedIntoOneLine()
+    {
+        var steps = new List<StimulusStep>();
+        for (int i = 0; i < 5; i++)
+        {
+            steps.Add(new DoorStep(SourceLocation.None, "main", Open: true));
+            steps.Add(new DoorStep(SourceLocation.None, "main", Open: false));
+        }
+
+        Assert.Equal("  5 times: open the main door, then close the main door",
+            ManualStimulusBackend.GroupedActions(steps));
+    }
+
+    /// <summary>A pattern repeated and then cut short is folded, and the rest follows it.</summary>
+    [Fact]
+    public void ARepeatCutShortIsFoldedAndTheRestFollows()
+    {
+        var steps = new List<StimulusStep>();
+        for (int i = 0; i < 2; i++)
+        {
+            steps.Add(new DoorStep(SourceLocation.None, "main", Open: true));
+            steps.Add(new DoorStep(SourceLocation.None, "main", Open: false));
+            steps.Add(new PressButtonStep(SourceLocation.None, "service"));
+            steps.Add(new PressButtonStep(SourceLocation.None, "service"));
+        }
+
+        steps.Add(new DoorStep(SourceLocation.None, "main", Open: true));
+        steps.Add(new DoorStep(SourceLocation.None, "main", Open: false));
+
+        string listed = ManualStimulusBackend.GroupedActions(steps);
+
+        Assert.StartsWith("  2 times: open the main door, then close the main door, then press service once, "
+            + "then press service once", listed, StringComparison.Ordinal);
+        Assert.EndsWith("  and then: open the main door, then close the main door", listed, StringComparison.Ordinal);
+    }
+
+    /// <summary>Actions that do not repeat are numbered, one per line.</summary>
+    [Fact]
+    public void ActionsThatDoNotRepeatAreNumbered()
+    {
+        StimulusStep[] steps =
+        [
+            new DoorStep(SourceLocation.None, "main", Open: true),
+            new PressButtonStep(SourceLocation.None, "service"),
+            new DoorStep(SourceLocation.None, "main", Open: false),
+        ];
+
+        string listed = ManualStimulusBackend.GroupedActions(steps);
+
+        Assert.Contains("1. open the main door", listed, StringComparison.Ordinal);
+        Assert.Contains("2. press service once", listed, StringComparison.Ordinal);
+        Assert.Contains("3. close the main door", listed, StringComparison.Ordinal);
+    }
+
+    /// <summary>A group gets more time than one action, in proportion to its length.</summary>
+    [Fact]
+    public void AGroupIsGivenTimeForEveryAction()
+    {
+        TimeSpan given = TimeSpan.Zero;
+        var backend = new ManualStimulusBackend(
+            (_, deadline) =>
+            {
+                given = deadline;
+                return PromptAnswer.Done;
+            },
+            TimeSpan.FromMinutes(5));
+
+        backend.ApplyGroup(
+        [
+            new DoorStep(SourceLocation.None, "main", Open: true),
+            new DoorStep(SourceLocation.None, "main", Open: false),
+        ]);
+
+        Assert.Equal(TimeSpan.FromMinutes(5) + ManualStimulusBackend.PerGroupedAction * 2, given);
+    }
+
+    /// <summary>Only door and button actions are grouped; a power cycle still needs its own prompt.</summary>
+    [Fact]
+    public void APowerCycleIsNeverGrouped()
+    {
+        var backend = new ManualStimulusBackend((_, _) => PromptAnswer.Done, TimeSpan.FromSeconds(1));
+
+        Assert.False(ManualStimulusBackend.CanGroup(new PowerCycleStep(SourceLocation.None)));
+        Assert.Throws<ArgumentException>(() => backend.ApplyGroup(
+        [
+            new DoorStep(SourceLocation.None, "main", Open: true),
+            new PowerCycleStep(SourceLocation.None),
+        ]));
+    }
 }
+

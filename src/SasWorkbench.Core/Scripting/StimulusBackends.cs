@@ -108,8 +108,66 @@ public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
         if (step.Guidance is { } guidance)
             request += Environment.NewLine + "  " + guidance;
 
-        PromptAnswer answer = ask(request, Deadline);
+        Settle(ask(request, Deadline), Deadline, $"'{step.Describe()}'");
+    }
 
+    /// <summary>Extra time a person is given for each action of a group, on top of the deadline.</summary>
+    public static TimeSpan PerGroupedAction { get; } = TimeSpan.FromSeconds(15);
+
+    /// <summary>True for an action a person can do several times in a row from one prompt.</summary>
+    public static bool CanGroup(StimulusStep step) => step is DoorStep or PressButtonStep;
+
+    /// <summary>Asks a person for several door and button actions at once, answered with one confirmation.</summary>
+    public void ApplyGroup(IReadOnlyList<StimulusStep> steps, SasAddress? machine = null)
+    {
+        ArgumentNullException.ThrowIfNull(steps);
+        if (steps.Count == 0 || steps.Any(s => !CanGroup(s)))
+            throw new ArgumentException("only door and button actions are asked for together", nameof(steps));
+
+        string where = machine is { } address ? $"on machine ${address}" : "on the machine";
+        string request = $"Please do these {steps.Count} actions {where}, in this order, then confirm once:"
+            + Environment.NewLine + GroupedActions(steps);
+
+        TimeSpan deadline = Deadline + PerGroupedAction * steps.Count;
+        Settle(ask(request, deadline), deadline, $"the {steps.Count} actions asked together");
+    }
+
+    /// <summary>The actions in words a person follows, folded into "N times: ..." when they repeat.</summary>
+    public static string GroupedActions(IReadOnlyList<StimulusStep> steps)
+    {
+        string[] actions = steps.Select(InWords).ToArray();
+
+        // The pattern that covers most of the actions from the start, shortest first on a tie.
+        int bestPeriod = 0, bestRepeats = 0;
+        for (int period = 1; period <= actions.Length / 2; period++)
+        {
+            int repeats = 1;
+            while ((repeats + 1) * period <= actions.Length
+                   && Enumerable.Range(0, period).All(i => actions[repeats * period + i] == actions[i]))
+                repeats++;
+            if (repeats >= 2 && repeats * period > bestRepeats * bestPeriod)
+                (bestPeriod, bestRepeats) = (period, repeats);
+        }
+
+        if (bestRepeats == 0)
+            return string.Join(Environment.NewLine, actions.Select((action, i) => $"  {i + 1}. {action}"));
+
+        string folded = $"  {bestRepeats} times: {string.Join(", then ", actions.Take(bestPeriod))}";
+        string[] rest = actions.Skip(bestRepeats * bestPeriod).ToArray();
+        return rest.Length == 0
+            ? folded
+            : folded + Environment.NewLine + $"  and then: {string.Join(", then ", rest)}";
+    }
+
+    private static string InWords(StimulusStep step) => step switch
+    {
+        DoorStep door => $"{(door.Open ? "open" : "close")} the {door.Door} door",
+        PressButtonStep press => $"press {press.Button} once",
+        _ => step.Describe(),
+    };
+
+    private static void Settle(PromptAnswer answer, TimeSpan deadline, string what)
+    {
         switch (answer)
         {
             case PromptAnswer.Done:
@@ -117,12 +175,11 @@ public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
 
             case PromptAnswer.NoAnswer:
                 throw new StimulusUnavailableException(
-                    $"nobody answered within {Deadline.TotalSeconds:F0}s, so "
-                    + $"'{step.Describe()}' did not happen");
+                    $"nobody answered within {deadline.TotalSeconds:F0}s, so {what} did not happen");
 
             default:
                 throw new StimulusUnavailableException(
-                    $"a person declined or could not carry out '{step.Describe()}'");
+                    $"a person declined or could not carry out {what}");
         }
     }
 }
