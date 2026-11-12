@@ -34,6 +34,7 @@ Three chapters, 109 cases, measured against the software machine:
 | 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
 | 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
 | 6 | Required meters | 72 | 59 | 13 | comparing two replies (4), a coin (4), a credit limit (2) |
+| 7 | Multi-game | 23 | 6 | 17 | a multi-game machine (13), choosing which game is played (11) |
 | 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
 | | **total** | **109** | **14** | **95** | |
 
