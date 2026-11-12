@@ -32,7 +32,9 @@ Three chapters, 109 cases, measured against the software machine:
 |---:|---|---:|---:|---:|---|
 | 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
 | 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
+| 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
+| 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | | **total** | **109** | **14** | **95** | |
 
 Two host capabilities account for twenty of the ninety-five on their own. `host.poll_sequence` is
