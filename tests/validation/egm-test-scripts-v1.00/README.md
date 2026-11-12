@@ -32,6 +32,7 @@ Three chapters, 109 cases, measured against the software machine:
 |---:|---|---:|---:|---:|---|
 | 3 | Communications | 24 | 3 | 21 | an exact host-driven poll sequence (11) |
 | 4 | Required exceptions | 60 | 4 | 56 | a hand pay (10), note faults (6), memory faults (5) |
+| 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
 | 11 | Real-time events | 25 | 7 | 18 | an exact poll sequence (5), a power cycle (3) |
 | | **total** | **109** | **14** | **95** | |
 
