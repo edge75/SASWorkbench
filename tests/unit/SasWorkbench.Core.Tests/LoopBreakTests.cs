@@ -108,6 +108,20 @@ public class LoopBreakTests
         Assert.Null(LinkKeepAlive.Start(engine));
     }
 
+    /// <summary>
+    /// A sync poll is a poll to another address, which the machine library takes as an implied ACK.
+    /// On the board (GSA 3.22, R39) keep-alive syncs sent while the person was asked to cut the power
+    /// acknowledged the exception the case was checking would survive the restart. A machine about
+    /// to lose power needs no keep-alive, so those prompts get none.
+    /// </summary>
+    [Fact]
+    public void A_restart_prompt_is_not_kept_alive_because_a_sync_would_acknowledge_the_queue()
+    {
+        Assert.False(LinkKeepAlive.Suits(new PowerCycleStep(SourceLocation.None)));
+        Assert.False(LinkKeepAlive.Suits(new MemoryFaultStep(SourceLocation.None, MemoryFaultKind.CmosLost)));
+        Assert.True(LinkKeepAlive.Suits(new DoorStep(SourceLocation.None, "main", true)));
+    }
+
     [Fact]
     public void The_line_is_kept_alive_while_a_person_acts_and_left_alone_after()
     {

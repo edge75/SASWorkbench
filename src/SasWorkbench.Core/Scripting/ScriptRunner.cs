@@ -1269,7 +1269,9 @@ public sealed class ScriptRunner
 
             // A person can take minutes; a sequenced host sends nothing meanwhile, and five silent
             // seconds put the machine into a loop break.
-            using (environment.Stimulus is ManualStimulusBackend ? LinkKeepAlive.Start(engine) : null)
+            using (environment.Stimulus is ManualStimulusBackend && LinkKeepAlive.Suits(step)
+                       ? LinkKeepAlive.Start(engine)
+                       : null)
             {
                 if (environment.Stimulus is ManualStimulusBackend manual
                     && GroupStartingAt(test, step) is { Count: > 1 } group)
