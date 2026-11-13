@@ -15,16 +15,23 @@ test "9.4 one accounting denomination whatever the player chooses" {
   host poll every 200ms
   host expect link up within 30s
 
+  host send lp 1F
+  host expect field denomination of lp 1F >= 1
+  host remember field denomination of lp 1F as accounting
+  host send lp 53 with game_number=0
+  host expect field denomination of lp 53 == saved.accounting
+
+  note "Choose a player denomination other than the one in use."
   egm bill insert 2000
   egm play games=3 bet=1 win=0
 
   host send lp 1F
-  host expect field denomination of lp 1F >= 1
+  host expect field denomination of lp 1F == saved.accounting
   host send lp 53 with game_number=0
-  host expect field denomination of lp 53 >= 1
+  host expect field denomination of lp 53 == saved.accounting
 
-  note "Only for a machine that claims the extensions in 9.1. Choose a player denomination, put money in, play, change games, then read both replies; do it again for every denomination the player can choose."
-  note "Both replies carry the same accounting denomination every time, and every denomination the player can choose divides evenly by it. Ask the per-game reply about the game in use. The language cannot compare a field of one reply with a field of another, so the equality is read by a person."
+  note "Only for a machine that claims the extensions in 9.1. The case checks one change of denomination; repeat it for every denomination the player can choose, changing games as well."
+  note "That every player denomination divides evenly by the accounting one is read by a person: the language has no division. The per-game reply is asked about game zero, not the game in use, because which game is in use is not known to the case."
   note "The per-game reply for a game other than zero may differ from game zero in maximum bet, paytable and payback percentage; that is not a failure here."
 }
 

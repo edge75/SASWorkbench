@@ -5,9 +5,9 @@
 # machine that has no multi-game support at all answers zero, which is a different statement from
 # "one game" and is the only case where zero is right.
 #
-# Nothing in the language holds a value read in one step for comparison in a later one, so "the
-# same count after the power cycle as before" can only be written where the expected count is
-# known in advance - a single-game machine - and is a person's comparison everywhere else.
+# Where the expected count is known in advance - a single game - it is written as a number.
+# Elsewhere the first answer is remembered and every later one compared with it; what a person
+# still does is check that first answer against the machine's configuration.
 
 # One game, with the multi-game commands supported: the count is exactly one, before and after a
 # power cycle. Only a person (or the manual stimulus) can cycle the power, so this skips on the
@@ -43,7 +43,7 @@ test "7.1 a single game reports a count of one, and keeps it across a power cycl
 # machine's own configuration.
 test "7.2 a single game with several paytables reports what it implements" {
   tag @egm-test-scripts @chapter-7 @wire-only
-  requires decoder.lp51, decoder.lp56
+  requires decoder.lp51, decoder.lp56, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -51,33 +51,71 @@ test "7.2 a single game with several paytables reports what it implements" {
 
   host send lp 51
   host expect field games >= 1
+  host remember field games as implemented
 
   # The enabled list cannot be longer than what is implemented, and a machine that implements
   # games has at least one of them enabled when it is playable.
   host send lp 56
   host expect field count >= 1
+  host expect field count <= saved.implemented
 
-  note "The count must equal the number of games or paytables the machine implements, whether or not each one is offered to the player; a person compares it with the machine's configuration screens (D40). The language cannot compare it with the enabled list above, which may be shorter but never longer."
+  note "The count must equal the number of games or paytables the machine implements, whether or not each one is offered to the player; a person compares it with the machine's configuration screens (D40)."
 }
 
 # The two halves of 7.3: with every game the machine can hold switched on, and with some switched
-# off. Both need the machine reconfigured between runs and then power cycled, and the expected
-# count is the machine's own, which the language cannot carry from one read to the next.
+# off. Both need the machine reconfigured by a person beforehand and then power cycled. The count
+# before the power cycle is remembered and every answer after it compared with that.
 test "7.3.1 every game configured: the count is what is implemented and survives a power cycle" {
   tag @egm-test-scripts @chapter-7 @needs-a-person @destructive
   requires decoder.lp51, machine.multiple_games, machine.enable_games, machine.power_cycle
+  requires host.compare_replies
 
-  note "Configure the machine with every game it can offer. Read long poll 51: the count is the number of games implemented, as a two-byte BCD number."
-  note "Power cycle the machine, let it reach a playable state, and read 51 several times. Every answer equals the first one."
-  note "On the demo machine the configuration holds four games, so the expected count there is four."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  host send lp 51
+  host expect field games >= 1
+  host remember field games as implemented
+
+  egm power cycle
+  host expect link up within 120s
+
+  # Asked three times so a first answer built before the machine finished starting is caught.
+  host send lp 51
+  host expect field games == saved.implemented
+  host send lp 51
+  host expect field games == saved.implemented
+  host send lp 51
+  host expect field games == saved.implemented
+
+  note "Configure the machine with every game it can offer before the case starts. The count is the number of games implemented; a person checks the first answer against the configuration. On the demo machine that is four."
 }
 
 test "7.3.2 some games disabled: the count still names every game implemented" {
   tag @egm-test-scripts @chapter-7 @needs-a-person @destructive
   requires decoder.lp51, machine.multiple_games, machine.enable_games, machine.power_cycle
+  requires host.compare_replies
 
-  note "Configure the machine so the player can reach only some of its games. Read long poll 51: the count is unchanged from 7.3.1, because disabling a game does not stop it being implemented."
-  note "Power cycle the machine and read 51 several times. Every answer equals the first one."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  host send lp 51
+  host expect field games >= 1
+  host remember field games as implemented
+
+  egm power cycle
+  host expect link up within 120s
+
+  host send lp 51
+  host expect field games == saved.implemented
+  host send lp 51
+  host expect field games == saved.implemented
+  host send lp 51
+  host expect field games == saved.implemented
+
+  note "Configure the machine so the player can reach only some of its games before the case starts. The count is unchanged from 7.3.1, because disabling a game does not stop it being implemented; a remembered value does not outlive its case, so a person compares the two."
 }
 
 # A machine with no multi-game support answers zero. The software machine supports it and answers

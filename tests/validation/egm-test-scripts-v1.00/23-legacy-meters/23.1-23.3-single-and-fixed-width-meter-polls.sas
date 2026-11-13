@@ -5,9 +5,8 @@
 # stated in the reply. These cases check that a machine still answers both, and that $2F agrees
 # with the newer polls about the same meters.
 #
-# The agreement itself is one reply compared with another, which this language cannot do yet
-# (host.compare_replies). So the shape of every reply is asserted and the comparison is a note for
-# whoever reads the trace.
+# Each value is remembered from the $6F reply, and the $AF and $2F replies must carry the same
+# number for the same code. Every code is checked at its position before its value is used.
 
 # A command that does not exist, and a single-meter poll this machine does not implement, both get
 # silence rather than a refusal.
@@ -36,6 +35,7 @@ test "23.1 single-meter polls the machine does not have are ignored" {
 test "23.2 the fixed-width poll answers a short list" {
   tag @egm-test-scripts @chapter-23 @wire-only @finding
   requires decoder.lp6F, decoder.lpAF, decoder.lp2F
+  requires host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -43,24 +43,34 @@ test "23.2 the fixed-width poll answers a short list" {
 
   host send lp 6F data 0A00000000010002009F00
   host expect field game_number == 0
-  host expect field meters[0].code <= 2
-  host expect field meters[1].code <= 2
-  host expect field meters[2].code <= 2
+  host expect field meters[0].code == 0
+  host remember field meters[0].value as coin_in
+  host expect field meters[1].code == 1
+  host remember field meters[1].value as coin_out
+  host expect field meters[2].code == 2
+  host remember field meters[2].value as jackpot
   host send lp AF data 0A00000000010002009F00
   host expect field game_number == 0
-  host expect field meters[2].code <= 2
+  host expect field meters[0].code == 0
+  host expect field meters[0].value == saved.coin_in
+  host expect field meters[1].code == 1
+  host expect field meters[1].value == saved.coin_out
+  host expect field meters[2].code == 2
+  host expect field meters[2].value == saved.jackpot
 
   # Length six: two bytes of game number and four one-byte codes.
   host send lp 2F data 0600000001029F
   host expect field game_number == 0
   host expect field length <= 216
-  host expect field meters[0].code <= 2
-  host expect field meters[1].code <= 2
-  host expect field meters[2].code <= 2
+  host expect field meters[0].code == 0
+  host expect field meters[0].value == saved.coin_in
+  host expect field meters[1].code == 1
+  host expect field meters[1].value == saved.coin_out
+  host expect field meters[2].code == 2
+  host expect field meters[2].value == saved.jackpot
   host expect field meters[3].code == $9F
   host expect field meters[3].value == 0
 
-  note "Coin in, coin out and jackpot (codes 00, 01, 02) carry the same value in the $2F reply as in the $6F and $AF replies (host.compare_replies)."
   note "009F stands in for whichever meter this machine does not keep; take one from the manufacturer's list on a machine that keeps it."
   note "Not run: $2F sent again with a corrupted check sequence is ignored or refused (host.bad_check_sequence)."
 }
@@ -70,6 +80,7 @@ test "23.2 the fixed-width poll answers a short list" {
 test "23.3 the fixed-width poll for each enabled game" {
   tag @egm-test-scripts @chapter-23 @wire-only
   requires decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF, decoder.lp2F
+  requires host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -83,16 +94,31 @@ test "23.3 the fixed-width poll for each enabled game" {
   # Game one: coin in, coin out, jackpot and games played.
   host send lp 6F data 0A00010000010002000500
   host expect field game_number == 1
-  host expect field meters[0].code <= 5
-  host expect field meters[3].code <= 5
+  host expect field meters[0].code == 0
+  host remember field meters[0].value as coin_in
+  host expect field meters[1].code == 1
+  host remember field meters[1].value as coin_out
+  host expect field meters[2].code == 2
+  host remember field meters[2].value as jackpot
+  host expect field meters[3].code == 5
+  host remember field meters[3].value as games_played
   host send lp AF data 0A00010000010002000500
   host expect field game_number == 1
-  host expect field meters[3].code <= 5
+  host expect field meters[0].value == saved.coin_in
+  host expect field meters[1].value == saved.coin_out
+  host expect field meters[2].value == saved.jackpot
+  host expect field meters[3].code == 5
+  host expect field meters[3].value == saved.games_played
   host send lp 2F data 06000100010205
   host expect field game_number == 1
-  host expect field meters[0].code <= 5
-  host expect field meters[3].code <= 5
+  host expect field meters[0].code == 0
+  host expect field meters[0].value == saved.coin_in
+  host expect field meters[1].code == 1
+  host expect field meters[1].value == saved.coin_out
+  host expect field meters[2].code == 2
+  host expect field meters[2].value == saved.jackpot
+  host expect field meters[3].code == 5
+  host expect field meters[3].value == saved.games_played
 
-  note "Each meter carries the same value in the $2F reply as in the $6F and $AF replies for the same game (host.compare_replies)."
   note "Game one is written in because the language has no variables. If the enabled list does not start at one, or holds more games, repeat the three polls for each game it names; on a multi-denomination machine first give every enabled game the same player denomination, and with more than twenty games enable and read them a set at a time."
 }

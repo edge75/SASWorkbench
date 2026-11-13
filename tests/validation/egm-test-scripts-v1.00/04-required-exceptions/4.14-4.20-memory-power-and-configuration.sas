@@ -32,7 +32,7 @@ test "4.14 AC power on and off" {
 # machine its address - it reports them once an address has been set again.
 test "4.15 CMOS RAM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault, stimulus.settle
+  requires machine.memory_fault, stimulus.settle, stimulus.bill, decoder.lp1C, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -41,11 +41,27 @@ test "4.15 CMOS RAM errors" {
   egm settle
   host forget exceptions within 2s
 
+  # A note first, so the meters a recovered fault must keep are not all zero.
+  egm bill insert 2000
+  host expect meter total_drop +>= 1 within 5s
+  host send lp 1C
+  host remember field total_coin_in as coin_in
+  host remember field total_coin_out as coin_out
+  host remember field total_drop as drop
+  host remember field games_played as games_played
+
   # Recovered, lost, bad device: $31, $32 and $33, one fault at a time.
   egm memory fault cmos-recovered
   # The person confirms once the machine has booted, so only the link is awaited here.
   host expect link up within 120s
   host expect exception cmosram_error_data_recovered within 30s
+
+  # Recovered means the meters survived.
+  host send lp 1C
+  host expect field total_coin_in == saved.coin_in
+  host expect field total_coin_out == saved.coin_out
+  host expect field total_drop == saved.drop
+  host expect field games_played == saved.games_played
 
   egm memory fault cmos-lost
   # The person confirms once the machine has booted, so only the link is awaited here.
@@ -58,7 +74,7 @@ test "4.15 CMOS RAM errors" {
   host expect exception cmosram_error_bad_device within 30s
 
   note "A fault may cost the machine its address. If it does, set the address back to 1 before confirming the prompt: the code is still owed once an address is set again - see 3.9."
-  note "Recoverable means the meters survived; non-recoverable means they did not. This build does not compare the meters before and after."
+  note "Non-recoverable means the meters did not survive. What a machine shows in their place is its own, so after the lost and bad-device faults the meters are not asserted."
 }
 
 test "4.16 EEPROM errors" {

@@ -9,10 +9,10 @@
 # asked for. A request for a contiguous run of codes is checked instead by bounding every entry's
 # code to that run, which also proves how many entries came back.
 #
-# Several cases ask that two replies carry the same value. This language has no way to hold one
-# reply's value and compare it with another's, so where that is the whole of a case it skips naming
-# host.compare_replies, and where it is one criterion among others it is left in a note and the
-# rest runs.
+# Several cases ask that two replies carry the same value. A value is remembered from one reply and
+# compared with the next. Where a list of several meters is compared, the replies may order their
+# entries differently, so the two are compared by the total of their values: any meter that
+# disagrees changes the total, though two meters swapping values would not.
 
 # The machine says, for game zero, which optional features it has - extended meters among them.
 test "6.1 the machine reports its enabled features" {
@@ -76,20 +76,33 @@ test "6.2.2 the same meter asked repeatedly through both polls" {
 
   host send lp 6F data 0400000500
   host expect field meters[0].code == 5
+  host remember field meters[0].value as played_before
+  host send lp AF data 0400000500
+  host expect field meters[0].code == 5
+  host expect field meters[0].value == saved.played_before
+  host send lp 6F data 0400000700
+  host expect field meters[0].code == 7
+  host remember field meters[0].value as lost_before
   host send lp AF data 0400000700
   host expect field meters[0].code == 7
+  host expect field meters[0].value == saved.lost_before
 
   egm bill insert 2000
   egm play games=4 bet=1
   host expect meter games_played += 4 within 5s
   host expect meter games_lost += 4 within 5s
 
+  # After play both polls report the four games, and so still agree with each other.
   host send lp 6F data 0400000500
   host expect field meters[0].code == 5
-  host send lp AF data 0400000700
+  host expect field meters[0].value == saved.played_before + 4
+  host send lp AF data 0400000500
+  host expect field meters[0].value == saved.played_before + 4
+  host send lp 6F data 0400000700
   host expect field meters[0].code == 7
-
-  note "Each pair - games played through $6F and $AF, games lost through $6F and $AF - carries the same value however many times it is asked, before and after play. This host cannot compare one reply with another yet (host.compare_replies); read the four pairs in the trace."
+  host expect field meters[0].value == saved.lost_before + 4
+  host send lp AF data 0400000700
+  host expect field meters[0].value == saved.lost_before + 4
 }
 
 # Twelve meters in one request, through each poll, and the values against the machine's own audit
@@ -179,16 +192,19 @@ test "6.2.6 the meter asked for changes between polls" {
   host poll every 200ms
   host expect link up within 30s
 
+  # Coin out is the same in the first and fourth replies, games played in the second and third.
   host send lp 6F data 0400000100
   host expect field meters[0].code == 1
+  host remember field meters[0].value as coin_out
   host send lp AF data 0400000500
   host expect field meters[0].code == 5
+  host remember field meters[0].value as games_played
   host send lp 6F data 0400000500
   host expect field meters[0].code == 5
+  host expect field meters[0].value == saved.games_played
   host send lp AF data 0400000100
   host expect field meters[0].code == 1
-
-  note "Coin out is the same in the first and fourth replies, games played the same in the second and third."
+  host expect field meters[0].value == saved.coin_out
 }
 
 test "6.2.7 a mixed list through both polls" {
@@ -199,10 +215,27 @@ test "6.2.7 a mixed list through both polls" {
   host poll every 200ms
   host expect link up within 30s
 
+  # Games played, won and lost and the two games-since counts: the same values in both replies.
   host send lp 6F data 0C000005000600070025002600
+  host expect field meters[0].code >= 5
+  host expect field meters[4].code >= 5
+  host expect field meters[4].code <= $26
+  host remember field meters[0].value as a0
+  host remember field meters[1].value as a1
+  host remember field meters[2].value as a2
+  host remember field meters[3].value as a3
+  host remember field meters[4].value as a4
   host send lp AF data 0C000005000600070025002600
+  host expect field meters[0].code >= 5
+  host expect field meters[4].code >= 5
+  host expect field meters[4].code <= $26
+  host remember field meters[1].value as b1
+  host remember field meters[2].value as b2
+  host remember field meters[3].value as b3
+  host remember field meters[4].value as b4
+  host expect field meters[0].value == saved.a0 + saved.a1 + saved.a2 + saved.a3 + saved.a4 - saved.b1 - saved.b2 - saved.b3 - saved.b4
 
-  note "Games played, won and lost and the two games-since counts: each code carries the same value in both replies."
+  note "The replies are compared by their totals, as the header explains; a value swapped between two codes is left to the trace."
 }
 
 test "6.2.8 a mixed list in descending order" {
@@ -213,17 +246,34 @@ test "6.2.8 a mixed list in descending order" {
   host poll every 200ms
   host expect link up within 30s
 
+  # The same five meters as 6.2.7, asked the other way round: the same values in both replies.
   host send lp 6F data 0C000026002500070006000500
+  host expect field meters[0].code >= 5
+  host expect field meters[4].code >= 5
+  host expect field meters[4].code <= $26
+  host remember field meters[0].value as a0
+  host remember field meters[1].value as a1
+  host remember field meters[2].value as a2
+  host remember field meters[3].value as a3
+  host remember field meters[4].value as a4
   host send lp AF data 0C000026002500070006000500
+  host expect field meters[0].code >= 5
+  host expect field meters[4].code >= 5
+  host expect field meters[4].code <= $26
+  host remember field meters[1].value as b1
+  host remember field meters[2].value as b2
+  host remember field meters[3].value as b3
+  host remember field meters[4].value as b4
+  host expect field meters[0].value == saved.a0 + saved.a1 + saved.a2 + saved.a3 + saved.a4 - saved.b1 - saved.b2 - saved.b3 - saved.b4
 
-  note "The same five meters as 6.2.7, asked the other way round: each code carries the same value in both replies."
+  note "The replies are compared by their totals, as the header explains; a value swapped between two codes is left to the trace."
 }
 
 # Requests of different lengths back to back, so a machine that reused the previous reply's list
 # would answer the wrong codes.
 test "6.2.9 requests of different lengths, back to back" {
   tag @egm-test-scripts @chapter-6 @wire-only
-  requires decoder.lp6F, decoder.lpAF
+  requires decoder.lp6F, decoder.lpAF, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -233,6 +283,11 @@ test "6.2.9 requests of different lengths, back to back" {
   host expect field meters[0].code >= 5
   host expect field meters[4].code >= 5
   host expect field meters[4].code <= $26
+  host remember field meters[0].value as a0
+  host remember field meters[1].value as a1
+  host remember field meters[2].value as a2
+  host remember field meters[3].value as a3
+  host remember field meters[4].value as a4
 
   host send lp AF data 1800001C001D001E001F002000210022002300010002000300
   host expect field meters[0].code >= 1
@@ -244,12 +299,16 @@ test "6.2.9 requests of different lengths, back to back" {
   host expect field meters[11].code >= $40
   host expect field meters[11].code <= $4B
 
+  # The fourth reply carries the same values as the first, compared by their totals.
   host send lp AF data 0C000005000600070025002600
   host expect field meters[0].code >= 5
   host expect field meters[4].code >= 5
   host expect field meters[4].code <= $26
-
-  note "The first and fourth replies carry the same codes and values (host.compare_replies, not yet in this language)."
+  host remember field meters[1].value as b1
+  host remember field meters[2].value as b2
+  host remember field meters[3].value as b3
+  host remember field meters[4].value as b4
+  host expect field meters[0].value == saved.a0 + saved.a1 + saved.a2 + saved.a3 + saved.a4 - saved.b1 - saved.b2 - saved.b3 - saved.b4
 }
 
 # An empty list. The document prefers an empty reply and tolerates silence or a refusal; this case

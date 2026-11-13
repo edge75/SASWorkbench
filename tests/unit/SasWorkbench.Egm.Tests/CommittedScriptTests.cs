@@ -126,7 +126,17 @@ public class CommittedScriptTests
         }
 
         Assert.Equal(0, report.Errored);
-        Assert.True(report.Failed == 0, Explain(report));
+
+        //  As in the conformance tree: a case labelled a finding documents a machine library that
+        //  does not do what the document asks, so it must still fail - and every other case must not.
+        //  The GSA chapters brought the first such cases into this tree (6.6.1 to 6.6.4, 23.2).
+        Assert.All(
+            report.Tests.Where(t => t.Tags.Contains("finding")),
+            test => Assert.True(test.Verdict is Verdict.Fail or Verdict.Skip,
+                $"{test.Name} is labelled a finding but {test.Verdict}: take the label off"));
+        Assert.True(
+            report.Tests.Where(t => !t.Tags.Contains("finding")).All(t => t.Verdict != Verdict.Fail),
+            Explain(report));
         Assert.All(report.Tests, test => Assert.True(
             test.Verdict != Verdict.Skip || !string.IsNullOrWhiteSpace(test.SkipReason),
             $"{test.Name} was skipped without saying why"));
