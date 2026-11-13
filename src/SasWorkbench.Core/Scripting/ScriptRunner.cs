@@ -526,6 +526,7 @@ public sealed class ScriptRunner
         var window = new LastStimulus();
         var answered = new AnsweredPolls();
         var printed = new PrintedTickets(_options.WalletDirectory);
+        var saved = new SavedValues();
 
         //  Everything already in the wallet belongs to whatever ran before this test.
         printed.Baseline();
@@ -634,12 +635,12 @@ public sealed class ScriptRunner
                         SendGeneralPollStep poll =>
                             RunStep(poll with { To = poll.To ?? hosts.Machine }, hosts.Engine,
                                 hosts.Machine, environment, exceptions, test, baselines, window,
-                                answered, printed, stopwatch.Elapsed),
+                                answered, printed, saved, stopwatch.Elapsed),
 
                         SendLongPollStep send =>
                             RunStep(send with { To = send.To ?? hosts.Machine }, hosts.Engine,
                                 hosts.Machine, environment, exceptions, test, baselines, window,
-                                answered, printed, stopwatch.Elapsed),
+                                answered, printed, saved, stopwatch.Elapsed),
 
                         //  An exception on a round belongs to one machine, and a general poll is
                         //  answered with a bare code that does not say which. A case that has not
@@ -654,7 +655,7 @@ public sealed class ScriptRunner
                                 + string.Join(", ", hosts.Engine.Round.Select(a => $"${a}")) + "."),
 
                         _ => RunStep(step, hosts.Engine, hosts.Machine, environment, exceptions,
-                            test, baselines, window, answered, printed, stopwatch.Elapsed),
+                            test, baselines, window, answered, printed, saved, stopwatch.Elapsed),
                     },
                 };
 
@@ -729,6 +730,7 @@ public sealed class ScriptRunner
         LastStimulus window,
         AnsweredPolls answered,
         PrintedTickets printed,
+        SavedValues saved,
         TimeSpan at)
     {
         try
@@ -767,7 +769,10 @@ public sealed class ScriptRunner
 
                 ExpectMeterStep expect => CheckMeter(expect, engine, machine, baselines, at),
 
-                ExpectFieldStep expect => CheckField(expect, engine, machine, answered, printed, at),
+                ExpectFieldStep expect => CheckField(
+                    expect, engine, machine, answered, printed, saved, at),
+
+                RememberFieldStep remember => Remember(remember, engine, machine, answered, saved, at),
 
                 ExpectEventFieldStep expect => CheckEventField(expect, engine, machine, exceptions, at),
 
@@ -798,6 +803,33 @@ public sealed class ScriptRunner
     /// that send was told. Acting on the machine clears the lot, because a reply describes the
     /// machine at the moment it was given.
     /// </remarks>
+    /// <summary>
+    /// The values a case remembered by name. Unlike a reply, acting on the machine keeps them:
+    /// comparing before with after is what they are for.
+    /// </summary>
+    private sealed class SavedValues
+    {
+        private readonly Dictionary<string, SasValue> _values = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, string> _missing = new(StringComparer.Ordinal);
+
+        public void Keep(string name, SasValue value)
+        {
+            _values[name] = value;
+            _missing.Remove(name);
+        }
+
+        public void Lose(string name, string why)
+        {
+            _values.Remove(name);
+            _missing[name] = why;
+        }
+
+        public SasValue? Recall(string name) => _values.GetValueOrDefault(name);
+
+        public string WhyMissing(string name) =>
+            _missing.GetValueOrDefault(name) ?? $"saved.{name} was never taken: its step did not run";
+    }
+
     private sealed class AnsweredPolls
     {
         private readonly Dictionary<byte, LongPollResult> _replies = [];
@@ -1703,6 +1735,7 @@ public sealed class ScriptRunner
         SasAddress? machine,
         AnsweredPolls answered,
         PrintedTickets printed,
+        SavedValues saved,
         TimeSpan at)
     {
         //  Resolved before the poll is read, so a comparison against a ticket that was never
@@ -1731,46 +1764,39 @@ public sealed class ScriptRunner
             fromTicket = parsed;
         }
 
-        SasMessageLayout? layout = SasLayouts.For(step.Command);
-        if (layout is null)
+        //  Remembered values are resolved before the poll too, so a comparison with one that was
+        //  never taken says which and why rather than blaming the reply.
+        long? fromSaved = null;
+        string? savedText = null;
+        if (step.ExpectedSum is { } sum)
         {
-            return new StepResult(step.Location, step.Describe(), Verdict.Skip,
-                Reason: $"this build cannot decode the reply to long poll ${step.Command:X2}", At: at);
+            if (!ResolveSum(sum, saved, out long total, out string? text, out string? missing))
+            {
+                return new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                    Reason: missing, At: at);
+            }
+
+            fromSaved = text is null ? total : null;
+            savedText = text;
         }
 
-        // The reply this test already has, when it has one. Asking again would ask a different
-        // question for any long poll that carries data, because the second ask carries none.
-        LongPollResult reply =
-            answered.Recall(step.Command) ?? engine.Execute(step.Command, to: machine);
-        if (!reply.Succeeded)
+        if (ReadField(step, step.Command, step.Field, engine, machine, answered, at,
+                out SasValue? read) is { } unread)
         {
-            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
-                Expected: step.Describe(), Actual: reply.ToString(), Reason: reply.Detail, At: at)
-            { IsAssertion = true };
+            return unread;
         }
 
-        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, reply.Frame);
-        if (!decoded.Succeeded)
-        {
-            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
-                Expected: step.Describe(), Actual: reply.ToHex(), Reason: decoded.Failure, At: at)
-            { IsAssertion = true };
-        }
-
-        SasValue? value = decoded[step.Field];
-        if (value is null)
-        {
-            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
-                Expected: step.Describe(),
-                Actual: $"the reply held no '{step.Field}'; it held "
-                        + string.Join(", ", decoded.Paths),
-                At: at) { IsAssertion = true };
-        }
-
+        SasValue value = read!;
         bool held;
         string actualText;
 
-        if (fromTicket is { } wanted)
+        if (savedText is not null)
+        {
+            actualText = value.Text ?? value.ToHex();
+            bool same = string.Equals(actualText, savedText, StringComparison.Ordinal);
+            held = step.Comparison == SasComparison.Equal ? same : !same;
+        }
+        else if ((fromTicket ?? fromSaved) is { } wanted)
         {
             if (value.Number is not { } reported)
             {
@@ -1806,10 +1832,133 @@ public sealed class ScriptRunner
             step.Location,
             step.Describe(),
             held ? Verdict.Pass : Verdict.Fail,
-            Expected: fromTicket?.ToString(CultureInfo.InvariantCulture)
-                ?? step.ExpectedText ?? step.ExpectedNumber?.ToString(),
+            Expected: (fromTicket ?? fromSaved)?.ToString(CultureInfo.InvariantCulture)
+                ?? savedText ?? step.ExpectedText ?? step.ExpectedNumber?.ToString(),
             Actual: actualText,
             At: at) { IsAssertion = true };
+    }
+
+    /// <summary>
+    /// Reads one field of a long poll's reply: the reply this test already has, or a fresh ask.
+    /// </summary>
+    /// <returns>Null with the value, or the verdict that stops the step.</returns>
+    private static StepResult? ReadField(
+        ScriptStep step,
+        byte command,
+        string field,
+        PollEngine engine,
+        SasAddress? machine,
+        AnsweredPolls answered,
+        TimeSpan at,
+        out SasValue? value)
+    {
+        value = null;
+        SasMessageLayout? layout = SasLayouts.For(command);
+        if (layout is null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Skip,
+                Reason: $"this build cannot decode the reply to long poll ${command:X2}", At: at);
+        }
+
+        // The reply this test already has, when it has one. Asking again would ask a different
+        // question for any long poll that carries data, because the second ask carries none.
+        LongPollResult reply = answered.Recall(command) ?? engine.Execute(command, to: machine);
+        if (!reply.Succeeded)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(), Actual: reply.ToString(), Reason: reply.Detail, At: at)
+            { IsAssertion = true };
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, reply.Frame);
+        if (!decoded.Succeeded)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(), Actual: reply.ToHex(), Reason: decoded.Failure, At: at)
+            { IsAssertion = true };
+        }
+
+        value = decoded[field];
+        if (value is null)
+        {
+            return new StepResult(step.Location, step.Describe(), Verdict.Fail,
+                Expected: step.Describe(),
+                Actual: $"the reply held no '{field}'; it held " + string.Join(", ", decoded.Paths),
+                At: at) { IsAssertion = true };
+        }
+
+        return null;
+    }
+
+    /// <summary>Keeps a field of a reply under its name, or records why it could not.</summary>
+    private static StepResult Remember(
+        RememberFieldStep step,
+        PollEngine engine,
+        SasAddress? machine,
+        AnsweredPolls answered,
+        SavedValues saved,
+        TimeSpan at)
+    {
+        StepResult? unread = ReadField(
+            step, step.Command, step.Field, engine, machine, answered, at, out SasValue? value);
+        if (unread is not null)
+        {
+            saved.Lose(step.Name,
+                $"saved.{step.Name} was not taken: {unread.Reason ?? unread.Actual}");
+            return unread;
+        }
+
+        saved.Keep(step.Name, value!);
+        string shown = value!.Number?.ToString(CultureInfo.InvariantCulture)
+            ?? value.Text ?? value.ToHex();
+        return new StepResult(step.Location, step.Describe(), Verdict.Pass,
+            Actual: $"saved.{step.Name} = {shown}", At: at);
+    }
+
+    /// <summary>
+    /// Adds up remembered values and numbers. A lone remembered text value comes back as text, for
+    /// == and !=; anything else must be a number.
+    /// </summary>
+    private static bool ResolveSum(
+        SavedSum sum, SavedValues saved, out long total, out string? text, out string? missing)
+    {
+        total = 0;
+        text = null;
+        missing = null;
+        foreach (SavedTerm term in sum.Terms)
+        {
+            long number;
+            if (term.Name is { } name)
+            {
+                if (saved.Recall(name) is not { } value)
+                {
+                    missing = saved.WhyMissing(name);
+                    return false;
+                }
+
+                if (value.Number is not { } held)
+                {
+                    if (sum.OnlyName is not null)
+                    {
+                        text = value.Text ?? value.ToHex();
+                        return true;
+                    }
+
+                    missing = $"saved.{name} is {value.ToHex()}, which is not a number to add";
+                    return false;
+                }
+
+                number = held;
+            }
+            else
+            {
+                number = term.Number!.Value;
+            }
+
+            total += term.Sign * number;
+        }
+
+        return true;
     }
 
     private static StepResult CheckLink(ExpectLinkStep step, PollEngine engine, TimeSpan at)

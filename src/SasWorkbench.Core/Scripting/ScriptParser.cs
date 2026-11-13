@@ -487,10 +487,14 @@ public static class ScriptParser
                 test.Steps.Add(ReadExpect(test, words, location));
                 return;
 
+            case "remember":
+                test.Steps.Add(ReadRemember(test, words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'host {words[1]}' is not a host action. Expected connect, channel, machine, "
-                    + "poll, wait, warm up, send, forget or expect");
+                    + "poll, wait, warm up, send, forget, remember or expect");
         }
     }
 
@@ -1047,46 +1051,8 @@ public static class ScriptParser
             return ReadExpectEventField(words, location, fieldName, cursor + 2);
         }
 
-        if (cursor + 2 < words.Length
-            && words[cursor].Equals("of", StringComparison.OrdinalIgnoreCase)
-            && words[cursor + 1].Equals("lp", StringComparison.OrdinalIgnoreCase))
-        {
-            if (!SasNames.TryParseCode(words[cursor + 2], out command))
-                throw new ScriptParseException(location,
-                    $"'{words[cursor + 2]}' is not a long poll code");
-            cursor += 3;
-        }
-        else
-        {
-            // No command given, so the field must belong to the most recent 'send lp'. Resolving
-            // it here rather than at run time means a script with no preceding send fails to
-            // parse instead of failing mysteriously halfway through a run.
-            SendLongPollStep? last = test.Steps.OfType<SendLongPollStep>().LastOrDefault();
-            if (last is null)
-                throw new ScriptParseException(location,
-                    $"'{fieldName}' has no reply to come from. Either send a long poll first, or "
-                    + "write 'of lp <code>'");
-            command = last.Command;
-        }
-
-        // Two different problems, deliberately handled differently. A field name that a known
-        // layout does not have is a mistake in the script, so it stops the parse. A command whose
-        // reply this build cannot decode at all is a missing capability, so the step is accepted
-        // and the runner skips it with that reason — which is what lets a test be written against
-        // a command before its layout has been established, and reported honestly meanwhile.
-        SasMessageLayout? layout = SasLayouts.For(command);
-        if (layout is null && !SasCatalogue.LongPolls.ContainsKey(command))
-        {
-            throw new ScriptParseException(location,
-                $"long poll ${command:X2} is not one the gaming machine library implements");
-        }
-
-        if (layout is not null && !HasField(layout.Response, fieldName))
-        {
-            throw new ScriptParseException(location,
-                $"long poll ${command:X2} has no field '{fieldName}'. Its fields are: "
-                + string.Join(", ", NamesOf(layout.Response)));
-        }
+        (command, SasMessageLayout? layout, cursor) =
+            ReadReplyField(test, words, cursor, fieldName, location);
 
         if (cursor >= words.Length)
             throw new ScriptParseException(location, $"'{fieldName}' needs a comparison after it");
@@ -1106,6 +1072,25 @@ public static class ScriptParser
         SasField? declared = layout?.Response.FirstOrDefault(f =>
             string.Equals(f.Name, fieldName, StringComparison.OrdinalIgnoreCase));
         bool textual = declared?.Encoding is SasFieldEncoding.Ascii or SasFieldEncoding.Raw;
+
+        // A reply compared against values remembered earlier in the case, resolved now so a name
+        // nothing remembered is a mistake in the script rather than a surprise on a board.
+        if (expected.Contains("saved.", StringComparison.OrdinalIgnoreCase))
+        {
+            SavedSum sum = ReadSavedSum(test, expected, location);
+            if (textual && (sum.OnlyName is null
+                    || comparison is not (SasComparison.Equal or SasComparison.NotEqual)))
+            {
+                throw new ScriptParseException(location,
+                    $"'{fieldName}' holds text, so it can only be compared with == or != against "
+                    + "one remembered value");
+            }
+
+            return new ExpectFieldStep(location, command, fieldName, comparison, null, null)
+            {
+                ExpectedSum = sum,
+            };
+        }
 
         // A reply compared against the ticket the machine printed rather than against a literal.
         // Resolved now, so a ticket field that does not exist is a mistake in the script; and
@@ -1154,6 +1139,153 @@ public static class ScriptParser
                 $"'{fieldName}' holds text, which can only be compared with == or !=");
 
         return new ExpectFieldStep(location, command, fieldName, comparison, null, expected);
+    }
+
+    /// <summary>Reads <c>host remember field &lt;name&gt; [of lp &lt;code&gt;] as &lt;saved name&gt;</c>.</summary>
+    private static RememberFieldStep ReadRemember(
+        TestBuilder test, string[] words, SourceLocation location)
+    {
+        const string Usage = "expected: host remember field <name> [of lp <code>] as <saved name>";
+        if (words.Length < 6 || !words[2].Equals("field", StringComparison.OrdinalIgnoreCase))
+            throw new ScriptParseException(location, Usage);
+
+        string fieldName = words[3];
+        (byte command, _, int cursor) = ReadReplyField(test, words, 4, fieldName, location);
+
+        if (cursor + 2 != words.Length
+            || !words[cursor].Equals("as", StringComparison.OrdinalIgnoreCase))
+            throw new ScriptParseException(location, Usage);
+
+        string name = words[cursor + 1];
+        if (!SavedName.IsMatch(name))
+        {
+            throw new ScriptParseException(location,
+                $"'{name}' is not a name to remember a value by. Use letters, digits and "
+                + "underscores, starting with a letter");
+        }
+
+        test.Saved.Add(name);
+        return new RememberFieldStep(location, command, fieldName, name);
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex SavedName =
+        new("^[A-Za-z][A-Za-z0-9_]*$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Reads remembered values and numbers joined by + and -, such as
+    /// <c>saved.after - saved.before + 10</c>.
+    /// </summary>
+    private static SavedSum ReadSavedSum(TestBuilder test, string expression, SourceLocation location)
+    {
+        string[] tokens = expression.Replace("+", " + ").Replace("-", " - ")
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        var terms = new List<SavedTerm>();
+        int sign = +1;
+        bool wantOperand = true;
+        foreach (string token in tokens)
+        {
+            if (token is "+" or "-")
+            {
+                if (wantOperand && terms.Count > 0)
+                    throw new ScriptParseException(location,
+                        $"'{expression}' has two operators in a row");
+
+                sign = token == "-" ? -sign : sign;
+                wantOperand = true;
+                continue;
+            }
+
+            if (!wantOperand)
+                throw new ScriptParseException(location,
+                    $"'{expression}' needs + or - between '{terms[^1].Operand}' and '{token}'");
+
+            terms.Add(ReadSavedTerm(test, token, sign, expression, location));
+            sign = +1;
+            wantOperand = false;
+        }
+
+        if (wantOperand)
+            throw new ScriptParseException(location,
+                $"'{expression}' ends without a value after its last operator");
+
+        return new SavedSum(terms);
+    }
+
+    private static SavedTerm ReadSavedTerm(
+        TestBuilder test, string token, int sign, string expression, SourceLocation location)
+    {
+        if (token.StartsWith("saved.", StringComparison.OrdinalIgnoreCase))
+        {
+            string name = token["saved.".Length..];
+            if (!test.Saved.Contains(name))
+            {
+                throw new ScriptParseException(location,
+                    $"'saved.{name}' was not remembered earlier in this case. Remember it first "
+                    + "with: host remember field <name> as " + name);
+            }
+
+            return new SavedTerm(sign, null, name);
+        }
+
+        if (SasNames.TryResolveFieldValue(token, out long number))
+            return new SavedTerm(sign, number, null);
+
+        throw new ScriptParseException(location,
+            $"'{token}' in '{expression}' is neither a remembered value (saved.<name>) nor a "
+            + "number; only + and - join them");
+    }
+
+    /// <summary>
+    /// Resolves which reply a field comes from - <c>of lp &lt;code&gt;</c>, or the most recent send -
+    /// and refuses a field that reply's layout does not have.
+    /// </summary>
+    private static (byte Command, SasMessageLayout? Layout, int Cursor) ReadReplyField(
+        TestBuilder test, string[] words, int cursor, string fieldName, SourceLocation location)
+    {
+        byte command;
+        if (cursor + 2 < words.Length
+            && words[cursor].Equals("of", StringComparison.OrdinalIgnoreCase)
+            && words[cursor + 1].Equals("lp", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!SasNames.TryParseCode(words[cursor + 2], out command))
+                throw new ScriptParseException(location,
+                    $"'{words[cursor + 2]}' is not a long poll code");
+            cursor += 3;
+        }
+        else
+        {
+            // No command given, so the field must belong to the most recent 'send lp'. Resolving
+            // it here rather than at run time means a script with no preceding send fails to
+            // parse instead of failing mysteriously halfway through a run.
+            SendLongPollStep? last = test.Steps.OfType<SendLongPollStep>().LastOrDefault();
+            if (last is null)
+                throw new ScriptParseException(location,
+                    $"'{fieldName}' has no reply to come from. Either send a long poll first, or "
+                    + "write 'of lp <code>'");
+            command = last.Command;
+        }
+
+        // Two different problems, deliberately handled differently. A field name that a known
+        // layout does not have is a mistake in the script, so it stops the parse. A command whose
+        // reply this build cannot decode at all is a missing capability, so the step is accepted
+        // and the runner skips it with that reason — which is what lets a test be written against
+        // a command before its layout has been established, and reported honestly meanwhile.
+        SasMessageLayout? layout = SasLayouts.For(command);
+        if (layout is null && !SasCatalogue.LongPolls.ContainsKey(command))
+        {
+            throw new ScriptParseException(location,
+                $"long poll ${command:X2} is not one the gaming machine library implements");
+        }
+
+        if (layout is not null && !HasField(layout.Response, fieldName))
+        {
+            throw new ScriptParseException(location,
+                $"long poll ${command:X2} has no field '{fieldName}'. Its fields are: "
+                + string.Join(", ", NamesOf(layout.Response)));
+        }
+
+        return (command, layout, cursor);
     }
 
     /// <summary>
@@ -1660,6 +1792,9 @@ public static class ScriptParser
         public List<string> Tags { get; } = [];
 
         public List<ScriptStep> Steps { get; } = [];
+
+        /// <summary>The names remembered so far, so a comparison with one nobody remembered is refused.</summary>
+        public HashSet<string> Saved { get; } = new(StringComparer.Ordinal);
 
         /// <summary>The accounting denomination declared, before it is joined to the player list.</summary>
         public (byte Code, int Cents)? Denomination { get; set; }
