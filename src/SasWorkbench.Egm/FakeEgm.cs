@@ -681,6 +681,7 @@ public sealed partial class FakeEgm : IDisposable
             Meters.Increment(SasMeterCode.GamesWon, 1);
             Meters.Increment(SasMeterCode.GamesLost, games - 1);
             Meters.Increment(SasMeterCode.TotalCoinOutCredits, won);
+            Meters.Increment(SasMeterCode.TotalMachinePaidPaytableWin_Crd, won);
         }
         else
         {
