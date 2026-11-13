@@ -47,7 +47,7 @@ test "7.6 the identification reply summarises every enabled game" {
 
 # Game zero's configuration, the machine as a whole. Only the echo and the progressive group can be
 # asserted as written: the rest of the reply is either the manufacturer's to know (its identifier,
-# its paytable) or a comparison with the identification reply, which this language cannot make.
+# its paytable) or a comparison with the identification reply, which 7.8 makes.
 test "7.7 the configuration of game zero" {
   tag @egm-test-scripts @chapter-7 @wire-only
   requires decoder.lp53
@@ -71,16 +71,36 @@ test "7.7 the configuration of game zero" {
 # every other game has its own denomination, maximum bet, paytable and payback.
 test "7.8 the configuration of each game" {
   tag @egm-test-scripts @chapter-7 @wire-only
-  requires decoder.lp1F, decoder.lp53, decoder.lp56
+  requires decoder.lp1F, decoder.lp53, decoder.lp56, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
 
-  host send lp 1F
-
+  # Game zero repeats the identification reply field for field. The payback is taken from game
+  # zero's reply first, because there it is text, and text is compared only with remembered text.
   host send lp 53 with game_number=0
   host expect field game_number == 0
+  host remember field base_percentage as payback
+
+  host send lp 1F
+  host remember field game_id as game_id
+  host remember field additional_id as additional_id
+  host remember field denomination as denomination
+  host remember field max_bet as max_bet
+  host remember field progressive_group as progressive_group
+  host remember field game_options as game_options
+  host remember field paytable_id as paytable_id
+  host expect field base_percentage == saved.payback
+
+  host send lp 53 with game_number=0
+  host expect field game_id == saved.game_id
+  host expect field additional_id == saved.additional_id
+  host expect field denomination == saved.denomination
+  host expect field max_bet == saved.max_bet
+  host expect field progressive_group == saved.progressive_group
+  host expect field game_options == saved.game_options
+  host expect field paytable_id == saved.paytable_id
 
   host send lp 56
   host expect field count >= 1
@@ -88,6 +108,5 @@ test "7.8 the configuration of each game" {
   host send lp 53 with game_number=1
   host expect field game_number == 1
 
-  note "Not asserted: that every field of the game zero reply equals the same field of the identification reply. The language cannot compare one reply with another; the two are in the log side by side for a person to compare."
   note "For each enabled game, its denomination code, its maximum bet in game credits, its paytable and its theoretical payback must match what the audit display shows for that game, and each paytable is that game's own (D40). On the demo machine that is games one to four."
 }

@@ -91,9 +91,17 @@ public sealed partial class FakeEgm
             return false;
 
         long credits = paid.AmountCents / AccountingCents;
-        Meters.Increment(paid.Kind == HandpayKind.CancelledCredit
-            ? SasMeterCode.TotalHandPaidCancelledCredits
-            : SasMeterCode.TotalJackpotCredits, credits);
+        // A cancelled-credit hand pay is also a cancelled credit; a jackpot is also an attendant-paid paytable win.
+        if (paid.Kind == HandpayKind.CancelledCredit)
+        {
+            Meters.Increment(SasMeterCode.TotalHandPaidCancelledCredits, credits);
+            Meters.Increment(SasMeterCode.TotalCancelledCredits, credits);
+        }
+        else
+        {
+            Meters.Increment(SasMeterCode.TotalJackpotCredits, credits);
+            Meters.Increment(SasMeterCode.TotalAttendantPaidPaytableWin_Crd, credits);
+        }
 
         if (reported)
             Queue((byte)SasExceptionCode.HandpayWasReset, [], priority: true);

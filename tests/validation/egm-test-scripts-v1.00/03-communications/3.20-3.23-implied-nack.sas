@@ -79,7 +79,7 @@ test "3.20 the same poll twice is a refusal" {
 test "3.21 the same poll three times is final" {
   tag @egm-test-scripts @chapter-3 @needs-stimulus
   requires host.poll_sequence, stimulus.door.main, stimulus.button.service, stimulus.settle
-  requires decoder.lp1F
+  requires decoder.lp1F, decoder.lp7E, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -128,7 +128,25 @@ test "3.21 the same poll three times is final" {
   host send gp draws nothing
   host send lp 1F
 
-  note "Steps 8 and 9 repeat the shape with the date and time poll: three in a row, where the first two carry the same time and the third repeats it or is unanswered, then date and time, identification, date and time, where the last carries a new time. This build asserts a long poll only by its answer and cannot compare one reply with another, so they are not run."
+  # Steps 8 and 9 with the date and time poll: a repeat carries the same time as the first, and
+  # after the identification poll acknowledges it the next one carries a fresh time.
+  host send lp 7E
+  host remember field day as day
+  host remember field hour as hour
+  host remember field minute as minute
+  host remember field second as second
+  host send lp 7E
+  host expect field day == saved.day
+  host expect field hour == saved.hour
+  host expect field minute == saved.minute
+  host expect field second == saved.second
+  host send lp 1F
+  # The pause is ours, not the document's: it lets the clock move on by more than its resolution.
+  host wait 2s
+  host send lp 7E
+  host expect field second != saved.second
+
+  note "The document sends the date and time poll a third time in a row, which may go unanswered. A long poll sent here must be answered, so that third one is left out and the identification poll follows the repeat directly."
 }
 
 # A power cycle does not clear the retry. The machine comes back still owing the same exception.

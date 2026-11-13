@@ -1,20 +1,17 @@
 # Chapter 9, sections 9.12 to 9.17 - the play meters, split by denomination.
 #
-# Every case here is one experiment run once per player denomination: read a meter for the whole
-# machine and the same meter for each denomination through the $B0 preamble, play at one
-# denomination, read them all again, and check that what the per-denomination meters gained adds
-# up to exactly what the machine total gained. A machine that credited every denomination, or
-# none, would fail the sum while passing any single reading.
+# Every case reads a meter for the whole machine and the same meter at one cent and at five cents
+# through the $B0 preamble, plays at one cent, reads them all again, and checks that what the two
+# per-denomination meters gained adds up to exactly what the machine total gained, that the
+# five-cent meter did not move, and that the total moved at all. A machine that credited every
+# denomination, or none, fails the sum while passing any single reading.
 #
-# Two things keep these from running. The preamble has no layout here (`decoder.lpB0`), and the
-# language has no variables, so it cannot add several replies together and compare the sum with
-# the difference of two more (`host.meter_arithmetic`). The machine-total half is written out as
-# steps, so it runs the moment the rest can. Choosing a denomination on the machine is a person's
-# job (`stimulus.select_denomination`).
-#
-# The preamble data uses denomination code 01, one cent, and game 0000; see 9.7 for why a machine
-# without one cent needs another code. The document asks for up to twenty denominations at a time,
-# with a different denomination on each game of a multi-game machine.
+# The set is fixed at one cent (code 01) and five cents (code 02), game 0000, because the language
+# has no loops: a machine without one of them cannot answer the preamble for it, and the case
+# skips at the reading it could not take. Playing at five cents, and any further denomination, is the same case
+# with the codes swapped or added. The preamble has no layout here yet (`decoder.lpB0`), so its
+# replies are read as the meter poll they wrap. Choosing a denomination on the machine is a
+# person's job (`stimulus.select_denomination`).
 
 test "9.12 coin in by denomination adds up to coin in" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
@@ -27,15 +24,28 @@ test "9.12 coin in by denomination adds up to coin in" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000000
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000000
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000000
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm bill insert 2000
   egm play games=3 bet=2 win=0
   host expect meter total_coin_in += 6 within 5s
 
   host send lp B0 data 07016F0400000000
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000000
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000000
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0000. Read it for game zero at every denomination listed in $B2, before and after playing at the chosen one. The gain summed across the denominations equals the gain in the machine's own coin in meter, exactly. Repeat at every denomination."
+  note "Meter 0000. The document asks for every denomination the player can choose, up to twenty at a time; this case covers one cent and five cents."
 }
 
 test "9.13 coin out by denomination adds up to coin out" {
@@ -49,15 +59,28 @@ test "9.13 coin out by denomination adds up to coin out" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000100
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000100
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000100
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm bill insert 2000
   egm play games=1 bet=2 win=10
   host expect meter total_coin_out += 10 within 5s
 
   host send lp B0 data 07016F0400000100
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000100
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000100
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0001, moved by a winning game at the chosen denomination. The gain summed across the denominations equals the gain in the machine's own coin out meter, exactly. Repeat at every denomination."
+  note "Meter 0001, moved by a winning game at one cent."
 }
 
 test "9.14 jackpot by denomination adds up to jackpot" {
@@ -71,8 +94,14 @@ test "9.14 jackpot by denomination adds up to jackpot" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000200
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000200
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000200
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm settle
   host forget exceptions within 2s
   egm handpay jackpot 150000
@@ -83,8 +112,15 @@ test "9.14 jackpot by denomination adds up to jackpot" {
   host expect meter total_jackpot +>= 1 within 5s
 
   host send lp B0 data 07016F0400000200
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000200
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000200
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0002, moved by a jackpot hand pay won at the chosen denomination and keyed off. Record the amount the machine shows. The gain summed across the denominations equals the gain in the machine's own jackpot meter, exactly. Repeat at every denomination."
+  note "Meter 0002, moved by a jackpot hand pay won at one cent and keyed off. Record the amount the machine shows."
 }
 
 test "9.15 games played by denomination adds up to games played" {
@@ -98,15 +134,28 @@ test "9.15 games played by denomination adds up to games played" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000500
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000500
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000500
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm bill insert 2000
   egm play games=4 bet=1 win=0
   host expect meter games_played += 4 within 5s
 
   host send lp B0 data 07016F0400000500
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000500
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000500
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0005. The games counted summed across the denominations equal the gain in the machine's own games played meter, exactly. Repeat at every denomination."
+  note "Meter 0005."
 }
 
 test "9.16 games won by denomination adds up to games won" {
@@ -120,15 +169,28 @@ test "9.16 games won by denomination adds up to games won" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000600
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000600
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000600
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm bill insert 2000
   egm play games=1 bet=1 win=5
   host expect meter games_won += 1 within 5s
 
   host send lp B0 data 07016F0400000600
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000600
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000600
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0006, moved by playing until a game wins at the chosen denomination. The gain summed across the denominations equals the gain in the machine's own games won meter, exactly. Repeat at every denomination."
+  note "Meter 0006, moved by a winning game at one cent."
 }
 
 test "9.17 games lost by denomination adds up to games lost" {
@@ -142,13 +204,26 @@ test "9.17 games lost by denomination adds up to games lost" {
   host expect link up within 30s
 
   host send lp B2
+  host send lp 6F data 0400000700
+  host remember field meters[0].value as total_before
   host send lp B0 data 07016F0400000700
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400000700
+  host remember field meters[0].value as cent5_before
 
+  note "Choose one cent on the machine."
   egm bill insert 2000
   egm play games=1 bet=1 win=0
   host expect meter games_lost += 1 within 5s
 
   host send lp B0 data 07016F0400000700
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400000700
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400000700
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
 
-  note "Meter 0007, moved by playing until a game loses at the chosen denomination. The gain summed across the denominations equals the gain in the machine's own games lost meter, exactly. Repeat at every denomination."
+  note "Meter 0007, moved by a losing game at one cent."
 }

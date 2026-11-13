@@ -168,6 +168,7 @@ public static class YamlScriptReader
         ExpectExceptionStep s => s with { Location = location },
         ExpectMeterStep s => s with { Location = location },
         ExpectFieldStep s => s with { Location = location },
+        RememberFieldStep s => s with { Location = location },
         ExpectLinkStep s => s with { Location = location },
         InsertBillStep s => s with { Location = location },
         PlayGamesStep s => s with { Location = location },

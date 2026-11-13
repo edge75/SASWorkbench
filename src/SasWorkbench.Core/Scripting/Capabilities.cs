@@ -131,6 +131,11 @@ public static class CapabilityProbe
             // with the synchronisation poll under the case's control. True of this build and not
             // of the machine, so it is baseline rather than probed.
             ["host.poll_sequence"] = "yes",
+
+            // A case can keep a value from one reply and compare a later reply with it, or with a
+            // sum or difference of such values; also true of this build, not of the machine.
+            ["host.compare_replies"] = "yes",
+            ["host.meter_arithmetic"] = "yes",
         };
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))

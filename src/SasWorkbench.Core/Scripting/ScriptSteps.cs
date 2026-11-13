@@ -370,11 +370,14 @@ public sealed record ExpectFieldStep(
     /// </remarks>
     public string? ExpectedTicketField { get; init; }
 
+    /// <summary>Values remembered earlier in the case, added and subtracted, when the value is not a literal.</summary>
+    public SavedSum? ExpectedSum { get; init; }
+
     public override string Describe()
     {
         string expected = ExpectedTicketField is not null
             ? $"ticket.{ExpectedTicketField}"
-            : ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
+            : ExpectedSum?.ToString() ?? ExpectedText ?? ExpectedNumber?.ToString() ?? "?";
         return $"expect field {Field} of lp {Command:X2} {Comparison} {expected}";
     }
 }
@@ -708,4 +711,49 @@ public sealed record SetDenominationStep(SourceLocation Location, byte Code, int
 
     public override string Describe() =>
         $"set accounting denomination {MachineDeclaration.Describe(Cents)}";
+}
+
+/// <summary>Keeps one field of a long poll's reply under a name, for a later comparison.</summary>
+public sealed record RememberFieldStep(
+    SourceLocation Location,
+    byte Command,
+    string Field,
+    string Name) : ScriptStep(Location)
+{
+    public override string Describe() => $"remember field {Field} of lp {Command:X2} as {Name}";
+}
+
+/// <summary>One term of a sum: a remembered value or a number, added or subtracted.</summary>
+/// <param name="Sign">+1 to add, -1 to subtract.</param>
+/// <param name="Number">The number, when the term is a literal.</param>
+/// <param name="Name">The remembered name, when the term is one.</param>
+public sealed record SavedTerm(int Sign, long? Number, string? Name)
+{
+    public string Operand => Name is not null
+        ? $"saved.{Name}"
+        : Number!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+}
+
+/// <summary>Remembered values and numbers added and subtracted, written as the script wrote it.</summary>
+public sealed record SavedSum(IReadOnlyList<SavedTerm> Terms)
+{
+    /// <summary>The single remembered name, when the sum is nothing else.</summary>
+    public string? OnlyName =>
+        Terms is [{ Sign: > 0, Name: { } name }] ? name : null;
+
+    public override string ToString()
+    {
+        var text = new System.Text.StringBuilder();
+        for (int i = 0; i < Terms.Count; i++)
+        {
+            SavedTerm term = Terms[i];
+            if (i == 0)
+                text.Append(term.Sign < 0 ? "-" : string.Empty);
+            else
+                text.Append(term.Sign < 0 ? " - " : " + ");
+            text.Append(term.Operand);
+        }
+
+        return text.ToString();
+    }
 }

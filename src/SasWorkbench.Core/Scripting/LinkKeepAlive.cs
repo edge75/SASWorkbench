@@ -7,9 +7,10 @@ namespace SasWorkbench.Core.Scripting;
 /// machine never goes five seconds without an address byte and enters a loop break.
 /// </summary>
 /// <remarks>
-/// A synchronisation poll carries no exception off the queue, so what the case polls for after
-/// the person has acted is still there. Disposing waits for a poll in flight to finish, so the
-/// next message on the line is the case's own.
+/// A synchronisation poll draws no new exception, but it is a poll to another address, so it
+/// acknowledges an exception the machine has already reported (libsas treats it as an implied
+/// ACK). Disposing waits for a poll in flight to finish, so the next message on the line is the
+/// case's own.
 /// </remarks>
 public sealed class LinkKeepAlive : IDisposable
 {
@@ -28,6 +29,13 @@ public sealed class LinkKeepAlive : IDisposable
         _thread = new Thread(Run) { IsBackground = true, Name = "link keep-alive" };
         _thread.Start();
     }
+
+    /// <summary>
+    /// Whether a step's prompt should keep the link alive. Not a power cycle or a memory fault: the
+    /// machine restarts and is resynchronised afterwards, and a sync poll sent before the power goes
+    /// would acknowledge the very exception the case is checking survives the restart.
+    /// </summary>
+    public static bool Suits(StimulusStep step) => step is not (PowerCycleStep or MemoryFaultStep);
 
     /// <summary>Starts keeping the link alive, or returns null when the host polls on its own timer.</summary>
     public static LinkKeepAlive? Start(PollEngine engine) => Start(engine, Interval);
