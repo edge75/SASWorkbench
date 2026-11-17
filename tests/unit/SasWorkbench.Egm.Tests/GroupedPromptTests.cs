@@ -62,8 +62,8 @@ public class GroupedPromptTests
 
         Assert.Equal(2, asked.Count);
         Assert.Contains("these 8 actions", asked[0], StringComparison.Ordinal);
-        Assert.Contains("2 times: open the main door, then close the main door, then press service once, "
-            + "then press service once", asked[0], StringComparison.Ordinal);
+        Assert.Contains("  4. press service once", asked[0], StringComparison.Ordinal);
+        Assert.Contains("  8. press service once", asked[0], StringComparison.Ordinal);
         Assert.Contains("these 2 actions", asked[1], StringComparison.Ordinal);
 
         List<StepResult> actions = outcome.Steps

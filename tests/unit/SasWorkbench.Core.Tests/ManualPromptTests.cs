@@ -209,24 +209,13 @@ public class ManualPromptTests
 
         Assert.Contains("2000", asked, StringComparison.Ordinal);
     }
-    /// <summary>A repeated run of actions is folded, so a person reads one line instead of twenty.</summary>
+    /// <summary>
+    /// A repeated pattern cut short is still listed in full, one numbered line per action. In R39
+    /// the folded form ("2 times: ..., and then: ...") led a person to do the tail before the
+    /// second repeat, so the queue came back out of order.
+    /// </summary>
     [Fact]
-    public void ARepeatedRunOfActionsIsFoldedIntoOneLine()
-    {
-        var steps = new List<StimulusStep>();
-        for (int i = 0; i < 5; i++)
-        {
-            steps.Add(new DoorStep(SourceLocation.None, "main", Open: true));
-            steps.Add(new DoorStep(SourceLocation.None, "main", Open: false));
-        }
-
-        Assert.Equal("  5 times: open the main door, then close the main door",
-            ManualStimulusBackend.GroupedActions(steps));
-    }
-
-    /// <summary>A pattern repeated and then cut short is folded, and the rest follows it.</summary>
-    [Fact]
-    public void ARepeatCutShortIsFoldedAndTheRestFollows()
+    public void ARepeatCutShortIsListedInFullAndNumbered()
     {
         var steps = new List<StimulusStep>();
         for (int i = 0; i < 2; i++)
@@ -242,9 +231,14 @@ public class ManualPromptTests
 
         string listed = ManualStimulusBackend.GroupedActions(steps);
 
-        Assert.StartsWith("  2 times: open the main door, then close the main door, then press service once, "
-            + "then press service once", listed, StringComparison.Ordinal);
-        Assert.EndsWith("  and then: open the main door, then close the main door", listed, StringComparison.Ordinal);
+        string[] expected =
+        [
+            "  1. open the main door", "  2. close the main door", "  3. press service once", "  4. press service once",
+            "  5. open the main door", "  6. close the main door", "  7. press service once", "  8. press service once",
+            "  9. open the main door", "  10. close the main door",
+        ];
+        Assert.Equal(string.Join(Environment.NewLine, expected), listed);
+        Assert.DoesNotContain("times:", listed, StringComparison.Ordinal);
     }
 
     /// <summary>Actions that do not repeat are numbered, one per line.</summary>

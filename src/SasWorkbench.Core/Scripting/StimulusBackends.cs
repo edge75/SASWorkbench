@@ -132,32 +132,9 @@ public sealed class ManualStimulusBackend(StimulusPrompt ask, TimeSpan deadline)
         Settle(ask(request, deadline), deadline, $"the {steps.Count} actions asked together");
     }
 
-    /// <summary>The actions in words a person follows, folded into "N times: ..." when they repeat.</summary>
-    public static string GroupedActions(IReadOnlyList<StimulusStep> steps)
-    {
-        string[] actions = steps.Select(InWords).ToArray();
-
-        // The pattern that covers most of the actions from the start, shortest first on a tie.
-        int bestPeriod = 0, bestRepeats = 0;
-        for (int period = 1; period <= actions.Length / 2; period++)
-        {
-            int repeats = 1;
-            while ((repeats + 1) * period <= actions.Length
-                   && Enumerable.Range(0, period).All(i => actions[repeats * period + i] == actions[i]))
-                repeats++;
-            if (repeats >= 2 && repeats * period > bestRepeats * bestPeriod)
-                (bestPeriod, bestRepeats) = (period, repeats);
-        }
-
-        if (bestRepeats == 0)
-            return string.Join(Environment.NewLine, actions.Select((action, i) => $"  {i + 1}. {action}"));
-
-        string folded = $"  {bestRepeats} times: {string.Join(", then ", actions.Take(bestPeriod))}";
-        string[] rest = actions.Skip(bestRepeats * bestPeriod).ToArray();
-        return rest.Length == 0
-            ? folded
-            : folded + Environment.NewLine + $"  and then: {string.Join(", then ", rest)}";
-    }
+    /// <summary>The actions in words, numbered one per line, never folded (R39: a folded tail was done out of order).</summary>
+    public static string GroupedActions(IReadOnlyList<StimulusStep> steps) =>
+        string.Join(Environment.NewLine, steps.Select((step, i) => $"  {i + 1}. {InWords(step)}"));
 
     private static string InWords(StimulusStep step) => step switch
     {
