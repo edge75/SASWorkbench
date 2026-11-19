@@ -26,7 +26,7 @@ for how the documents were read and what the estimate is worth.
 
 ### Written so far
 
-Eighteen chapters, 578 cases, measured against the software machine (`run` counts passes and
+Twenty-one chapters, 632 cases, measured against the software machine (`run` counts passes and
 failures together):
 
 | ch | chapter | cases | run | skip | what blocks the most of them |
@@ -46,10 +46,13 @@ failures together):
 | 15 | Legacy bonusing | 37 | 4 | 33 | legacy bonusing on the machine (27), a card game (3) |
 | 16 | AFT transfers | 90 | 2 | 88 | the $72 decoder (62), the $73 decoder (16), AFT on the machine (9) |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | the $76 decoder (4) |
+| 18 | Tournament | 10 | 2 | 8 | tournament play on the machine (8) |
+| 19 | Authentication | 16 | 1 | 15 | component authentication on the machine (15), the $6E decoder (12) |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
+| 22 | MJT | 28 | 1 | 27 | legacy bonusing on the machine (27), multiplied jackpots on the machine (27) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **578** | **146** | **432** | |
+| | **total** | **632** | **150** | **482** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
