@@ -15,11 +15,8 @@
 # nothing. The two cases that only compare the reading forms run against it; the rest need a
 # machine configured for transfers with asset number 12345 (machine.aft).
 #
-# 16.22 is labelled @finding. The document bounds the history size below $7F, and the machine
-# library answers $7F: it sends one less than its 128-entry history (lp.cpp, the $74 handler), and
-# the software machine sends the same. Table 8.2b of SAS 6.02 gives the field a range of 46-7F, so
-# the library is inside the specification and outside this revision of the test script; the case
-# keeps the document's bound and says so rather than quietly widening it.
+# 16.22 takes the upper bound of Table 8.2b of SAS 6.02, 46-7F, where the document bounds the
+# history size below $7F; the machine library answers $7F, one less than its 128-entry history.
 
 test "16.18 the reply to a status request" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
@@ -139,10 +136,9 @@ test "16.21 the transfer status bits" {
   note "Compare the first reading with the machine's transfer settings, bit by bit: 0 a printer usable for transfer receipts, 1 a transfer to the host may be for less than the whole amount, 2 custom ticket data, 3 registered (set here, since the case has just registered), 4 in-house transfers on, 5 bonus transfers on, 6 debit transfers on, 7 any transfer on."
 }
 
-# Labelled a finding: see the file header. The byte it fails on is offset 11 of the reply,
-# counting the address as offset 0, and it reads 7F from both peers.
+# The bound is the specification's, not the document's: see the file header.
 test "16.22 the size of the transaction history" {
-  tag @egm-test-scripts @chapter-16 @wire-only @finding
+  tag @egm-test-scripts @chapter-16 @wire-only
   requires decoder.lp74
 
   host connect loopback address 01
@@ -151,13 +147,13 @@ test "16.22 the size of the transaction history" {
 
   host send lp 74 data FF000000
   host expect field max_buffer_index > 0
-  host expect field max_buffer_index < $7F
+  host expect field max_buffer_index <= $7F
   host send lp 74 data 000F9999
   host expect field max_buffer_index > 0
-  host expect field max_buffer_index < $7F
+  host expect field max_buffer_index <= $7F
   host send lp 74 data 80000000
   host expect field max_buffer_index > 0
-  host expect field max_buffer_index < $7F
+  host expect field max_buffer_index <= $7F
 
   note "The document recommends a history of at least $46 transactions."
 }

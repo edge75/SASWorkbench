@@ -54,7 +54,7 @@ test "AD-26 transfer amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp6F
   requires machine.accounting_denomination
-  requires stimulus.aft
+  requires machine.aft
 
   machine accounting denomination 10c
 
@@ -74,7 +74,7 @@ test "AD-27 the current transfer amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp74
   requires machine.accounting_denomination
-  requires stimulus.aft
+  requires machine.aft
 
   machine accounting denomination 10c
 

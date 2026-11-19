@@ -205,5 +205,5 @@ test "23.14 the validation meters agree with their selected meters" {
   host expect field quantity == saved.m85
   host expect field amount == saved.m84
 
-  note "Not run: producing one validation of each kind first - a cash out and a large win paid to ticket, cashable, restricted and debit tickets from a funds transfer, the four hand pays with and without a receipt, and each kind of ticket put back in (stimulus.aft, machine.handpay_receipts, machine.restricted_credits)."
+  note "Not run: producing one validation of each kind first - a cash out and a large win paid to ticket, cashable, restricted and debit tickets from a funds transfer, the four hand pays with and without a receipt, and each kind of ticket put back in (machine.aft, machine.handpay_receipts, machine.restricted_credits)."
 }
