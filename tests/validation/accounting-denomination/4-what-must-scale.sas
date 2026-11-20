@@ -87,7 +87,7 @@ test "AD-19 a legacy bonus is read and reported in accounting units" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp9A
   requires machine.accounting_denomination
-  requires stimulus.legacy_bonus
+  requires machine.legacy_bonus
 
   machine accounting denomination 10c
 

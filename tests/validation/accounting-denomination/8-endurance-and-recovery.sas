@@ -64,7 +64,7 @@ test "AD-45 four hours of play show no drift" {
   requires machine.accounting_denomination
   requires stimulus.play
   requires stimulus.real_time_events
-  requires stimulus.legacy_bonus
+  requires machine.legacy_bonus
 
   machine accounting denomination 10c
 

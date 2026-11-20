@@ -26,7 +26,7 @@ for how the documents were read and what the estimate is worth.
 
 ### Written so far
 
-Sixteen chapters, 508 cases, measured against the software machine (`run` counts passes and
+Eighteen chapters, 578 cases, measured against the software machine (`run` counts passes and
 failures together):
 
 | ch | chapter | cases | run | skip | what blocks the most of them |
@@ -40,14 +40,16 @@ failures together):
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15) |
 | 10 | Tickets | 72 | 7 | 65 | secure-enhanced validation (17), a host validation sequence (8), restricted credits (5) |
 | 11 | Real-time events | 25 | 7 | 18 | a power cycle (4), a multi-denomination machine (3) |
+| 12 | Non-SAS progressives | 30 | 0 | 30 | a non-SAS progressive link on the machine (29), a multi-denomination machine (1) |
+| 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
 | 14 | AFT bonusing | 11 | 1 | 10 | AFT bonusing on the machine (10) |
 | 15 | Legacy bonusing | 37 | 4 | 33 | legacy bonusing on the machine (27), a card game (3) |
-| 16 | AFT transfers | 90 | 2 | 88 | the $72 decoder (62), the $73 decoder (16), AFT on the machine (9); 1 of the 2 fails, a finding |
+| 16 | AFT transfers | 90 | 2 | 88 | the $72 decoder (62), the $73 decoder (16), AFT on the machine (9) |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | the $76 decoder (4) |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **508** | **143** | **365** | |
+| | **total** | **578** | **146** | **432** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

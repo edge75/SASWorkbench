@@ -87,7 +87,7 @@ test "9.19 machine-paid progressive wins by denomination add up to the total" {
 
 test "9.20 machine-paid external bonus wins by denomination" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
-  requires machine.multiple_denominations, stimulus.legacy_bonus
+  requires machine.multiple_denominations, machine.legacy_bonus
   requires meter.machine_paid_external_bonus_win
 
   note "Meter 001E. The document gives no steps here and points to the bonusing chapter (15.34): the same per-denomination sum as 9.18, with the win paid by the machine as an external bonus."
@@ -169,7 +169,7 @@ test "9.22 attendant-paid progressive wins by denomination add up to the total" 
 
 test "9.23 attendant-paid external bonus wins by denomination" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
-  requires machine.multiple_denominations, stimulus.legacy_bonus, stimulus.handpay.reset
+  requires machine.multiple_denominations, machine.legacy_bonus, stimulus.handpay.reset
   requires meter.attendant_paid_external_bonus_win
 
   note "Meter 0021. The document gives no steps here and points to the bonusing chapter (15.37): the same per-denomination sum as 9.21, with the win an external bonus paid by an attendant."
