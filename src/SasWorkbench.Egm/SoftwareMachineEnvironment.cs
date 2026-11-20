@@ -113,6 +113,16 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.SetAssetNumber(asset.Asset);
                 return;
 
+            case SetAftBonusStep bonus:
+                machine.SetAftBonus(bonus.On);
+                return;
+
+            case AftRegisterStep:
+                if (machine.AttendantRegister() is { } menuRefusal)
+                    throw new StimulusUnavailableException(menuRefusal);
+
+                return;
+
             case DoorStep door:
                 try
                 {
@@ -233,6 +243,9 @@ public static class SoftwareMachineEnvironment
             {
                 Address = step.Address,
                 Channel = step.Channel,
+
+                // Receipts go beside the wallet rather than in it, so no ticket reader mistakes one for a ticket.
+                ReceiptDirectory = Path.Combine(options.WalletDirectory, "receipts"),
             };
 
             //  A case that says how the machine is divided between hosts gets a machine divided

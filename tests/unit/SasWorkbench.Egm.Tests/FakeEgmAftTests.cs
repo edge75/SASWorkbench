@@ -14,7 +14,7 @@ namespace SasWorkbench.Egm.Tests;
 /// place in the queue, and the collect button with cash-out to the host on and off. Every case
 /// runs with the host in a sequence, so nothing reaches the line the test did not send.
 /// </summary>
-public sealed class FakeEgmAftTests : IDisposable
+public sealed partial class FakeEgmAftTests : IDisposable
 {
     private const uint Asset = 12345;
     private const byte GameLocked = 0x6F;

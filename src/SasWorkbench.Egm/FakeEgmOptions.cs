@@ -171,6 +171,18 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine performs funds transfers; on, as the platform it mirrors configures them (D45).</summary>
     public bool Aft { get; init; } = true;
 
+    /// <summary>Whether the machine takes bonus awards over funds transfer; on, as the platform configures it.</summary>
+    public bool AftBonus { get; init; } = true;
+
+    /// <summary>Whether the machine prints transfer receipts; on, because this machine has a printer.</summary>
+    public bool AftReceipts { get; init; } = true;
+
+    /// <summary>How long a transfer receipt takes to print once the transfer has completed.</summary>
+    public TimeSpan AftReceiptPrintDelay { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>Where printed transfer receipts are filed, or null to print them nowhere.</summary>
+    public string? ReceiptDirectory { get; init; }
+
     /// <summary>The most one transfer to the machine may carry, in cents, which long poll $74 reports.</summary>
     public long AftTransferLimitCents { get; init; } = 1_000_000;
 

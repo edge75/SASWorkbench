@@ -131,6 +131,57 @@ public static partial class SasLayouts
         DerivedFrom = "lp72_TransferFunds",
     };
 
+    // Initialise, register and acknowledge carry the asset number, key and point of sale; read and
+    // cancel carry the code alone.
+    private static SasCondition CarriesRegistration =>
+        new("length", SasComparison.GreaterThan, 1);
+
+    /// <summary>Long poll $73, which registers the machine with a host for funds transfer.</summary>
+    /// <remarks>
+    /// Read from <c>lp73_RegisterGamingMachine</c>: every field is binary, copied straight out of the
+    /// machine's memory, so the asset number and point of sale are least significant byte first.
+    /// </remarks>
+    private static SasMessageLayout RegisterGamingMachine() => new()
+    {
+        Command = 0x73,
+        Name = "register_gaming_machine",
+        Description = "Registers the machine with a host for funds transfer, reads or cancels it.",
+        Request =
+        [
+            Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+            Byte("registration_code", SasUnit.Code,
+                "$00 initialise, $01 register, $40 ask the attendant, $80 cancel, $FF read."),
+            LittleEndianNumber("asset_number", 4, "The machine the host means.")
+                with { PresentWhen = CarriesRegistration },
+            new()
+            {
+                Name = "registration_key",
+                Length = 20,
+                Encoding = SasFieldEncoding.Raw,
+                Description = "The key later debit transfers must carry.",
+                PresentWhen = CarriesRegistration,
+            },
+            LittleEndianNumber("pos_id", 4, "The point of sale debit transfers are charged to.")
+                with { PresentWhen = CarriesRegistration },
+        ],
+        Response =
+        [
+            Byte("length", SasUnit.Count, "Bytes following, not counting the check sequence."),
+            Byte("registration_status", SasUnit.Code,
+                "$00 ready, $01 registered, $40 waiting for the attendant, $80 not registered."),
+            LittleEndianNumber("asset_number", 4, "The number this machine is registered under."),
+            new()
+            {
+                Name = "registration_key",
+                Length = 20,
+                Encoding = SasFieldEncoding.Raw,
+                Description = "The key the machine holds, which initialising alone does not change.",
+            },
+            LittleEndianNumber("pos_id", 4, "The point of sale the machine holds."),
+        ],
+        DerivedFrom = "lp73_RegisterGamingMachine",
+    };
+
     private static SasField TextOfLength(string name, string lengthField, string description) => new()
     {
         Name = name,

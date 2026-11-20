@@ -43,7 +43,7 @@ public class ScriptRunnerTests
             host poll every 20ms
             host expect link up within 2s
             host send lp 74 data FF000000
-            host expect field available_transfers == 3
+            host expect field available_transfers == $13
             """;
 
         TestOutcome on = Run(script);

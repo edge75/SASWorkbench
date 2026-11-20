@@ -234,7 +234,7 @@ public class TicketRedemptionProtocolTests
     {
         ScriptParseException problem = Assert.Throws<ScriptParseException>(() => ScriptParser.Parse(
             "test \"t\" {\n  host connect loopback address 01\n"
-            + "  host send lp 73 with registration_code=0\n}\n"));
+            + "  host send lp 75 with receipt_code=0\n}\n"));
 
         Assert.Contains("data <hex>", problem.Message, StringComparison.Ordinal);
     }

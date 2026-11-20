@@ -286,12 +286,12 @@ public class FakeEgmTests
     {
         using var rig = new Rig();
 
-        LongPollResult result = rig.Host.Execute(0x73, [0x01, 0x02, 0x03]);
+        LongPollResult result = rig.Host.Execute(0x75, [0x01, 0x02, 0x03]);
 
         Assert.Equal(LongPollOutcome.Silent, result.Outcome);
         Assert.Equal(0, rig.Machine.Rejections);
         Assert.Equal(1, rig.Machine.Ignored);
-        Assert.Equal([0x73], rig.Machine.IgnoredCommands);
+        Assert.Equal([0x75], rig.Machine.IgnoredCommands);
     }
 
     [Fact]

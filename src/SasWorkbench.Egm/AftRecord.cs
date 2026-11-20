@@ -65,6 +65,9 @@ internal sealed class AftRecord
 
     public AftMeter NonrestrictedMeter { get; set; }
 
+    /// <summary>What the host gave the receipt, kept for the receipt the platform prints.</summary>
+    public AftReceiptData Receipt { get; set; } = AftReceiptData.None;
+
     public AftRecord Copy() => (AftRecord)MemberwiseClone();
 }
 

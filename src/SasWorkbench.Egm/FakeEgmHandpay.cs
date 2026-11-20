@@ -10,7 +10,9 @@ namespace SasWorkbench.Egm;
 /// <param name="Level">The level byte long poll 1B reports: $80 for cancelled credit, $00 for a game win.</param>
 /// <param name="ReadAcknowledged">True once a hand pay reading has been acknowledged, after which 1B reads zero.</param>
 /// <param name="Reset">True once the attendant has reset it, while $52 waits for the reading to be acknowledged.</param>
-internal sealed record HandpayOwed(HandpayKind Kind, long AmountCents, byte Level, bool ReadAcknowledged, bool Reset = false);
+/// <param name="Bonus">True for a bonus jackpot the host sent over funds transfer, which the attendant pays as an external bonus.</param>
+internal sealed record HandpayOwed(
+    HandpayKind Kind, long AmountCents, byte Level, bool ReadAcknowledged, bool Reset = false, bool Bonus = false);
 
 public sealed partial class FakeEgm
 {
@@ -60,12 +62,26 @@ public sealed partial class FakeEgm
             long credits = Meters.Read(SasMeterCode.CurrentCredits);
             owed = credits * AccountingCents;
             Meters.SetCurrentCredits(0);
+            ClampNonrestricted();
         }
 
         byte level = kind == HandpayKind.CancelledCredit ? CancelledCreditLevel : (byte)0x00;
         lock (_gate)
         {
             _handpay = new HandpayOwed(kind, owed, level, ReadAcknowledged: false);
+            _handpayIssuedAt = Stopwatch.GetTimestamp();
+        }
+
+        Queue((byte)SasExceptionCode.HandpayIsPending, [], priority: true);
+        WithdrawLockIfUnplayable();
+    }
+
+    /// <summary>Locks the machine up for a bonus jackpot, which may be of nothing (QSP ShouldPerformBonusAward).</summary>
+    private void RaiseBonusHandpay(long amountCents)
+    {
+        lock (_gate)
+        {
+            _handpay = new HandpayOwed(HandpayKind.Jackpot, amountCents, 0x00, ReadAcknowledged: false, Bonus: true);
             _handpayIssuedAt = Stopwatch.GetTimestamp();
         }
 
@@ -97,6 +113,12 @@ public sealed partial class FakeEgm
         {
             Meters.Increment(SasMeterCode.TotalHandPaidCancelledCredits, credits);
             Meters.Increment(SasMeterCode.TotalCancelledCredits, credits);
+        }
+        else if (paid.Bonus)
+        {
+            // An attendant-paid external bonus, as QSP's AsyncHandpayComplete meters one.
+            Meters.Increment(SasMeterCode.TotalJackpotCredits, credits);
+            Meters.Increment(SasMeterCode.TotalAttendantPaidExternalBonusWin_Crd, credits);
         }
         else
         {

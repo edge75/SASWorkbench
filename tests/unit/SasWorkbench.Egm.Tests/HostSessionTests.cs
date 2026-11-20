@@ -90,7 +90,7 @@ public class HostSessionTests
     {
         using HostSession session = HostSession.Open(Spec(), SoftwareMachinePeer.For());
 
-        (LongPollResult result, SasDecoded? decoded) = session.SendAndDecode(0x73, [0x01, 0xFF]);
+        (LongPollResult result, SasDecoded? decoded) = session.SendAndDecode(0x75, [0x01, 0xFF]);
 
         Assert.Null(decoded);
         Assert.Equal(LongPollOutcome.Silent, result.Outcome);
