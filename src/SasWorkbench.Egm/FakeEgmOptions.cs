@@ -168,6 +168,16 @@ public sealed record FakeEgmOptions
     /// </remarks>
     public uint AssetNumber { get; init; } = 1;
 
+    /// <summary>Whether the machine performs funds transfers; on, as the platform it mirrors configures them (D45).</summary>
+    public bool Aft { get; init; } = true;
+
+    /// <summary>The most one transfer to the machine may carry, in cents, which long poll $74 reports.</summary>
+    public long AftTransferLimitCents { get; init; } = 1_000_000;
+
+    /// <summary>How long the platform takes to move the money of a transfer the library has left pending.</summary>
+    /// <remarks>Long enough that a host reading the transfer back at once still finds it pending, as on a real machine.</remarks>
+    public TimeSpan AftCompletionDelay { get; init; } = TimeSpan.FromSeconds(1);
+
     /// <summary>
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>

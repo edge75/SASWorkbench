@@ -109,6 +109,10 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            case SetAssetNumberStep asset:
+                machine.SetAssetNumber(asset.Asset);
+                return;
+
             case DoorStep door:
                 try
                 {

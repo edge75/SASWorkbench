@@ -153,24 +153,25 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(86, SasLayouts.All.Count);
-        Assert.Equal(73, answered);
+        Assert.Equal(87, SasLayouts.All.Count);
+        Assert.Equal(74, answered);
     }
 
     /// <summary>
     /// A zero-filled request of the length the machine library's receiver frames this command at.
     /// </summary>
     /// <remarks>
-    /// Three commands are the exception, because a zero-filled request of the right length is not
+    /// Four commands are the exception, because a zero-filled request of the right length is not
     /// a well-formed one: the two selected-meter polls carry their own length byte, and the
-    /// redemption command is asked in the form that only reads the current status, which is the
-    /// one form of it that moves no money.
+    /// redemption and funds transfer commands are asked in the forms that only read the current
+    /// status, which are the forms of them that move no money.
     /// </remarks>
     private static byte[] RequestFor(byte command) => command switch
     {
         0x6F or 0xAF => [0x04, 0x00, 0x00, 0x00, 0x00],
         0x2F => [0x03, 0x00, 0x00, 0x00],
         0x71 => [0x01, (byte)SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS],
+        0x72 => [0x02, 0xFF, 0x00],
         _ => new byte[SasCommandFraming.RequestDataBytes(command) ?? 0],
     };
 

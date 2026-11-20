@@ -84,7 +84,7 @@ public class LayoutTests
     [Fact]
     public void A_command_with_no_layout_is_reported_as_known_but_undecoded()
     {
-        Assert.True(SasLayouts.IsKnownButUndecoded(0x72), "AFT transfer funds should be undecoded");
+        Assert.True(SasLayouts.IsKnownButUndecoded(0x73), "AFT registration should be undecoded");
         Assert.True(SasLayouts.IsKnownButUndecoded(0x04), "sound on has not been modelled yet");
         Assert.False(SasLayouts.IsKnownButUndecoded(0x1F), "machine identification has a layout");
         Assert.False(SasLayouts.IsKnownButUndecoded(0x11), "total coin in has a layout");

@@ -713,6 +713,19 @@ public sealed record SetDenominationStep(SourceLocation Location, byte Code, int
         $"set accounting denomination {MachineDeclaration.Describe(Cents)}";
 }
 
+/// <summary>Gives the machine the asset number a case's funds transfers are addressed to.</summary>
+/// <remarks>
+/// A stimulus for the reason the denomination setter is one: the asset number is set in a
+/// machine's own menu, so only a machine this build made can take it from a script, and any other
+/// refuses the step and the case skips.
+/// </remarks>
+public sealed record SetAssetNumberStep(SourceLocation Location, uint Asset) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.asset_number";
+
+    public override string Describe() => $"set asset number {Asset}";
+}
+
 /// <summary>Keeps one field of a long poll's reply under a name, for a later comparison.</summary>
 public sealed record RememberFieldStep(
     SourceLocation Location,
