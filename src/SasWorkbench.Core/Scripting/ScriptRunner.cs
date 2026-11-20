@@ -360,7 +360,7 @@ public sealed class ScriptRunner
     /// </remarks>
     private static string AskedReason(Requirement requirement, string reason, MachineAnswers answers) =>
         CapabilityProbe.IsAskedOfTheMachine(requirement.Key)
-        && answers.WhyNot is { } why
+        && answers.ReasonFor(requirement.Key) is { } why
         && reason.StartsWith("this environment provides no", StringComparison.Ordinal)
             ? why
             : reason;

@@ -1,14 +1,14 @@
 # Chapter 16, section 16.85 - the transaction history fills to the depth $74 reports, and wraps.
 #
 # One accounting unit in, then one out, a hundred and twenty-eight times, each read back final so
-# the next can start. The positions asserted assume a history that starts empty, as after a memory
+# the next can start; the last is named "wrapped" so position 1 can be shown to hold it. The positions asserted assume a history that starts empty, as after a memory
 # clear, which is how every software machine starts; the last one lands at position 1.
 #
 # Written out transfer by transfer, because the language has no loop. One cent is declared so one
 # accounting unit is one cent.
 
 test "16.85 the history fills and wraps" {
-  tag @egm-test-scripts @chapter-16
+  tag @egm-test-scripts @chapter-16 @slow
   requires decoder.lp72, machine.aft
   requires decoder.lp74, host.compare_replies, stimulus.asset_number, stimulus.button.collect
 
@@ -659,7 +659,7 @@ test "16.85 the history fills and wraps" {
   host send lp 72 data 02FF00
   host expect field transfer_status == $00
   host expect field transaction_buffer_position == 127
-  host send lp 72 data 380000800000000001000000000000000000000039300000000000000000000000000000000000000000000003313238000000000000000000
+  host send lp 72 data 3C000080000000000100000000000000000000003930000000000000000000000000000000000000000000000777726170706564000000000000000000
   host expect exception aft_transfer_complete within 10s
   host send lp 72 data 02FF00
   host expect field transfer_status == $00
@@ -669,6 +669,7 @@ test "16.85 the history fills and wraps" {
   host send lp 72 data 02FF01
   host expect field transaction_buffer_position == 1
   host expect field transfer_type == $80
+  host expect field transaction_id == wrapped
   host send lp 72 data 02FF7F
   host expect field transaction_buffer_position == $7F
   host expect field transfer_status == $00

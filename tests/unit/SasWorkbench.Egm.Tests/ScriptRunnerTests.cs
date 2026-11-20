@@ -54,6 +54,23 @@ public class ScriptRunnerTests
         Assert.Contains("funds transfer off", off.SkipReason!, StringComparison.Ordinal);
     }
 
+    /// <summary>Each capability asked of the machine keeps its own reason, so the first unmet one is reported with its own.</summary>
+    [Fact]
+    public void A_requirement_the_machine_cannot_answer_skips_with_its_own_reason()
+    {
+        TestOutcome result = Run("""
+            requires egm.validation == standard
+            requires machine.aft
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            """, new FakeEgmOptions { UnansweredCommands = [0xA0] });
+
+        Assert.Equal(Verdict.Skip, result.Verdict);
+        Assert.StartsWith("egm.validation:", result.SkipReason!, StringComparison.Ordinal);
+        Assert.DoesNotContain("funds transfer", result.SkipReason!, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_link_that_comes_up_and_answers_passes()
     {

@@ -34,8 +34,6 @@ public sealed partial class FakeEgm
     private const byte FlagLockRequired = 0x40;
     private const byte FlagReceipt = 0x80;
 
-    private static readonly TimeSpan CompletionReissue = TimeSpan.FromSeconds(15);
-
     private readonly AftRecord[] _history = [.. Enumerable.Range(0, HistoryDepth).Select(_ => new AftRecord())];
     private AftCycle _aftCycle = AftCycle.None;
     private int _aftIndex = 1;
@@ -119,7 +117,7 @@ public sealed partial class FakeEgm
         }
         else if (interrogation)
         {
-            (position, response) = Interrogate(code, index, after);
+            (position, response) = Interrogate(code, index);
         }
         else
         {
@@ -217,7 +215,7 @@ public sealed partial class FakeEgm
         {
             _payAfterTransfer = _hostCashoutWallet;
             EndHostCashout();
-            after.Add(() => Withdraw((byte)SasExceptionCode.AFTRequestForHostCashout));
+            Withdraw((byte)SasExceptionCode.AFTRequestForHostCashout);
         }
 
         byte responseFlags = (byte)(request.Flags & ~0x07);
@@ -413,8 +411,8 @@ public sealed partial class FakeEgm
             }
             else
             {
-                _completionReissueDue = now + Ticks(CompletionReissue);
-                after.Add(() => QueueRanked((byte)SasExceptionCode.AFTTransferComplete));
+                _completionReissueDue = now + Ticks(_options.AftCompletionReissue);
+                QueueRanked((byte)SasExceptionCode.AFTTransferComplete);
             }
         }
 
@@ -424,6 +422,18 @@ public sealed partial class FakeEgm
     private List<Action> CompleteTransfer()
     {
         _completionDue = 0;
+
+        // Whatever the answer to a host cashout leaves on the machine is paid the usual way, as QSP's fallback does (AftCashoutFallback.h).
+        string? wallet = _payAfterTransfer;
+        _payAfterTransfer = null;
+        List<Action> after = FinishTransfer();
+        if (wallet is not null)
+            after.Add(() => PayOut(wallet));
+        return after;
+    }
+
+    private List<Action> FinishTransfer()
+    {
         if (_aftCycle is not (AftCycle.Pending or AftCycle.PendingPartial))
             return [];
 
@@ -444,7 +454,7 @@ public sealed partial class FakeEgm
             moved = Math.Min(record.Cashable, credits * AccountingCents);
             Meters.SetCurrentCredits(credits - (moved / AccountingCents));
 
-            // A partial request that moved less than it named is reported as the partial success it is.
+            // A partial request that moved less than it named, all-available included, is a partial success (libsas test/blackbox/blackbox_test.cpp:1077).
             if (record.TransferCode == 0x01 && moved < record.Cashable)
                 status = 0x01;
         }
@@ -453,15 +463,7 @@ public sealed partial class FakeEgm
             Meters.SetCurrentCredits(credits + (moved / AccountingCents));
         }
 
-        List<Action> after = UpdateTransfer(status, moved, 0, 0);
-        if (_payAfterTransfer is { } wallet)
-        {
-            _payAfterTransfer = null;
-            if (Meters.Read(SasMeterCode.CurrentCredits) > 0)
-                after.Add(() => PayOut(wallet));
-        }
-
-        return after;
+        return UpdateTransfer(status, moved, 0, 0);
     }
 
     /// <summary>The application's report of a finished transfer (internalUpdateAftTransfer, libsas_internal.cpp:3073).</summary>
@@ -476,7 +478,9 @@ public sealed partial class FakeEgm
         record.ReceiptStatus = NoReceipt;
         record.CompletedAt = DateTime.Now;
         _aftCycle = AftCycle.Updated;
-        List<Action> after = _lockStatus != NotLocked ? UnlockGame() : [];
+        if (_lockStatus != NotLocked)
+            UnlockGame();
+        List<Action> after = [];
 
         if (status is 0x00 or 0x01)
         {
@@ -495,8 +499,8 @@ public sealed partial class FakeEgm
 
         FillCumulativeMeters(record);
         _history[0] = record.Copy();
-        _completionReissueDue = Stopwatch.GetTimestamp() + Ticks(CompletionReissue);
-        after.Add(() => QueueRanked((byte)SasExceptionCode.AFTTransferComplete));
+        _completionReissueDue = Stopwatch.GetTimestamp() + Ticks(_options.AftCompletionReissue);
+        QueueRanked((byte)SasExceptionCode.AFTTransferComplete);
         return after;
     }
 

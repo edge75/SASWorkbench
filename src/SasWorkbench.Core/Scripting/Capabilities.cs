@@ -101,13 +101,22 @@ public sealed class CapabilitySet
 
 /// <summary>What the machine on the link said about itself when it was asked.</summary>
 /// <param name="Values">The capabilities its answer establishes.</param>
+/// <param name="Reasons">Why each capability asked about went unanswered, by its key.</param>
 /// <param name="WhyNot">
 /// Why there are none, when there are none. Kept apart from the values because "the machine
 /// stayed quiet", "the poll never reached the wire" and "the reply made no sense" are three
 /// different things to be told, and a report that flattens them into an absent capability sends
 /// the reader to the wrong place.
 /// </param>
-public sealed record MachineAnswers(IReadOnlyDictionary<string, string?> Values, string? WhyNot);
+public sealed record MachineAnswers(
+    IReadOnlyDictionary<string, string?> Values,
+    string? WhyNot,
+    IReadOnlyDictionary<string, string>? Reasons = null)
+{
+    /// <summary>Why this capability went unanswered, falling back to the reason for the whole probe.</summary>
+    public string? ReasonFor(string key) =>
+        Reasons is not null && Reasons.TryGetValue(key, out string? reason) ? reason : WhyNot;
+}
 
 /// <summary>Works out what this machine and this build can do.</summary>
 public static class CapabilityProbe
@@ -290,16 +299,27 @@ public static class CapabilityProbe
                 + "asked at all.");
         }
 
+        // Each reason is kept against its own capability, so a skip names what went wrong with the
+        // requirement it is about rather than whichever probe happened to run last.
+        var reasons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        void Note(string key, string? reason)
+        {
+            if (reason is null)
+                return;
+            reasons[key] = reason;
+            whyNot ??= reason;
+        }
+
         if (asked.Contains("egm.validation"))
-            whyNot = AskValidation(engine, values);
+            Note("egm.validation", AskValidation(engine, values));
 
         if (asked.Contains(MachineDeclaration.Capability))
-            whyNot = AskAccountingDenomination(engine, values) ?? whyNot;
+            Note(MachineDeclaration.Capability, AskAccountingDenomination(engine, values));
 
         if (asked.Contains(AftCapability))
-            whyNot = AskAft(engine, values) ?? whyNot;
+            Note(AftCapability, AskAft(engine, values));
 
-        return new MachineAnswers(values, whyNot);
+        return new MachineAnswers(values, whyNot, reasons);
     }
 
     /// <summary>Reads the machine's validation style out of its enabled-features reply.</summary>

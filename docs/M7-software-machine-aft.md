@@ -23,7 +23,7 @@ machine has. Every such place carries a one-line comment saying it is the platfo
 | $74: read, lock, cancel; a condition the machine does not offer refuses and withdraws any lock | `lp.cpp:6385` `lp74_LockAndStatusRequest`, refusal at `:6505` |
 | The lock runs in five-second steps, re-raising $6F each step, and ends when the timeout runs out | `internalLockGame` `libsas_internal.cpp:2261`, lock timer `libsas_threads.cpp:2560` |
 | $6F only on the way into a lock; withdrawn from the queue when the lock ends | same, and `internalDequeueSpecificException` |
-| A loop break ends the lock | `libsas_threads.cpp:2542` |
+| A loop break on the channel that owns AFT ends the lock as it happens; other channels leave it | `libsas_threads.cpp:2542` |
 | $72 request parse and NACKs (identifier length, receipt fields) | `lp.cpp:4986` to `:5183` |
 | The refusal chain, 82 to 95, in order | `lp.cpp:5242` to `:5473` |
 | Pending reply: requested amounts, zero date, meters of size 0 | `lp.cpp:6000`, `:5618` |
@@ -45,6 +45,11 @@ machine has. Every such place carries a one-line comment saying it is the platfo
   does that and no game is ever left running here. So a lock answers `$00`, never `$40`.
 * **The money moves** after `AftCompletionDelay` (one second by default, so a host reading back at
   once still finds the transfer pending). Cashable credits only.
+* **A host cash-out the host's own transfer did not finish** - cancelled, failed, or leaving credits
+  behind - is paid the usual way at once, as when the request runs out (QSP's `AftCashoutFallback.h`;
+  the library leaves this to the platform).
+* **A partial transfer from the machine** is `$01` when it moved less than it named, the all-available
+  amount included, as the library's own black-box test expects (`test/blackbox/blackbox_test.cpp:1077`).
 * **The asset number** is the option's, unless a case sets one with `egm set asset number <n>`.
 * `machine.aft` is read off the AFT bit of the machine's enabled-features reply, the same question
   asked of either peer.
@@ -57,6 +62,10 @@ machine has. Every such place carries a one-line comment saying it is the platfo
 * Restricted and non-restricted credits: a transfer carrying them fails at the platform with `$9F`.
 * A zero cash-out from the machine holds its reply until it completes in the library; here it
   completes before the reply goes, which is the one answer a host sees either way.
+* A hand pay still goes to the head of the queue, while the AFT exceptions are ranked as the library ranks them.
+* The transfer limit is a constant, not the configured maximum less the credits on the machine.
+* A second collect press while a host cash-out is outstanding is not modelled.
+* Some refusal checks cannot be reached with the transfers this machine offers (bonus, ticket, debit amounts).
 * The library never writes the position byte of a `$C0` or `$C1` answer (`lp.cpp:5967` to `:5979`);
   this machine sends zero.
 

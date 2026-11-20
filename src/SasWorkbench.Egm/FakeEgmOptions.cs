@@ -178,6 +178,9 @@ public sealed record FakeEgmOptions
     /// <remarks>Long enough that a host reading the transfer back at once still finds it pending, as on a real machine.</remarks>
     public TimeSpan AftCompletionDelay { get; init; } = TimeSpan.FromSeconds(1);
 
+    /// <summary>How often an unread transfer completion is raised again; fifteen seconds, as the library's timer.</summary>
+    public TimeSpan AftCompletionReissue { get; init; } = TimeSpan.FromSeconds(15);
+
     /// <summary>
     /// How long the machine takes to answer, so a test can exercise a slow machine on purpose.
     /// </summary>

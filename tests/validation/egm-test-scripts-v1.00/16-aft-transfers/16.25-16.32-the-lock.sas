@@ -177,7 +177,7 @@ test "16.29 a lock pending while a transfer is in progress" {
 # timeout is stored and the lock taken, so the answer is $00, and the zero-length lock timer then
 # fires at once on Windows (libsas_windows.cpp:857) but never on Linux (libsas_linux.cpp:315).
 test "16.30 a lock runs out" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding @slow
   requires decoder.lp74, machine.aft
 
   host connect loopback address 01
@@ -213,7 +213,7 @@ test "16.30 a lock runs out" {
 }
 
 test "16.31 a second lock request starts the timeout again" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-a-person @slow
   requires decoder.lp74, machine.aft
 
   host connect loopback address 01
@@ -246,7 +246,7 @@ test "16.31 a second lock request starts the timeout again" {
 # whatever the credit meter holds (QSP AftAvailability.h, AftAvailableTransfersNow); the library
 # then grants a lock for that condition (lp.cpp:6505), so the last request leaves the lock in place.
 test "16.32 a lock request naming a different condition" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus @finding
+  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus @finding @slow
   requires decoder.lp74, machine.aft, stimulus.bill, stimulus.button.collect, stimulus.settle
 
   host connect loopback address 01

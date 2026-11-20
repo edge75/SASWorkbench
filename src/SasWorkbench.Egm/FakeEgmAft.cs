@@ -50,7 +50,7 @@ public sealed partial class FakeEgm
     private long _hostCashoutDue;
     private string? _hostCashoutWallet;
 
-    /// <summary>Whether the machine is locked for a transfer: $00 locked, $40 pending, $FF not.</summary>
+    /// <summary>Whether the machine is locked for a transfer: $00 locked or $FF not; it locks at once, so never $40 pending.</summary>
     public byte AftLockStatus
     {
         get
@@ -153,22 +153,22 @@ public sealed partial class FakeEgm
 
                     // QSP's lock provider locks at once whenever the machine is playable, and no game here is ever left running.
                     if (_lockStatus == NotLocked && IsPlayable())
-                        after.AddRange(LockGame());
+                        LockGame();
                     else if (_lockStatus == Locked)
-                        after.AddRange(LockGame());
+                        LockGame();
 
                     status = _lockStatus;
                 }
                 else
                 {
                     // Section 8.2: a lock the machine cannot offer is refused and any standing lock is withdrawn (lp.cpp:6588).
-                    after.AddRange(UnlockGame());
+                    UnlockGame();
                     status = NotLocked;
                 }
             }
             else
             {
-                after.AddRange(UnlockGame());
+                UnlockGame();
                 status = NotLocked;
             }
         }
@@ -216,16 +216,14 @@ public sealed partial class FakeEgm
     /// Locks, or refreshes a lock, from the timeout last stored, re-raising $6F only on the way in
     /// (internalLockGame, libsas_internal.cpp:2261).
     /// </summary>
-    /// <returns>The exception work to do once the state lock is released.</returns>
-    private List<Action> LockGame()
+    private void LockGame()
     {
         byte previous = _lockStatus;
         _lockStatus = Locked;
         ArmLockStep(Stopwatch.GetTimestamp());
 
-        return previous == Locked
-            ? []
-            : [() => QueueRanked((byte)SasExceptionCode.GameLocked)];
+        if (previous != Locked)
+            QueueRanked((byte)SasExceptionCode.GameLocked);
     }
 
     /// <summary>One step of the lock timer from <paramref name="from"/>: five seconds while more than that is left, otherwise what is left.</summary>
@@ -249,44 +247,51 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>Gives up a lock or a pending lock and takes back its $6F (internalUnlockGame and the lock timer).</summary>
-    private List<Action> UnlockGame()
+    private void UnlockGame()
     {
         _lockRemainingHundredths = 0;
         _lockDue = 0;
         if (_lockStatus == NotLocked)
-            return [];
+            return;
 
         _lockStatus = NotLocked;
-        return [() => Withdraw((byte)SasExceptionCode.GameLocked)];
+        Withdraw((byte)SasExceptionCode.GameLocked);
     }
 
     /// <summary>The platform withdraws a lock the moment the machine stops being playable (QSP ShouldWithdrawAftLock).</summary>
     private void WithdrawLockIfUnplayable()
     {
-        List<Action> after;
         lock (_gate)
-            after = _lockStatus != NotLocked && !IsPlayable() ? UnlockGame() : [];
-
-        foreach (Action action in after)
-            action();
+        {
+            if (_lockStatus != NotLocked && !IsPlayable())
+                UnlockGame();
+        }
     }
 
-    /// <summary>A link that went quiet past the loop break ends any lock (libsas_threads.cpp:2542).</summary>
-    private void WithdrawLockOnLinkLoss()
+    /// <summary>
+    /// The channel that owns funds transfer going quiet past the loop break ends any lock, as soon as it
+    /// does (libsas_threads.cpp:2542); silence on any other channel leaves it.
+    /// </summary>
+    private void WithdrawLockOnLinkLoss(MachineLink link)
     {
-        List<Action> after;
-        lock (_gate)
-            after = UnlockGame();
+        if (_options.LinkLossAfter <= TimeSpan.Zero || link.LastHeard == 0
+            || !Channels.Answers(link.Channel, (byte)SasLongPollCode.LP_AFT_LOCKANDSTATUS)
+            || Stopwatch.GetElapsedTime(link.LastHeard) <= _options.LinkLossAfter)
+        {
+            return;
+        }
 
-        foreach (Action action in after)
-            action();
+        lock (_gate)
+            UnlockGame();
     }
 
     /// <summary>Runs every timer funds transfer keeps: the lock, the platform finishing a transfer, $69's reissue and the host cashout request.</summary>
-    private void TickAft()
+    private void TickAft(MachineLink link)
     {
         if (!_options.Aft)
             return;
+
+        WithdrawLockOnLinkLoss(link);
 
         long now = Stopwatch.GetTimestamp();
         List<Action> after = [];
@@ -299,12 +304,12 @@ public sealed partial class FakeEgm
                 _lockDue = 0;
                 if (_lockRemainingHundredths == 0)
                 {
-                    after.AddRange(UnlockGame());
+                    UnlockGame();
                 }
                 else
                 {
                     ArmLockStep(due);
-                    after.Add(() => QueueRanked((byte)SasExceptionCode.GameLocked));
+                    QueueRanked((byte)SasExceptionCode.GameLocked);
                 }
             }
 
@@ -357,17 +362,14 @@ public sealed partial class FakeEgm
             // Eight seconds unanswered, or the host turned it off: the platform pays the usual way.
             string wallet = _hostCashoutWallet!;
             EndHostCashout();
-            return
-            [
-                () => Withdraw((byte)SasExceptionCode.AFTRequestForHostCashout),
-                () => PayOut(wallet),
-            ];
+            Withdraw((byte)SasExceptionCode.AFTRequestForHostCashout);
+            return [() => PayOut(wallet)];
         }
 
         _hostCashoutDue += Ticks(HostCashoutStep);
-        return _hostCashoutTicks % 2 == 0
-            ? [() => QueueRanked((byte)SasExceptionCode.AFTRequestForHostCashout)]
-            : [];
+        if (_hostCashoutTicks % 2 == 0)
+            QueueRanked((byte)SasExceptionCode.AFTRequestForHostCashout);
+        return [];
     }
 
     /// <summary>Stops asking the host, because it answered with a transfer from the machine or the request ran out.</summary>

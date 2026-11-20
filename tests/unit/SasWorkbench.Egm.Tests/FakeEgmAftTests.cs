@@ -453,4 +453,147 @@ public sealed class FakeEgmAftTests : IDisposable
         Assert.False(Machine.HostCashoutRequested);
         Assert.Single(Directory.EnumerateFiles(_wallet));
     }
+
+    /// <summary>
+    /// The host cancels the transfer that answered its own cash-out request: the platform pays the
+    /// credits the usual way at once, as it does when the request runs out, and a later transfer
+    /// prints nothing.
+    /// </summary>
+    [Fact]
+    public void A_cancelled_answer_to_a_cashout_request_pays_at_once_and_only_once()
+    {
+        Start();
+        Send72(Transfer(0x00, 500, "1", flags: 0x03));
+        WaitForFinal();
+        Assert.Null(Machine.Cashout(_wallet));
+
+        Assert.Equal(0x40, Send72(Transfer(0x80, 500, "2")).Number("transfer_status"));
+        Send72([0x01, 0x80]);
+        Assert.Equal(0x80, WaitForFinal().Number("transfer_status"));
+        Thread.Sleep(100);
+        Assert.Single(Directory.EnumerateFiles(_wallet));
+        Assert.Equal(0, Machine.Meters.Read(SasMeterCode.CurrentCredits));
+
+        Send72(Transfer(0x00, 500, "3"));
+        Assert.Equal(0x00, WaitForFinal().Number("transfer_status"));
+        Thread.Sleep(100);
+        Assert.Single(Directory.EnumerateFiles(_wallet));
+        Assert.Equal(500 / Machine.AccountingCents, Machine.Meters.Read(SasMeterCode.CurrentCredits));
+    }
+
+    /// <summary>
+    /// Asking for everything with the all-available amount is a partial success, as the library's own
+    /// black-box test of that idiom expects (test/blackbox/blackbox_test.cpp:1077); a partial request
+    /// for no more than is held moves all of it and is a full success.
+    /// </summary>
+    [Fact]
+    public void A_partial_transfer_out_is_partial_only_when_it_moved_less_than_it_named()
+    {
+        Start(Quick);
+        Send72(Transfer(0x00, 1000, "1"));
+        WaitForFinal();
+
+        Send72(Transfer(0x80, 500, "2", code: 0x01));
+        Assert.Equal(0x00, WaitForFinal().Number("transfer_status"));
+
+        Send72(Transfer(0x80, 9_999_999_999, "3", code: 0x01));
+        SasDecoded all = WaitForFinal();
+        Assert.Equal(0x01, all.Number("transfer_status"));
+        Assert.Equal(500, all.Number("cashable_amount"));
+    }
+
+    /// <summary>The lock belongs to the channel that owns funds transfer, so silence on another channel leaves it.</summary>
+    [Fact]
+    public void Silence_on_a_channel_without_funds_transfer_keeps_the_lock()
+    {
+        using var two = new LoopbackBus();
+        Start(new FakeEgmOptions { LinkLossAfter = TimeSpan.FromSeconds(1.5), Channels = SplitPlan() });
+        Machine.Attach(two.Egm, SasChannel.Two);
+        using var hostTwo = SecondHost(two);
+        Assert.True(hostTwo.Execute(0x1F).Succeeded);
+
+        Host.EndSequence();
+        Assert.Equal(0x00, LockStatus("000F9999"));
+        Thread.Sleep(2000);
+        hostTwo.Synchronise();
+
+        Assert.Equal(0x00, LockStatus("FF000000"));
+    }
+
+    /// <summary>The AFT channel's own loop break ends the lock when it happens, not when traffic resumes.</summary>
+    [Fact]
+    public void The_lock_ends_as_soon_as_its_channel_goes_quiet()
+    {
+        Start(new FakeEgmOptions { LinkLossAfter = TimeSpan.FromSeconds(1.5) });
+        Assert.Equal(0x00, LockStatus("000F9999"));
+
+        Thread.Sleep(2000);
+
+        Assert.Equal(0xFF, Machine.AftLockStatus);
+    }
+
+    private static SasChannelPlan SplitPlan()
+    {
+        Assert.True(SasChannelPlan.TryCreate(
+            [SasAddress.Of(1), SasAddress.Of(2), null, null],
+            new Dictionary<SasCategory, SasChannel> { [SasCategory.Validation] = SasChannel.Two },
+            out SasChannelPlan plan,
+            out _));
+        return plan;
+    }
+
+    private static PollEngine SecondHost(LoopbackBus bus)
+    {
+        var engine = new PollEngine(bus.Host, new PollEngineOptions
+        {
+            Address = SasAddress.Of(2),
+            Channel = SasChannel.Two,
+            PollInterval = TimeSpan.FromMilliseconds(20),
+            ResponseTimeout = TimeSpan.FromSeconds(1),
+            QuietGap = TimeSpan.FromMilliseconds(15),
+            LinkDownAfter = TimeSpan.FromSeconds(30),
+        });
+        engine.Start();
+        Assert.True(engine.BeginSequence(), "the second round did not hand the line over");
+        return engine;
+    }
+
+    /// <summary>With funds transfer off, a transfer is refused $82 and reading it back says the same (lp.cpp:5242, 5736).</summary>
+    [Fact]
+    public void A_machine_with_funds_transfer_off_refuses_and_reads_back_82()
+    {
+        Start(new FakeEgmOptions { Aft = false });
+
+        Assert.Equal(0x82, Send72(Transfer(0x00, 500, "1")).Number("transfer_status"));
+        Assert.Equal(0x82, Interrogate().Number("transfer_status"));
+    }
+
+    /// <summary>
+    /// $69 reissued on one channel's thread while another closes the cycle never outlives the read:
+    /// the reissue and the withdrawal are decided under the same lock. A stress test, so a regression
+    /// shows up as a stale $69 in some of the rounds rather than in a fixed one.
+    /// </summary>
+    [Fact]
+    public void A_closed_transfer_leaves_no_reissued_completion_behind()
+    {
+        using var two = new LoopbackBus();
+        Start(new FakeEgmOptions
+        {
+            AftCompletionDelay = TimeSpan.Zero,
+            AftCompletionReissue = TimeSpan.FromTicks(1),
+            Channels = SplitPlan(),
+        });
+        Machine.Attach(two.Egm, SasChannel.Two);
+        using var hostTwo = SecondHost(two);
+        hostTwo.EndSequence();
+
+        for (int n = 1; n <= 40; n++)
+        {
+            Send72(Transfer(n % 2 == 1 ? (byte)0x00 : (byte)0x80, Machine.AccountingCents,
+                n.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            Assert.Equal(0x00, WaitForFinal().Number("transfer_status"));
+            Thread.Sleep(30);
+            Assert.Equal(0, Machine.PendingExceptionsOn(SasChannel.One));
+        }
+    }
 }

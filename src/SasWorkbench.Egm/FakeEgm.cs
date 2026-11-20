@@ -852,7 +852,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         while (_running)
         {
-            TickAft();
+            TickAft(link);
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -948,8 +948,6 @@ public sealed partial class FakeEgm : IDisposable
                 link.Exceptions.Refuse();
                 ForgetHandpayReading(link);
             }
-
-            WithdrawLockOnLinkLoss();
 
             link.AwaitingSync = true;
             link.LastWasOwnGeneralPoll = false;

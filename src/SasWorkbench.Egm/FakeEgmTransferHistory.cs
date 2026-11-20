@@ -12,7 +12,7 @@ namespace SasWorkbench.Egm;
 /// </remarks>
 public sealed partial class FakeEgm
 {
-    private (int Position, AftRecord Response) Interrogate(byte code, byte index, List<Action> after)
+    private (int Position, AftRecord Response) Interrogate(byte code, byte index)
     {
         if (!_options.Aft && _aftCycle == AftCycle.Completed)
             return (index, new AftRecord { TransferStatus = 0x82 });
@@ -38,7 +38,7 @@ public sealed partial class FakeEgm
             }
 
             _completionReissueDue = 0;
-            after.Add(() => Withdraw((byte)Core.Protocol.SasExceptionCode.AFTTransferComplete));
+            Withdraw((byte)Core.Protocol.SasExceptionCode.AFTTransferComplete);
         }
 
         if (_aftCycle == AftCycle.None || position == 0xFF || position >= HistoryDepth)
