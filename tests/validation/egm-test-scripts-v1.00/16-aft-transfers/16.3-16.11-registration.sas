@@ -17,10 +17,10 @@
 #   read         01 FF
 #   cancel       01 80
 #
-# This build has no decoder for the $73 reply and the software machine does not answer it, so each
-# case skips on that first. The reply field names are provisional, chosen ahead of the decoder that
-# will define them. Every case also needs a machine configured for transfers, with asset number
-# 12345, which a person sets up before the run.
+# This build has no decoder for the $73 reply and the software machine does not answer it yet -
+# registration is phase two of D45 - so each case skips on that first. The reply field names are
+# provisional, chosen ahead of the decoder that will define them. Every case also needs a machine
+# configured for transfers, with asset number 12345, which a person sets up before the run.
 
 test "16.3 a basic registration" {
   tag @egm-test-scripts @chapter-16 @destructive

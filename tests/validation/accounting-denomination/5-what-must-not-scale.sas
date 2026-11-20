@@ -50,35 +50,79 @@ test "AD-25 ticket amounts stay in cents" {
   host expect field meters[1].value == 1330
 }
 
+# Two hundred pesos in and fifty out, as in-house cashable transfers addressed to asset 12345. The
+# meters read are 00A0 (cashable in, cents) and 00B8 (cashable out to the host, cents); the case
+# used to read 00A2, the restricted meter, which no cashable transfer moves.
 test "AD-26 transfer amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus
-  requires decoder.lp6F
+  requires decoder.lp6F, decoder.lp72
   requires machine.accounting_denomination
-  requires machine.aft
+  requires machine.aft, stimulus.asset_number, host.meter_arithmetic
 
   machine accounting denomination 10c
-
-  note "Configuration B. Transfer two hundred pesos in and fifty pesos out."
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  egm set asset number 12345
+  host forget exceptions within 2s
 
-  host send lp 6F data 060000A000A200
+  host send lp 6F data 060000A000B800
+  host remember field meters[0].value as in_before
+  host remember field meters[1].value as out_before
 
+  # 20000 cents in, read back once complete, which is what ends the transfer.
+  host send lp 72 data 36000000000002000000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect field cashable_amount == 20000
+
+  # 5000 cents out to the host.
+  host send lp 72 data 36000080000000500000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect field cashable_amount == 5000
+
+  # Twenty thousand centavos and five thousand, not two thousand and five hundred.
+  host send lp 6F data 060000A000B800
   host expect field meters[0].code == 160
-  host expect field meters[0].value == 20000
+  host expect field meters[0].value == saved.in_before + 20000
+  host expect field meters[1].code == 184
+  host expect field meters[1].value == saved.out_before + 5000
 }
 
 test "AD-27 the current transfer amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus
-  requires decoder.lp74
+  requires decoder.lp74, decoder.lp72
   requires machine.accounting_denomination
-  requires machine.aft
+  requires machine.aft, stimulus.asset_number, stimulus.button.collect
 
   machine accounting denomination 10c
 
-  note "Configuration B, with a known balance. The current cashable, restricted and nonrestricted amounts are all in centavos. A wrong unit here refuses a legitimate cash-out."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+  egm set asset number 12345
+
+  # An empty machine, then a known balance of two hundred pesos put on by transfer.
+  egm press collect
+  host forget exceptions within 2s
+  host send lp 72 data 36000000000002000000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+
+  # Two thousand credits at ten centavos, reported as twenty thousand centavos.
+  host send lp 74 data FF000000
+  host expect field current_cashable_amount == 20000
+  host expect field current_restricted_amount == 0
+  host expect field current_nonrestricted_amount == 0
+
+  note "A wrong unit here refuses a legitimate cash-out. Restricted and non-restricted balances wait for a machine that holds them."
 }
 
 test "AD-28 progressive amounts stay in cents" {

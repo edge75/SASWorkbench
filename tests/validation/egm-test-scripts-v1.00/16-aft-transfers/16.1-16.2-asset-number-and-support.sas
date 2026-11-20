@@ -5,8 +5,7 @@
 # the machine does transfers at all it says in its enabled-features reply, in one bit of the second
 # feature byte.
 #
-# The software machine performs no transfers and advertises none, so both cases need a machine
-# configured for them. The second also needs a single bit of a reply byte compared on its own,
+# Both cases need a person at the machine's configuration screens. The second also needs a single bit of a reply byte compared on its own,
 # which the language cannot yet do (host.field_bits); the byte is read and the bit is a note.
 
 test "16.1 the asset number is set at the machine and kept" {

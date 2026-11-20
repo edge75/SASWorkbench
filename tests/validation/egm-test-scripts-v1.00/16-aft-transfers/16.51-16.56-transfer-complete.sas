@@ -7,8 +7,8 @@
 # real-time event reporting on, where the same exception arrives in the event format and answers
 # long polls as well as general ones.
 #
-# All six need the funds-transfer command decoded and a machine that performs transfers, and
-# neither is available here.
+# 16.52 and 16.55 run against the software machine (D45); the rest still need the registration of
+# phase two, or the timing control that watches a fifteen-second reissue.
 
 test "16.51 a finished transfer raises its exception" {
   tag @egm-test-scripts @chapter-16
@@ -23,7 +23,30 @@ test "16.51 a finished transfer raises its exception" {
 test "16.52 the transfer exception goes ahead of the queue" {
   tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
-  requires stimulus.door.main, host.poll_sequence
+  requires stimulus.door.main, host.poll_sequence, stimulus.asset_number, stimulus.settle
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # Only long polls on the line while the doors queue and the transfer completes.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host wait 3s
+
+  # General polls again: $69 first, then the doors, each acknowledged by a poll elsewhere.
+  host send gp draws aft_transfer_complete
+  host send sync
+  host send gp draws slot_door_opened
+  host send sync
+  host send gp draws slot_door_closed
 
   note "Queue some ordinary exceptions by opening and closing a door, with only long polls running. Complete a transfer, then start general polls: $69 comes first and the queued ones after it."
   note "Do it again, then poll the machine alone three times with nothing else on the line: the first two answers are $69, and the third may be or may not. When the round resumes, $69 once more and then the queue, until the status is read."
@@ -51,7 +74,31 @@ test "16.55 the transfer event goes ahead of the queue" {
   tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
   requires stimulus.real_time_events, decoder.lp0E, stimulus.door.main, host.poll_sequence
+  requires stimulus.asset_number, stimulus.settle
 
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # Reporting off while the doors queue and the transfer completes.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host wait 3s
+
+  # Reporting on: the completion is the first event, and the doors follow.
+  host send lp 0E data 01
+  host send gp draws aft_transfer_complete
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_closed
+
+  note "General polls carry the events here because a long poll answered with an event fails its step (D43)."
   note "Queue ordinary exceptions with event reporting off, complete a transfer, then turn reporting on: the completion event is the first thing reported and the queue follows."
   note "Again with reporting off while the transfer completes; then turn it on and poll the machine alone three times. The first two carry the completion, the third may; when the long polls resume, the event comes once more ahead of the queue."
 }

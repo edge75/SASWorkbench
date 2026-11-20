@@ -11,9 +11,12 @@
 #   cancel   80 00 0000
 #
 # Whether the machine can be played is the half of each case nobody can read over the wire, so it
-# is a note for a person (D40). Every case also needs a machine that actually takes locks, which
-# the software machine does not (machine.aft): it answers every lock request with $FF, exactly as
-# the library does when it offers no transfers.
+# is a note for a person (D40). The software machine takes locks as the platform does (D45): it
+# locks at once whenever it is playable, so a lock request answers $00 rather than $40 there.
+#
+# Two cases carry @finding. 16.30's lock with no timeout is taken and released at once rather than
+# refused, and 16.32's transfer-from-the-machine condition stays offered on an empty machine; the
+# reasons are on each case.
 
 test "16.25 the lock" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
@@ -170,8 +173,11 @@ test "16.29 a lock pending while a transfer is in progress" {
   note "Before the run, set a high credit limit and leave the credit meter empty. The second transfer must follow the lock request before the machine has had time to lock."
 }
 
+# The library refuses a lock only for a transfer condition it does not offer (lp.cpp:6505); a zero
+# timeout is stored and the lock taken, so the answer is $00, and the zero-length lock timer then
+# fires at once on Windows (libsas_windows.cpp:857) but never on Linux (libsas_linux.cpp:315).
 test "16.30 a lock runs out" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
   requires decoder.lp74, machine.aft
 
   host connect loopback address 01
@@ -236,8 +242,11 @@ test "16.31 a second lock request starts the timeout again" {
   note "At the machine: unplayable for the whole of the second timeout, and playable once it has run out."
 }
 
+# The available transfers are the platform's to publish, and it offers transfer from the machine
+# whatever the credit meter holds (QSP AftAvailability.h, AftAvailableTransfersNow); the library
+# then grants a lock for that condition (lp.cpp:6505), so the last request leaves the lock in place.
 test "16.32 a lock request naming a different condition" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus
+  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus @finding
   requires decoder.lp74, machine.aft, stimulus.bill, stimulus.button.collect, stimulus.settle
 
   host connect loopback address 01

@@ -11,9 +11,8 @@
 #   lock     00 0F 9999     every transfer condition, 99.99 seconds
 #   cancel   80 00 0000
 #
-# The software machine answers $74 but performs no transfers, so it never locks and offers
-# nothing. The two cases that only compare the reading forms run against it; the rest need a
-# machine configured for transfers with asset number 12345 (machine.aft).
+# The software machine takes transfers and locks (D45), so the cases that need only that run
+# against it; the rest also need configuration, a person, or credit types it does not hold.
 #
 # 16.22 takes the upper bound of Table 8.2b of SAS 6.02, 46-7F, where the document bounds the
 # history size below $7F; the machine library answers $7F, one less than its 128-entry history.
@@ -192,8 +191,10 @@ test "16.23 the balances and the transfer limit" {
   note "Then, from empty each time, add only one kind of credit and play it down: only that balance moves, by exactly what was played, and the limit always equals the configured maximum less everything on the credit meter in cents. With all three kinds on, play takes the restricted credits first, then the non-restricted, then the cashable."
 }
 
+# The library refuses a lock naming no transfer condition and answers $FF (lp.cpp:6505), where the
+# document expects the machine locked.
 test "16.24 a status request takes no lock" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
   requires decoder.lp74, machine.aft, host.compare_replies
 
   host connect loopback address 01

@@ -8,8 +8,8 @@
 #   lock     00 0F 9999     every transfer condition, 99.99 seconds
 #   cancel   80 00 0000
 #
-# Only a machine that takes locks can raise it (machine.aft), so none of this runs against the
-# software machine. Every case also needs a person to confirm play stops and resumes (D40).
+# Only a machine that takes locks can raise it (machine.aft). Every case also needs a person to
+# confirm play stops and resumes (D40), and all but 16.36 a power cycle.
 
 test "16.33 a lock raises game locked until it goes" {
   tag @egm-test-scripts @chapter-16 @needs-a-person @destructive
@@ -113,6 +113,26 @@ test "16.36 game locked ahead of the queue as a real-time event" {
   requires decoder.lp74, decoder.lp0E, machine.aft, host.poll_sequence
   requires stimulus.real_time_events, stimulus.door.main, stimulus.settle
 
-  note "With no general polls on the line, turn reporting off, open and close the door a few times, ask for a lock and then turn reporting on. The first event a long poll draws is $6F, in the event format, and it recurs about every five seconds among the queued door events."
-  note "The language can drive the line this way, but cannot yet assert which event answered a long poll: a long poll answered with an event fails its step (D43). That is why this one is a note."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # Reporting off, the round stopped, two door exceptions queued, then the lock.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  host send lp 74 data 000F9999
+  host expect field game_lock_status != $FF
+
+  # Reporting on: $6F comes first, in the event format, and the doors follow.
+  host send lp 0E data 01
+  host send gp draws game_locked
+  host send gp draws slot_door_opened
+  host send gp draws slot_door_closed
+
+  note "The document draws these with long polls; a long poll answered with an event fails its step (D43), so general polls carry the same order here."
+  note "Keep polling: $6F recurs about every five seconds among the queued events, and the machine is unplayable at the cabinet while locked."
 }
