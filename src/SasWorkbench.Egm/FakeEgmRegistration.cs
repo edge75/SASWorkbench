@@ -6,19 +6,7 @@ namespace SasWorkbench.Egm;
 /// Registration for funds transfer: long poll $73, the attendant's half of it, and the three
 /// exceptions $6C, $6D and $6E.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The protocol half is <c>lp73_RegisterGamingMachine</c> (lp.cpp:6097) branch for branch, so a
-/// reply carries what the library holds rather than what the host sent: initialising stores no key
-/// and no point of sale unless they are zero, and only the register step stores both. The operator's
-/// action is <c>sasSetAftRegistrationStatus</c> (libsas_wrapper.cpp:3056) reached the way QSP's
-/// <c>DecideAftRegistrationAction</c> reaches it.
-/// </para>
-/// <para>
-/// Nothing here is persisted: this machine is rebuilt for every test, so a power cycle is not
-/// something it can survive or fail to.
-/// </para>
-/// </remarks>
+/// <remarks>Follows lp73_RegisterGamingMachine (lp.cpp:6097) branch for branch, and is never persisted.</remarks>
 public sealed partial class FakeEgm
 {
     private const byte RegistrationReady = 0x00;
@@ -84,10 +72,6 @@ public sealed partial class FakeEgm
     /// <summary>What long poll $73 answers, or null for the NACK the library sends (lp.cpp:6146, :6156).</summary>
     private Dictionary<string, object>? RegisterGamingMachine(ReadOnlySpan<byte> request)
     {
-        // The library ignores the poll while AFT is off in the enabled features (lp.cpp:6173).
-        if (!_options.Aft)
-            return NoAnswer;
-
         if (request.Length < 4)
             return null;
 
@@ -101,6 +85,10 @@ public sealed partial class FakeEgm
         bool carriesData = code is InitializeRegistration or RegisterMachine or RequestAcknowledgement;
         if (carriesData && (request[2] < 0x1D || request.Length < 32))
             return null;
+
+        // Only a well-formed poll reaches the AFT check, which then ignores it (lp.cpp:6173).
+        if (!_options.Aft)
+            return NoAnswer;
 
         uint asset = 0;
         uint pos = 0;

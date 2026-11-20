@@ -168,4 +168,4 @@ Each of these carries a "platform's choice" comment in the code.
 | 14.2 | A jackpot bonus carrying a registration key is taken, not refused `$88`: the key is checked for debit transfers only (`libsas_internal.cpp:2974`). |
 | 14.8 | A bonus keeps the expiry and pool it carried and reports them back (`lp.cpp:5609`, `:5612`); the document expects zeros. |
 | 16.41, 16.46 | A receipt for an in-house transfer needs a patron account in the receipt data, so the document's request is refused `$91` (`lp.cpp:5406`). |
-| 16.63 | A transfer to a ticket of nothing is refused `$82` at once, with no `$69`; the document expects it pending first (`lp.cpp:5356`). |
+| 16.63 | A transfer to a ticket of nothing is refused `$82` at once, with no `$69`; the document expects it pending first (`lp.cpp:5351`, which this machine reaches before `:5356`). |

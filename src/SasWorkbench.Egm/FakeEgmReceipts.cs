@@ -67,18 +67,13 @@ internal sealed record AftReceiptData(
 /// <summary>
 /// The transaction receipt a completed transfer prints, and the receipt status it reports.
 /// </summary>
-/// <remarks>
-/// The receipt status is the platform's to report (QSP's <c>ResolveAftTransactionReceipt</c>): $20
-/// while it prints, then $00 through the library's <c>internalUpdateAftReceiptStatus</c>
-/// (libsas_internal.cpp:3654), which reopens a transfer the host has already read and raises $69 for
-/// it again. The printed text is this build's own, a plain list of what the receipt carries.
-/// </remarks>
+/// <remarks>$20 while printing, then $00 with $69 raised again for a transfer already read (libsas_internal.cpp:3654).</remarks>
 public sealed partial class FakeEgm
 {
     private const byte ReceiptPrinted = 0x00;
     private const byte ReceiptPrinting = 0x20;
 
-    private long _receiptDue;
+    private readonly Queue<long> _receiptsDue = new();
     private int _receiptsPrinted;
 
     /// <summary>What the completed transfer reports about its receipt, starting the print when there is one.</summary>
@@ -90,17 +85,26 @@ public sealed partial class FakeEgm
         if (!requested || status is not (0x00 or 0x01) || !_options.AftReceipts || !moved || !allowed)
             return NoReceipt;
 
-        _receiptDue = Stopwatch.GetTimestamp() + Ticks(_options.AftReceiptPrintDelay);
+        _receiptsDue.Enqueue(Stopwatch.GetTimestamp() + Ticks(_options.AftReceiptPrintDelay));
         return ReceiptPrinting;
     }
 
-    /// <summary>Finishes a print that is due and settles its status, as settleAftReceiptStatusLocked does.</summary>
+    /// <summary>Finishes every print that is due, one platform report each, in the order they started.</summary>
     private List<Action> TickReceipt(long now)
     {
-        if (_receiptDue == 0 || now < _receiptDue)
-            return [];
+        List<Action> after = [];
+        while (_receiptsDue.TryPeek(out long due) && now >= due)
+        {
+            _receiptsDue.Dequeue();
+            after.AddRange(SettleReceipt());
+        }
 
-        _receiptDue = 0;
+        return after;
+    }
+
+    /// <summary>Settles one printed receipt's status, as settleAftReceiptStatusLocked does.</summary>
+    private List<Action> SettleReceipt()
+    {
         static bool Awaiting(byte status) => status is ReceiptPrinting or Pending;
 
         int slot = _zeroAmount != AftZeroAmount.NonZero ? 0
@@ -152,8 +156,20 @@ public sealed partial class FakeEgm
         text.AppendLine(CultureInfo.InvariantCulture, $"asset {AssetNumber}");
         text.AppendLine(CultureInfo.InvariantCulture, $"transaction {Encoding.ASCII.GetString(record.TransactionId)}");
 
-        Directory.CreateDirectory(directory);
         int number = Interlocked.Increment(ref _receiptsPrinted);
-        File.WriteAllText(Path.Combine(directory, $"receipt-{number:D6}-{Guid.NewGuid():N}.txt"), text.ToString());
+        try
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, $"receipt-{number:D6}-{Guid.NewGuid():N}.txt"), text.ToString());
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or NotSupportedException)
+        {
+            // The status the host reads is the platform's and stands; only the text file is lost, so say so.
+            ReceiptFilingError = $"receipt {number} not filed in {directory}: {e.Message}";
+            Trace.TraceWarning(ReceiptFilingError);
+        }
     }
+
+    /// <summary>Why the last receipt could not be filed as text, or null when every receipt was.</summary>
+    public string? ReceiptFilingError { get; private set; }
 }

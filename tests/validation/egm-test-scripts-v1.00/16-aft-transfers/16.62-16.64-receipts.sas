@@ -39,9 +39,9 @@ test "16.62 the receipt status while a receipt prints" {
   note "The transfer is pending ($40) and $69 follows. Until the receipt is out its status is printing ($20) or pending ($40); once it is out, printed ($00)."
 }
 
-# @finding: refused at once with $82 and no $69. The library refuses a transfer to a ticket of
-# nothing outright (lp.cpp:5356), after refusing any transfer to a ticket on a machine that offers
-# none (lp.cpp:5345); the document expects it pending first.
+# @finding: refused at once with $82 and no $69, because a machine that offers no transfer to a
+# ticket refuses every one (lp.cpp:5351) before the zero-amount rule (lp.cpp:5356) is reached; the
+# document expects it pending first.
 test "16.63 an empty transfer to a ticket is refused" {
   tag @egm-test-scripts @chapter-16 @needs-a-person @finding
   requires decoder.lp72, machine.aft

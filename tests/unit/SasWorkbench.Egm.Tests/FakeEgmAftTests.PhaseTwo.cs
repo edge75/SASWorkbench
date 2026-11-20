@@ -354,4 +354,60 @@ public sealed partial class FakeEgmAftTests
         Assert.Contains("account 4242", text, StringComparison.Ordinal);
         Assert.Contains("transaction 7", text, StringComparison.Ordinal);
     }
+
+    /// <summary>
+    /// A second receipt that starts printing before the first is out must not take the first's
+    /// place: each print is the platform's own report, so both transfers end up printed ($00) and
+    /// neither is left at printing ($20) for a host to read forever.
+    /// </summary>
+    [Fact]
+    public void Two_receipts_printing_at_once_both_settle()
+    {
+        Start(Quick with { AftReceiptPrintDelay = TimeSpan.FromMilliseconds(800) });
+
+        Send72(FullTransfer(0x00, 500, 0, "1", flags: 0x80, receipt: PatronAccount("111")));
+        Assert.Equal(0x20, WaitForFinal().Number("receipt_status"));
+        Send72(FullTransfer(0x00, 500, 0, "2", flags: 0x80, receipt: PatronAccount("222")));
+        Assert.Equal(0x20, WaitForFinal().Number("receipt_status"));
+
+        Thread.Sleep(1500);
+
+        Assert.Equal(0x00, Interrogate(1).Number("receipt_status"));
+        Assert.Equal(0x00, Interrogate(2).Number("receipt_status"));
+    }
+
+    /// <summary>
+    /// A receipt directory that cannot be written loses only the text file: the status the host
+    /// reads is still printed, the machine keeps answering, and the reason is there to read.
+    /// </summary>
+    [Fact]
+    public void A_receipt_that_cannot_be_filed_is_reported_and_the_machine_carries_on()
+    {
+        string blocker = Path.Combine(_wallet, "not-a-directory");
+        Directory.CreateDirectory(_wallet);
+        File.WriteAllText(blocker, "a file where the receipts directory should be");
+        Start(Quick with { AftReceiptPrintDelay = TimeSpan.Zero, ReceiptDirectory = blocker });
+
+        Send72(FullTransfer(0x00, 500, 0, "8", flags: 0x80, receipt: PatronAccount("4242")));
+        WaitForFinal();
+        Thread.Sleep(200);
+
+        Assert.Equal(0x00, Interrogate(1).Number("receipt_status"));
+        Assert.Contains("receipt 1 not filed", Machine.ReceiptFilingError, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The library checks the code and the length before it looks at AFT (lp.cpp:6146, :6156,
+    /// then :6173), so a malformed $73 is NACKed even by a machine with funds transfer off, while
+    /// a well-formed one goes unanswered.
+    /// </summary>
+    [Fact]
+    public void A_malformed_73_is_nacked_even_with_funds_transfer_off()
+    {
+        Start(new FakeEgmOptions { Aft = false });
+
+        Assert.Equal(LongPollOutcome.Rejected, Host.Execute(0x73, [0x01, 0x42]).Outcome);
+        Assert.Equal(LongPollOutcome.Rejected, Host.Execute(0x73, [0x01, 0x00]).Outcome);
+        Assert.Equal(LongPollOutcome.Silent, Host.Execute(0x73, [0x01, 0xFF]).Outcome);
+    }
 }
