@@ -6,18 +6,18 @@
 # take one while it is tilted, locked up in a hand pay, in an operator menu or disabled: there the
 # transfer either never starts or is refused with $87, and nothing is paid.
 #
-# Everything here sends long poll $72, which this build cannot read back (decoder.lp72), to a
-# machine that offers AFT bonusing (machine.aft_bonus); see 14.1 for both. The lock in 14.5 is the
-# one part of the family this build can decode, through long poll $74.
+# Everything here sends long poll $72 to a machine that offers AFT bonusing (machine.aft_bonus),
+# given asset number 12345 by a setter step. The lock in 14.5 is long poll $74.
 
 test "14.3 a bonus is taken in play and refused in a lockup" {
   tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72, decoder.lp01, decoder.lp02
+  requires machine.aft_bonus, decoder.lp72, decoder.lp01, decoder.lp02, decoder.lp1B, stimulus.asset_number
   requires stimulus.door.main, stimulus.handpay, stimulus.handpay.reset, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
   host forget exceptions within 2s
@@ -43,6 +43,9 @@ test "14.3 a bonus is taken in play and refused in a lockup" {
   host send lp 72 data 36000010000000050000000000000000000000013930000000000000000000000000000000000000000000000133000000000000000000
   host send lp 72 data 02FF00
   host expect field transfer_status of lp 72 == $87
+
+  # $52 follows the reset only once the hand pay has been read, as the hand pay queue has it.
+  host send lp 1B
   egm handpay reset
   host expect exception handpay_was_reset within 15s
 
@@ -62,12 +65,13 @@ test "14.3 a bonus is taken in play and refused in a lockup" {
 # A jackpot bonus of zero is still a jackpot: the machine locks up for it exactly as for any other.
 test "14.4 a jackpot bonus of nothing is still a hand pay" {
   tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72, decoder.lp1B
+  requires machine.aft_bonus, decoder.lp72, decoder.lp1B, stimulus.asset_number
   requires stimulus.handpay.reset, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
   host forget exceptions within 2s
@@ -90,16 +94,17 @@ test "14.4 a jackpot bonus of nothing is still a hand pay" {
 # lock ends when it is paid.
 test "14.5 a bonus that needs a lock" {
   tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72, decoder.lp74, stimulus.settle
+  requires machine.aft_bonus, decoder.lp72, decoder.lp74, stimulus.settle, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   egm settle
   host forget exceptions within 2s
 
-  # Ask for a lock for bonus transfers, for thirty seconds.
-  host send lp 74 with lock_code=$00 transfer_condition=$04 lock_timeout=3000
+  # Ask for a lock for bonus transfers, for thirty seconds: condition bit 3, $08 ($04 is a transfer to a printer).
+  host send lp 74 with lock_code=$00 transfer_condition=$08 lock_timeout=3000
   host expect field asset_number == 12345
   host expect field game_lock_status <= $40
   host expect exception game_locked within 10s

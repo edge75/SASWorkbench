@@ -17,10 +17,10 @@
 #   read         01 FF
 #   cancel       01 80
 #
-# This build has no decoder for the $73 reply and the software machine does not answer it yet -
-# registration is phase two of D45 - so each case skips on that first. The reply field names are
-# provisional, chosen ahead of the decoder that will define them. Every case also needs a machine
-# configured for transfers, with asset number 12345, which a person sets up before the run.
+# The software machine answers $73 as the library does (D45), and is given asset number 12345 with
+# a setter step; a real machine needs a person to configure it for transfers with that number.
+# Initialising stores neither the key nor the point of sale unless they are zero, so the ready
+# reply carries what the machine held before; only the register step stores both.
 
 test "16.3 a basic registration" {
   tag @egm-test-scripts @chapter-16 @destructive
@@ -106,11 +106,12 @@ test "16.5 a machine with no asset number cannot register" {
 
 test "16.6 a registration with no point of sale identifier" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp73, decoder.lp72, machine.aft
+  requires decoder.lp73, decoder.lp72, machine.aft, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $00
@@ -128,11 +129,12 @@ test "16.6 a registration with no point of sale identifier" {
 
 test "16.7 reading the registration reports what is stored" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp73, machine.aft, host.compare_replies
+  requires decoder.lp73, machine.aft, host.compare_replies, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   # Cancelled, then read: the two replies are the same.
   host send lp 73 data 0180
@@ -166,11 +168,12 @@ test "16.7 reading the registration reports what is stored" {
 
 test "16.8 cancelling a registration" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp73, machine.aft
+  requires decoder.lp73, machine.aft, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 0180
   host expect field registration_status == $80
@@ -206,11 +209,12 @@ test "16.9 the operator cancels the registration at the machine" {
 
 test "16.10 a link lost in the middle of registration cancels it" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp73, machine.aft, host.poll_sequence
+  requires decoder.lp73, machine.aft, host.poll_sequence, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $00

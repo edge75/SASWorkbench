@@ -115,11 +115,12 @@ test "16.20 how cash-outs to the host are handled does not depend on the form as
 
 test "16.21 the transfer status bits" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp73, decoder.lp74, machine.aft, host.compare_replies
+  requires decoder.lp73, decoder.lp74, machine.aft, host.compare_replies, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host send lp 73 data 1D0139300000214365870900000000000000000000000000000021430500

@@ -50,7 +50,27 @@ test "16.60 the host takes a cashout as a transfer" {
 test "16.61 a second transfer while one is in progress" {
   tag @egm-test-scripts @chapter-16
   requires decoder.lp72, machine.aft
-  requires machine.aft_bonus, host.poll_sequence
+  requires machine.aft_bonus, host.poll_sequence, machine.aft_receipts, stimulus.asset_number, stimulus.settle
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # A full transfer with a receipt, which carries a patron account because an in-house receipt needs
+  # one; while it is pending a jackpot bonus and a partial bonus are both refused.
+  host send lp 72 data 3C000000000000050000000000000000000000803930000000000000000000000000000000000000000000000131000000000000061104343234320000
+  host expect field transfer_status == $40
+  host send lp 72 data 36000011000000050000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
+  host expect field transfer_status == $C0
+  host send lp 72 data 36010010000000050000000000000000000000003930000000000000000000000000000000000000000000000133000000000000000000
+  host expect field transfer_status >= $C0
+  host expect exception aft_transfer_complete within 15s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect field cashable_amount == 500
 
   note "Ask for a full cashable transfer with a receipt, then, while it is pending, a full bonus jackpot transfer: the second is refused as conflicting with the one in progress ($C0)."
   note "A partial bonus transfer straight after is refused the same way, with $C0 or $C1."
