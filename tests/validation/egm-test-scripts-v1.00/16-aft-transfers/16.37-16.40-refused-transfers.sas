@@ -14,8 +14,8 @@
 #   interrogate the latest            02 FF 00
 #   cancel the transfer in progress   01 80
 #
-# This build has no decoder for the $72 reply and the software machine performs no transfers, so
-# every case skips on that first. Reply field names are provisional, ahead of the decoder.
+# The machine library never writes the position byte of a $C0 or $C1 answer (lp.cpp:5967 to 5979),
+# so on a real machine 16.38 and 16.39 read whatever that byte held; the software machine sends 0.
 
 test "16.37 a machine with transfers off" {
   tag @egm-test-scripts @chapter-16 @needs-a-person

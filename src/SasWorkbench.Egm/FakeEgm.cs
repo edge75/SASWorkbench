@@ -555,8 +555,18 @@ public sealed partial class FakeEgm : IDisposable
     /// answering the same question rather than two similar ones.
     /// </remarks>
     /// <param name="walletDirectory">Where the printed ticket is filed.</param>
-    /// <returns>The ticket printed, or null when the machine had no credits to cash out.</returns>
+    /// <returns>The ticket printed, or null when there were no credits or the host has been asked to take them.</returns>
     public Ticket? Cashout(string walletDirectory)
+    {
+        long held = Meters.Read(SasMeterCode.CurrentCredits);
+        if (held > 0 && RequestHostCashout(walletDirectory))
+            return null;
+
+        return PayOut(walletDirectory);
+    }
+
+    /// <summary>Pays every credit on the machine out as one printed ticket, the machine's usual means.</summary>
+    private Ticket? PayOut(string walletDirectory)
     {
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits <= 0)
@@ -774,6 +784,8 @@ public sealed partial class FakeEgm : IDisposable
         }
 
         RaiseException(open ? door.Opened : door.Closed);
+        if (open)
+            WithdrawLockIfUnplayable();
         return true;
     }
 
@@ -840,6 +852,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         while (_running)
         {
+            TickAft(link);
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -1129,6 +1142,12 @@ public sealed partial class FakeEgm : IDisposable
             return;
         }
 
+        if (command == (byte)SasLongPollCode.LP_AFT_TRANSFERFUNDS)
+        {
+            AnswerTransferFunds(link, frame);
+            return;
+        }
+
         SasMessageLayout? layout = SasLayouts.For(command);
         if (layout is null)
         {
@@ -1177,6 +1196,7 @@ public sealed partial class FakeEgm : IDisposable
             case 0x01:
                 lock (_gate)
                     _enabled = false;
+                WithdrawLockIfUnplayable();
                 return true;
 
             case 0x02:

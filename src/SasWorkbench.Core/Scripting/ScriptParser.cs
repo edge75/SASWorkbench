@@ -1438,13 +1438,26 @@ public static class ScriptParser
                 test.Steps.Add(new PressButtonStep(location, words[2].ToLowerInvariant()));
                 return;
 
+            case "set" when words.Length >= 3
+                             && words[2].Equals("asset", StringComparison.OrdinalIgnoreCase):
+                if (words.Length != 5
+                    || !words[3].Equals("number", StringComparison.OrdinalIgnoreCase)
+                    || !uint.TryParse(words[4], System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out uint asset))
+                {
+                    throw new ScriptParseException(location, "expected: egm set asset number <decimal>");
+                }
+
+                test.Steps.Add(new SetAssetNumberStep(location, asset));
+                return;
+
             case "set":
                 if (words.Length < 5
                     || !words[2].Equals("accounting", StringComparison.OrdinalIgnoreCase)
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, or egm set asset number <decimal>");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);

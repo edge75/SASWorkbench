@@ -405,11 +405,11 @@ public class ScriptParserRefusalTests
     {
         ScriptDocument document = ScriptParser.Parse("""
             host connect loopback address 01
-            host expect field amount of lp 72 == 100
+            host expect field amount of lp 73 == 100
             """, "future.sas");
 
         var step = Assert.IsType<ExpectFieldStep>(document.Tests[0].Steps[1]);
-        Assert.Equal(0x72, step.Command);
+        Assert.Equal(0x73, step.Command);
         Assert.True(SasLayouts.IsKnownButUndecoded(step.Command));
     }
 
@@ -661,6 +661,22 @@ public class MachineDeclarationTests
         Assert.Equal(0x03, step.Code);
         Assert.Equal("stimulus.accounting_denomination", step.RequiredCapability);
         Assert.Null(test.Machine);
+    }
+
+    [Fact]
+    public void The_asset_number_setter_is_a_stimulus_step()
+    {
+        ScriptTest test = ScriptParser.Parse("egm set asset number 12345").Tests[0];
+
+        var step = Assert.IsType<SetAssetNumberStep>(Assert.Single(test.Steps));
+        Assert.Equal(12345u, step.Asset);
+        Assert.Equal("stimulus.asset_number", step.RequiredCapability);
+    }
+
+    [Fact]
+    public void An_asset_number_that_is_not_a_decimal_is_refused()
+    {
+        Assert.Throws<ScriptParseException>(() => ScriptParser.Parse("egm set asset number 3039h"));
     }
 
     // The declaration is checked by the same path as a capability the machine answers for, so an

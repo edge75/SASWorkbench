@@ -20,7 +20,7 @@ namespace SasWorkbench.Core.Protocol;
 /// source.
 /// </para>
 /// </remarks>
-public static class SasLayouts
+public static partial class SasLayouts
 {
     private static SasField Bcd(string name, int bytes, SasUnit unit, string description) => new()
     {
@@ -794,6 +794,7 @@ public static class SasLayouts
                 // write the other.
                 ConfirmedByCapture = true,
             },
+            TransferFunds(),
             new()
             {
                 Command = 0x7B,

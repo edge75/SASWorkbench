@@ -70,6 +70,7 @@ public sealed partial class FakeEgm
         }
 
         Queue((byte)SasExceptionCode.HandpayIsPending, [], priority: true);
+        WithdrawLockIfUnplayable();
     }
 
     /// <summary>The attendant pays the hand pay and turns the reset key.</summary>

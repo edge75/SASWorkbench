@@ -586,3 +586,35 @@ the preceding assertions having happened to drain the queue — 11.1 and 11.14, 
 reporting after a stimulus — and each gains a `host forget exceptions` first, which waits for three
 poll intervals of quiet before clearing and so drains as well as forgets. 11.7 sends long polls
 with reporting on and no stimulus before them, and carries a comment saying that is why it is safe.
+
+---
+
+# Decision 45
+
+Taken with the user on 2026-11-20, when the AFT validation cases were the largest block left
+skipping on `machine.aft` and `decoder.lp72` alone. Same standing as the rest.
+
+## D45 — The software machine takes funds transfers, in two phases, mirrored from the library
+
+The software machine gains AFT the way D44 says it gains anything: **the protocol half is the
+machine library's**, check for check and in the library's order (`lp72_TransferFunds`,
+`lp74_LockAndStatusRequest`, `internalUpdateAftTransfer`, the lock and $69 timers), so a refusal
+carries the code the library would choose. Where the library hands a decision to the application —
+which transfers are available, whether a lock is granted, when the money actually moves — the
+machine answers the way the platform above the library does, reduced to the simplest version this
+fixture can hold, and says so where it does.
+
+**Phase 1, built now:** long poll $72 decoded on the host; the lock and its timeout, its loss to a
+door, a hand pay, a disable or a loop break; game locked; in-house transfers to the machine and to
+the host, pending until the platform finishes them and final once read back; the 127-entry history
+and its wrap; the two-byte refusals; transfer complete and its reissue; cash-out to the host,
+switched on and off by the host. AFT is **on by default**, as on the machine it mirrors, and is
+read off the machine's own enabled-features reply rather than claimed by the stimulus backend, so
+`machine.aft` means the same thing against both peers. A case states the asset number its transfers
+are addressed to with a setter step, which only a machine this build made can honour.
+
+**Phase 2, named and deferred:** registration ($73) and debit transfers, AFT bonusing
+(`machine.aft_bonus`), transaction receipts (`machine.aft_receipts`), transfers to a ticket, and
+restricted and non-restricted credits with their pools. Until then those cases keep skipping on the
+capability they name, and a transfer carrying such an amount fails at the platform rather than
+being half modelled. The design note is `docs/M7-software-machine-aft.md`.

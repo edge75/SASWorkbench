@@ -101,13 +101,22 @@ public sealed class CapabilitySet
 
 /// <summary>What the machine on the link said about itself when it was asked.</summary>
 /// <param name="Values">The capabilities its answer establishes.</param>
+/// <param name="Reasons">Why each capability asked about went unanswered, by its key.</param>
 /// <param name="WhyNot">
 /// Why there are none, when there are none. Kept apart from the values because "the machine
 /// stayed quiet", "the poll never reached the wire" and "the reply made no sense" are three
 /// different things to be told, and a report that flattens them into an absent capability sends
 /// the reader to the wrong place.
 /// </param>
-public sealed record MachineAnswers(IReadOnlyDictionary<string, string?> Values, string? WhyNot);
+public sealed record MachineAnswers(
+    IReadOnlyDictionary<string, string?> Values,
+    string? WhyNot,
+    IReadOnlyDictionary<string, string>? Reasons = null)
+{
+    /// <summary>Why this capability went unanswered, falling back to the reason for the whole probe.</summary>
+    public string? ReasonFor(string key) =>
+        Reasons is not null && Reasons.TryGetValue(key, out string? reason) ? reason : WhyNot;
+}
 
 /// <summary>Works out what this machine and this build can do.</summary>
 public static class CapabilityProbe
@@ -233,7 +242,14 @@ public static class CapabilityProbe
             // memory clear establishes it, so no host can set it and no build can know it; the
             // identification reply is where the machine publishes it.
             MachineDeclaration.Capability,
+
+            // Whether the machine performs funds transfer is set in its own configuration, and the
+            // enabled-features reply is where it says so (D45).
+            AftCapability,
         };
+
+    /// <summary>The capability a machine that performs funds transfers answers with.</summary>
+    public const string AftCapability = "machine.aft";
 
     /// <summary>True when a requirement can only be answered by the machine on the link.</summary>
     public static bool IsAskedOfTheMachine(string key) => AskedOfTheMachine.Contains(key);
@@ -283,13 +299,27 @@ public static class CapabilityProbe
                 + "asked at all.");
         }
 
+        // Each reason is kept against its own capability, so a skip names what went wrong with the
+        // requirement it is about rather than whichever probe happened to run last.
+        var reasons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        void Note(string key, string? reason)
+        {
+            if (reason is null)
+                return;
+            reasons[key] = reason;
+            whyNot ??= reason;
+        }
+
         if (asked.Contains("egm.validation"))
-            whyNot = AskValidation(engine, values);
+            Note("egm.validation", AskValidation(engine, values));
 
         if (asked.Contains(MachineDeclaration.Capability))
-            whyNot = AskAccountingDenomination(engine, values) ?? whyNot;
+            Note(MachineDeclaration.Capability, AskAccountingDenomination(engine, values));
 
-        return new MachineAnswers(values, whyNot);
+        if (asked.Contains(AftCapability))
+            Note(AftCapability, AskAft(engine, values));
+
+        return new MachineAnswers(values, whyNot, reasons);
     }
 
     /// <summary>Reads the machine's validation style out of its enabled-features reply.</summary>
@@ -323,6 +353,41 @@ public static class CapabilityProbe
             return $"the machine reports validation style {style}, which is assigned to no style";
 
         values["egm.validation"] = SasNames.Underscore(((SasCashoutValidation)style).ToString());
+        return null;
+    }
+
+    /// <summary>
+    /// Reads whether the machine performs funds transfer off the AFT bit of its enabled-features
+    /// reply, which the library clears on a channel that does not own the AFT category.
+    /// </summary>
+    private static string? AskAft(PollEngine engine, Dictionary<string, string?> values)
+    {
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDENABLEFEATURES)!;
+
+        if (Ask(engine, layout, [0x00, 0x00]) is not { } result)
+        {
+            return "the enabled-features poll could not be put on the link, so whether the machine "
+                   + "performs funds transfer was never asked" + Because(engine);
+        }
+
+        if (!result.Succeeded)
+        {
+            return $"the machine did not answer the enabled-features poll ({result.Outcome}), so "
+                   + "whether it performs funds transfer cannot be read off this link";
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("feature_codes_2") is not { } features)
+        {
+            return "the machine's enabled-features reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no second feature byte");
+        }
+
+        // Bit 6 of the second feature byte is the library's AFT_BIT.
+        if ((features & 0x40) == 0)
+            return "the machine reports funds transfer off in its enabled-features reply on this channel";
+
+        values[AftCapability] = "yes";
         return null;
     }
 
@@ -429,6 +494,9 @@ public static class CapabilityProbe
                 // establishes, and a host cannot perform one over the link.
                 ["machine.accounting_denomination"] = "yes",
                 ["stimulus.accounting_denomination"] = "yes",
+
+                // The same reasoning for the asset number funds transfers are addressed to.
+                ["stimulus.asset_number"] = "yes",
 
                 // The software machine takes a ticket handed to it directly, with no directory in
                 // between, so this is true of the machine rather than of a path on disk.

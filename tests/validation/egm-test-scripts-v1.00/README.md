@@ -44,7 +44,7 @@ failures together):
 | 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
 | 14 | AFT bonusing | 11 | 1 | 10 | AFT bonusing on the machine (10) |
 | 15 | Legacy bonusing | 37 | 4 | 33 | legacy bonusing on the machine (27), a card game (3) |
-| 16 | AFT transfers | 90 | 2 | 88 | the $72 decoder (62), the $73 decoder (16), AFT on the machine (9) |
+| 16 | AFT transfers | 90 | 26 | 64 | the $73 decoder (20), a credit limit (10), restricted credits (6); 5 of the 26 fail, all of them findings |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | the $76 decoder (4) |
 | 18 | Tournament | 10 | 2 | 8 | tournament play on the machine (8) |
 | 19 | Authentication | 16 | 1 | 15 | component authentication on the machine (15), the $6E decoder (12) |
@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
 | 22 | MJT | 28 | 1 | 27 | legacy bonusing on the machine (27), multiplied jackpots on the machine (27) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **150** | **482** | |
+| | **total** | **632** | **174** | **458** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

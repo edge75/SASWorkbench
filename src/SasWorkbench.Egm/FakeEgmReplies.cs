@@ -82,7 +82,7 @@ public sealed partial class FakeEgm
         0x3D => LastCashout(),
         0x70 => TicketInEscrow(),
         0x71 => RedeemTicket(request),
-        0x74 => LockAndStatus(),
+        0x74 => LockAndStatus(request),
         0x7B => ExtendedValidationStatus(),
 
         0x18 => GamesSince(),
@@ -306,46 +306,6 @@ public sealed partial class FakeEgm
         };
     }
 
-    /// <summary>
-    /// What the hopper is doing, on a machine that has no hopper to ask.
-    /// </summary>
-    /// <remarks>
-    /// The status is the library's own "unknown", and the percentage full is the value its handler
-    /// reads as "this machine cannot detect it", which leaves the level out of the reply
-    /// altogether. Answering a percentage would be inventing a measurement from a device that is
-    /// not there; saying it cannot be measured is a fact about this machine.
-    /// </remarks>
-    /// <summary>What this machine would let a host transfer, and what it is holding.</summary>
-    /// <remarks>
-    /// <para>
-    /// Only the reading form of the command reaches here — a host asking for a lock is refused
-    /// before it is sent, on both peers, out of the same table. So the lock status is always
-    /// "not locked", and that is the truth about this machine rather than a stub: nothing in it
-    /// can take a lock.
-    /// </para>
-    /// <para>
-    /// It reports no available transfers for the same reason. That differs from the machine under
-    /// test, which advertises three, and the difference is the honest one — this machine performs
-    /// none, so saying it would accept them would be the lie.
-    /// </para>
-    /// </remarks>
-    private Dictionary<string, object> LockAndStatus() => new()
-    {
-        ["length"] = 0x23,
-        ["asset_number"] = (long)_options.AssetNumber,
-        ["game_lock_status"] = (byte)0xFF,
-        ["available_transfers"] = (byte)0x00,
-        ["host_cashout_status"] = (byte)0x00,
-        ["aft_status"] = (byte)0x00,
-        ["max_buffer_index"] = (byte)0x7F,
-        ["current_cashable_amount"] = Meters.Read(SasMeterCode.CurrentCredits),
-        ["current_restricted_amount"] = 0L,
-        ["current_nonrestricted_amount"] = 0L,
-        ["gaming_machine_transfer_limit"] = 0L,
-        ["restricted_expiration"] = 0L,
-        ["restricted_pool_id"] = 0L,
-    };
-
     /// <summary>How this machine has been told to validate, and how it is set now.</summary>
     /// <remarks>
     /// Only the form with an empty control mask reaches here, so nothing is being set and the
@@ -357,12 +317,21 @@ public sealed partial class FakeEgm
     private Dictionary<string, object> ExtendedValidationStatus() => new()
     {
         ["length"] = 0x0A,
-        ["asset_number"] = (long)_options.AssetNumber,
+        ["asset_number"] = (long)AssetNumber,
         ["current_validation_status"] = 0L,
         ["cashable_ticket_expiration"] = 0L,
         ["restricted_ticket_expiration"] = 0L,
     };
 
+    /// <summary>
+    /// What the hopper is doing, on a machine that has no hopper to ask.
+    /// </summary>
+    /// <remarks>
+    /// The status is the library's own "unknown", and the percentage full is the value its handler
+    /// reads as "this machine cannot detect it", which leaves the level out of the reply
+    /// altogether. Answering a percentage would be inventing a measurement from a device that is
+    /// not there; saying it cannot be measured is a fact about this machine.
+    /// </remarks>
     private static Dictionary<string, object> HopperStatus() => new()
     {
         ["length"] = 2,
@@ -731,7 +700,8 @@ public sealed partial class FakeEgm
             ["validation_style"] = (byte)validation,
             ["validation_extensions"] = (byte)0,
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
-            ["feature_codes_2"] = (byte)0x00,
+            // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430).
+            ["feature_codes_2"] = (byte)(_options.Aft ? 0x40 : 0x00),
             ["feature_codes_3"] = (byte)0x00,
             ["reserved"] = new byte[3],
         };

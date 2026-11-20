@@ -41,6 +41,82 @@ internal sealed class ExceptionQueue
     /// <summary>Queues a priority exception ahead of every ordinary one, as the library sends them first.</summary>
     public void AddPriority(PendingEvent pending) => _queue.AddFirst(pending);
 
+    /// <summary>
+    /// Where the library ranks a priority exception, one going first; an ordinary exception ranks last
+    /// (internalGetExceptionPriority, libsas_internal.cpp).
+    /// </summary>
+    public static int RankOf(byte code) => code switch
+    {
+        0x57 => 1,
+        0x67 => 2,
+        0x68 => 3,
+        0x3F => 4,
+        0x6A => 5,
+        0x6B => 6,
+        0x6F => 7,
+        0x56 => 8,
+        0x3D => 9,
+        0x3E => 10,
+        0x69 => 11,
+        0x6C => 12,
+        0x6D => 13,
+        0x51 => 14,
+        0x52 => 15,
+        0x8F => 16,
+        Overflow => 17,
+        _ => int.MaxValue,
+    };
+
+    /// <summary>
+    /// Queues a priority exception the way the library's queue does: never twice, and ahead of the
+    /// first one queued that ranks below it (internalQueueException, libsas_internal.cpp).
+    /// </summary>
+    public void AddRanked(PendingEvent pending)
+    {
+        if (_unacknowledged?.Code == pending.Code || _queue.Any(queued => queued.Code == pending.Code))
+            return;
+
+        if (_queue.Count >= Depth)
+            DropOldestOrdinary();
+
+        int rank = RankOf(pending.Code);
+        for (LinkedListNode<PendingEvent>? node = _queue.First; node is not null; node = node.Next)
+        {
+            if (RankOf(node.Value.Code) <= rank)
+                continue;
+
+            _queue.AddBefore(node, pending);
+            return;
+        }
+
+        Add(pending);
+    }
+
+    /// <summary>Takes every queued copy of one exception back out, as the library does when what it reported has ended.</summary>
+    public void Remove(byte code)
+    {
+        for (LinkedListNode<PendingEvent>? node = _queue.First; node is not null;)
+        {
+            LinkedListNode<PendingEvent>? next = node.Next;
+            if (node.Value.Code == code)
+                _queue.Remove(node);
+            node = next;
+        }
+    }
+
+    private void DropOldestOrdinary()
+    {
+        for (LinkedListNode<PendingEvent>? node = _queue.First; node is not null; node = node.Next)
+        {
+            if (RankOf(node.Value.Code) != int.MaxValue)
+                continue;
+
+            _queue.Remove(node);
+            _overflowPending = true;
+            return;
+        }
+    }
+
     /// <summary>Takes the next exception outright, with no acknowledgement to wait for.</summary>
     public PendingEvent? Take()
     {

@@ -12,8 +12,11 @@
 #   interrogate the latest                      02 FF 00
 #
 # The machine's own meters for transfers in (0017, 002E, 00A0, 00A1 and the rest) are read in
-# chapter 6; here the meters are the ones the $72 reply carries. This build has no decoder for that
-# reply, so every case skips on it first; reply field names are provisional.
+# chapter 6; here the meters are the ones the $72 reply carries. The transfers are addressed to
+# asset 12345, which a case gives the software machine with a setter step.
+#
+# A transfer cycle ends only when the host reads the final status with 02 FF 00; until then a new
+# transfer is answered $C0. So 16.42 reads it back after each $69 before starting the next one.
 
 test "16.41 the immediate reply to a transfer request" {
   tag @egm-test-scripts @chapter-16
@@ -42,11 +45,12 @@ test "16.41 the immediate reply to a transfer request" {
 
 test "16.42 a pending transfer reports nothing final" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp72, machine.aft, host.compare_replies
+  requires decoder.lp72, machine.aft, host.compare_replies, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host forget exceptions within 2s
 
   host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
@@ -58,6 +62,8 @@ test "16.42 a pending transfer reports nothing final" {
   host send lp 72 data 02FF00
   host expect field transfer_status == $40
   host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
 
   host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000133000000000000000000
   host expect field transfer_status == $40
@@ -73,11 +79,12 @@ test "16.42 a pending transfer reports nothing final" {
 
 test "16.43 a whole transfer, done" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, decoder.lp74, machine.aft, host.compare_replies
+  requires decoder.lp72, decoder.lp74, machine.aft, host.compare_replies, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host forget exceptions within 2s
 
   host send lp 74 data FF000000
@@ -168,11 +175,12 @@ test "16.46 the transfer stays pending until everything is done" {
 
 test "16.47 a twenty-byte transaction identifier" {
   tag @egm-test-scripts @chapter-16
-  requires decoder.lp72, machine.aft
+  requires decoder.lp72, machine.aft, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host forget exceptions within 2s
 
   # Identifier "9876543210!@#$%abcde", twenty ASCII bytes.
