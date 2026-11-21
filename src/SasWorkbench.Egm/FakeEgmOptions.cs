@@ -180,11 +180,17 @@ public sealed record FakeEgmOptions
     /// <summary>How long a transfer receipt takes to print once the transfer has completed.</summary>
     public TimeSpan AftReceiptPrintDelay { get; init; } = TimeSpan.FromSeconds(1);
 
+    /// <summary>Where the machine files a ticket it prints of its own accord, such as a cash-out the host asked for; null prints none.</summary>
+    public string? WalletDirectory { get; init; }
+
     /// <summary>Where printed transfer receipts are filed, or null to print them nowhere.</summary>
     public string? ReceiptDirectory { get; init; }
 
     /// <summary>The most one transfer to the machine may carry, in cents, which long poll $74 reports.</summary>
     public long AftTransferLimitCents { get; init; } = 1_000_000;
+
+    /// <summary>The most the credit meter may hold, in cents, as the platform's Max Credit Meter; zero is no ceiling.</summary>
+    public long CreditLimitCents { get; init; }
 
     /// <summary>How long the platform takes to move the money of a transfer the library has left pending.</summary>
     /// <remarks>Long enough that a host reading the transfer back at once still finds it pending, as on a real machine.</remarks>

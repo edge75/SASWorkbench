@@ -142,20 +142,28 @@ test "16.28 a lock is lost with the link" {
   note "At the machine: unplayable while locked, playable again once polling resumes."
 }
 
+# @finding: the second transfer is taken, not refused $94. The platform locks at once whenever the
+# machine is playable (QSP's lock provider), so the lock is never still pending when the transfer that
+# insists on it arrives, and the library's lock check (lp.cpp:5373) finds the machine locked.
 test "16.29 a lock pending while a transfer is in progress" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @finding
   requires decoder.lp74, decoder.lp72, machine.aft, machine.credit_limit, stimulus.button.collect
+  requires stimulus.credit_limit, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
+  egm set credit limit 1000000
   egm press collect
+  host forget exceptions within 2s
 
   # Lock, then five dollars in-house to the machine: the transfer is taken and the lock goes.
   host send lp 74 data 000F9999
-  host expect field game_lock_status == $40
+  host expect field game_lock_status != $FF
   host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
-  host expect field transfer_status == $00
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 10s
   host send lp 74 data FF000000
   host expect field game_lock_status == $FF
   host send lp 72 data 02FF00
@@ -163,14 +171,14 @@ test "16.29 a lock pending while a transfer is in progress" {
 
   # Lock, then at once a transfer that insists on the lock: the lock is still pending, so refused.
   host send lp 74 data 000F9999
-  host expect field game_lock_status == $40
+  host expect field game_lock_status != $FF
   host send lp 72 data 36000000000000050000000000000000000000403930000000000000000000000000000000000000000000000132000000000000000000
   host send lp 72 data 02FF00
   host expect field transfer_status == $94
   host send lp 74 data FF000000
   host expect field game_lock_status == $FF
 
-  note "Before the run, set a high credit limit and leave the credit meter empty. The second transfer must follow the lock request before the machine has had time to lock."
+  note "The second transfer must follow the lock request before the machine has had time to lock."
 }
 
 # The library refuses a lock only for a transfer condition it does not offer (lp.cpp:6505); a zero

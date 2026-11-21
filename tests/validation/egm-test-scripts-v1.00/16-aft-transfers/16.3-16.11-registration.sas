@@ -85,13 +85,16 @@ test "16.4 a registration naming another asset number is refused" {
   host expect field registration_status == $80
 }
 
+# @finding: refused $88, not $93. Registration governs a debit transfer before the asset number is
+# checked (lp.cpp:5304, then :5402), and a machine with no asset number is never registered.
 test "16.5 a machine with no asset number cannot register" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp73, decoder.lp72, machine.aft, machine.configuration_options
+  tag @egm-test-scripts @chapter-16 @finding
+  requires decoder.lp73, decoder.lp72, machine.aft, machine.configuration_options, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 0
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $80
@@ -100,8 +103,6 @@ test "16.5 a machine with no asset number cannot register" {
   # A debit transfer of five dollars to the machine is refused for the asset number.
   host send lp 72 data 36000040000000050000000000000000000000003930000021436587090000000000000000000000000000000131000000000000000000
   host expect field transfer_status == $93
-
-  note "Before the run, clear the asset number the operator set at the machine; set it back to 12345 afterwards for the cases that follow."
 }
 
 test "16.6 a registration with no point of sale identifier" {
@@ -200,11 +201,32 @@ test "16.8 cancelling a registration" {
 }
 
 test "16.9 the operator cancels the registration at the machine" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16
   requires decoder.lp73, machine.aft, machine.aft_operator_registration, machine.configuration_options
+  requires stimulus.asset_number
 
-  note "Initialise and register as in 16.3. Then cancel the registration from the machine's own menus, if it offers that: the machine raises $6E and reads back as not registered ($80). Register again: $01."
-  note "Change the asset number at the machine to 54321 and read the registration: $6E, not registered, asset 54321 (31 D4 00 00), and the last key and point of sale still reported."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+
+  host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
+  host expect field registration_status == $00
+  host send lp 73 data 1D0139300000214365870900000000000000000000000000000021430500
+  host expect field registration_status == $01
+  host remember field pos_id as registered_pos
+  host forget exceptions within 2s
+
+  # A new asset number at the machine cancels a complete registration, and the last point of sale stays.
+  egm set asset number 54321
+  host expect exception aft_registration_cancelled within 10s
+  host send lp 73 data 01FF
+  host expect field registration_status == $80
+  host expect field asset_number == 54321
+  host expect field pos_id == saved.registered_pos
+
+  note "The registration key the host last sent is still reported beside the point of sale."
+  note "A machine whose menus offer a cancel of their own raises $6E and reads back as not registered ($80), and registers again with $01; the software machine's menu, like the platform's, offers only the register action."
 }
 
 test "16.10 a link lost in the middle of registration cancels it" {

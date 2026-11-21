@@ -117,6 +117,14 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.SetAftBonus(bonus.On);
                 return;
 
+            case SetAftStep aft:
+                machine.SetAft(aft.On);
+                return;
+
+            case SetCreditLimitStep limit:
+                machine.SetCreditLimit(limit.Cents);
+                return;
+
             case AftRegisterStep:
                 if (machine.AttendantRegister() is { } menuRefusal)
                     throw new StimulusUnavailableException(menuRefusal);
@@ -246,6 +254,7 @@ public static class SoftwareMachineEnvironment
 
                 // Receipts go beside the wallet rather than in it, so no ticket reader mistakes one for a ticket.
                 ReceiptDirectory = Path.Combine(options.WalletDirectory, "receipts"),
+                WalletDirectory = options.WalletDirectory,
             };
 
             //  A case that says how the machine is divided between hosts gets a machine divided

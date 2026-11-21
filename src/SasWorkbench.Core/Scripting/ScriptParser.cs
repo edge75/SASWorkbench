@@ -1451,13 +1451,32 @@ public static class ScriptParser
                 test.Steps.Add(new SetAssetNumberStep(location, asset));
                 return;
 
+            case "set" when words.Length == 4
+                             && words[2].Equals("aft", StringComparison.OrdinalIgnoreCase)
+                             && words[3].ToLowerInvariant() is "on" or "off":
+                test.Steps.Add(new SetAftStep(location, words[3].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
+            case "set" when words.Length >= 3
+                             && words[2].Equals("credit", StringComparison.OrdinalIgnoreCase):
+                if (words.Length != 5
+                    || !words[3].Equals("limit", StringComparison.OrdinalIgnoreCase)
+                    || !long.TryParse(words[4], System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out long limit))
+                {
+                    throw new ScriptParseException(location, "expected: egm set credit limit <cents>");
+                }
+
+                test.Steps.Add(new SetCreditLimitStep(location, limit));
+                return;
+
             case "set" when words.Length >= 3
                              && words[2].Equals("aft", StringComparison.OrdinalIgnoreCase):
                 if (words.Length != 5
                     || !words[3].Equals("bonus", StringComparison.OrdinalIgnoreCase)
                     || words[4].ToLowerInvariant() is not ("on" or "off"))
                 {
-                    throw new ScriptParseException(location, "expected: egm set aft bonus on|off");
+                    throw new ScriptParseException(location, "expected: egm set aft on|off, or egm set aft bonus on|off");
                 }
 
                 test.Steps.Add(new SetAftBonusStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
@@ -1475,7 +1494,7 @@ public static class ScriptParser
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, or egm set aft bonus on|off");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set aft on|off, or egm set aft bonus on|off");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);

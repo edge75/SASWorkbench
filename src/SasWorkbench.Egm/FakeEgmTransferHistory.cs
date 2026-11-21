@@ -14,7 +14,7 @@ public sealed partial class FakeEgm
 {
     private (int Position, AftRecord Response) Interrogate(byte code, byte index)
     {
-        if (!_options.Aft && _aftCycle == AftCycle.Completed)
+        if (!_aftOn && _aftCycle == AftCycle.Completed)
             return (index, new AftRecord { TransferStatus = 0x82 });
 
         int position = InterrogatedPosition(code, index);

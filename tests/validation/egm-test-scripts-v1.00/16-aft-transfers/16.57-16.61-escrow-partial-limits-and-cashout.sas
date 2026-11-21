@@ -6,8 +6,8 @@
 # away without disturbing the first. In every one of them the status the host reads afterwards
 # must be exactly what happened to the money.
 #
-# None can run here: the funds-transfer command has no layout and the software machine does not
-# transfer.
+# The software machine holds all three kinds of credit and a credit limit a case can set, so all but
+# 16.57, which needs a game left running, run against it.
 
 test "16.57 a transfer that arrives during a game waits for it" {
   tag @egm-test-scripts @chapter-16 @needs-stimulus
@@ -19,32 +19,167 @@ test "16.57 a transfer that arrives during a game waits for it" {
 }
 
 test "16.58 partial transfers to the host take what there is" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft
-  requires machine.restricted_credits, host.compare_replies
+  tag @egm-test-scripts @chapter-16
+  requires decoder.lp72, decoder.lp74, machine.aft
+  requires machine.restricted_credits, host.compare_replies, stimulus.asset_number
 
-  note "From an empty machine, put ten dollars of restricted credit on; then ask for a partial transfer to the host far larger than that in every type. The machine sends exactly the ten restricted dollars, the status shows them, and the credit meter is zero."
-  note "The same with five dollars of non-restricted credit and then with five dollars cashable: each time exactly what was there goes back, and the machine ends empty."
-  note "Finally all three in turn, leaving the restricted, non-restricted and cashable amounts on the machine together."
+  machine accounting denomination 1c
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  host forget exceptions within 2s
+
+  # Ten restricted dollars on, then a partial transfer to the host far larger in every type: exactly the ten go back.
+  host send lp 72 data 36000000000000000000000010000000000000003930000000000000000000000000000000000000000000000131000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36010080000010000000001000000000100000003930000000000000000000000000000000000000000000000132000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field restricted_amount == 1000
+  host expect field cashable_amount == 0
+  host expect field nonrestricted_amount == 0
+  host expect meter credits == 0 within 2s
+
+  # Five non-restricted dollars, the same way.
+  host send lp 72 data 36000000000000000000000000000000000500003930000000000000000000000000000000000000000000000133000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36010080000010000000001000000000100000003930000000000000000000000000000000000000000000000134000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field nonrestricted_amount == 500
+  host expect field restricted_amount == 0
+  host expect field cashable_amount == 0
+  host expect meter credits == 0 within 2s
+
+  # Five cashable dollars, the same way.
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000135000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36010080000010000000001000000000100000003930000000000000000000000000000000000000000000000136000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field cashable_amount == 500
+  host expect field restricted_amount == 0
+  host expect field nonrestricted_amount == 0
+  host expect meter credits == 0 within 2s
+
+  # All three together: each goes back exactly, and the machine ends empty.
+  host send lp 72 data 36000000000000050000000010000000000500003930000000000000000000000000000000000000000000000137000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36010080000010000000001000000000100000003930000000000000000000000000000000000000000000000138000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field cashable_amount == 500
+  host expect field restricted_amount == 1000
+  host expect field nonrestricted_amount == 500
+  host send lp 74 data FF000000
+  host expect field current_cashable_amount == 0
+  host expect field current_restricted_amount == 0
+  host expect field current_nonrestricted_amount == 0
 }
 
+# One cent is declared so the room under the credit limit is counted in cents.
 test "16.59 a transfer near the credit limit" {
-  tag @egm-test-scripts @chapter-16 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
-  requires machine.credit_limit, stimulus.bill, host.meter_arithmetic
+  requires machine.credit_limit, machine.restricted_credits, stimulus.credit_limit, stimulus.asset_number
 
-  note "Bring the machine within four dollars of its credit limit. A full five-dollar transfer is refused, as over the limit or not possible now ($84 or $86)."
-  note "A partial five-dollar transfer is accepted as pending and completes with the gap to the limit and no more; the credit meter ends exactly at the limit."
-  note "Within ten dollars of the limit, a partial transfer of one cashable, five restricted and four non-restricted dollars fits whole. Within six dollars, the same request delivers the five restricted and one non-restricted and no cashable: the order the machine fills a partial transfer in is restricted, then non-restricted, then cashable."
+  machine accounting denomination 1c
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  host forget exceptions within 2s
+
+  # Within four dollars of the limit: a full five-dollar transfer is refused, a partial one fills the gap and no more.
+  egm set credit limit 400
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $84
+  host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $01
+  host expect field cashable_amount == 400
+  host expect meter credits == 400 within 2s
+
+  # Within ten dollars: one cashable, five restricted and four non-restricted dollars fit whole.
+  egm set credit limit 1400
+  host send lp 72 data 36010000000000010000000005000000000400003930000000000000000000000000000000000000000000000133000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect field cashable_amount == 100
+  host expect field restricted_amount == 500
+  host expect field nonrestricted_amount == 400
+
+  # Within six dollars: the same request delivers the five restricted and one non-restricted, and no cashable.
+  egm set credit limit 2000
+  host send lp 72 data 36010000000000010000000005000000000400003930000000000000000000000000000000000000000000000134000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $01
+  host expect field restricted_amount == 500
+  host expect field nonrestricted_amount == 100
+  host expect field cashable_amount == 0
+  host expect meter credits == 2000 within 2s
+
+  note "The document also allows the full transfer to be refused as not possible now ($86)."
 }
 
 test "16.60 the host takes a cashout as a transfer" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft
-  requires machine.restricted_credits
+  tag @egm-test-scripts @chapter-16
+  requires decoder.lp72, decoder.lp74, machine.aft
+  requires machine.restricted_credits, stimulus.asset_number, printer.wallet
 
-  note "Put five dollars of each credit type on an empty machine. A zero-amount transfer to the host carrying the cashout flag is accepted as pending, raises $69, and the machine cashes out the cashable and non-restricted credits by its usual means; the restricted ones stay or leave on a restricted ticket, and the transfer record shows nothing moved."
-  note "Reload the machine and repeat with the cashout request also asking for six restricted dollars: cashable and non-restricted leave as before, the five restricted dollars leave the credit meter, and the record shows five restricted and zero for the other two."
+  machine accounting denomination 1c
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  host forget exceptions within 2s
+
+  # Five dollars of each kind, then a zero transfer to the host asking the machine to cash out.
+  host send lp 72 data 36000000000000050000000005000000000500003930000000000000000000000000000000000000000000000131000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36000080000000000000000000000000000000083930000000000000000000000000000000000000000000000132000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect field cashable_amount == 0
+  host expect field restricted_amount == 0
+  host expect field nonrestricted_amount == 0
+
+  # The machine pays cashable and non-restricted its usual way, and the restricted credit stays.
+  egm expect ticket printed within 10s
+  host send lp 74 data FF000000
+  host expect field current_cashable_amount == 0
+  host expect field current_nonrestricted_amount == 0
+  host expect field current_restricted_amount == 500
+
+  # Reloaded, and the request also asks for six restricted dollars: the five there leave, the rest is cashed out.
+  host send lp 72 data 36000000000000050000000000000000000500003930000000000000000000000000000000000000000000000133000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host send lp 72 data 36010080000000000000000006000000000000083930000000000000000000000000000000000000000000000134000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field restricted_amount == 500
+  host expect field cashable_amount == 0
+  host expect field nonrestricted_amount == 0
+  egm expect ticket printed within 10s
+  host expect meter credits == 0 within 5s
+
+  note "The zero transfer is answered pending and raises $69 on a real machine; the software machine completes it before its reply goes, which is the one answer the host reads back either way."
+  note "Restricted credit stays on the machine because the platform's restricted tickets are off; a machine that prints them may cash it out on a restricted ticket instead."
 }
 
 test "16.61 a second transfer while one is in progress" {

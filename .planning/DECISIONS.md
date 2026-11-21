@@ -633,3 +633,15 @@ out. Three choices were taken here:
 * Non-restricted credit **is modelled** after all, because half the bonus cases carry it: held in
   the credit meter, played first, cashed out on the cashable ticket. Restricted credit still fails
   at the platform with $9F.
+
+**Addendum, 2026-11-21, taken with the user:** restricted credit is now modelled, together with a
+credit limit and transfers turned off at the machine, so the chapter 16 cases that skipped on them
+run. Restricted credit is held in the credit meter with the pool and expiration the library keeps
+(one pool at a time, refused `$8F` otherwise; expirations combined as `calculateExpirationDate` does;
+both cleared when the balance empties), wagered before non-restricted and cashable credit, taken by
+transfers to the host, and never paid on a cash-out ticket, so it stays on the machine as on a
+platform with restricted tickets off. `machine.transfer_limit` is read off the `$74` status, like
+`machine.aft_receipts`; `machine.credit_limit`, `machine.restricted_credits` and
+`machine.configuration_options` are claimed by the software backend, as no poll reports them, and
+the setter steps `egm set credit limit` and `egm set aft on|off` need `stimulus.credit_limit` and
+`stimulus.aft_configuration`.
