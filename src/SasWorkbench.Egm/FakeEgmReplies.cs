@@ -698,12 +698,12 @@ public sealed partial class FakeEgm
         {
             ["game_number"] = game,
             // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT), set while bonusing is on, as QSP configures it.
-            ["feature_codes_1"] = (byte)(_options.Aft && AftBonusOn ? 0x02 : 0x00),
+            ["feature_codes_1"] = (byte)(_aftOn && AftBonusOn ? 0x02 : 0x00),
             ["validation_style"] = (byte)validation,
             ["validation_extensions"] = (byte)0,
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
             // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430).
-            ["feature_codes_2"] = (byte)(_options.Aft ? 0x40 : 0x00),
+            ["feature_codes_2"] = (byte)(_aftOn ? 0x40 : 0x00),
             ["feature_codes_3"] = (byte)0x00,
             ["reserved"] = new byte[3],
         };

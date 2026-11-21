@@ -747,6 +747,23 @@ public sealed record SetAftBonusStep(SourceLocation Location, bool On) : Stimulu
     public override string Describe() => $"set aft bonus {(On ? "on" : "off")}";
 }
 
+/// <summary>Turns funds transfer on or off at the machine's own configuration.</summary>
+/// <remarks>A stimulus for the reason the asset number setter is one: only a machine this build made can take it from a script.</remarks>
+public sealed record SetAftStep(SourceLocation Location, bool On) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.aft_configuration";
+
+    public override string Describe() => $"set aft {(On ? "on" : "off")}";
+}
+
+/// <summary>Sets the most the credit meter may hold, in cents, at the machine's own configuration; zero removes the ceiling.</summary>
+public sealed record SetCreditLimitStep(SourceLocation Location, long Cents) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.credit_limit";
+
+    public override string Describe() => $"set credit limit {Cents} cents";
+}
+
 /// <summary>Keeps one field of a long poll's reply under a name, for a later comparison.</summary>
 public sealed record RememberFieldStep(
     SourceLocation Location,

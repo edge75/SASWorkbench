@@ -44,7 +44,7 @@ public sealed partial class FakeEgm
         lock (_gate)
         {
             // QSP DecideAftRegistrationAction: the platform refuses rather than pretend the library acted.
-            if (!_options.Aft)
+            if (!_aftOn)
                 return "the machine performs no funds transfer, so it has no registration to start";
             if (AssetNumber == 0)
                 return "the machine has no asset number, and a machine without one may not register";
@@ -87,7 +87,7 @@ public sealed partial class FakeEgm
             return null;
 
         // Only a well-formed poll reaches the AFT check, which then ignores it (lp.cpp:6173).
-        if (!_options.Aft)
+        if (!_aftOn)
             return NoAnswer;
 
         uint asset = 0;

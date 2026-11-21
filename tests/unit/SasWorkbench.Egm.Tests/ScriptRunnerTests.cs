@@ -54,6 +54,29 @@ public class ScriptRunnerTests
         Assert.Contains("funds transfer off", off.SkipReason!, StringComparison.Ordinal);
     }
 
+    /// <summary>The transfer limit is read off a $74 status read, so a machine with funds transfer off skips a case needing it.</summary>
+    [Fact]
+    public void The_transfer_limit_is_read_off_the_machine_and_a_machine_without_transfers_skips()
+    {
+        const string script = """
+            requires machine.transfer_limit
+            host connect loopback address 01
+            host poll every 20ms
+            host expect link up within 2s
+            egm set credit limit 100000
+            egm bill insert 100
+            host send lp 74 data FF000000
+            host expect field gaming_machine_transfer_limit == 99900
+            """;
+
+        TestOutcome on = Run(script);
+        Assert.True(on.Verdict == Verdict.Pass, Explain(on));
+
+        TestOutcome off = Run(script, new FakeEgmOptions { Aft = false });
+        Assert.Equal(Verdict.Skip, off.Verdict);
+        Assert.StartsWith("machine.transfer_limit:", off.SkipReason!, StringComparison.Ordinal);
+    }
+
     /// <summary>Each capability asked of the machine keeps its own reason, so the first unmet one is reported with its own.</summary>
     [Fact]
     public void A_requirement_the_machine_cannot_answer_skips_with_its_own_reason()

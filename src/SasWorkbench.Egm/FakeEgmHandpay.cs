@@ -59,9 +59,12 @@ public sealed partial class FakeEgm
         if (kind == HandpayKind.CancelledCredit)
         {
             InsertBill(checked((int)amountCents));
-            long credits = Meters.Read(SasMeterCode.CurrentCredits);
+            long restricted = CurrentRestrictedCents() / AccountingCents;
+            long credits = Meters.Read(SasMeterCode.CurrentCredits) - restricted;
             owed = credits * AccountingCents;
-            Meters.SetCurrentCredits(0);
+
+            // Restricted credit is not cancelled to an attendant, as it may not be cashed out at all.
+            Meters.SetCurrentCredits(restricted);
             ClampNonrestricted();
         }
 

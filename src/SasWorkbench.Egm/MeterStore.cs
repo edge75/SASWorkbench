@@ -63,6 +63,15 @@ public sealed class MeterStore
             _values[(ushort)SasMeterCode.CurrentCredits] = credits;
     }
 
+    /// <summary>The restricted part of the credit meter, which goes up and down with it.</summary>
+    public void SetCurrentRestrictedCredits(long credits)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(credits);
+
+        lock (_gate)
+            _values[(ushort)SasMeterCode.CurrentRestrictedCredits] = credits;
+    }
+
     /// <summary>
     /// Starts a since-an-event meter again, which is what that event does to it.
     /// </summary>

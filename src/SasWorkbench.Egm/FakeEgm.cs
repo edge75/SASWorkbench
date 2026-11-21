@@ -117,6 +117,8 @@ public sealed partial class FakeEgm : IDisposable
         _options = options ?? new FakeEgmOptions();
         (_denominationCode, _accountingCents, DenominationRefusal) = ResolveDenomination(_options);
         _aftBonus = _options.AftBonus;
+        _aftOn = _options.Aft;
+        _creditLimitCents = _options.CreditLimitCents;
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -573,8 +575,14 @@ public sealed partial class FakeEgm : IDisposable
         if (credits <= 0)
             return null;
 
+        // Restricted credit may not leave on a cash-out ticket, so it stays on the machine (QSP QSP_COLLECT_NOT_PAID_RESTRICTED_CREDIT).
+        long restrictedCredits = CurrentRestrictedCents() / AccountingCents;
+        credits -= restrictedCredits;
+        if (credits <= 0)
+            return null;
+
         long cents = credits * AccountingCents;
-        Meters.SetCurrentCredits(0);
+        Meters.SetCurrentCredits(restrictedCredits);
 
         // Non-restricted credits leave on the same cashable ticket, the platform's choice for a promotion it holds no restriction on.
         ClampNonrestricted();
@@ -683,12 +691,26 @@ public sealed partial class FakeEgm : IDisposable
             throw new InvalidOperationException(
                 $"The machine holds {credits} accounting unit(s) and cannot wager {wagered}.");
 
+        // A win past the credit limit needs a hand pay, so it is refused before any meter moves while one is still held.
+        bool handpayHeld;
+        lock (_gate)
+            handpayHeld = _handpay is not null;
+        if (handpayHeld && WinPassesCreditLimit(credits - wagered, won))
+            throw new InvalidOperationException(
+                "the win passes the credit limit, and the machine already holds a hand pay");
+
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
 
-        // Non-restricted credits are wagered before cashable ones, the platform's choice, and counted as played.
-        if (PlayNonrestricted(wagered) is var nonrestrictedPlayed and > 0)
+        // Restricted credits are wagered first, then non-restricted, then cashable (QSP NvramHandler.cpp:947), and counted as played.
+        long restrictedPlayed = PlayRestricted(wagered);
+        if (restrictedPlayed > 0)
+            Meters.Increment(SasMeterCode.TotalRestrictedAmountPlayed_Crd, restrictedPlayed);
+        if (PlayNonrestricted(wagered - restrictedPlayed) is var nonrestrictedPlayed and > 0)
             Meters.Increment(SasMeterCode.TotalNonrestrictedAmountPlayed_Crd, nonrestrictedPlayed);
+
+        // A win that would take the credit meter past its limit goes to an attendant (QSP CombinedAwardIsHandpaid).
+        bool handpaid = WinPassesCreditLimit(credits - wagered, won);
 
         // Both are meters, and the library reads them by code in its own handler for long poll
         // $18: games since the last reset, and games since the slot door last closed.
@@ -698,15 +720,19 @@ public sealed partial class FakeEgm : IDisposable
         {
             Meters.Increment(SasMeterCode.GamesWon, 1);
             Meters.Increment(SasMeterCode.GamesLost, games - 1);
-            Meters.Increment(SasMeterCode.TotalCoinOutCredits, won);
-            Meters.Increment(SasMeterCode.TotalMachinePaidPaytableWin_Crd, won);
+            if (!handpaid)
+            {
+                Meters.Increment(SasMeterCode.TotalCoinOutCredits, won);
+                Meters.Increment(SasMeterCode.TotalMachinePaidPaytableWin_Crd, won);
+            }
         }
         else
         {
             Meters.Increment(SasMeterCode.GamesLost, games);
         }
 
-        Meters.SetCurrentCredits(credits - wagered + won);
+        Meters.SetCurrentCredits(credits - wagered + (handpaid ? 0 : won));
+        PublishRestricted();
 
         // A game start and a game end for each round, the way the platform above the machine
         // library raises them: unconditionally, whether or not the host has asked for reporting.
@@ -729,6 +755,9 @@ public sealed partial class FakeEgm : IDisposable
             RaiseEvent((byte)SasExceptionCode.GameEnded,
                 BcdBytes(last ? winCredits * _options.CentsPerGameCredit : 0, 4));
         }
+
+        if (handpaid)
+            RaiseHandpay(Core.Scripting.HandpayKind.Jackpot, won * AccountingCents);
     }
 
     /// <summary>
