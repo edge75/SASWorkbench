@@ -405,11 +405,11 @@ public class ScriptParserRefusalTests
     {
         ScriptDocument document = ScriptParser.Parse("""
             host connect loopback address 01
-            host expect field amount of lp 73 == 100
+            host expect field amount of lp 75 == 100
             """, "future.sas");
 
         var step = Assert.IsType<ExpectFieldStep>(document.Tests[0].Steps[1]);
-        Assert.Equal(0x73, step.Command);
+        Assert.Equal(0x75, step.Command);
         Assert.True(SasLayouts.IsKnownButUndecoded(step.Command));
     }
 

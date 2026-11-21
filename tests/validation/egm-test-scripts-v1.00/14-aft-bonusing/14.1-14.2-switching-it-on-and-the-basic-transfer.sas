@@ -7,10 +7,9 @@
 # Every request in this chapter carries asset number 12345, no registration key unless a case is
 # about one, and a transaction identifier no earlier request in the case used.
 #
-# Two things stop the whole chapter here. This build has no layout for long poll $72, so neither
-# the request it answers nor the status it reports can be read (decoder.lp72); and the software
-# machine offers no bonusing of either kind, which a case states as machine.aft_bonus. The cases
-# are written out in full regardless, so the day both exist they run without being rewritten.
+# A machine says it takes AFT bonuses in bit 1 of the first enabled-features byte, which is where
+# machine.aft_bonus is read from. The software machine takes both kinds, as the platform does (D45),
+# and is given asset number 12345 with a setter step.
 #
 # The document's host simulator leaves the hand pay exception unacknowledged throughout, so that a
 # case can read the hand pay itself. Nothing here needs that: a case that expects $51 waits for it
@@ -20,14 +19,17 @@
 # requests of both kinds are either ignored or refused.
 test "14.1 AFT bonusing can be switched off" {
   tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72
+  requires machine.aft_bonus, decoder.lp72, stimulus.aft_bonus, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   egm settle
   host forget exceptions within 2s
 
+  # Bonusing off at the machine's menu; a machine refuses both kinds of bonus while it is.
+  egm set aft bonus off
   host send lp A0 with game_number=0
   host expect field game_number == 0
 
@@ -40,21 +42,25 @@ test "14.1 AFT bonusing can be switched off" {
   host expect field transfer_status of lp 72 >= $80
 
   note "Before the run, find the operator setting that turns AFT bonusing on and off - a machine may keep one switch for both kinds of bonusing or one for each - and turn it on. Read the enabled features for game 0: bit 1 of the first feature byte is set."
-  note "Then turn it off, read them again, and run the steps: bit 1 is now clear. This build names no single bit of that byte, so both readings are for a person to check in the frames."
+  note "The step turns it off and reads them again: bit 1 is now clear. This build names no single bit of that byte, so both readings are for a person to check in the frames."
   note "With it off, the document accepts silence as well as a refusal for each transfer and each interrogation. The steps assert the refusal; a machine that stays silent instead passes by the frames."
 }
 
 # Six transfers that succeed and three that must not, from the document's two tables. A credit
 # meter moves by the amount in credits, a cents meter by the amount in cents, and a count by one.
+# @finding: refusal 3 is taken, not refused $88. The library checks the registration key of a
+# debit transfer only; in-house and bonus transfers pass whatever key they carry
+# (libsas_internal.cpp:2974), so the jackpot bonus goes pending and locks the machine up.
 test "14.2 the basic bonus transfers" {
-  tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72
+  tag @egm-test-scripts @chapter-14 @needs-a-person @finding
+  requires machine.aft_bonus, decoder.lp72, stimulus.asset_number
   requires host.meter_arithmetic, stimulus.handpay.reset
   machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
   host forget exceptions within 2s

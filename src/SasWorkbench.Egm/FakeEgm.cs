@@ -116,6 +116,7 @@ public sealed partial class FakeEgm : IDisposable
 
         _options = options ?? new FakeEgmOptions();
         (_denominationCode, _accountingCents, DenominationRefusal) = ResolveDenomination(_options);
+        _aftBonus = _options.AftBonus;
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -574,6 +575,9 @@ public sealed partial class FakeEgm : IDisposable
 
         long cents = credits * AccountingCents;
         Meters.SetCurrentCredits(0);
+
+        // Non-restricted credits leave on the same cashable ticket, the platform's choice for a promotion it holds no restriction on.
+        ClampNonrestricted();
         Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
         Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
 
@@ -681,6 +685,10 @@ public sealed partial class FakeEgm : IDisposable
 
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
+
+        // Non-restricted credits are wagered before cashable ones, the platform's choice, and counted as played.
+        if (PlayNonrestricted(wagered) is var nonrestrictedPlayed and > 0)
+            Meters.Increment(SasMeterCode.TotalNonrestrictedAmountPlayed_Crd, nonrestrictedPlayed);
 
         // Both are meters, and the library reads them by code in its own handler for long poll
         // $18: games since the last reset, and games since the slot door last closed.

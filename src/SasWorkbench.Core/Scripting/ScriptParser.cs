@@ -1401,7 +1401,7 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|ticket|play|press|door|handpay|set|settle|expect ...");
+                "expected: egm bill|ticket|play|press|door|handpay|set|aft|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -1451,13 +1451,31 @@ public static class ScriptParser
                 test.Steps.Add(new SetAssetNumberStep(location, asset));
                 return;
 
+            case "set" when words.Length >= 3
+                             && words[2].Equals("aft", StringComparison.OrdinalIgnoreCase):
+                if (words.Length != 5
+                    || !words[3].Equals("bonus", StringComparison.OrdinalIgnoreCase)
+                    || words[4].ToLowerInvariant() is not ("on" or "off"))
+                {
+                    throw new ScriptParseException(location, "expected: egm set aft bonus on|off");
+                }
+
+                test.Steps.Add(new SetAftBonusStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
+            case "aft":
+                if (words.Length != 3 || !words[2].Equals("register", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: egm aft register");
+                test.Steps.Add(new AftRegisterStep(location));
+                return;
+
             case "set":
                 if (words.Length < 5
                     || !words[2].Equals("accounting", StringComparison.OrdinalIgnoreCase)
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>, or egm set asset number <decimal>");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, or egm set aft bonus on|off");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);

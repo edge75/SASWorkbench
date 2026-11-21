@@ -8,12 +8,13 @@
 # Three bonuses, read back out of the history one by one.
 test "14.10 the history holds every bonus" {
   tag @egm-test-scripts @chapter-14 @needs-a-person
-  requires machine.aft_bonus, decoder.lp72, decoder.lp1B
+  requires machine.aft_bonus, decoder.lp72, decoder.lp1B, stimulus.asset_number
   requires stimulus.handpay.reset, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
   host forget exceptions within 2s

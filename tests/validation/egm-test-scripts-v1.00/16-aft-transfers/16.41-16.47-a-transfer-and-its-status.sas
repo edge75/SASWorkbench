@@ -18,13 +18,16 @@
 # A transfer cycle ends only when the host reads the final status with 02 FF 00; until then a new
 # transfer is answered $C0. So 16.42 reads it back after each $69 before starting the next one.
 
+# @finding: refused $91, not pending. A receipt for an in-house transfer needs a patron account in
+# the receipt data (lp.cpp:5406), and the document's request carries none.
 test "16.41 the immediate reply to a transfer request" {
-  tag @egm-test-scripts @chapter-16
-  requires decoder.lp72, machine.aft, machine.aft_receipts
+  tag @egm-test-scripts @chapter-16 @finding
+  requires decoder.lp72, machine.aft, machine.aft_receipts, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 72 data 36000000000000050000000000000000000000803930000000000000000000000000000000000000000000000132000000000000000000
   host expect field length == $2A
@@ -147,13 +150,16 @@ test "16.45 a transfer that fails" {
   note "Other ways to make a transfer fail, which the document suggests trying: open the door, or cycle the power, while it is in progress; ask for a receipt, or transfer to a ticket, and disconnect the printer before it prints."
 }
 
+# @finding: refused $91 for the reason 16.41 is (lp.cpp:5406), so no $69 follows. The document's
+# fields 1 and 2 are not a patron account either.
 test "16.46 the transfer stays pending until everything is done" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft, machine.aft_receipts, decoder.lp6F, host.meter_arithmetic
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
+  requires decoder.lp72, machine.aft, machine.aft_receipts, decoder.lp6F, host.meter_arithmetic, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
   host forget exceptions within 2s
 
   # Meter 00A0, in-house cashable transfers to the machine, before.

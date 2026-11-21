@@ -17,9 +17,10 @@ namespace SasWorkbench.Egm;
 /// reports what it moved.
 /// </para>
 /// <para>
-/// Phase one of D45: in-house transfers to the machine and to the host. Debit, ticket, bonus and
-/// receipt transfers reach the same checks and are refused there, because the configuration
-/// published in <see cref="AvailableTransfers"/> offers none of them.
+/// D45: in-house transfers to the machine and to the host, bonus awards, receipts, and debit
+/// transfers as far as the library takes them. The platform performs no debit and no transfer to a
+/// ticket, so a debit the library accepts fails at the platform, and a ticket is refused by the
+/// library because <see cref="AvailableTransfers"/> offers none.
 /// </para>
 /// </remarks>
 public sealed partial class FakeEgm
@@ -45,6 +46,9 @@ public sealed partial class FakeEgm
 
     // Where to print whatever a host cashout's transfer leaves on the machine, the platform's usual means.
     private string? _payAfterTransfer;
+
+    // The part of the credit meter that is non-restricted promotional credit, in cents.
+    private long _nonrestrictedCents;
 
     /// <summary>Where the history will put the next completed transfer, one to 127, as the library counts.</summary>
     public int AftHistoryIndex
@@ -130,8 +134,8 @@ public sealed partial class FakeEgm
     /// <summary>What a transfer request carries, read at the library's fixed offsets.</summary>
     private sealed record TransferRequest(
         byte Code, byte Index, byte Type, long Cashable, long Restricted, long Nonrestricted,
-        bool AmountsAreBcd, byte Flags, uint Asset, byte[] Id, byte[] Expiration, bool ExpirationIsBcd,
-        ushort PoolId, bool AnyReceiptData);
+        bool AmountsAreBcd, byte Flags, uint Asset, byte[] Key, byte[] Id, byte[] Expiration, bool ExpirationIsBcd,
+        ushort PoolId, AftReceiptData Receipt);
 
     /// <summary>Reads a transfer request, or null where the library sends a NACK (lp.cpp:5001 and its receipt checks).</summary>
     private static TransferRequest? ParseTransfer(ReadOnlySpan<byte> frame)
@@ -162,7 +166,9 @@ public sealed partial class FakeEgm
             BcdValue(frame.Slice(6, 5)), BcdValue(frame.Slice(11, 5)), BcdValue(frame.Slice(16, 5)),
             IsBcd(frame.Slice(6, 15)), frame[21],
             (uint)(frame[22] | (frame[23] << 8) | (frame[24] << 16) | (frame[25] << 24)),
-            frame.Slice(47, idLength).ToArray(), expiration, IsBcd(expiration), pool, receiptLength > 0);
+            frame.Slice(26, 20).ToArray(),
+            frame.Slice(47, idLength).ToArray(), expiration, IsBcd(expiration), pool,
+            AftReceiptData.Read(frame.Slice(cursor, receiptLength)));
     }
 
     /// <summary>Each receipt field the library knows, at a length it accepts; anything else is a NACK.</summary>
@@ -272,6 +278,7 @@ public sealed partial class FakeEgm
             TransactionId = request.Id,
             Expiration = request.Expiration,
             PoolId = request.PoolId,
+            Receipt = request.Receipt,
         };
 
         if (status != Pending && _payAfterTransfer is { } wallet)
@@ -316,7 +323,8 @@ public sealed partial class FakeEgm
     {
         byte available = AvailableTransfers();
         byte aftStatus = AftStatus();
-        long currentCents = Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents;
+        long cashableCents = CurrentCashableCents();
+        long nonrestrictedCents = CurrentNonrestrictedCents();
         long total = request.Cashable + request.Restricted + request.Nonrestricted;
         bool anyAft = (aftStatus & 0x80) != 0;
         bool locked = _lockStatus == Locked;
@@ -341,9 +349,11 @@ public sealed partial class FakeEgm
         if (!IsPlayable() && _hostCashoutDue == 0)
             return 0x87;
 
-        // A debit transfer needs a registration, and this machine has none in phase one.
-        if (debit)
-            return 0x88;
+        // Registration governs debit transfers alone (internalAftRegistrationStatusForKey, libsas_internal.cpp:2971).
+        if (RegistrationRefusal(debit, request.Key) is var registration and not 0)
+            return registration;
+        if (debit && (aftStatus & 0x40) == 0 && !anyAft)
+            return 0x82;
         if (inHouse && (aftStatus & 0x10) == 0 && !anyAft)
             return 0x82;
         if (bonus && (aftStatus & 0x20) == 0 && !anyAft)
@@ -356,7 +366,9 @@ public sealed partial class FakeEgm
             return 0x87;
         if (toTicket && (available & 0x04) == 0)
             return 0x82;
-        if (receipt && (aftStatus & 0x01) == 0)
+        if (toTicket && total == 0)
+            return 0x82;
+        if (receipt && (aftStatus & ReceiptsAftStatus) == 0)
             return 0x90;
         if (lockRequired && !locked)
             return 0x94;
@@ -364,12 +376,26 @@ public sealed partial class FakeEgm
             return 0x84;
         if (request.Asset != AssetNumber)
             return 0x93;
+
+        // An in-house receipt needs a patron account and a debit one a card number (lp.cpp:5406).
+        if (receipt && ((!request.Receipt.HasPatronAccount && inHouse) || (request.Receipt.DebitCardNumber == 0 && debit)))
+            return 0x91;
+        if (bonus && receipt)
+            return 0x92;
         if (_aftCycle != AftCycle.None && IdMatches(_history[PreviousIndex()], request.Id))
             return 0x81;
-        if (toHost && (aftStatus & 0x02) == 0 && request.Cashable < currentCents)
+        if (toHost && (aftStatus & 0x02) == 0
+            && (request.Cashable < cashableCents || request.Nonrestricted < nonrestrictedCents))
+        {
             return 0x83;
-        if (toHost && request.Code == 0x00 && request.Cashable > currentCents)
+        }
+
+        if (toHost && request.Code == 0x00
+            && (request.Cashable > cashableCents || request.Restricted > 0 || request.Nonrestricted > nonrestrictedCents))
+        {
             return 0x83;
+        }
+
         if (!request.AmountsAreBcd)
             return 0x83;
         if (NotAMultiple(request.Cashable) || NotAMultiple(request.Restricted) || NotAMultiple(request.Nonrestricted))
@@ -401,6 +427,8 @@ public sealed partial class FakeEgm
         List<Action> after = [];
         if (_completionDue != 0 && now >= _completionDue)
             after.AddRange(CompleteTransfer());
+
+        after.AddRange(TickReceipt(now));
 
         if (_completionReissueDue != 0 && now >= _completionReissueDue)
         {
@@ -442,28 +470,91 @@ public sealed partial class FakeEgm
         if (_cancelRequested)
             return UpdateTransfer(0x80, 0, 0, 0);
 
-        // Restricted and non-restricted credits are not modelled, so the platform fails such a transfer as unexpected.
-        if (record.Restricted != 0 || record.Nonrestricted != 0)
+        // Restricted credits are not modelled, so the platform fails such a transfer as unexpected.
+        if (record.Restricted != 0)
             return UpdateTransfer(0x9F, 0, 0, 0);
 
+        switch (record.TransferType)
+        {
+            case 0x80 or 0x90:
+            {
+                long credits = Meters.Read(SasMeterCode.CurrentCredits);
+                long cash = Math.Min(record.Cashable, CurrentCashableCents());
+                long nonrestricted = Math.Min(record.Nonrestricted, CurrentNonrestrictedCents());
+                _nonrestrictedCents = CurrentNonrestrictedCents() - nonrestricted;
+                Meters.SetCurrentCredits(credits - ((cash + nonrestricted) / AccountingCents));
+
+                // A partial request that moved less than it named, all-available included, is a partial success (libsas test/blackbox/blackbox_test.cpp:1077).
+                bool less = cash < record.Cashable || nonrestricted < record.Nonrestricted;
+                return UpdateTransfer(record.TransferCode == 0x01 && less ? (byte)0x01 : (byte)0x00, cash, 0, nonrestricted);
+            }
+
+            case 0x00:
+                AddCredits(record.Cashable, record.Nonrestricted);
+                return UpdateTransfer(0x00, record.Cashable, 0, record.Nonrestricted);
+
+            case 0x10:
+            {
+                // A coin-out bonus is a win the machine pays onto the credit meter (QSP BonusIn).
+                AddCredits(record.Cashable, record.Nonrestricted);
+                long won = (record.Cashable + record.Nonrestricted) / AccountingCents;
+                Meters.Increment(SasMeterCode.TotalCoinOutCredits, won);
+                Meters.Increment(SasMeterCode.TotalMachinePaidExternalBonusWin_Crd, won);
+                return UpdateTransfer(0x00, record.Cashable, 0, record.Nonrestricted);
+            }
+
+            case 0x11:
+            {
+                // A jackpot bonus is always a hand pay, even of nothing, and completes as the machine locks up (QSP ShouldPerformBonusAward).
+                long owed = record.Cashable + record.Nonrestricted;
+                List<Action> after = [() => RaiseBonusHandpay(owed)];
+                after.AddRange(UpdateTransfer(0x00, record.Cashable, 0, record.Nonrestricted));
+                return after;
+            }
+
+            default:
+                // The platform performs no debit transfer and fails one the library accepted as not valid (QSP AftTransferTypePerformed).
+                return UpdateTransfer(0x82, 0, 0, 0);
+        }
+    }
+
+    /// <summary>Puts cashable and non-restricted cents on the credit meter.</summary>
+    private void AddCredits(long cashableCents, long nonrestrictedCents)
+    {
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
-        long moved = record.Cashable;
-        byte status = 0x00;
-        if (record.TransferType is 0x80 or 0x90)
-        {
-            moved = Math.Min(record.Cashable, credits * AccountingCents);
-            Meters.SetCurrentCredits(credits - (moved / AccountingCents));
+        _nonrestrictedCents = CurrentNonrestrictedCents() + nonrestrictedCents;
+        Meters.SetCurrentCredits(credits + ((cashableCents + nonrestrictedCents) / AccountingCents));
+    }
 
-            // A partial request that moved less than it named, all-available included, is a partial success (libsas test/blackbox/blackbox_test.cpp:1077).
-            if (record.TransferCode == 0x01 && moved < record.Cashable)
-                status = 0x01;
-        }
-        else
-        {
-            Meters.SetCurrentCredits(credits + (moved / AccountingCents));
-        }
+    /// <summary>The cashable part of the credit meter, in cents.</summary>
+    private long CurrentCashableCents() =>
+        (Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents) - CurrentNonrestrictedCents();
 
-        return UpdateTransfer(status, moved, 0, 0);
+    /// <summary>The non-restricted part of the credit meter, in cents, never more than the meter holds.</summary>
+    private long CurrentNonrestrictedCents()
+    {
+        lock (_gate)
+            return Math.Min(_nonrestrictedCents, Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents);
+    }
+
+    /// <summary>Keeps the non-restricted part within a credit meter that has just gone down.</summary>
+    private void ClampNonrestricted()
+    {
+        lock (_gate)
+            _nonrestrictedCents = CurrentNonrestrictedCents();
+    }
+
+    /// <summary>Takes a wager from the non-restricted part first, and returns how many credits of it that was.</summary>
+    /// <remarks>Called before the credit meter goes down by the wager.</remarks>
+    private long PlayNonrestricted(long credits)
+    {
+        lock (_gate)
+        {
+            long held = CurrentNonrestrictedCents();
+            long played = Math.Min(credits, held / AccountingCents);
+            _nonrestrictedCents = held - (played * AccountingCents);
+            return played;
+        }
     }
 
     /// <summary>The application's report of a finished transfer (internalUpdateAftTransfer, libsas_internal.cpp:3073).</summary>
@@ -475,7 +566,6 @@ public sealed partial class FakeEgm
             status = 0x01;
 
         record.TransferStatus = status;
-        record.ReceiptStatus = NoReceipt;
         record.CompletedAt = DateTime.Now;
         _aftCycle = AftCycle.Updated;
         if (_lockStatus != NotLocked)
@@ -496,6 +586,9 @@ public sealed partial class FakeEgm
             record.Nonrestricted = Math.Min(record.Nonrestricted, nonrestricted);
             MoveTransferMeters(record);
         }
+
+        // The platform's half of the receipt: printing for a non-zero success that may carry one, otherwise none (QSP ResolveAftTransactionReceipt).
+        record.ReceiptStatus = ResolveReceipt(record, status);
 
         FillCumulativeMeters(record);
         _history[0] = record.Copy();
@@ -518,6 +611,12 @@ public sealed partial class FakeEgm
                 nonrestricted = (SasMeterCode.InHouseNonrestrictedTransfersToGamingMachine_Cents,
                     SasMeterCode.InHouseTransfersToGamingMachineThatIncludedNonrestrictedAmounts_Qty);
                 break;
+            case 0x10 or 0x11:
+                cash = (SasMeterCode.BonusCashableTransfersToGamingMachine_Cents,
+                    SasMeterCode.BonusTransfersToGamingMachineThatIncludedCashableAmounts_Qty);
+                nonrestricted = (SasMeterCode.BonusNonrestrictedTransfersToGamingMachine_Cents,
+                    SasMeterCode.BonusTransfersToGamingMachineThatIncludedNonrestrictedAmounts_Qty);
+                break;
             case 0x80 or 0x90:
                 cash = (SasMeterCode.InHouseCashableTransfersToHost_Cents,
                     SasMeterCode.InHouseTransfersToHostThatIncludedCashableAmounts_Qty);
@@ -538,11 +637,15 @@ public sealed partial class FakeEgm
         {
             Meters.Increment(SasMeterCode.TotalElectronicTransfersToMachine_Crd, total);
             Meters.Increment(SasMeterCode.ElectronicRegularCashableTransfersToGamingMachine_Crd, record.Cashable / AccountingCents);
+            if (record.Nonrestricted != 0)
+                Meters.Increment(SasMeterCode.ElectronicNonrestrictedPromotionalTransfersToGamingMachine_Crd, record.Nonrestricted / AccountingCents);
         }
         else if (record.TransferType is 0x80 or 0x90)
         {
             Meters.Increment(SasMeterCode.TotalElectronicTransfersToHost_Crd, total);
             Meters.Increment(SasMeterCode.ElectronicRegularCashableTransfersToHost_Crd, record.Cashable / AccountingCents);
+            if (record.Nonrestricted != 0)
+                Meters.Increment(SasMeterCode.ElectronicNonrestrictedPromotionalTransfersToHost, record.Nonrestricted / AccountingCents);
         }
 
         void Move((SasMeterCode Cents, SasMeterCode Count)? meters, long cents)

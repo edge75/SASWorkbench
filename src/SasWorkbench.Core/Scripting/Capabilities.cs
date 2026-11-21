@@ -246,10 +246,21 @@ public static class CapabilityProbe
             // Whether the machine performs funds transfer is set in its own configuration, and the
             // enabled-features reply is where it says so (D45).
             AftCapability,
+
+            // Bonus awards over funds transfer have their own enabled-features bit, and receipts
+            // their own bit of the AFT status long poll $74 reports.
+            AftBonusCapability,
+            AftReceiptsCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
     public const string AftCapability = "machine.aft";
+
+    /// <summary>The capability a machine that takes bonus awards over funds transfer answers with.</summary>
+    public const string AftBonusCapability = "machine.aft_bonus";
+
+    /// <summary>The capability a machine that prints transfer receipts answers with.</summary>
+    public const string AftReceiptsCapability = "machine.aft_receipts";
 
     /// <summary>True when a requirement can only be answered by the machine on the link.</summary>
     public static bool IsAskedOfTheMachine(string key) => AskedOfTheMachine.Contains(key);
@@ -318,6 +329,12 @@ public static class CapabilityProbe
 
         if (asked.Contains(AftCapability))
             Note(AftCapability, AskAft(engine, values));
+
+        if (asked.Contains(AftBonusCapability))
+            Note(AftBonusCapability, AskAftBonus(engine, values));
+
+        if (asked.Contains(AftReceiptsCapability))
+            Note(AftReceiptsCapability, AskAftReceipts(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }
@@ -388,6 +405,77 @@ public static class CapabilityProbe
             return "the machine reports funds transfer off in its enabled-features reply on this channel";
 
         values[AftCapability] = "yes";
+        return null;
+    }
+
+    /// <summary>
+    /// Reads whether the machine takes bonus awards over funds transfer off bit 1 of the first
+    /// feature byte, which the library clears on a channel that does not own the AFT category.
+    /// </summary>
+    private static string? AskAftBonus(PollEngine engine, Dictionary<string, string?> values)
+    {
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_SENDENABLEFEATURES)!;
+
+        if (Ask(engine, layout, [0x00, 0x00]) is not { } result)
+        {
+            return "the enabled-features poll could not be put on the link, so whether the machine "
+                   + "takes bonus awards over funds transfer was never asked" + Because(engine);
+        }
+
+        if (!result.Succeeded)
+        {
+            return $"the machine did not answer the enabled-features poll ({result.Outcome}), so "
+                   + "whether it takes bonus awards over funds transfer cannot be read off this link";
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("feature_codes_1") is not { } features)
+        {
+            return "the machine's enabled-features reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no first feature byte");
+        }
+
+        // Bit 1 of the first feature byte is the library's AFT_BONUS_AWARDS_BIT.
+        if ((features & 0x02) == 0)
+            return "the machine reports AFT bonus awards off in its enabled-features reply on this channel";
+
+        values[AftBonusCapability] = "yes";
+        return null;
+    }
+
+    /// <summary>
+    /// Reads whether the machine prints transfer receipts off bit 0 of the AFT status a $74 read
+    /// reports, which a machine that cannot take a transfer right now reports as zero.
+    /// </summary>
+    private static string? AskAftReceipts(PollEngine engine, Dictionary<string, string?> values)
+    {
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_AFT_LOCKANDSTATUS)!;
+
+        // Lock code $FF reads the status and changes nothing.
+        if (Ask(engine, layout, [0xFF, 0x00, 0x00, 0x00]) is not { } result)
+        {
+            return "the funds transfer status poll could not be put on the link, so whether the "
+                   + "machine prints transfer receipts was never asked" + Because(engine);
+        }
+
+        if (!result.Succeeded)
+        {
+            return $"the machine did not answer the funds transfer status poll ({result.Outcome}), "
+                   + "so whether it prints transfer receipts cannot be read off this link";
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("aft_status") is not { } status)
+        {
+            return "the machine's funds transfer status reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no AFT status");
+        }
+
+        // Bit 0 of the AFT status is the library's AS_PRINTER_AVAILABLE_FOR_TRANSACTION_RECEIPTS.
+        if ((status & 0x01) == 0)
+            return "the machine reports no printer available for transfer receipts in its $74 status";
+
+        values[AftReceiptsCapability] = "yes";
         return null;
     }
 
@@ -498,6 +586,12 @@ public static class CapabilityProbe
                 // The same reasoning for the asset number funds transfers are addressed to.
                 ["stimulus.asset_number"] = "yes",
 
+                // This machine has the attendant's registration menu and the bonusing switch, and
+                // a script can work both (D45).
+                ["machine.aft_operator_registration"] = "yes",
+                ["stimulus.aft_registration"] = "yes",
+                ["stimulus.aft_bonus"] = "yes",
+
                 // The software machine takes a ticket handed to it directly, with no directory in
                 // between, so this is true of the machine rather than of a path on disk.
                 ["stimulus.ticket"] = "yes",
@@ -530,6 +624,10 @@ public static class CapabilityProbe
                 ["stimulus.door.main"] = "yes",
                 ["stimulus.button.collect"] = "yes",
                 ["stimulus.button.service"] = "yes",
+
+                // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
+                ["stimulus.aft_registration"] = "yes",
+                ["stimulus.aft_bonus"] = "yes",
 
                 // A person makes the machine owe it at the cabinet, so the host never withdraws
                 // the printer the way it must for the peripheral driver.

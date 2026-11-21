@@ -726,6 +726,27 @@ public sealed record SetAssetNumberStep(SourceLocation Location, uint Asset) : S
     public override string Describe() => $"set asset number {Asset}";
 }
 
+/// <summary>The attendant's register action in the machine's transfer menu.</summary>
+/// <remarks>
+/// One action, as the platform has it: it asks the host to register ($6C) when the machine is not
+/// registered, and acknowledges a registration the host is waiting on ($6D) when it is pending.
+/// </remarks>
+public sealed record AftRegisterStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.aft_registration";
+
+    public override string Describe() => "aft register at the machine's transfer menu";
+}
+
+/// <summary>Turns AFT bonusing on or off at the machine's own menu.</summary>
+/// <remarks>A stimulus for the reason the asset number setter is one: only a machine this build made can take it from a script.</remarks>
+public sealed record SetAftBonusStep(SourceLocation Location, bool On) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.aft_bonus";
+
+    public override string Describe() => $"set aft bonus {(On ? "on" : "off")}";
+}
+
 /// <summary>Keeps one field of a long poll's reply under a name, for a later comparison.</summary>
 public sealed record RememberFieldStep(
     SourceLocation Location,

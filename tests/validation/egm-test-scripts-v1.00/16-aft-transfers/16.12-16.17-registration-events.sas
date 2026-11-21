@@ -6,25 +6,28 @@
 # reporting on, each of the three is a full event message, and may answer a long poll as well as a
 # general one.
 #
-# All of it starts with somebody at the machine's menus, so the first two cases need a person, and
-# the three event variants need the same plus a line the script drives, so that a long poll can be
-# the first thing the machine hears after the event (host.poll_sequence). The $73 requests are the
-# ones written out in
-# 16.3-16.11-registration.sas; read with 01 FF, cancel with 01 80, ask for confirmation with 01 40.
+# All of it starts with somebody at the machine's menus. The attendant's register action is a step,
+# egm aft register, which a person performs at a real machine and the software machine performs
+# itself; it asks to register when the machine is not registered and acknowledges when it is
+# pending. The three event variants also need a line the script drives (host.poll_sequence). The
+# $73 requests are the ones written out in 16.3-16.11-registration.sas; read with 01 FF, cancel
+# with 01 80, and ask for confirmation with code $40 in a request as long as initialising.
 
 test "16.12 the attendant asks to register" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp73, machine.aft, machine.aft_operator_registration
+  requires decoder.lp73, machine.aft, machine.aft_operator_registration, stimulus.aft_registration, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 0180
   host expect field registration_status == $80
   host forget exceptions within 2s
 
   note "Now ask for registration from the machine's transfer menu. The machine raises $6C on the next general poll; the step below waits for it."
+  egm aft register
   host expect exception aft_request_to_register within 120s
 
   host send lp 73 data 01FF
@@ -38,25 +41,29 @@ test "16.12 the attendant asks to register" {
 
 test "16.13 the attendant acknowledges the registration" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp73, machine.aft, machine.aft_operator_registration
+  requires decoder.lp73, machine.aft, machine.aft_operator_registration, stimulus.aft_registration, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 0180
   host forget exceptions within 2s
 
   note "Ask for registration from the machine's transfer menu; the machine raises $6C."
+  egm aft register
   host expect exception aft_request_to_register within 120s
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $00
 
-  # The host asks for the attendant's confirmation: pending.
-  host send lp 73 data 0140
+  # The host asks for the attendant's confirmation: pending. Code $40 carries the asset number, key
+  # and point of sale like initialising, so the request is the full one, not 01 40.
+  host send lp 73 data 1D4039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $40
 
   note "Confirm at the machine. It raises $6D, and from then on reads back as ready, with the key and point of sale of the initialise step."
+  egm aft register
   host expect exception aft_registration_acknowledged within 120s
   host send lp 73 data 01FF
   host expect field registration_status == $00
@@ -75,16 +82,51 @@ test "16.14 the registration-cancelled exception" {
 test "16.15 the request to register as a real-time event" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
   requires decoder.lp73, decoder.lp0E, machine.aft, machine.aft_operator_registration
-  requires stimulus.real_time_events, host.poll_sequence
+  requires stimulus.real_time_events, host.poll_sequence, stimulus.aft_registration
 
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 73 data 0180
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+  host send lp 0E data 01
+  egm aft register
+  host send gp draws aft_request_to_register
+  host send sync
+  host send lp 0E data 00
+
+  note "General polls carry the event here because a long poll answered with an event fails its step (D43)."
   note "With real-time reporting on (long poll 0E data 01), repeat 16.12. $6C arrives as an event message - the address, $FF, $6C and a check sequence - and may be the answer to a long poll as well as to a general poll."
 }
 
 test "16.16 the acknowledgement as a real-time event" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
   requires decoder.lp73, decoder.lp0E, machine.aft, machine.aft_operator_registration
-  requires stimulus.real_time_events, host.poll_sequence
+  requires stimulus.real_time_events, host.poll_sequence, stimulus.aft_registration, stimulus.asset_number
 
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
+  host send lp 73 data 1D4039300000907856341200000000000000000000000000000045230100
+  host expect field registration_status == $40
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+  host send lp 0E data 01
+  egm aft register
+  host send gp draws aft_registration_acknowledged
+  host send sync
+  host send lp 0E data 00
+  host send lp 73 data 01FF
+  host expect field registration_status == $00
+
+  note "General polls carry the event here because a long poll answered with an event fails its step (D43)."
   note "With real-time reporting on, repeat 16.13. $6D arrives as an event message, on a long poll as well as on a general poll."
 }
 

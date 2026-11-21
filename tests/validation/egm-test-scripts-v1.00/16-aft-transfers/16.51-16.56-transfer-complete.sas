@@ -7,13 +7,65 @@
 # real-time event reporting on, where the same exception arrives in the event format and answers
 # long polls as well as general ones.
 #
-# 16.52 and 16.55 run against the software machine (D45); the rest still need the registration of
-# phase two, or the timing control that watches a fifteen-second reissue.
+# 16.52 and 16.55 run against the software machine (D45), and so do the notes of 16.51 and 16.54;
+# 16.53 and 16.56 still need the timing control that watches a fifteen-second reissue.
 
 test "16.51 a finished transfer raises its exception" {
   tag @egm-test-scripts @chapter-16
   requires decoder.lp72, machine.aft
-  requires decoder.lp73, host.poll_sequence
+  requires decoder.lp73, host.poll_sequence, stimulus.asset_number, stimulus.settle
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # A partial transfer in: pending, then $69, and reading the status acknowledges it.
+  host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 15s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+
+  # A full transfer, peeked at once and read after its $69.
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
+  host send lp 72 data 02FE00
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 15s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+
+  # Only long polls: completed and read before any general poll, so no $69 is left to report.
+  host poll sequence
+  host send sync
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000133000000000000000000
+  host wait 3s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host send sync
+  host send gp draws nothing
+
+  # Not registered: a debit transfer is refused $88 and raises nothing.
+  host send lp 73 data 0180
+  host send lp 72 data 36000040000000050000000000000000000000003930000000000000000000000000000000000000000000000134000000000000000000
+  host expect field transfer_status == $88
+  host send sync
+  host send gp draws nothing
+
+  # A second transfer while the first is pending is refused $C0; only the first raises $69.
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000135000000000000000000
+  host expect field transfer_status == $40
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000136000000000000000000
+  host expect field transfer_status == $C0
+  host wait 3s
+  host send gp draws aft_transfer_complete
+  host send sync
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host send sync
+  host send gp draws nothing
 
   note "A partial cashable transfer into the machine is answered as pending ($40) and $69 follows on a general poll; reading the status acknowledges it. The same for a full transfer followed at once by a peek at the current record."
   note "With only long polls on the line, a transfer that completes and is read back before any general poll leaves no $69 to report when general polls resume."
@@ -65,7 +117,36 @@ test "16.54 the transfer exception as a real-time event" {
   tag @egm-test-scripts @chapter-16
   requires decoder.lp72, machine.aft
   requires stimulus.real_time_events, decoder.lp0E, decoder.lp73
+  requires host.poll_sequence, stimulus.asset_number, stimulus.settle
 
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # Reporting on with only the script's polls on the line: the completion arrives as an event.
+  host poll sequence
+  host send sync
+  host send lp 0E data 01
+  host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host wait 3s
+  host send gp draws aft_transfer_complete
+  host send sync
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+
+  # Not registered: the debit refusal raises no event.
+  host send lp 73 data 0180
+  host send lp 72 data 36000040000000050000000000000000000000003930000000000000000000000000000000000000000000000134000000000000000000
+  host expect field transfer_status == $88
+  host send sync
+  host send gp draws nothing
+  host send lp 0E data 00
+
+  note "General polls carry the event here because a long poll answered with an event fails its step (D43)."
   note "With event reporting on, 16.51 again: the completion arrives in the event format, in answer to long polls as well as general polls."
   note "The refusals of 16.51 - not registered, or a second transfer during the first - raise no event. Turn event reporting off at the end."
 }

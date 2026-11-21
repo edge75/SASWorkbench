@@ -27,11 +27,15 @@ public sealed partial class FakeEgm
     // The library's lock timer re-raises $6F every five seconds of a lock, in hundredths.
     private const int LockStepHundredths = 500;
 
-    // Transfer to the machine and from it; bonus and printer transfers are phase two (D45).
-    private const byte ConfiguredTransfers = 0x03;
+    // Transfer to the machine and from it, as QSP configures; no transfer to a ticket, which the platform does not perform.
+    private const byte TransfersInAndOut = 0x03;
+    private const byte BonusAwardTransfer = 0x10;
 
     // In-house transfers, transfers to the host of less than everything, and AFT on, as QSP configures.
-    private const byte ConfiguredAftStatus = 0x92;
+    private const byte InHouseAftStatus = 0x92;
+    private const byte BonusAftStatus = 0x20;
+    private const byte ReceiptsAftStatus = 0x01;
+    private const byte RegisteredAftStatus = 0x08;
 
     // The host may decide whether a cash-out goes to it; enabled and hard start clear.
     private const byte HostControllable = 0x01;
@@ -44,6 +48,7 @@ public sealed partial class FakeEgm
     private long _lockDue;
     private byte _hostCashoutStatus = HostControllable;
     private uint? _assetNumber;
+    private bool _aftBonus;
 
     // The 400 ms ticks a host cashout request has been outstanding, as the library counts them.
     private int _hostCashoutTicks;
@@ -77,8 +82,31 @@ public sealed partial class FakeEgm
     public void SetAssetNumber(uint asset)
     {
         lock (_gate)
+        {
+            // A registered machine given another number is no longer registered (libsas.cpp:2186).
+            if (asset != AssetNumber && _registrationStatus == Registered)
+                CancelRegistration();
             _assetNumber = asset;
+        }
     }
+
+    /// <summary>True while the machine takes bonus awards over funds transfer.</summary>
+    public bool AftBonusOn
+    {
+        get
+        {
+            lock (_gate)
+                return _aftBonus;
+        }
+    }
+
+    /// <summary>The transfer types the machine is configured for, before its state reduces them.</summary>
+    private byte ConfiguredTransfers => (byte)(TransfersInAndOut | (_aftBonus ? BonusAwardTransfer : 0));
+
+    /// <summary>The AFT status the machine is configured with, before its state reduces it.</summary>
+    private byte ConfiguredAftStatus => (byte)(InHouseAftStatus
+                                               | (_aftBonus ? BonusAftStatus : 0)
+                                               | (_options.AftReceipts ? ReceiptsAftStatus : 0));
 
     /// <summary>True while the host has asked for cash-outs to come to it and has not turned that off.</summary>
     public bool HostCashoutRequested
@@ -183,11 +211,11 @@ public sealed partial class FakeEgm
             ["game_lock_status"] = status,
             ["available_transfers"] = (byte)(AvailableTransfersLocked() & 0x7F),
             ["host_cashout_status"] = HostCashoutStatusLocked(),
-            ["aft_status"] = AftStatusLocked(),
+            ["aft_status"] = (byte)(AftStatusLocked() | RegisteredBit()),
             ["max_buffer_index"] = (byte)(HistoryDepth - 1),
-            ["current_cashable_amount"] = Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents,
+            ["current_cashable_amount"] = CurrentCashableCents(),
             ["current_restricted_amount"] = 0L,
-            ["current_nonrestricted_amount"] = 0L,
+            ["current_nonrestricted_amount"] = CurrentNonrestrictedCents(),
             ["gaming_machine_transfer_limit"] = _options.AftTransferLimitCents,
             ["restricted_expiration"] = 0L,
             ["restricted_pool_id"] = 0L,
@@ -204,6 +232,13 @@ public sealed partial class FakeEgm
     {
         lock (_gate)
             return AftStatus();
+    }
+
+    /// <summary>The library adds the registered bit to every $74 status from the live registration (lp.cpp:6630).</summary>
+    private byte RegisteredBit()
+    {
+        lock (_gate)
+            return _registrationStatus == Registered ? RegisteredAftStatus : (byte)0;
     }
 
     private byte HostCashoutStatusLocked()
@@ -283,6 +318,7 @@ public sealed partial class FakeEgm
 
         lock (_gate)
             UnlockGame();
+        CancelUnfinishedRegistration();
     }
 
     /// <summary>Runs every timer funds transfer keeps: the lock, the platform finishing a transfer, $69's reissue and the host cashout request.</summary>

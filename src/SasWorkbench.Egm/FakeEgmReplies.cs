@@ -82,6 +82,7 @@ public sealed partial class FakeEgm
         0x3D => LastCashout(),
         0x70 => TicketInEscrow(),
         0x71 => RedeemTicket(request),
+        0x73 => RegisterGamingMachine(request),
         0x74 => LockAndStatus(request),
         0x7B => ExtendedValidationStatus(),
 
@@ -696,7 +697,8 @@ public sealed partial class FakeEgm
         return new Dictionary<string, object>
         {
             ["game_number"] = game,
-            ["feature_codes_1"] = (byte)0x00,
+            // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT), set while bonusing is on, as QSP configures it.
+            ["feature_codes_1"] = (byte)(_options.Aft && AftBonusOn ? 0x02 : 0x00),
             ["validation_style"] = (byte)validation,
             ["validation_extensions"] = (byte)0,
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),

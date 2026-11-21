@@ -618,3 +618,18 @@ are addressed to with a setter step, which only a machine this build made can ho
 restricted and non-restricted credits with their pools. Until then those cases keep skipping on the
 capability they name, and a transfer carrying such an amount fails at the platform rather than
 being half modelled. The design note is `docs/M7-software-machine-aft.md`.
+
+**Phase 2, built 2026-11-20:** $73 registration on both peers, debit transfers as far as the
+library takes them (the platform then fails them, as QSP performs none), bonus awards of both kinds,
+non-restricted credit, and transaction receipts. Restricted credit and transfers to a ticket stay
+out. Three choices were taken here:
+
+* `machine.aft_bonus` and `machine.aft_receipts` are **asked of the machine**, off bit 1 of the first
+  enabled-features byte and bit 0 of the $74 AFT status, like `machine.aft`.
+* The attendant's side is two **new stimulus steps**, `egm aft register` (one action: request from
+  not registered, acknowledge from pending, as QSP has it) and `egm set aft bonus on|off`, needing
+  `stimulus.aft_registration` and `stimulus.aft_bonus`. The software and manual backends offer both;
+  `machine.aft_operator_registration` is claimed by the software backend, whose machine has the menu.
+* Non-restricted credit **is modelled** after all, because half the bonus cases carry it: held in
+  the credit meter, played first, cashed out on the cashable ticket. Restricted credit still fails
+  at the platform with $9F.
