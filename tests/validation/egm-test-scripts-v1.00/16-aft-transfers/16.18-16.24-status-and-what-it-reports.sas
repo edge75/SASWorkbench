@@ -12,18 +12,22 @@
 #   cancel   80 00 0000
 #
 # The software machine takes transfers and locks (D45), so the cases that need only that run
-# against it; the rest also need configuration, a person, or credit types it does not hold.
+# against it, and so do 16.18 and 16.23 now that it can be configured and holds restricted credit.
 #
 # 16.22 takes the upper bound of Table 8.2b of SAS 6.02, 46-7F, where the document bounds the
 # history size below $7F; the machine library answers $7F, one less than its 128-entry history.
 
+# @finding: no reply once transfers are off. The library does not answer $74 at all with the transfer
+# feature off (lp.cpp:6430), where the document expects a reply with the lock, the transfers and the status zero.
 test "16.18 the reply to a status request" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp74, machine.aft, machine.configuration_options
+  tag @egm-test-scripts @chapter-16 @finding
+  requires decoder.lp74, machine.aft, machine.configuration_options, stimulus.asset_number
+  requires stimulus.aft_configuration
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 74 data FF000000
   host expect field length == $23
@@ -31,14 +35,19 @@ test "16.18 the reply to a status request" {
   host expect field game_lock_status == $FF
   host expect field restricted_pool_id == 0
 
-  # Asked to lock: pending until the machine can stop play.
+  # Asked to lock: pending until the machine can stop play, or locked at once on one that is idle.
   host send lp 74 data 000F9999
-  host expect field game_lock_status == $40
+  host expect field game_lock_status != $FF
 
   host send lp 74 data 80000000
   host expect field game_lock_status == $FF
 
-  note "Then turn transfers off at the machine and send the read again. The document expects a reply with the lock status, the available transfers and the transfer status all zero. The machine library does not answer $74 at all once the transfer feature is off, so a machine built on it is expected to stay silent at that step."
+  # Transfers turned off at the machine: nothing is locked, offered or on.
+  egm set aft off
+  host send lp 74 data FF000000
+  host expect field game_lock_status == $FF
+  host expect field available_transfers == 0
+  host expect field aft_status == 0
 }
 
 test "16.19 which transfers the machine will take now" {
@@ -158,14 +167,20 @@ test "16.22 the size of the transaction history" {
   note "The document recommends a history of at least $46 transactions."
 }
 
+# One cent is declared so the balances in cents and the credit meter move by the same number.
 test "16.23 the balances and the transfer limit" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus
-  requires decoder.lp74, machine.aft, machine.transfer_limit, machine.restricted_credits, host.meter_arithmetic
-  requires stimulus.bill, stimulus.play, stimulus.button.collect, stimulus.settle
+  tag @egm-test-scripts @chapter-16 @needs-stimulus
+  requires decoder.lp74, decoder.lp72, decoder.lp6F, machine.aft, machine.transfer_limit, machine.restricted_credits
+  requires host.meter_arithmetic, stimulus.bill, stimulus.play, stimulus.button.collect, stimulus.settle
+  requires stimulus.credit_limit, stimulus.asset_number
+
+  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
+  egm set credit limit 100000
 
   # Empty, so the limit read now is the configured one with nothing to subtract.
   egm press collect
@@ -188,8 +203,31 @@ test "16.23 the balances and the transfer limit" {
   host expect field current_cashable_amount == 100
   host expect field gaming_machine_transfer_limit == saved.limit_empty - 100
 
-  note "The document puts three dollars of restricted and five of non-restricted credit on the machine as well, and expects 300 and 500 in those two balances, with the limit lowered by all nine dollars; the amounts also match the audit screen."
-  note "Then, from empty each time, add only one kind of credit and play it down: only that balance moves, by exactly what was played, and the limit always equals the configured maximum less everything on the credit meter in cents. With all three kinds on, play takes the restricted credits first, then the non-restricted, then the cashable."
+  # Three dollars of restricted and five of non-restricted as well: each balance shows its own, the limit falls by all nine.
+  host send lp 72 data 36000000000000000000000003000000000500003930000000000000000000000000000000000000000000000131000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host send lp 74 data FF000000
+  host expect field current_cashable_amount == 100
+  host expect field current_restricted_amount == 300
+  host expect field current_nonrestricted_amount == 500
+  host expect field gaming_machine_transfer_limit == saved.limit_empty - 900
+
+  # Play takes the restricted credit first, then the non-restricted, then the cashable, and the limit follows the meter.
+  egm play games=1 bet=4
+  host send lp 74 data FF000000
+  host expect field current_restricted_amount == 0
+  host expect field current_nonrestricted_amount == 400
+  host expect field current_cashable_amount == 100
+  host expect field gaming_machine_transfer_limit == saved.limit_empty - 500
+  egm play games=1 bet=5
+  host send lp 74 data FF000000
+  host expect field current_nonrestricted_amount == 0
+  host expect field current_cashable_amount == 0
+  host expect field gaming_machine_transfer_limit == saved.limit_empty
+
+  note "The amounts also match the audit screen."
 }
 
 # The library refuses a lock naming no transfer condition and answers $FF (lp.cpp:6505), where the

@@ -169,3 +169,70 @@ Each of these carries a "platform's choice" comment in the code.
 | 14.8 | A bonus keeps the expiry and pool it carried and reports them back (`lp.cpp:5609`, `:5612`); the document expects zeros. |
 | 16.41, 16.46 | A receipt for an in-house transfer needs a patron account in the receipt data, so the document's request is refused `$91` (`lp.cpp:5406`). |
 | 16.63 | A transfer to a ticket of nothing is refused `$82` at once, with no `$69`; the document expects it pending first (`lp.cpp:5351`, which this machine reaches before `:5356`). |
+
+---
+
+# Chapter 16 limits — credit limit, restricted credit, configuration
+
+**Status: built 2026-11-21, under the D45 addendum.** The software machine takes a credit limit and
+publishes the transfer limit it leaves, holds restricted credit with its pool and expiration, and can
+have transfers turned off. Twenty-three more chapter 16 cases run: fourteen pass and nine fail as
+labelled findings. Chapter 16 now runs 66 of 90, and with 6.18.2 and 6.36.2 the GSA suite runs 225 of 632. This supersedes three lines of the lists above: the
+transfer limit is no longer a constant, restricted credit no longer fails with `$9F`, and a credit
+limit is modelled.
+
+## What it models, and where each behaviour comes from
+
+| Behaviour | Source |
+|---|---|
+| A transfer to the machine is checked against the transfer limit and trimmed to it, restricted first | `lp.cpp:5382`, `:5547` |
+| Restricted credit from another pool is refused `$8F` while any of the first remains | `lp.cpp:5459` |
+| A full transfer to the host may name restricted credit up to what is held, a partial one anything | `lp.cpp:5433`, `:5443` |
+| A completed restricted transfer in keeps its pool and the combined expiration | `libsas_internal.cpp:3275` |
+| Two expirations combine branch for branch, including two counts of days keeping the one held | `calculateExpirationDate`, `libsas_utils.cpp:614` |
+| `$74` carries the restricted balance, and its expiration and pool only while one is held | `lp.cpp:6633`, `:6638` |
+| An empty restricted balance gives its pool and expiration back to the default | `libsas_internal.cpp:5546` |
+| With transfers off, `$74` and `$73` are silent and a `$72` request is refused `$82` | `lp.cpp:6430`, `:6173`, `:5242` |
+
+## What the platform decides, and what this machine says
+
+* **The transfer limit** is the configured maximum, never more than the room left under the credit
+  limit (QSP `AftTransferLimitToCreditMeter`, `CashlessInHeadroom`). Max Money In is not modelled.
+* **A win past the credit limit** is a jackpot hand pay, not credited (QSP `CombinedAwardIsHandpaid`).
+  It is never offered to the host: QSP never asks the library for `$6B`.
+* **Restricted credit** is wagered first, then non-restricted, then cashable (QSP
+  `NvramHandler.cpp:947`), and moves meters `0019` and `001B`. It never leaves on a cash-out ticket or
+  a cancelled-credit hand pay, so it stays on the machine, as on a platform with restricted tickets off.
+* **Transfer flag bit 3** on a transfer to the host has the machine cash out whatever the transfer
+  leaves, its usual way (QSP `ClassifyAftHostCashoutRequest`).
+* **Turning transfers off** cancels any registration and lets go of a lock, as a change of AFT
+  configuration does in QSP.
+
+## How the cases learn what the machine does
+
+* `machine.transfer_limit` is read off the transfer-limit field of a `$74` status read.
+* `machine.credit_limit`, `machine.restricted_credits` and `machine.configuration_options` are claimed
+  by the software backend, as no poll reports them.
+* `egm set credit limit <cents>` and `egm set aft on|off` need `stimulus.credit_limit` and
+  `stimulus.aft_configuration`, which the software and manual backends offer.
+
+## What it still does not model
+
+* Restricted tickets, in or out: a restricted ticket redeemed still lands as plain credit.
+* Max Cashless Out, so a cash-out is offered to the host whatever its size (16.74 keeps that as a note).
+* Max Money In, and refusing a note that would pass the credit limit.
+* Transfers to a ticket and debit transfers, as before.
+* A transfer still pending when transfers are turned off: it stays pending and resumes if they are turned back on.
+* A machine holding a hand pay refuses a second win past the credit limit, as it holds one hand pay at a time.
+* `machine.transfer_limit` reads the room left at probe time, so on a real board it depends on the credits then on the meter.
+
+## Findings against the documents, chapter 16 limits
+
+| Case | What the library or platform does |
+|---|---|
+| 16.5 | A debit transfer to a machine with no asset number is refused `$88`, not `$93`: registration is checked first (`lp.cpp:5304`, then `:5402`). |
+| 16.18 | With transfers off, `$74` is not answered at all (`lp.cpp:6430`); the document expects a reply with zeros. |
+| 16.29 | The platform locks at once while playable, so a transfer insisting on the lock is taken, not refused `$94` (`lp.cpp:5373`). |
+| 16.37 | With transfers off, a `$72` request is refused `$82` in a full reply (`lp.cpp:5242`), neither silent nor `$C1`. |
+| 16.71, 16.72, 16.77, 16.78 | No `$6B`: the library raises it only when asked (`libsas_wrapper.cpp:3285`), and QSP hands a win past the credit limit to an attendant instead. |
+| 16.80 | A transfer to the host reports the pool it named (`lp.cpp:5612`), and naming the other pool is a full success, as the pool is checked only for transfers in (`lp.cpp:5459`). |

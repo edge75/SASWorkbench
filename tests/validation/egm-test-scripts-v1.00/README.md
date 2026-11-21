@@ -34,7 +34,7 @@ failures together):
 | 3 | Communications | 24 | 7 | 17 | the service button (7), host timing (2), a power cycle (2) |
 | 4 | Required exceptions | 60 | 10 | 50 | a hopper (8), note faults (6), a power cycle (5), memory faults (5) |
 | 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
-| 6 | Required meters | 72 | 63 | 9 | a coin (4), a credit limit (2); 4 of the 63 fail, all of them findings |
+| 6 | Required meters | 72 | 65 | 7 | a coin (4); 4 of the 65 fail, all of them findings |
 | 7 | Multi-game | 23 | 6 | 17 | a multi-game machine (13), choosing which game is played (11) |
 | 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15) |
@@ -44,7 +44,7 @@ failures together):
 | 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
 | 14 | AFT bonusing | 11 | 10 | 1 | a credit limit (1); 2 of the 10 fail, both findings |
 | 15 | Legacy bonusing | 37 | 4 | 33 | legacy bonusing on the machine (27), a card game (3) |
-| 16 | AFT transfers | 90 | 43 | 47 | a credit limit (10), restricted credits (7), configuration options (6); 8 of the 43 fail, all of them findings |
+| 16 | AFT transfers | 90 | 66 | 24 | a power cycle (5), host timing (4), a printer fault (3), a game left running (3); 17 of the 66 fail, all of them findings |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | the $76 decoder (4) |
 | 18 | Tournament | 10 | 2 | 8 | tournament play on the machine (8) |
 | 19 | Authentication | 16 | 1 | 15 | component authentication on the machine (15), the $6E decoder (12) |
@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
 | 22 | MJT | 28 | 1 | 27 | legacy bonusing on the machine (27), multiplied jackpots on the machine (27) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **200** | **432** | |
+| | **total** | **632** | **225** | **407** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
