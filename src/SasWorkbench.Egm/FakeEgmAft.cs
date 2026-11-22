@@ -132,7 +132,7 @@ public sealed partial class FakeEgm
     /// <remarks>A host cashout in progress leaves only the transfer it asked for (QSP AftAvailableTransfersNow).</remarks>
     private byte AvailableTransfers()
     {
-        if (!_options.Aft)
+        if (!_aftOn)
             return 0;
         if (_hostCashoutDue != 0)
             return (byte)(ConfiguredTransfers & 0x02);
@@ -141,7 +141,7 @@ public sealed partial class FakeEgm
 
     private byte AftStatus()
     {
-        if (!_options.Aft)
+        if (!_aftOn)
             return 0;
         return IsPlayable() || _hostCashoutDue != 0 ? ConfiguredAftStatus : (byte)0;
     }
@@ -149,7 +149,7 @@ public sealed partial class FakeEgm
     /// <summary>What long poll $74 answers; a machine with transfers off answers nothing, as the library does.</summary>
     private Dictionary<string, object>? LockAndStatus(ReadOnlySpan<byte> request)
     {
-        if (!_options.Aft)
+        if (!_aftOn)
             return NoAnswer;
 
         if (request.Length < 6)
@@ -214,11 +214,13 @@ public sealed partial class FakeEgm
             ["aft_status"] = (byte)(AftStatusLocked() | RegisteredBit()),
             ["max_buffer_index"] = (byte)(HistoryDepth - 1),
             ["current_cashable_amount"] = CurrentCashableCents(),
-            ["current_restricted_amount"] = 0L,
+            ["current_restricted_amount"] = CurrentRestrictedCents(),
             ["current_nonrestricted_amount"] = CurrentNonrestrictedCents(),
-            ["gaming_machine_transfer_limit"] = _options.AftTransferLimitCents,
-            ["restricted_expiration"] = 0L,
-            ["restricted_pool_id"] = 0L,
+            ["gaming_machine_transfer_limit"] = TransferLimitCents(),
+
+            // The expiration and pool only while restricted credit is held (lp.cpp:6638).
+            ["restricted_expiration"] = RestrictedExpirationValue(),
+            ["restricted_pool_id"] = (long)RestrictedPool(),
         };
     }
 
@@ -324,7 +326,7 @@ public sealed partial class FakeEgm
     /// <summary>Runs every timer funds transfer keeps: the lock, the platform finishing a transfer, $69's reissue and the host cashout request.</summary>
     private void TickAft(MachineLink link)
     {
-        if (!_options.Aft)
+        if (!_aftOn)
             return;
 
         WithdrawLockOnLinkLoss(link);
@@ -366,7 +368,7 @@ public sealed partial class FakeEgm
     {
         lock (_gate)
         {
-            if (!_options.Aft || (_hostCashoutStatus & HostCashoutEnabled) == 0)
+            if (!_aftOn || (_hostCashoutStatus & HostCashoutEnabled) == 0)
                 return false;
         }
 

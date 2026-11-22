@@ -246,12 +246,13 @@ public sealed partial class FakeEgm
 
         long cashable = request.Cashable, restricted = request.Restricted, nonrestricted = request.Nonrestricted;
         long total = cashable + restricted + nonrestricted;
-        if (total > _options.AftTransferLimitCents && toMachine && !bonus)
+        long transferLimit = TransferLimitCents();
+        if (total > transferLimit && toMachine && !bonus)
         {
             // Over the limit: restricted first, then non-restricted, then cashable, up to it (lp.cpp:5547).
             if (_aftCycle == AftCycle.Pending)
                 _aftCycle = AftCycle.PendingPartial;
-            long remaining = _options.AftTransferLimitCents;
+            long remaining = transferLimit;
             restricted = Math.Min(restricted, remaining);
             remaining -= restricted;
             nonrestricted = remaining > 0 ? Math.Min(nonrestricted, remaining) : 0;
@@ -302,6 +303,10 @@ public sealed partial class FakeEgm
             _cancelRequested = false;
             _completionDue = Stopwatch.GetTimestamp() + Ticks(_options.AftCompletionDelay);
 
+            // Flag bit 3 has the machine cash out whatever the transfer leaves, its usual way (QSP ClassifyAftHostCashoutRequest).
+            if (toHost && (request.Flags & FlagCashoutFromMachine) != 0 && _payAfterTransfer is null)
+                _payAfterTransfer = _options.WalletDirectory;
+
             // The library holds the reply to a zero cash-out from the machine until it completes; here it completes first.
             if (_zeroAmount == AftZeroAmount.Pending && (request.Flags & FlagCashoutFromMachine) != 0)
             {
@@ -325,13 +330,14 @@ public sealed partial class FakeEgm
         byte aftStatus = AftStatus();
         long cashableCents = CurrentCashableCents();
         long nonrestrictedCents = CurrentNonrestrictedCents();
+        long restrictedCents = CurrentRestrictedCents();
         long total = request.Cashable + request.Restricted + request.Nonrestricted;
         bool anyAft = (aftStatus & 0x80) != 0;
         bool locked = _lockStatus == Locked;
         bool lockRequired = (request.Flags & FlagLockRequired) != 0;
         bool receipt = (request.Flags & FlagReceipt) != 0;
 
-        if (!_options.Aft || request.Index != 0)
+        if (!_aftOn || request.Index != 0)
             return 0x82;
         if (!request.ExpirationIsBcd)
             return 0x83;
@@ -372,7 +378,7 @@ public sealed partial class FakeEgm
             return 0x90;
         if (lockRequired && !locked)
             return 0x94;
-        if (total > _options.AftTransferLimitCents && request.Code == 0x00 && toMachine && !bonus)
+        if (total > TransferLimitCents() && request.Code == 0x00 && toMachine && !bonus)
             return 0x84;
         if (request.Asset != AssetNumber)
             return 0x93;
@@ -385,19 +391,23 @@ public sealed partial class FakeEgm
         if (_aftCycle != AftCycle.None && IdMatches(_history[PreviousIndex()], request.Id))
             return 0x81;
         if (toHost && (aftStatus & 0x02) == 0
-            && (request.Cashable < cashableCents || request.Nonrestricted < nonrestrictedCents))
+            && (request.Cashable < cashableCents || request.Restricted < restrictedCents || request.Nonrestricted < nonrestrictedCents))
         {
             return 0x83;
         }
 
         if (toHost && request.Code == 0x00
-            && (request.Cashable > cashableCents || request.Restricted > 0 || request.Nonrestricted > nonrestrictedCents))
+            && (request.Cashable > cashableCents || request.Restricted > restrictedCents || request.Nonrestricted > nonrestrictedCents))
         {
             return 0x83;
         }
 
         if (!request.AmountsAreBcd)
             return 0x83;
+
+        // One pool at a time: restricted credit from another pool waits until the first is gone (lp.cpp:5459).
+        if (toMachine && restrictedCents != 0 && request.Restricted != 0 && request.PoolId != RestrictedPool())
+            return 0x8F;
         if (NotAMultiple(request.Cashable) || NotAMultiple(request.Restricted) || NotAMultiple(request.Nonrestricted))
             return 0x85;
 
@@ -470,10 +480,6 @@ public sealed partial class FakeEgm
         if (_cancelRequested)
             return UpdateTransfer(0x80, 0, 0, 0);
 
-        // Restricted credits are not modelled, so the platform fails such a transfer as unexpected.
-        if (record.Restricted != 0)
-            return UpdateTransfer(0x9F, 0, 0, 0);
-
         switch (record.TransferType)
         {
             case 0x80 or 0x90:
@@ -481,17 +487,21 @@ public sealed partial class FakeEgm
                 long credits = Meters.Read(SasMeterCode.CurrentCredits);
                 long cash = Math.Min(record.Cashable, CurrentCashableCents());
                 long nonrestricted = Math.Min(record.Nonrestricted, CurrentNonrestrictedCents());
+                long restricted = Math.Min(record.Restricted, CurrentRestrictedCents());
                 _nonrestrictedCents = CurrentNonrestrictedCents() - nonrestricted;
                 Meters.SetCurrentCredits(credits - ((cash + nonrestricted) / AccountingCents));
+                TakeRestricted(restricted);
 
                 // A partial request that moved less than it named, all-available included, is a partial success (libsas test/blackbox/blackbox_test.cpp:1077).
-                bool less = cash < record.Cashable || nonrestricted < record.Nonrestricted;
-                return UpdateTransfer(record.TransferCode == 0x01 && less ? (byte)0x01 : (byte)0x00, cash, 0, nonrestricted);
+                bool less = cash < record.Cashable || nonrestricted < record.Nonrestricted || restricted < record.Restricted;
+                return UpdateTransfer(record.TransferCode == 0x01 && less ? (byte)0x01 : (byte)0x00, cash, restricted, nonrestricted);
             }
 
             case 0x00:
                 AddCredits(record.Cashable, record.Nonrestricted);
-                return UpdateTransfer(0x00, record.Cashable, 0, record.Nonrestricted);
+                if (record.Restricted != 0)
+                    record.Expiration = AddRestricted(record.Restricted, record.PoolId, record.Expiration);
+                return UpdateTransfer(0x00, record.Cashable, record.Restricted, record.Nonrestricted);
 
             case 0x10:
             {
@@ -528,13 +538,13 @@ public sealed partial class FakeEgm
 
     /// <summary>The cashable part of the credit meter, in cents.</summary>
     private long CurrentCashableCents() =>
-        (Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents) - CurrentNonrestrictedCents();
+        (Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents) - CurrentRestrictedCents() - CurrentNonrestrictedCents();
 
-    /// <summary>The non-restricted part of the credit meter, in cents, never more than the meter holds.</summary>
+    /// <summary>The non-restricted part of the credit meter, in cents, never more than the meter holds beside the restricted part.</summary>
     private long CurrentNonrestrictedCents()
     {
         lock (_gate)
-            return Math.Min(_nonrestrictedCents, Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents);
+            return Math.Min(_nonrestrictedCents, (Meters.Read(SasMeterCode.CurrentCredits) * AccountingCents) - CurrentRestrictedCents());
     }
 
     /// <summary>Keeps the non-restricted part within a credit meter that has just gone down.</summary>
@@ -639,6 +649,8 @@ public sealed partial class FakeEgm
             Meters.Increment(SasMeterCode.ElectronicRegularCashableTransfersToGamingMachine_Crd, record.Cashable / AccountingCents);
             if (record.Nonrestricted != 0)
                 Meters.Increment(SasMeterCode.ElectronicNonrestrictedPromotionalTransfersToGamingMachine_Crd, record.Nonrestricted / AccountingCents);
+            if (record.Restricted != 0)
+                Meters.Increment(SasMeterCode.ElectronicRestrictedPromotionalTransfersToGamingMachine_Crd, record.Restricted / AccountingCents);
         }
         else if (record.TransferType is 0x80 or 0x90)
         {
@@ -646,6 +658,8 @@ public sealed partial class FakeEgm
             Meters.Increment(SasMeterCode.ElectronicRegularCashableTransfersToHost_Crd, record.Cashable / AccountingCents);
             if (record.Nonrestricted != 0)
                 Meters.Increment(SasMeterCode.ElectronicNonrestrictedPromotionalTransfersToHost, record.Nonrestricted / AccountingCents);
+            if (record.Restricted != 0)
+                Meters.Increment(SasMeterCode.ElectronicRestrictedPromotionalTransfersToHost, record.Restricted / AccountingCents);
         }
 
         void Move((SasMeterCode Cents, SasMeterCode Count)? meters, long cents)

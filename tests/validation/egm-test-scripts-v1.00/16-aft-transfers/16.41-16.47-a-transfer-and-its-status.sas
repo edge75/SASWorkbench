@@ -109,32 +109,48 @@ test "16.43 a whole transfer, done" {
   note "The date is month, day, year and matches the machine's; the time is 24-hour and close to the machine's. The cashable meter in the reply rose by 500 from the previous transfer's, the other two by nothing."
 }
 
+# One cent is declared so the room under the credit limit is a number of cents a note can leave.
 test "16.44 a partial transfer, done" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft, machine.credit_limit
+  tag @egm-test-scripts @chapter-16 @needs-stimulus
+  requires decoder.lp72, machine.aft, machine.credit_limit, stimulus.credit_limit, stimulus.bill, stimulus.asset_number
+
+  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
+  egm set credit limit 1000
+  egm bill insert 500
+  egm bill insert 100
   host forget exceptions within 2s
 
+  # Room for four dollars under the limit: a partial five-dollar transfer moves four.
   host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000133000000000000000000
   host expect exception aft_transfer_complete within 10s
   host send lp 72 data 02FF00
   host expect field transfer_status == $01
   host expect field cashable_amount > 0
   host expect field cashable_amount < 500
+  host expect field cashable_amount == 400
 
-  note "Before the run, put enough credit on the machine that the credit limit leaves room for less than five dollars. Everything else in the reply is as in 16.43, with the amount actually moved."
+  note "Everything else in the reply is as in 16.43, with the amount actually moved."
 }
 
+# One cent is declared so two notes fill the machine exactly to its credit limit.
 test "16.45 a transfer that fails" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft, machine.credit_limit
+  tag @egm-test-scripts @chapter-16 @needs-stimulus
+  requires decoder.lp72, machine.aft, machine.credit_limit, stimulus.credit_limit, stimulus.bill, stimulus.asset_number
+
+  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
+  egm set credit limit 1000
+  egm bill insert 500
+  egm bill insert 500
   host forget exceptions within 2s
 
   host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000132000000000000000000
@@ -146,7 +162,7 @@ test "16.45 a transfer that fails" {
   host expect field nonrestricted_amount == 0
   host expect field cashable_meter_size > 0
 
-  note "Before the run, fill the machine to its credit limit. The first reply is either pending or already a failure ($80 to $9F); the date and time are the machine's; none of the three meters in the reply moved."
+  note "The first reply is either pending or already a failure ($80 to $9F); the date and time are the machine's; none of the three meters in the reply moved."
   note "Other ways to make a transfer fail, which the document suggests trying: open the door, or cycle the power, while it is in progress; ask for a receipt, or transfer to a ticket, and disconnect the printer before it prints."
 }
 

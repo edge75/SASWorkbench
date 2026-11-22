@@ -251,6 +251,9 @@ public static class CapabilityProbe
             // their own bit of the AFT status long poll $74 reports.
             AftBonusCapability,
             AftReceiptsCapability,
+
+            // The transfer limit a machine enforces is published in the $74 status it reports.
+            TransferLimitCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
@@ -261,6 +264,9 @@ public static class CapabilityProbe
 
     /// <summary>The capability a machine that prints transfer receipts answers with.</summary>
     public const string AftReceiptsCapability = "machine.aft_receipts";
+
+    /// <summary>The capability a machine that publishes a transfer limit answers with, its value the limit in cents.</summary>
+    public const string TransferLimitCapability = "machine.transfer_limit";
 
     /// <summary>True when a requirement can only be answered by the machine on the link.</summary>
     public static bool IsAskedOfTheMachine(string key) => AskedOfTheMachine.Contains(key);
@@ -335,6 +341,9 @@ public static class CapabilityProbe
 
         if (asked.Contains(AftReceiptsCapability))
             Note(AftReceiptsCapability, AskAftReceipts(engine, values));
+
+        if (asked.Contains(TransferLimitCapability))
+            Note(TransferLimitCapability, AskTransferLimit(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }
@@ -480,6 +489,36 @@ public static class CapabilityProbe
     }
 
     /// <summary>
+    /// Reads the transfer limit off the $74 status, which the library fills from what the platform publishes (lp.cpp:6636).
+    /// </summary>
+    private static string? AskTransferLimit(PollEngine engine, Dictionary<string, string?> values)
+    {
+        SasMessageLayout layout = SasLayouts.For((byte)SasLongPollCode.LP_AFT_LOCKANDSTATUS)!;
+
+        if (Ask(engine, layout, [0xFF, 0x00, 0x00, 0x00]) is not { } result)
+        {
+            return "the funds transfer status poll could not be put on the link, so the machine's "
+                   + "transfer limit was never asked" + Because(engine);
+        }
+
+        if (!result.Succeeded)
+        {
+            return $"the machine did not answer the funds transfer status poll ({result.Outcome}), "
+                   + "so its transfer limit cannot be read off this link";
+        }
+
+        SasDecoded decoded = SasMessageDecoder.DecodeResponse(layout, result.Frame);
+        if (decoded.Number("gaming_machine_transfer_limit") is not { } limit)
+        {
+            return "the machine's funds transfer status reply could not be decoded: "
+                   + (decoded.Failure ?? "it carries no transfer limit");
+        }
+
+        values[TransferLimitCapability] = limit.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return null;
+    }
+
+    /// <summary>
     /// Reads the accounting denomination the machine is in force at, off its identification reply.
     /// </summary>
     /// <remarks>
@@ -592,6 +631,14 @@ public static class CapabilityProbe
                 ["stimulus.aft_registration"] = "yes",
                 ["stimulus.aft_bonus"] = "yes",
 
+                // Its configuration is the script's to work - transfers on and off, and a credit limit no poll
+                // reports - and its credit meter holds restricted credit, which no poll says a machine can.
+                ["machine.configuration_options"] = "yes",
+                ["machine.credit_limit"] = "yes",
+                ["machine.restricted_credits"] = "yes",
+                ["stimulus.aft_configuration"] = "yes",
+                ["stimulus.credit_limit"] = "yes",
+
                 // The software machine takes a ticket handed to it directly, with no directory in
                 // between, so this is true of the machine rather than of a path on disk.
                 ["stimulus.ticket"] = "yes",
@@ -628,6 +675,8 @@ public static class CapabilityProbe
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",
                 ["stimulus.aft_bonus"] = "yes",
+                ["stimulus.aft_configuration"] = "yes",
+                ["stimulus.credit_limit"] = "yes",
 
                 // A person makes the machine owe it at the cabinet, so the host never withdraws
                 // the printer the way it must for the peripheral driver.

@@ -17,11 +17,22 @@
 # The machine library never writes the position byte of a $C0 or $C1 answer (lp.cpp:5967 to 5979),
 # so on a real machine 16.38 and 16.39 read whatever that byte held; the software machine sends 0.
 
+# @finding: answered $82 in a full reply, neither silent nor $C1. With the transfer feature off the
+# library still takes the request and refuses it as not a valid transfer function (lp.cpp:5242).
 test "16.37 a machine with transfers off" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp72, machine.aft, machine.configuration_options
+  tag @egm-test-scripts @chapter-16 @finding
+  requires decoder.lp72, machine.aft, machine.configuration_options, stimulus.aft_configuration
 
-  note "Turn transfers off at the machine, then send the five-dollar debit transfer (data 36000040000000050000000000000000000000003930000021436587090000000000000000000000000000000131000000000000000000). The machine either stays silent or answers with buffer position 00 and status $C1, unsupported - in which case the reply is exactly four bytes after the command."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set aft off
+
+  host send lp 72 data 36000040000000050000000000000000000000003930000021436587090000000000000000000000000000000131000000000000000000
+  host expect field transaction_buffer_position == 0
+  host expect field transfer_status == $C1
+
+  note "A machine may instead stay silent; one that answers with $C1 sends exactly four bytes after the command."
 }
 
 test "16.38 an unsupported transfer code" {
