@@ -686,6 +686,9 @@ public sealed partial class FakeEgm : IDisposable
         // one accounting unit.
         long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
         long won = winCredits * _options.CentsPerGameCredit / AccountingCents;
+
+        // The credit meter is read and written back under the gate, so a bonus paid meanwhile is not lost.
+        using Lock.Scope creditsHeld = _gate.EnterScope();
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(

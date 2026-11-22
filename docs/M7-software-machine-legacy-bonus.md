@@ -3,7 +3,7 @@
 **Status: built 2026-11-22, under D44 and D45, for the group the user chose on 2026-11-21.** The
 software machine takes legacy bonuses ($8A), holds them in escrow while it must, delays the next
 game ($2E), reports the award ($7C, $90) and keeps the three legacy bonus meters ($9A). Chapter 15
-runs 14 of its 37 cases, up from 4: thirteen pass and one fails as a labelled finding. Chapter 22
+runs 13 of its 37 cases, up from 4: twelve pass and one fails as a labelled finding. Chapter 22
 still runs 1 of 28, because the platform the machine mirrors offers no multiplied jackpots.
 
 ---
@@ -36,7 +36,8 @@ says so in a one-line comment at each place.
 
 Each of these carries a "QSP" comment in the code.
 
-* **Legacy bonusing is on** by default, as QSP stores it after a memory clear (`SasRules.h:442`), and
+* **Legacy bonusing is on** by default, as QSP stores it after a memory clear (`SasRules.h:442`,
+  written by `PostNvramReset` at `SasNetwork.cpp:1206`), and
   the operator can turn it off with `egm set legacy bonus off`.
 * **Multiplied jackpots are not offered.** QSP never gives the library the jackpot multiplier bit
   (the `sasInit` features at `SasNetwork.cpp:286` leave it clear) and has no handler for $8B, so the
@@ -68,22 +69,26 @@ Each of these carries a "QSP" comment in the code.
 * Multiplied jackpots, so the 27 chapter 22 cases that need one skip on `machine.multiplied_jackpot`.
 * A jackpot limit: a bonus above it would be a hand pay (`SasNetwork_AftTransfer.hpp:1708`), so the
   eight chapter 15 cases that need one still skip on `machine.jackpot_limit`.
-* A game held open, maintenance mode, game recall and tilts, so a bonus during a game is never seen.
+* A game or a cash out held open, maintenance mode, game recall and tilts, so a bonus during a game
+  or a cash out is never seen; 15.5 skips on `stimulus.cashout_in_progress`.
 * The platform's limits on money in, so a bonus is never refused for size.
 * The electronic-transfer meters QSP refreshes after an award.
 * Persistence: the escrow and the award live only as long as the machine.
+* What `machine.legacy_bonus` means on a real board: bit 2 says the machine takes legacy bonuses and
+  nothing about QSP's busy states or its hand-pay limits there, which a case still meets as it runs.
 
 ## Script corrections made while bringing the cases up
 
-None of these changes what a case asserts.
+None of these loosens an assertion; the last item adds some.
 
 * The game delay is binary, least significant byte first, so five seconds is `3200`; the cases sent
   `0050`, which the library reads as 2048 seconds.
 * 15.28 and 15.32 named their meters in `$6F` and `$AF` with a byte out of place, so one code read
   as `0C00`. 15.28 also states the one-dollar accounting unit its one-credit wager assumes.
 * 15.6 forgets the first award before asserting the second, as an event field expectation needs.
-* 15.5 waits for the cash-out ticket before sending its second bonus: the software machine prints
-  at once, and a long poll sent while that event is queued is answered with it (D44).
+* 15.5 keeps its document sequence and now also needs `stimulus.cashout_in_progress`: the software
+  machine's cash out is over before a poll can follow the button, so it skips rather than send its
+  second bonus after the cash out instead of during it.
 * 15.1 and 15.26 now also assert the switched-on bonus and the `$9A` meters.
 
 ## Findings against the documents

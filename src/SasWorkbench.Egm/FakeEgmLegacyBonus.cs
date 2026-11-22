@@ -45,6 +45,10 @@ public sealed partial class FakeEgm
     private long _gameDelayEnds;
     private readonly Dictionary<SasChannel, byte[]> _unacknowledgedLegacyReads = [];
 
+    // The most of a game delay a stimulus waits out, and how often it looks whether the machine has stopped.
+    private static readonly TimeSpan LongestGameDelayWait = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan GameDelayWaitSlice = TimeSpan.FromMilliseconds(50);
+
     /// <summary>True while the machine takes legacy bonuses.</summary>
     public bool LegacyBonusOn
     {
@@ -69,8 +73,8 @@ public sealed partial class FakeEgm
     /// Answers or silences a legacy bonus poll, and false for any other command.
     /// </summary>
     /// <remarks>
-    /// Reached after the check sequence and the channel category gate, which every one of these
-    /// handlers also applies; the feature bit and the address are tested here, in the library's order.
+    /// Reached after the check sequence and the channel category gate, which the library applies to
+    /// all of these but $9A, a command no category owns; the feature bit and address follow in its order.
     /// </remarks>
     private bool AnswerLegacyBonus(MachineLink link, byte command, ReadOnlySpan<byte> frame)
     {
@@ -162,23 +166,23 @@ public sealed partial class FakeEgm
     /// <summary>The platform's busy states: a door open, or the host having shut the machine down (QSP SasGameRules.h:255).</summary>
     private bool IsLegacyBonusBusy()
     {
+        lock (_gate)
+            return IsLegacyBonusBusyLocked();
+    }
+
+    /// <summary>The busy test with the gate held; the doors' own lock is only ever taken inside it, never around it.</summary>
+    private bool IsLegacyBonusBusyLocked()
+    {
         bool doorOpen;
         lock (_openDoors)
             doorOpen = _openDoors.Count > 0;
 
-        lock (_gate)
-            return doorOpen || !_enabled;
+        return doorOpen || !_enabled;
     }
 
     /// <summary>True while an acknowledged bonus must stay in escrow: a hand pay, a busy state or the game delay.</summary>
-    private bool LegacyEscrowHeld()
-    {
-        if (IsLegacyBonusBusy())
-            return true;
-
-        lock (_gate)
-            return _handpay is { Reset: false } || GameDelayRunningLocked();
-    }
+    private bool LegacyEscrowHeldLocked() =>
+        IsLegacyBonusBusyLocked() || _handpay is { Reset: false } || GameDelayRunningLocked();
 
     private bool GameDelayRunningLocked() =>
         _gameDelayEnds != 0 && Stopwatch.GetTimestamp() < _gameDelayEnds;
@@ -186,19 +190,35 @@ public sealed partial class FakeEgm
     private static long DelayEndFrom(long now, int tenths) =>
         tenths == 0 ? 0 : now + (long)(tenths / 10.0 * Stopwatch.Frequency);
 
-    /// <summary>Holds the next game back until the game delay has run, as a player would be held.</summary>
+    /// <summary>
+    /// Holds the next game back until the game delay has run, as a player would be held, and gives
+    /// up when the machine stops.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">More of the delay is left than a case could sensibly wait.</exception>
     private void WaitOutGameDelay()
     {
-        while (true)
+        while (_running)
         {
-            long ends;
+            TimeSpan left;
             lock (_gate)
-                ends = GameDelayRunningLocked() ? _gameDelayEnds : 0;
+            {
+                left = GameDelayRunningLocked()
+                    ? Stopwatch.GetElapsedTime(Stopwatch.GetTimestamp(), _gameDelayEnds)
+                    : TimeSpan.Zero;
+            }
 
-            if (ends == 0)
+            if (left <= TimeSpan.Zero)
                 return;
 
-            Thread.Sleep(Math.Max(1, (int)Stopwatch.GetElapsedTime(Stopwatch.GetTimestamp(), ends).TotalMilliseconds));
+            if (left > LongestGameDelayWait)
+            {
+                throw new InvalidOperationException(
+                    $"The game delay holds the next game for {left.TotalSeconds:F0} more seconds, longer than "
+                    + $"a case waits ({LongestGameDelayWait.TotalSeconds:F0} s). Long poll $2E carries tenths of a "
+                    + "second in binary, least significant byte first: five seconds is 32 00.");
+            }
+
+            Thread.Sleep(left < GameDelayWaitSlice ? left : GameDelayWaitSlice);
         }
     }
 
@@ -216,38 +236,30 @@ public sealed partial class FakeEgm
 
     /// <summary>
     /// Pays every tax status with something in escrow, one award each, when nothing holds it back
-    /// (QSP ProcessLegacyBonus).
+    /// (QSP ProcessLegacyBonus); the test, the payment and the emptied escrow are one step under the gate.
     /// </summary>
     private void PayLegacyEscrowIfReleased()
     {
         lock (_gate)
         {
-            if (Array.TrueForAll(_legacyEscrow, credits => credits == 0))
+            if (Array.TrueForAll(_legacyEscrow, credits => credits == 0) || LegacyEscrowHeldLocked())
                 return;
-        }
 
-        if (LegacyEscrowHeld())
-            return;
-
-        var due = new long[LegacyTaxStatuses];
-        lock (_gate)
-        {
-            Array.Copy(_legacyEscrow, due, LegacyTaxStatuses);
-            Array.Clear(_legacyEscrow);
-        }
-
-        for (byte taxStatus = 0; taxStatus < LegacyTaxStatuses; taxStatus++)
-        {
-            if (due[taxStatus] > 0)
-                PayLegacyBonus(taxStatus, due[taxStatus]);
+            for (byte taxStatus = 0; taxStatus < LegacyTaxStatuses; taxStatus++)
+            {
+                long due = _legacyEscrow[taxStatus];
+                _legacyEscrow[taxStatus] = 0;
+                if (due > 0)
+                    PayLegacyBonusLocked(taxStatus, due);
+            }
         }
     }
 
     /// <summary>
-    /// One award: onto the credit meter as a machine-paid external bonus, onto the legacy meter for
-    /// its tax status, stored for $90 and reported by $7C.
+    /// One award, with the gate held: onto the credit meter as a machine-paid external bonus, onto
+    /// the legacy meter for its tax status, stored for $90 and reported by $7C.
     /// </summary>
-    private void PayLegacyBonus(byte taxStatus, long credits)
+    private void PayLegacyBonusLocked(byte taxStatus, long credits)
     {
         // A win the machine pays onto the credit meter, metered as the AFT coin-out bonus is (QSP BonusIn, MoneyInHandler.cpp:635).
         Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
@@ -256,11 +268,8 @@ public sealed partial class FakeEgm
 
         // A bonus from $8A has no multiplier and no multiplied win (SasNetwork_AftTransfer.hpp:1738).
         var award = new LegacyBonusAward(0x00, 0, taxStatus, credits);
-        lock (_gate)
-        {
-            _legacyMeters[taxStatus] += credits;
-            _lastLegacyAward = award;
-        }
+        _legacyMeters[taxStatus] += credits;
+        _lastLegacyAward = award;
 
         // The payload SAS_LegacyBonusAward builds (libsas.cpp:2634 to :2643).
         RaiseEvent((byte)SasExceptionCode.LegacyBonusPayOrJackpotAwarded,

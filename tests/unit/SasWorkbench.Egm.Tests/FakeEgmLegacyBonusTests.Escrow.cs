@@ -105,4 +105,33 @@ public sealed partial class FakeEgmLegacyBonusTests
 
         Assert.Equal(5, Machine.Meters.Read(SasMeterCode.CurrentCredits));
     }
+
+    [Fact]
+    public void A_game_delay_longer_than_a_case_waits_refuses_the_next_game_rather_than_hanging()
+    {
+        // 00 50 read least significant byte first is 20480 tenths, about 34 minutes.
+        Start();
+        Machine.InsertBill(2000);
+        Assert.Equal(LongPollOutcome.Acknowledged, Host.Execute(0x2E, [0x00, 0x50]).Outcome);
+        Machine.PlayGames(1, 1);
+
+        var refused = Assert.Throws<InvalidOperationException>(() => Machine.PlayGames(1, 1));
+        Assert.Contains("32 00", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Stopping_the_machine_ends_a_game_waiting_out_the_delay()
+    {
+        Start();
+        Machine.InsertBill(2000);
+        Assert.Equal(LongPollOutcome.Acknowledged, Host.Execute(0x2E, [0x2C, 0x01]).Outcome);
+        Machine.PlayGames(1, 1);
+
+        var waiting = new Thread(() => Machine.PlayGames(1, 1)) { IsBackground = true };
+        waiting.Start();
+        Thread.Sleep(200);
+        Machine.Stop();
+
+        Assert.True(waiting.Join(TimeSpan.FromSeconds(2)), "the game was still waiting out a thirty-second delay");
+    }
 }

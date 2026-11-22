@@ -6,10 +6,10 @@
 # when the screen closes. Bonuses sent while it waits add up into one award. With a door open, in
 # maintenance or in game recall it does not take the bonus at all, and answers busy.
 #
-# The software machine takes legacy bonuses; what it cannot do here is hold a game open
-# (stimulus.game_in_progress), answer busy in a form this build asserts (host.busy_reply) or open a
-# player's screen. The cases turn real-time reporting on, as 15.1 explains, and read the bonus out
-# of the $7C event.
+# The software machine takes legacy bonuses; what it cannot do here is hold a game or a cash out
+# open (stimulus.game_in_progress, stimulus.cashout_in_progress), answer busy in a form this build
+# asserts (host.busy_reply) or open a player's screen. The cases turn real-time reporting on, as
+# 15.1 explains, and read the bonus out of the $7C event.
 
 test "15.4 a bonus sent during a game is paid after it" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
@@ -34,7 +34,7 @@ test "15.4 a bonus sent during a game is paid after it" {
 test "15.5 an idle machine pays at once, and a cash out comes first" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
   requires machine.legacy_bonus, stimulus.real_time_events, host.meter_arithmetic
-  requires stimulus.bill, stimulus.button.collect
+  requires stimulus.bill, stimulus.button.collect, stimulus.cashout_in_progress
   requires decoder.lp0E, decoder.event7C
 
   host connect loopback address 01
@@ -52,19 +52,17 @@ test "15.5 an idle machine pays at once, and a cash out comes first" {
   host send lp 6F data 0400000C00
   host expect field meters[0].value == saved.credits + 3
 
-  # After a cash out the bonus is paid as well. The software machine has printed its ticket before
-  # any poll can follow the button, and with reporting on a long poll sent while that event is still
-  # queued is answered with the event, so the ticket is taken first.
+  # Sent while the machine is cashing out: acknowledged, and paid only once the cash out is done.
   egm bill insert 2000
   host forget exceptions within 2s
   egm press collect
-  host expect exception cashout_ticket_printed within 10s
   host send lp 8A data 0000000301
   host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 1 within 15s
   host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 3 within 15s
 
   note "Before the run, enable legacy bonusing and leave the machine idle and playable."
-  note "On a machine whose cash out takes time, send the bonus after pressing collect and before the ticket is printed or the coins paid: it is acknowledged, and $7C follows only once the cash out has finished, which is read in the trace."
+  note "Skips on the software machine: its cash out is over before any poll can follow the button, so a bonus can never be sent during one (stimulus.cashout_in_progress)."
+  note "The cash out raises its own events - a ticket printed or coins paid - before $7C; that the bonus came after the cash out finished, and not before it, is read in the trace."
 }
 
 test "15.6 a bonus sent in a hand pay is paid after the reset" {
