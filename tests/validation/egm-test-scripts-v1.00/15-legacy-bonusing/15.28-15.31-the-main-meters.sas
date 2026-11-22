@@ -5,12 +5,17 @@
 # and the credit meter shows it at once. The three bonuses used throughout are five deductible,
 # six non-deductible and seven wager-match credits, eighteen in all.
 #
-# The software machine offers no legacy bonusing (machine.legacy_bonus). Every meter here is read
-# through $6F in accounting credits; each must also match the machine's own display (D40).
+# The software machine sets no jackpot limit and has no hopper, so 15.29 and 15.30 skip. Every
+# meter here is read through $6F in accounting credits; each must also match the machine's own
+# display (D40).
 
 test "15.28 a bonus is not coin in" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
   requires machine.legacy_bonus, stimulus.play, host.meter_arithmetic
+
+  # A game credit of one dollar is one accounting credit only at this unit, which the last step's
+  # arithmetic assumes.
+  machine accounting denomination 100c
 
   host connect loopback address 01
   host poll every 200ms
@@ -18,14 +23,14 @@ test "15.28 a bonus is not coin in" {
   egm settle
   host forget exceptions within 2s
 
-  host send lp 6F data 060000000C00
+  host send lp 6F data 06000000000C00
   host remember field meters[0].value as coin_in
   host remember field meters[1].value as credits
 
   host send lp 8A data 0000000500
   host send lp 8A data 0000000601
   host send lp 8A data 0000000702
-  host send lp 6F data 060000000C00
+  host send lp 6F data 06000000000C00
   host expect field meters[0].value == saved.coin_in
   host expect field meters[1].value == saved.credits + 18
 

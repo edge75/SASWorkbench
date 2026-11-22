@@ -125,6 +125,10 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.SetCreditLimit(limit.Cents);
                 return;
 
+            case SetLegacyBonusStep legacy:
+                machine.SetLegacyBonus(legacy.On);
+                return;
+
             case AftRegisterStep:
                 if (machine.AttendantRegister() is { } menuRefusal)
                     throw new StimulusUnavailableException(menuRefusal);

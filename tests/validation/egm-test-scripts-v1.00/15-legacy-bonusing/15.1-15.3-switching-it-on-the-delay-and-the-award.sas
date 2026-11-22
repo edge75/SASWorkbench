@@ -6,12 +6,13 @@
 # the amount to the credit meter, and reports exception $7C - one byte with real-time reporting
 # off, or with reporting on a message carrying the multiplier, the multiplied win, the tax status
 # and the bonus. The game delay, long poll $2E, holds the next game back for a time in tenths of a
-# second so a host has a window in which to pay.
+# second so a host has a window in which to pay; the time is two bytes of binary, least significant
+# first, as the machine library reads it, so five seconds is 32 00.
 #
 # Both polls are ignored outright by a machine with legacy bonusing switched off. The machine
-# library reads its legacy-bonus feature bit before anything else in both handlers, and the
-# software machine offers no legacy bonusing at all, so that half of 15.1 runs here. Everything
-# that needs a bonus paid states machine.legacy_bonus and skips.
+# library reads its legacy-bonus feature bit before anything else in both handlers. 15.1 turns the
+# operator's switch off first, which the software machine and a person at the cabinet can both do;
+# every case that needs a bonus paid states machine.legacy_bonus, which is read off the machine.
 #
 # The document recommends running the chapter with real-time reporting on, and again with it off.
 # The cases turn it on, because the event is the only place the bonus amount and tax status can be
@@ -19,12 +20,13 @@
 
 test "15.1 legacy bonusing can be switched off" {
   tag @egm-test-scripts @chapter-15 @wire-only
-  requires decoder.lpA0
+  requires decoder.lpA0, stimulus.legacy_bonus
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm set legacy bonus off
   host forget exceptions within 2s
 
   host send lp A0 with game_number=0
@@ -33,10 +35,15 @@ test "15.1 legacy bonusing can be switched off" {
   # Switched off, a bonus of five deductible credits and a five-second game delay are both
   # ignored - not refused.
   host expect no reply to lp 8A data 0000000500
-  host expect no reply to lp 2E data 0050
+  host expect no reply to lp 2E data 3200
 
-  note "Before the run, find the operator setting for legacy bonusing and turn it off. Bit 2 of the first feature byte in the enabled-features reply is then clear; this build names no single bit of that byte, so read it in the frames."
-  note "Then, by hand: turn it on. The bit is set; legacy and AFT bonusing are configured separately, and only one of the two may be on at a time. Send the bonus: it is acknowledged, five credits reach the credit meter, and $7C follows - with reporting on, carrying multiplier 0, multiplied win 0, tax status 00 and bonus 00 00 00 05."
+  # Switched on again, the same bonus is acknowledged and reported.
+  egm set legacy bonus on
+  host send lp 8A data 0000000500
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
+
+  note "The setter step is the operator setting for legacy bonusing. Bit 2 of the first feature byte in the enabled-features reply is clear while it is off and set while it is on; this build names no single bit of that byte, so read it in the frames."
+  note "Legacy and AFT bonusing are configured separately, and only one of the two may be on at a time. With it on, five credits reach the credit meter, and with reporting on $7C carries multiplier 0, multiplied win 0, tax status 00 and bonus 00 00 00 05; 15.3 and 15.17 assert both."
   note "Also by hand, on a card game or a double-up: reach a winning hand before the draw, stop polling, send the bonus and wait five seconds, then finish the game and resume polling. The bonus is paid and $7C carries tax status 00 and five credits."
   note "Not run: the bonus sent with a broken check sequence must be ignored or refused (host.bad_crc)."
 }
@@ -55,7 +62,7 @@ test "15.2 the game delay holds the next game back" {
   host forget exceptions within 2s
 
   # Five seconds after every game, then a bonus paid inside the window.
-  host send lp 2E data 0050
+  host send lp 2E data 3200
   egm play games=1 bet=1 win=0
   host expect exception game_ended within 8s
   host send lp 8A data 0000000500

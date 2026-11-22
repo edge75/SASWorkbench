@@ -69,8 +69,7 @@ public class SoftwareMachineRepliesTests
     /// answered until the machinery exists, and this list is what says so out loud.
     /// <para>
     /// Silence rather than a refusal, because that is what the machine library does and it was
-    /// read rather than assumed: the legacy bonus polls return without sending when the
-    /// legacy-bonus feature bit is clear, and not one of these nine ever sends a refusal. A
+    /// read rather than assumed: not one of these eight ever sends a refusal. A
     /// machine answers them or says nothing, so a fixture that refused was the only one of the
     /// three peers doing something no real machine does.
     /// </para>
@@ -85,13 +84,11 @@ public class SoftwareMachineRepliesTests
         { 0x87, "" },
         { 0x8E, "" },
         { 0x8F, "" },
-        { 0x90, "" },
-        { 0x9A, "0000" },
     };
 
     [Theory]
     [MemberData(nameof(UnansweredForWantOfMachinery))]
-    public void A_machine_with_no_progressive_bonus_reels_or_cards_says_nothing_rather_than_zero(
+    public void A_machine_with_no_progressive_reels_or_cards_says_nothing_rather_than_zero(
         byte command, string request)
     {
         using var rig = new Rig();
@@ -128,8 +125,8 @@ public class SoftwareMachineRepliesTests
         [
             0x4C, 0x4D, 0xB2,
 
-            // No progressive, no legacy bonus, no cards, no reels — see WithoutMachinery.
-            0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+            // No progressive, no cards, no reels — see WithoutMachinery.
+            0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -154,7 +151,7 @@ public class SoftwareMachineRepliesTests
 
         Assert.Empty(wrong);
         Assert.Equal(88, SasLayouts.All.Count);
-        Assert.Equal(75, answered);
+        Assert.Equal(77, answered);
     }
 
     /// <summary>

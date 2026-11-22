@@ -9,20 +9,23 @@
 # multiplying, and the host must enable it again.
 #
 # The machine library ignores $8B unless both the legacy-bonus and the jackpot-multiplier feature
-# bits are set. The software machine offers neither, so 22.1 runs here; every case that needs a
-# multiplied win states machine.legacy_bonus and machine.multiplied_jackpot and skips.
+# bits are set. 22.1 turns legacy bonusing off first, which the software machine and a person at the
+# cabinet can both do. The software machine takes legacy bonuses but, like the platform it mirrors,
+# never sets the jackpot-multiplier bit, so every case that needs a multiplied win skips on
+# machine.multiplied_jackpot, which is read off the machine.
 #
 # The document recommends real-time reporting on, so the cases turn it on; with it off, $7F and $7C
 # arrive as one byte each and the credit meter carries the evidence instead.
 
 test "22.1 multiplied jackpots are ignored with legacy bonusing off" {
   tag @egm-test-scripts @chapter-22 @wire-only
-  requires decoder.lpA0
+  requires decoder.lpA0, stimulus.legacy_bonus
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm set legacy bonus off
   host forget exceptions within 2s
 
   host send lp A0 with game_number=0
@@ -31,7 +34,7 @@ test "22.1 multiplied jackpots are ignored with legacy bonusing off" {
   # The disable form of the command: no range, multiplier one, disable, any wager.
   host expect no reply to lp 8B data 0000000000000000010100
 
-  note "Before the run, switch legacy bonusing off at the machine. Bit 0 (jackpot multiplier) and bit 2 (legacy bonus) of the first feature byte in the enabled-features reply are then clear; this build names neither bit, so read them in the frames."
+  note "The setter step switches legacy bonusing off at the machine. Bit 0 (jackpot multiplier) and bit 2 (legacy bonus) of the first feature byte in the enabled-features reply are then clear; this build names neither bit, so read them in the frames."
   note "Not run: the same command sent with a broken check sequence must be ignored, or refused with the address and bit 7 set (host.bad_crc). The document names the key for an enable command here although the case defines only the disable one."
 }
 

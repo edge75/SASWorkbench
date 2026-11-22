@@ -1482,6 +1482,18 @@ public static class ScriptParser
                 test.Steps.Add(new SetAftBonusStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
                 return;
 
+            case "set" when words.Length >= 3
+                             && words[2].Equals("legacy", StringComparison.OrdinalIgnoreCase):
+                if (words.Length != 5
+                    || !words[3].Equals("bonus", StringComparison.OrdinalIgnoreCase)
+                    || words[4].ToLowerInvariant() is not ("on" or "off"))
+                {
+                    throw new ScriptParseException(location, "expected: egm set legacy bonus on|off");
+                }
+
+                test.Steps.Add(new SetLegacyBonusStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
             case "aft":
                 if (words.Length != 3 || !words[2].Equals("register", StringComparison.OrdinalIgnoreCase))
                     throw new ScriptParseException(location, "expected: egm aft register");
@@ -1494,7 +1506,7 @@ public static class ScriptParser
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set aft on|off, or egm set aft bonus on|off");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set aft on|off, egm set aft bonus on|off, or egm set legacy bonus on|off");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);

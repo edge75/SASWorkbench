@@ -6,8 +6,8 @@
 # denomination, and the per-game and per-denomination meters must grow by exactly what the
 # machine total grew by.
 #
-# The software machine offers no legacy bonusing (machine.legacy_bonus), and is neither a
-# multi-game nor a multi-denomination machine; the cases for those skip on that as well.
+# The software machine sets no jackpot limit and is neither a multi-game nor a multi-denomination
+# machine, so only 15.32 runs here.
 
 test "15.32 a bonus paid by the machine is an external bonus win" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
@@ -19,17 +19,17 @@ test "15.32 a bonus paid by the machine is an external bonus win" {
   egm settle
   host forget exceptions within 2s
 
-  host send lp 6F data 060000000C1E00
+  host send lp 6F data 0600000C001E00
   host remember field meters[0].value as credits
   host remember field meters[1].value as external_bonus
   host send lp 8A data 0000000500
   host send lp 8A data 0000000601
   host send lp 8A data 0000000702
   host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
-  host send lp 6F data 060000000C1E00
+  host send lp 6F data 0600000C001E00
   host expect field meters[0].value == saved.credits + 18
   host expect field meters[1].value == saved.external_bonus + 18
-  host send lp AF data 060000000C1E00
+  host send lp AF data 0600000C001E00
   host expect field meters[1].value == saved.external_bonus + 18
 
   note "Before the run, enable legacy bonusing, set the jackpot limit high, and leave the machine with nothing on the credit meter."
