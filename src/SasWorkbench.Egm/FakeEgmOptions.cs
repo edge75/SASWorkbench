@@ -174,6 +174,9 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine takes bonus awards over funds transfer; on, as the platform configures it.</summary>
     public bool AftBonus { get; init; } = true;
 
+    /// <summary>Whether the machine takes legacy bonuses; on, as QSP stores it after a memory clear (SasRules.h:442, SasNetwork.cpp:1206).</summary>
+    public bool LegacyBonus { get; init; } = true;
+
     /// <summary>Whether the machine prints transfer receipts; on, because this machine has a printer.</summary>
     public bool AftReceipts { get; init; } = true;
 

@@ -8,7 +8,7 @@
 # the poll that implies the reply was lost gets the award again. The machine library clears it in
 # exactly that way, queued behind the host's acknowledgement and skipped while a repeat is pending.
 #
-# The software machine has no legacy bonusing, no multiplied jackpots, and does not answer $90, so
+# The software machine takes legacy bonuses and answers $90 but offers no multiplied jackpots, so
 # all three skip on machine.multiplied_jackpot; 22.19 also needs a game held open.
 
 test "22.19 a bonus during a multiplied game is paid but not multiplied" {

@@ -53,15 +53,13 @@ public sealed partial class FakeEgm : IDisposable
     private readonly HashSet<byte> _ignoredCommands = [];
 
     /// <summary>
-    /// The commands this fixture has no machinery for: progressives, legacy bonus, cards, reels.
+    /// The commands this fixture has no machinery for: progressives, cards, reels.
     /// </summary>
     /// <remarks>
     /// Stated here rather than left to the "could not build the values" fallback, because what
     /// this machine is built without is a property of the machine and belongs where a reader
     /// looks for one. The machine library behaves the same way and was read rather than assumed:
-    /// the legacy bonus polls open with a test of the legacy-bonus feature bit and return without
-    /// sending when it is clear, and none of these ten ever sends a refusal — a real machine
-    /// answers or says nothing.
+    /// none of these eight ever sends a refusal — a real machine answers or says nothing.
     /// <para>
     /// Kept apart from <see cref="FakeEgmOptions.UnansweredCommands"/>, which a test sets to build
     /// some other machine: if these lived there, a test that set that option for its own reasons
@@ -70,7 +68,7 @@ public sealed partial class FakeEgm : IDisposable
     /// </remarks>
     private static readonly FrozenSet<byte> WithoutMachinery = new byte[]
     {
-        0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F, 0x90, 0x9A,
+        0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F,
     }.ToFrozenSet();
 
     // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
@@ -119,6 +117,7 @@ public sealed partial class FakeEgm : IDisposable
         _aftBonus = _options.AftBonus;
         _aftOn = _options.Aft;
         _creditLimitCents = _options.CreditLimitCents;
+        _legacyBonus = _options.LegacyBonus;
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -680,12 +679,16 @@ public sealed partial class FakeEgm : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(games);
         ArgumentOutOfRangeException.ThrowIfNegative(betCredits);
         ArgumentOutOfRangeException.ThrowIfNegative(winCredits);
+        WaitOutGameDelay();
 
         // A wager and a win are both numbers of game credits; the meters they feed are in
         // accounting units. The two are the same size only when a game credit happens to be worth
         // one accounting unit.
         long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
         long won = winCredits * _options.CentsPerGameCredit / AccountingCents;
+
+        // The credit meter is read and written back under the gate, so a bonus paid meanwhile is not lost.
+        using Lock.Scope creditsHeld = _gate.EnterScope();
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
@@ -758,6 +761,8 @@ public sealed partial class FakeEgm : IDisposable
 
         if (handpaid)
             RaiseHandpay(Core.Scripting.HandpayKind.Jackpot, won * AccountingCents);
+
+        StartGameDelay();
     }
 
     /// <summary>
@@ -890,6 +895,7 @@ public sealed partial class FakeEgm : IDisposable
         while (_running)
         {
             TickAft(link);
+            TickLegacyBonus();
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -941,6 +947,7 @@ public sealed partial class FakeEgm : IDisposable
             return;
 
         NoteHandpayAcknowledgement(link, link.Frame.AsSpan(0, count));
+        NoteLegacyBonusAcknowledgement(link, link.Frame.AsSpan(0, count));
 
         bool ownGeneralPoll = count == 1 && own;
         bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
@@ -984,6 +991,7 @@ public sealed partial class FakeEgm : IDisposable
             {
                 link.Exceptions.Refuse();
                 ForgetHandpayReading(link);
+                ForgetLegacyBonusReading(link);
             }
 
             link.AwaitingSync = true;
@@ -1169,6 +1177,10 @@ public sealed partial class FakeEgm : IDisposable
             return;
         }
 
+        // The legacy bonus polls, answered or silenced as the library's own handlers decide.
+        if (AnswerLegacyBonus(link, command, frame))
+            return;
+
         //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
         //  validation does not answer the cashout ticket information poll at all. Silence rather
         //  than a rejection, because the two say different things - a rejection would tell the
@@ -1215,6 +1227,8 @@ public sealed partial class FakeEgm : IDisposable
                 SendData(link, layout, frame);
                 if (command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO)
                     RememberHandpayReading(link, frame);
+                else if (command == (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN)
+                    RememberLegacyBonusReading(link, frame);
                 return;
 
             default:

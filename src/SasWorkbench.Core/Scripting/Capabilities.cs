@@ -119,7 +119,7 @@ public sealed record MachineAnswers(
 }
 
 /// <summary>Works out what this machine and this build can do.</summary>
-public static class CapabilityProbe
+public static partial class CapabilityProbe
 {
     /// <summary>
     /// Everything that is true regardless of which machine is on the other end of the link.
@@ -254,6 +254,9 @@ public static class CapabilityProbe
 
             // The transfer limit a machine enforces is published in the $74 status it reports.
             TransferLimitCapability,
+            // Legacy bonusing and multiplied jackpots have enabled-features bits of their own.
+            LegacyBonusCapability,
+            MultipliedJackpotCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
@@ -344,6 +347,11 @@ public static class CapabilityProbe
 
         if (asked.Contains(TransferLimitCapability))
             Note(TransferLimitCapability, AskTransferLimit(engine, values));
+        if (asked.Contains(LegacyBonusCapability))
+            Note(LegacyBonusCapability, AskLegacyBonus(engine, values));
+
+        if (asked.Contains(MultipliedJackpotCapability))
+            Note(MultipliedJackpotCapability, AskMultipliedJackpot(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }
@@ -630,6 +638,7 @@ public static class CapabilityProbe
                 ["machine.aft_operator_registration"] = "yes",
                 ["stimulus.aft_registration"] = "yes",
                 ["stimulus.aft_bonus"] = "yes",
+                ["stimulus.legacy_bonus"] = "yes",
 
                 // Its configuration is the script's to work - transfers on and off, and a credit limit no poll
                 // reports - and its credit meter holds restricted credit, which no poll says a machine can.
@@ -677,6 +686,7 @@ public static class CapabilityProbe
                 ["stimulus.aft_bonus"] = "yes",
                 ["stimulus.aft_configuration"] = "yes",
                 ["stimulus.credit_limit"] = "yes",
+                ["stimulus.legacy_bonus"] = "yes",
 
                 // A person makes the machine owe it at the cabinet, so the host never withdraws
                 // the printer the way it must for the peripheral driver.

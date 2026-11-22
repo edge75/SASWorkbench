@@ -84,6 +84,8 @@ public sealed partial class FakeEgm
         0x71 => RedeemTicket(request),
         0x73 => RegisterGamingMachine(request),
         0x74 => LockAndStatus(request),
+        0x90 => LegacyBonusWin(),
+        0x9A => LegacyBonusMeters(layout, request),
         0x7B => ExtendedValidationStatus(),
 
         0x18 => GamesSince(),
@@ -697,8 +699,8 @@ public sealed partial class FakeEgm
         return new Dictionary<string, object>
         {
             ["game_number"] = game,
-            // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT), set while bonusing is on, as QSP configures it.
-            ["feature_codes_1"] = (byte)(_aftOn && AftBonusOn ? 0x02 : 0x00),
+            // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT) and bit 2 legacy bonus awards, each set while the operator has it on.
+            ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits()),
             ["validation_style"] = (byte)validation,
             ["validation_extensions"] = (byte)0,
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),

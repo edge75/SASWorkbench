@@ -43,16 +43,16 @@ failures together):
 | 12 | Non-SAS progressives | 30 | 0 | 30 | a non-SAS progressive link on the machine (29), a multi-denomination machine (1) |
 | 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
 | 14 | AFT bonusing | 11 | 10 | 1 | a credit limit (1); 2 of the 10 fail, both findings |
-| 15 | Legacy bonusing | 37 | 4 | 33 | legacy bonusing on the machine (27), a card game (3) |
+| 15 | Legacy bonusing | 37 | 13 | 24 | a jackpot limit (8), a game held open (3), a card game (3), a multi-game machine (3); 1 of the 13 fails, a finding |
 | 16 | AFT transfers | 90 | 66 | 24 | a power cycle (5), host timing (4), a printer fault (3), a game left running (3); 17 of the 66 fail, all of them findings |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | the $76 decoder (4) |
 | 18 | Tournament | 10 | 2 | 8 | tournament play on the machine (8) |
 | 19 | Authentication | 16 | 1 | 15 | component authentication on the machine (15), the $6E decoder (12) |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
-| 22 | MJT | 28 | 1 | 27 | legacy bonusing on the machine (27), multiplied jackpots on the machine (27) |
+| 22 | MJT | 28 | 1 | 27 | multiplied jackpots on the machine (27), a jackpot limit (6), a game held open (5) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **225** | **407** | |
+| | **total** | **632** | **234** | **398** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

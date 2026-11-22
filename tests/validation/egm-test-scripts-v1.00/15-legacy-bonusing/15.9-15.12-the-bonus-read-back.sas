@@ -6,7 +6,8 @@
 # information poll $1B then describes like any other jackpot - group 0, level 0, the bonus as the
 # amount - and $7C follows the reset rather than the award.
 #
-# The software machine offers no legacy bonusing (machine.legacy_bonus), so none of these run.
+# The software machine takes legacy bonuses but sets no jackpot limit (machine.jackpot_limit), so
+# only 15.9 runs here.
 
 test "15.9 the last bonus can be read back" {
   tag @egm-test-scripts @chapter-15 @needs-a-person

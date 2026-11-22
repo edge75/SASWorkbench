@@ -5,7 +5,7 @@
 # coin out. The game end event, though, reports only what the game itself paid; the extra part is
 # the $7C's to report.
 #
-# The software machine has no multiplied jackpots, so all three skip on machine.multiplied_jackpot.
+# The software machine offers no multiplied jackpots, so all three skip on machine.multiplied_jackpot.
 # The meters are read with the selected-meter poll $6F, which this build decodes.
 
 test "22.11 credits won through a multiplier count as coin in when wagered" {

@@ -6,7 +6,7 @@
 # when the win is over the jackpot limit and an attendant pays it by hand. In the hand pay case the
 # $7C arrives only after the hand pay is reset.
 #
-# The software machine has no multiplied jackpots, so all four skip on machine.multiplied_jackpot;
+# The software machine offers no multiplied jackpots, so all four skip on machine.multiplied_jackpot;
 # the hand pay pair also needs a jackpot limit set below the win (machine.jackpot_limit).
 
 test "22.14 a deductible multiplied win paid to the credit meter" {
