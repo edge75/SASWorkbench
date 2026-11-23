@@ -9,8 +9,8 @@ namespace SasWorkbench.Egm;
 /// Drives the software gaming machine peer directly, in the same process.
 /// </summary>
 /// <remarks>
-/// Only the stimuli the peer actually implements are offered. A button press, for instance, needs
-/// the peripheral simulator, so asking for one here produces a skip naming the missing
+/// Only the stimuli the peer actually implements are offered. A coin, for instance, needs a coin
+/// acceptor the platform does not have, so asking for one here produces a skip naming the missing
 /// capability rather than a quiet no-op followed by an assertion that passes for the wrong reason.
 /// Doors are modelled by the protocol door rather than by a physical switch, which is what lets
 /// one script run against both this peer and a real machine.
@@ -65,19 +65,32 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
-            // Nothing on this machine can be disconnected, so settling it means shutting whatever
-            // it has open. On a machine that starts shut this does nothing at all, which is the
-            // honest outcome rather than a reason to leave the step unsupported.
+            // Settling shuts whatever is open and clears every peripheral fault. On a machine that
+            // starts shut and healthy this does nothing at all, which is the honest outcome rather
+            // than a reason to leave the step unsupported.
             case SettleStep:
                 machine.Settle();
                 return;
 
-            //  The only button this machine has. A collect on an empty machine prints nothing,
+            //  A collect on an empty machine prints nothing,
             //  which is what a real one does too, so it is not an error - the assertion waiting
             //  for a ticket is what reports it, and reports it as the machine having no money on
             //  it rather than as a button that does not exist.
             case PressButtonStep press when press.Button is "collect":
                 machine.Cashout(walletDirectory);
+                return;
+
+            case PressButtonStep press when press.Button is "service":
+                machine.PressService();
+                return;
+
+            case PeripheralFaultStep fault:
+                string? why = fault.Device == PeripheralDevice.Note
+                    ? machine.NoteFault(fault.Fault)
+                    : machine.PrinterFault(fault.Fault);
+                if (why is not null)
+                    throw new StimulusUnavailableException($"the software machine cannot do '{fault.Describe()}': {why}");
+
                 return;
 
             case HandpayStep handpay:

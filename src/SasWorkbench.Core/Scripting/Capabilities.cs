@@ -654,6 +654,12 @@ public static partial class CapabilityProbe
                 ["stimulus.play"] = "yes",
                 ["stimulus.settle"] = "yes",
                 ["stimulus.button.collect"] = "yes",
+
+                // The platform's service button, and the note acceptor and printer faults it maps to exceptions;
+                // it has no coin acceptor, hopper or reels, no report for a note pulled back and no ribbon, so those stay absent (D46).
+                ["stimulus.button.service"] = "yes",
+                ["stimulus.note_fault"] = "yes",
+                ["stimulus.printer_fault"] = "yes",
                 ["stimulus.door.slot"] = "yes",
                 ["stimulus.door.main"] = "yes",
                 ["stimulus.door.card_cage"] = "yes",
@@ -680,6 +686,12 @@ public static partial class CapabilityProbe
                 ["stimulus.door.main"] = "yes",
                 ["stimulus.button.collect"] = "yes",
                 ["stimulus.button.service"] = "yes",
+
+                // A person can fault a note acceptor or a printer and clear it again, pull a note back and wear a ribbon.
+                ["stimulus.note_fault"] = "yes",
+                ["stimulus.note_fault.reversed"] = "yes",
+                ["stimulus.printer_fault"] = "yes",
+                ["stimulus.printer_fault.ribbon"] = "yes",
 
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",

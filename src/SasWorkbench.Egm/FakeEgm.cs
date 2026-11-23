@@ -831,7 +831,7 @@ public sealed partial class FakeEgm : IDisposable
         return true;
     }
 
-    /// <summary>Shuts every door that is open, and says which ones those were.</summary>
+    /// <summary>Shuts every door that is open and clears every peripheral fault, and says which doors those were.</summary>
     public IReadOnlyList<string> Settle()
     {
         string[] open;
@@ -841,6 +841,7 @@ public sealed partial class FakeEgm : IDisposable
         foreach (string door in open)
             SetDoor(door, open: false);
 
+        ClearPeripheralFaults();
         return open;
     }
 
