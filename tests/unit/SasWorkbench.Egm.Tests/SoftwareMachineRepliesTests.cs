@@ -150,8 +150,8 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(88, SasLayouts.All.Count);
-        Assert.Equal(77, answered);
+        Assert.Equal(89, SasLayouts.All.Count);
+        Assert.Equal(78, answered);
     }
 
     /// <summary>

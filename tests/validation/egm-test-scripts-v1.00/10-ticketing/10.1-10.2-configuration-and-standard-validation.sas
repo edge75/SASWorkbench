@@ -24,7 +24,7 @@ test "10.1.1 the validation style is selected at the machine and remembered" {
 # What the machine says it is, when it is doing secure enhanced validation.
 test "10.1.2 the enabled features reply reports secure enhanced validation" {
   tag @egm-test-scripts @chapter-10
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lpA0
 
   host connect loopback address 01
