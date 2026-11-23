@@ -463,6 +463,7 @@ public static class ScriptEmitter
             : $"egm handpay {handpay.AmountCents}",
         HandpayResetStep => "egm handpay reset",
         PowerCycleStep => "egm power cycle",
+        NvramClearStep => "egm nvram clear",
         MemoryFaultStep fault =>
             $"egm memory fault {MemoryFaultStep.Words.First(w => w.Value == fault.Kind).Key}",
         InsertTicketStep ticket =>

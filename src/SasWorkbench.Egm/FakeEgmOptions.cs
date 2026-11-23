@@ -213,6 +213,9 @@ public sealed record FakeEgmOptions
     /// </summary>
     public TimeSpan LinkLossAfter { get; init; } = TimeSpan.FromSeconds(5);
 
+    /// <summary>How long a power cycle or a memory clear leaves the machine dead to the line before it starts again.</summary>
+    public TimeSpan PowerOffTime { get; init; } = TimeSpan.FromMilliseconds(500);
+
     /// <summary>
     /// How the machine is divided between hosts, or null for one channel owning everything.
     /// </summary>

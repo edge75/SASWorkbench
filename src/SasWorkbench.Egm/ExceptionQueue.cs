@@ -163,6 +163,15 @@ internal sealed class ExceptionQueue
         _repeats = 0;
     }
 
+    /// <summary>Empties the queue outright, as a memory clear zeroes the library's copy of it (libsas_internal.cpp:756).</summary>
+    public void Clear()
+    {
+        _queue.Clear();
+        _overflowPending = false;
+        _unacknowledged = null;
+        _repeats = 0;
+    }
+
     /// <summary>A final refusal: the exception last sent goes back to the head of the queue.</summary>
     public void Refuse()
     {

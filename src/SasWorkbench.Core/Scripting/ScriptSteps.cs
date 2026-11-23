@@ -586,6 +586,19 @@ public sealed record PowerCycleStep(SourceLocation Location) : StimulusStep(Loca
         "power cycle (cut the machine's power, restore it, and wait until it has booted)";
 }
 
+/// <summary>Has the operator clear the machine's memory, which empties every meter and every record and restarts it.</summary>
+public sealed record NvramClearStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "machine.nvram_clear";
+
+    public override string Describe() =>
+        "NVRAM clear (the operator clears the machine's memory, and it restarts)";
+
+    public override string Guidance =>
+        "How: on a QSP machine, the NVRAM reset in the audit menu, which clears the meters; "
+        + "set the SAS address and asset number again if they were lost, then confirm once it has booted.";
+}
+
 /// <summary>Which memory fault a case asks for, by the exception it should raise.</summary>
 public enum MemoryFaultKind
 {
@@ -645,7 +658,22 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
             ["clear"] = MemoryFaultKind.Clear,
         };
 
-    public override string RequiredCapability => "machine.memory_fault";
+    /// <summary>
+    /// The faults some machines never report, each needing a capability of its own, so a case that
+    /// needs one skips on such a machine instead of failing after a step that could not happen.
+    /// </summary>
+    public static string CapabilityFor(MemoryFaultKind kind) => kind switch
+    {
+        MemoryFaultKind.CmosRecovered => "machine.memory_fault.cmos_recovered",
+        MemoryFaultKind.CmosBadDevice => "machine.memory_fault.cmos_bad_device",
+        MemoryFaultKind.EepromData or MemoryFaultKind.EepromBadDevice => "machine.memory_fault.eeprom",
+        MemoryFaultKind.EpromBadChecksum => "machine.memory_fault.eprom_checksum",
+        MemoryFaultKind.PartitionedEpromChanged or MemoryFaultKind.PartitionedEpromBadChecksum =>
+            "machine.memory_fault.partitioned_eprom",
+        _ => "machine.memory_fault",
+    };
+
+    public override string RequiredCapability => CapabilityFor(Kind);
 
     public override string Describe() => Kind switch
     {
