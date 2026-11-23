@@ -79,6 +79,8 @@ test "16.34 game locked goes ahead of the queue" {
   host send lp 74 data 000F9999
   host expect field game_lock_status != $FF
   host send gp draws game_locked
+  # The same general poll twice is a refusal (3.20), so a poll to another machine acknowledges the first.
+  host send gp draws silence to 7F
   host send gp draws slot_door_opened
 
   note "Keep polling: $6F recurs about every five seconds among the queued door exceptions. A second lock request still answers $00 or $40 and the machine stays unplayable; a power cycle ends the $6F and makes it playable."

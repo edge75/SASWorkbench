@@ -1,9 +1,11 @@
 # Chapter 4, sections 4.14 to 4.20 - power, memory faults and the operator.
 #
-# Seven cases about events a machine raises about itself rather than about a player. None of them
-# can be produced here: they need the power cut, a memory device made to fail, a different program
-# chip fitted, or somebody in the machine's configuration screens. Every one of them says "consult
-# the manufacturer" in the document, which is the document admitting the same thing.
+# Seven cases about events a machine raises about itself rather than about a player. On a real
+# machine they need the power cut, a memory device made to fail, a different program chip fitted,
+# or somebody in the configuration screens, and every one says "consult the manufacturer" in the
+# document. A fault some machines never report has a capability of its own, so a case needing one
+# skips on such a machine rather than failing after a step that cannot happen; the software machine,
+# like its platform, reports only $32, $36 and $3A among them.
 
 # Power applied always; power lost only if something in the machine stayed awake to notice.
 test "4.14 AC power on and off" {
@@ -33,6 +35,7 @@ test "4.14 AC power on and off" {
 test "4.15 CMOS RAM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
   requires machine.memory_fault, stimulus.settle, stimulus.bill, decoder.lp1C, host.compare_replies
+  requires machine.memory_fault.cmos_recovered, machine.memory_fault.cmos_bad_device
 
   host connect loopback address 01
   host poll every 200ms
@@ -79,7 +82,7 @@ test "4.15 CMOS RAM errors" {
 
 test "4.16 EEPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault, stimulus.settle
+  requires machine.memory_fault.eeprom, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
@@ -103,7 +106,7 @@ test "4.16 EEPROM errors" {
 
 test "4.17 EPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault, stimulus.settle
+  requires machine.memory_fault, machine.memory_fault.eprom_checksum, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
@@ -129,7 +132,7 @@ test "4.17 EPROM errors" {
 
 test "4.18 partitioned EPROM errors" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault, stimulus.settle
+  requires machine.memory_fault.partitioned_eprom, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms
@@ -156,7 +159,7 @@ test "4.18 partitioned EPROM errors" {
 # The reset is the operator's acknowledgement of the fault, and it has its own code.
 test "4.19 memory error reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.memory_fault, stimulus.settle
+  requires machine.memory_fault, machine.memory_fault.eeprom, stimulus.settle
 
   host connect loopback address 01
   host poll every 200ms

@@ -8,12 +8,24 @@
 # A lifetime meter reset is a memory clear, and it announces itself.
 test "4.26 soft meter reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.nvram_clear
+  requires machine.nvram_clear, stimulus.settle
 
-  note "With the link up, reset the machine's lifetime meters by whatever means it offers - a clear chip, a jumper, a menu. One $7A on a general poll each time they are zeroed."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # The lifetime meters zeroed by the means the machine offers: one $7A.
+  egm nvram clear
+  host expect link up within 120s
+  host expect exception gaming_machine_soft_meters_reset_to_zero within 30s
+  host expect no exception gaming_machine_soft_meters_reset_to_zero within 10s
+
+  note "The document asks for the reset by whatever means the machine offers - a clear chip, a jumper, a menu; a memory clear is the means a QSP machine offers, and it reports $3A as well."
 }
 
-# The bill validator's own totals, which are a period meter and reset separately.
 test "4.27 bill totals reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
   requires machine.nvram_clear

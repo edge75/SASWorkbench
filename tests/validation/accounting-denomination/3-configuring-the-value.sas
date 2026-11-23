@@ -23,6 +23,7 @@ test "AD-09 a legal value is accepted" {
   tag @accounting-denomination @needs-configuration
   requires decoder.lp1F
   requires machine.accounting_denomination
+  requires machine.config_file
   requires machine.nvram_clear
 
   note "Set the accounting denomination to 10 with the nine player denominations enabled, clear NVRAM, and boot."
@@ -38,6 +39,7 @@ test "AD-09b the per-game reply agrees with the machine reply" {
   tag @accounting-denomination @needs-configuration
   requires decoder.lp53
   requires machine.accounting_denomination
+  requires machine.config_file
   requires machine.nvram_clear
 
   host connect loopback address 01
@@ -87,6 +89,7 @@ test "AD-12 an indivisible value is refused and the machine reports in cents" {
   tag @accounting-denomination @needs-configuration
   requires decoder.lp1F
   requires machine.accounting_denomination
+  requires machine.config_file
   requires machine.nvram_clear
 
   note "Set the accounting denomination to 25 with the nine player denominations enabled, clear NVRAM, and boot."
@@ -102,6 +105,7 @@ test "AD-13 a value the protocol cannot express is refused" {
   tag @accounting-denomination @needs-configuration
   requires decoder.lp1F
   requires machine.accounting_denomination
+  requires machine.config_file
   requires machine.nvram_clear
 
   note "Set the accounting denomination to 30, which is not in Table C-4. Clear NVRAM and boot."
