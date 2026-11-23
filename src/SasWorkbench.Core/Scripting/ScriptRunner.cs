@@ -108,7 +108,7 @@ public sealed record ScriptRunnerOptions
 /// that mentioned a door.
 /// </para>
 /// </remarks>
-public sealed class ScriptRunner
+public sealed partial class ScriptRunner
 {
     private readonly ScriptRunnerOptions _options;
 
@@ -222,7 +222,7 @@ public sealed class ScriptRunner
         ScriptEnvironment environment;
         try
         {
-            environment = _options.Environment(connect, _options, test.Machine, test.Channels, test.Validation);
+            environment = _options.Environment(connect, _options, test.Machine, test.Channels, test.Validation, test.Progressive);
         }
         catch (TransportRefusedException refused)
         {
@@ -343,6 +343,8 @@ public sealed class ScriptRunner
             all = all.Append(machine.AsRequirement());
         if (test.Validation is { } validation)
             all = all.Append(validation.AsRequirement());
+        if (test.Progressive?.AsRequirement() is { } progressive)
+            all = all.Append(progressive);
 
         //  The channel arrangement is deliberately not a requirement. No long poll reports how a
         //  machine divides itself, so nothing can answer it before the link opens; opening the
@@ -533,6 +535,7 @@ public sealed class ScriptRunner
         //  Everything already in the wallet belongs to whatever ran before this test.
         printed.Baseline();
 
+        using var broadcasts = new HostBroadcasts();
         using (hosts)
         {
             try
@@ -607,6 +610,12 @@ public sealed class ScriptRunner
 
                         WarmUpStep warm => WarmUp(warm, connect, hosts, stopwatch.Elapsed),
 
+                        BroadcastStep broadcast => StartBroadcast(broadcast, hosts.Engine, broadcasts, stopwatch.Elapsed),
+
+                        StopBroadcastsStep stop => StopBroadcasts(stop, broadcasts, stopwatch.Elapsed),
+
+                        ExpectAnswerStep answer => ExpectAnswer(answer, hosts.Engine, hosts.Machine, stopwatch.Elapsed),
+
                         UseMachineStep onto =>
                             hosts.TryUseMachine(onto.Address, out string? notPolled)
                                 ? Moved(onto, hosts, test, baselines, stopwatch.Elapsed)
@@ -668,6 +677,7 @@ public sealed class ScriptRunner
                     break;
             }
 
+            broadcasts.Dispose();
             IReadOnlyList<WireRecord> wire = hosts.Wire();
             hosts.StopAll();
 

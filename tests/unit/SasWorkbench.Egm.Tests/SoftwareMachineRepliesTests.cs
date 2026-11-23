@@ -60,8 +60,8 @@ public class SoftwareMachineRepliesTests
     }
 
     /// <summary>
-    /// The commands this machine has no machinery for, and answers with silence. Every one of
-    /// them has a layout, so nothing here is unanswered for want of a decoder.
+    /// The commands this machine has no machinery for, and answers with silence. Both of them
+    /// have a layout, so nothing here is unanswered for want of a decoder.
     /// </summary>
     /// <remarks>
     /// A zero from a machine that has no reels is not the same statement as a zero from a machine
@@ -69,26 +69,20 @@ public class SoftwareMachineRepliesTests
     /// answered until the machinery exists, and this list is what says so out loud.
     /// <para>
     /// Silence rather than a refusal, because that is what the machine library does and it was
-    /// read rather than assumed: not one of these eight ever sends a refusal. A
+    /// read rather than assumed: neither of these ever sends a refusal. A
     /// machine answers them or says nothing, so a fixture that refused was the only one of the
     /// three peers doing something no real machine does.
     /// </para>
     /// </remarks>
     public static TheoryData<byte, string> UnansweredForWantOfMachinery => new()
     {
-        { 0x80, "00010000000100" },
-        { 0x83, "0000" },
-        { 0x84, "" },
-        { 0x85, "" },
-        { 0x86, "020001" },
-        { 0x87, "" },
         { 0x8E, "" },
         { 0x8F, "" },
     };
 
     [Theory]
     [MemberData(nameof(UnansweredForWantOfMachinery))]
-    public void A_machine_with_no_progressive_reels_or_cards_says_nothing_rather_than_zero(
+    public void A_machine_with_no_reels_or_cards_says_nothing_rather_than_zero(
         byte command, string request)
     {
         using var rig = new Rig();
@@ -118,15 +112,18 @@ public class SoftwareMachineRepliesTests
     [Fact]
     public void Every_reply_in_the_catalogue_is_classified()
     {
-        // Nothing in the catalogue is refused any more: a refusal is now reserved for this
-        // fixture's own gaps, and there are none among the commands it has layouts for.
-        byte[] refused = [];
+        // Level zero is refused by the library's own handler (lp.cpp:7878); every other refusal is
+        // reserved for this fixture's own gaps, and there are none among the commands it has layouts for.
+        byte[] refused = [0x80];
         byte[] silent =
         [
             0x4C, 0x4D, 0xB2,
 
-            // No progressive, no cards, no reels — see WithoutMachinery.
-            0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F,
+            // A multiple-level broadcast with no length byte is never framed by the receiver.
+            0x86,
+
+            // No cards, no reels — see WithoutMachinery.
+            0x8E, 0x8F,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -151,7 +148,7 @@ public class SoftwareMachineRepliesTests
 
         Assert.Empty(wrong);
         Assert.Equal(89, SasLayouts.All.Count);
-        Assert.Equal(78, answered);
+        Assert.Equal(82, answered);
     }
 
     /// <summary>

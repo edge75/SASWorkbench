@@ -7,15 +7,17 @@
 # non-SAS levels one to four. The machine library agrees: it counts only levels configured as SAS
 # levels in that reply, and reports a non-SAS win with group zero.
 #
-# The software machine has no progressive of either kind, so every case in this chapter skips on
-# 'machine.progressives' - a machine configured with a non-SAS progressive link. Running them on a
-# machine without one would pass for the wrong reason: zero is what any machine with no progressive
-# reports. The document's host simulator settings - no multi-level updates, group zero, no levels
-# - are this host's behaviour already, since it never sends a progressive update unless told to.
+# Each case declares the machine's non-SAS levels, so the software machine is built with them and
+# claims 'machine.progressives'; no poll can tell a non-SAS level is there, so any other machine
+# skips. Running them on a machine without one would pass for the wrong reason: zero is what any
+# machine with no progressive reports. The document's host simulator settings - no multi-level
+# updates, group zero, no levels - are this host's behaviour already, since it never sends a
+# progressive update unless told to.
 
 test "12.1 the identification reply gives group zero" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, decoder.lp1F
+  machine progressive non_sas levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -31,6 +33,7 @@ test "12.1 the identification reply gives group zero" {
 test "12.2 the extended information of the machine gives no group and no levels" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, decoder.lpB5
+  machine progressive non_sas levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -48,6 +51,7 @@ test "12.2 the extended information of the machine gives no group and no levels"
 test "12.3 the extended information of each game gives no group and no levels" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, decoder.lpB5, decoder.lp51, decoder.lp56
+  machine progressive non_sas levels 1-4
 
   host connect loopback address 01
   host poll every 200ms

@@ -40,8 +40,8 @@ failures together):
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15) |
 | 10 | Tickets | 72 | 37 | 35 | meters by name (16), notes only (7), hand pay validation (3), the $7C and $7D decoders (4) |
 | 11 | Real-time events | 25 | 7 | 18 | notes only (7), watching for the chirp (2), a card game (2) |
-| 12 | Non-SAS progressives | 30 | 0 | 30 | a non-SAS progressive link on the machine (29), a multi-denomination machine (1) |
-| 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
+| 12 | Non-SAS progressives | 30 | 13 | 17 | a jackpot limit (12), a multi-game machine (3), a multi-denomination machine (3); 1 of the 13 fails, a finding |
+| 13 | SAS-controlled progressives | 40 | 22 | 18 | a jackpot limit (12), a multi-game machine (4), a multi-denomination machine (3); 1 of the 22 fails, a finding |
 | 14 | AFT bonusing | 11 | 10 | 1 | a credit limit (1); 2 of the 10 fail, both findings |
 | 15 | Legacy bonusing | 37 | 13 | 24 | a jackpot limit (8), a game held open (3), a card game (3), a multi-game machine (3); 1 of the 13 fails, a finding |
 | 16 | AFT transfers | 90 | 76 | 14 | host timing (4), a game left running (3), notes only (2); 20 of the 76 fail, all of them findings |
@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 4 | 13 | a decoder for the command itself (12) |
 | 22 | MJT | 28 | 1 | 27 | multiplied jackpots on the machine (27), a jackpot limit (6), a game held open (5) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **303** | **329** | |
+| | **total** | **632** | **335** | **297** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

@@ -125,7 +125,7 @@ public sealed partial class FakeEgm
         lock (_openDoors)
             doorOpen = _openDoors.Count > 0;
 
-        return !doorOpen && _enabled && _handpay is not { Reset: false } && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull;
+        return !doorOpen && _enabled && _handpay is not { Reset: false } && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull && !ProgressiveWaitLocked();
     }
 
     /// <summary>What the platform publishes as available now: everything configured, nothing while unplayable.</summary>

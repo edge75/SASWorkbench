@@ -733,3 +733,34 @@ Three choices go with it:
   completes (QSP SasNetwork.cpp:1219, SasNetwork_Conditions.hpp:63).
 
 The design note is `docs/M7-software-machine-lifecycle.md`.
+
+---
+
+# Decision 49
+
+Taken on 2026-11-23 while building the progressives group of M8, without the user (the brief says to
+take the reasonable choice and list it). Open to review like any other.
+
+## D49 — A case declares the progressive levels, and the host can keep them broadcast
+
+The group is set in the operator's menu and which levels a host feeds is the game's, so no poll can
+change either; a case chooses them the way it chooses a validation style (D47):
+**`machine progressive sas group <g> levels <list>`** and **`machine progressive non_sas levels
+<list>`** are declarations. The software machine is built with them. Any other machine is asked its
+group off $1F (`machine.sas_progressives`, valued with the group) and the case skips on another. A
+non-SAS level reports group zero on every poll, so nothing can tell one is there: only the software
+machine built with one claims `machine.progressives`, and on any other machine those cases skip.
+
+The machine's half follows D44: the library's handlers check for check, and QSP's choices of when a
+win is announced and paid and that a linked level not being broadcast locks the machine up. Three
+smaller choices go with it:
+
+* The software machine now answers $80 to $87 as the library does on every machine, zeros included,
+  instead of keeping silent; only $8E and $8F stay without machinery.
+* **`host broadcast lp 80|86 ... every <duration>`** keeps a broadcast going to 00 in the background
+  until `host broadcast stop`, never during a sequence; `host.progressive_broadcast` is baseline.
+* **`egm progressive win level=<n>[,<n>...]`** plays one game that wins those levels, paid by the
+  machine to its credit meter; a stand-alone level is worth $10.00. A win paid by hand waits for the
+  jackpot limit of group 5.
+
+The design note is `docs/M7-software-machine-progressives.md`.

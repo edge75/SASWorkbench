@@ -129,9 +129,22 @@ test "AD-28 progressive amounts stay in cents" {
   tag @accounting-denomination @needs-stimulus
   requires decoder.lp84
   requires machine.accounting_denomination
+  requires machine.progressives
   requires stimulus.progressive
+  requires stimulus.bill
 
   machine accounting denomination 10c
+  machine progressive non_sas levels 1
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  # The software machine's own level stands at $10.00, so the reply carries 1000 cents and not 100 units.
+  egm bill insert 1000
+  egm progressive win level=1
+  host send lp 84
+  host expect field amount == 1000
 
   note "Configuration B, with a progressive level at a known amount. Section 10.4 puts these amounts in units of cents."
 }

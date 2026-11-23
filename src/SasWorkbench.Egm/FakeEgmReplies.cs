@@ -11,9 +11,9 @@ namespace SasWorkbench.Egm;
 /// <para>
 /// One rule decides whether a command is here at all: this machine answers where the answer is
 /// something it actually holds - a meter it keeps, or a meter that is genuinely zero because it
-/// has no such machinery - and refuses where it would have to invent one. It has no progressive,
-/// no legacy bonus, no reels and no cards, so the commands that report those are refused and stay
-/// refused; a zero from a machine that cannot count the thing is not an honest zero.
+/// has no such machinery - and refuses where it would have to invent one. It has no reels and no
+/// cards, so the commands that report those are refused and stay refused; a zero from a machine
+/// that cannot count the thing is not an honest zero.
 /// </para>
 /// <para>
 /// Where the machine library answers a command with silence rather than with a reply - a
@@ -85,6 +85,7 @@ public sealed partial class FakeEgm
         0x73 => RegisterGamingMachine(request),
         0x74 => LockAndStatus(request),
         0x90 => LegacyBonusWin(),
+        0x83 => CumulativeProgressiveWins(layout, request),
         0x9A => LegacyBonusMeters(layout, request),
         0x7B => ExtendedValidationStatus(request),
 
@@ -475,9 +476,8 @@ public sealed partial class FakeEgm
     /// One game's name, paytable, largest bet and progressive levels.
     /// </summary>
     /// <remarks>
-    /// The progressive levels are zero because this machine belongs to no progressive group, and
-    /// the library zeroes them for exactly that reason rather than leaving whatever a game
-    /// configured. The wager category count is zero because it has none.
+    /// The progressive levels are the ones a host feeds, and zero on a machine in no group, which the
+    /// library zeroes for exactly that reason. The wager category count is zero because it has none.
     /// </remarks>
     private Dictionary<string, object>? ExtendedGameInformation(
         SasMessageLayout layout, ReadOnlySpan<byte> request)
@@ -494,7 +494,8 @@ public sealed partial class FakeEgm
             ["game_number"] = game,
             ["max_bet"] = (long)_options.MaxBet,
             ["progressive_group"] = _options.ProgressiveGroup,
-            ["progressive_levels"] = 0L,
+            // The SAS levels, zeroed on a machine in no group (lp.cpp:10701, :10709).
+            ["progressive_levels"] = (long)SasLevels,
             ["name_length"] = name.Length,
             ["game_name"] = name,
             ["paytable_length"] = paytable.Length,
@@ -638,7 +639,8 @@ public sealed partial class FakeEgm
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
             // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430).
             ["feature_codes_2"] = (byte)(_aftOn ? 0x40 : 0x00),
-            ["feature_codes_3"] = (byte)0x00,
+            // QSP reports multiple SAS progressive wins on every machine (SasNetwork.cpp:306).
+            ["feature_codes_3"] = (byte)0x02,
             ["reserved"] = new byte[3],
         };
     }

@@ -10,7 +10,7 @@ than assertions about the build under test. They are run by hand with two builds
 
 ## Where it stands
 
-Six of the forty-four cases run against the software machine; the rest skip naming what they need.
+Thirteen of the forty-four cases run against the software machine; the rest skip naming what they need.
 Nothing here has ever run against a real machine, because the unit a machine counts in is
 established by a memory clear and nothing this build can do performs one.
 

@@ -9,12 +9,15 @@
 # stale level and not again every five seconds - until broadcasts resume.
 #
 # The machine library checks the group in both handlers and refuses a mismatch on $80 with a NACK.
-# On $86 a mismatch sent to its own address gets no answer at all, which 13.8 allows neither way;
-# that case cannot run here and the behaviour is stated in its note rather than asserted.
+# On $86 a mismatch sent to its own address gets no answer at all, which 13.8 allows neither way.
+#
+# @finding (13.8): lp86_MultipleLevelProgressive returns before its NACK on a group mismatch, the
+# NACK being commented out (lp.cpp:8395, "REET-13"), so the machine says nothing where the document
+# wants an acknowledgement or a refusal.
 #
 # Whether a level moved is read off the machine's progressive display, so it is a note. Every case
-# here needs a machine enrolled in a group (machine.sas_progressives) and skips on the software
-# machine, which ignores the progressive commands entirely.
+# declares the machine enrolled in group 1 and is checked against the group it reports
+# (machine.sas_progressives).
 #
 # $86 is written as bytes throughout the chapter - a length, the group, then a level and five BCD
 # bytes of cents per level - because a script cannot name the entries of a repeated group it sends.
@@ -22,6 +25,7 @@
 test "13.5 single-level broadcasts to address zero" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
   requires machine.sas_progressives, decoder.lp80
+  machine progressive sas group 1 levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -40,6 +44,7 @@ test "13.5 single-level broadcasts to address zero" {
 test "13.6 single-level amounts sent to the machine" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
   requires machine.sas_progressives, decoder.lp80
+  machine progressive sas group 1 levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -48,14 +53,19 @@ test "13.6 single-level amounts sent to the machine" {
   # The machine's own group is acknowledged.
   host send lp 80 with progressive_group=1 level=1 amount=10000
 
+  # Group 0, then another group: each acknowledged or refused.
+  host expect answer to lp 80 data 00010000010000
+  host expect answer to lp 80 data 02010000010000
+
   note "Before the run, enrol the machine in group 1 with levels 1 to 4."
-  note "Also send level 1 at $100.00 for group 0 and then for group 2, to address 01. Each is either acknowledged or refused with a NACK - this build cannot assert one of two answers - and neither moves level 1 on the display. The machine library refuses both."
+  note "Neither of the other two groups moves level 1 on the display. The machine library refuses both."
   note "On the display, level 1 shows $100.00 after the acknowledged amount."
 }
 
 test "13.7 multiple-level broadcasts to address zero" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
   requires machine.sas_progressives, decoder.lp86
+  machine progressive sas group 1 levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -71,8 +81,9 @@ test "13.7 multiple-level broadcasts to address zero" {
 }
 
 test "13.8 multiple-level amounts sent to the machine" {
-  tag @egm-test-scripts @chapter-13 @needs-a-person
+  tag @egm-test-scripts @chapter-13 @needs-a-person @finding
   requires machine.sas_progressives, decoder.lp86
+  machine progressive sas group 1 levels 1-4
 
   host connect loopback address 01
   host poll every 200ms
@@ -80,14 +91,19 @@ test "13.8 multiple-level amounts sent to the machine" {
 
   host send lp 86 data 1901010000010000020000015000030000020000040000025000
 
+  # Group 0, then another group: each acknowledged or refused.
+  host expect answer to lp 86 data 1900010000010000020000015000030000020000040000025000
+  host expect answer to lp 86 data 1902010000010000020000015000030000020000040000025000
+
   note "Before the run, enrol the machine in group 1 with levels 1 to 4, with the host's own progressive loop off."
-  note "Also send the same four levels for group 0 and then group 2, to address 01: each must be acknowledged or refused with a NACK, and no level moves. The machine library answers neither for a group mismatch on this command - the handler returns before its NACK - so on a machine built on it these two get no reply at all."
+  note "Neither of the other two groups moves a level. The machine library answers neither for a group mismatch on this command - the handler returns before its NACK - so on a machine built on it the two assertions fail: a finding."
   note "After the group-1 message is acknowledged the display shows the four amounts; had it been refused, the display would not have moved."
 }
 
 test "13.9 one report when a level stops being broadcast" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
   requires machine.sas_progressives, host.progressive_broadcast, decoder.lp86, decoder.lp80
+  machine progressive sas group 1 levels 1-3
 
   host connect loopback address 01
   host poll every 200ms
@@ -96,20 +112,21 @@ test "13.9 one report when a level stops being broadcast" {
   host forget exceptions within 2s
 
   # Level 1 drops out of the broadcast while 2 and 3 carry on: one $53, then none.
-  host send lp 86 data 0D01020000015000030000020000
+  host broadcast lp 86 data 0D01020000015000030000020000 every 1s
   host expect exception no_progressive_info_received within 8s
   host expect no exception no_progressive_info_received within 60s
+  host broadcast stop
 
   # The same with single-level updates.
   host send lp 80 with progressive_group=1 level=1 amount=10000
   host send lp 80 with progressive_group=1 level=2 amount=15000
   host send lp 80 with progressive_group=1 level=3 amount=20000
+  host broadcast lp 80 with progressive_group=1 level=2 amount=15000 every 1s
+  host broadcast lp 80 with progressive_group=1 level=3 amount=20000 every 1s
   host forget exceptions within 2s
-  host send lp 80 with progressive_group=1 level=2 amount=15000
-  host send lp 80 with progressive_group=1 level=3 amount=20000
   host expect exception no_progressive_info_received within 8s
   host expect no exception no_progressive_info_received within 60s
 
-  note "Before the run, enrol the machine in group 1 with levels 1, 2 and 3 and select a progressive game. The host must keep levels 2 and 3 refreshed every second throughout each sixty-second wait, which this build cannot do while it waits (host.progressive_broadcast)."
+  note "Before the run, enrol the machine in group 1 with levels 1, 2 and 3 and select a progressive game. The host keeps levels 2 and 3 broadcast every second throughout each sixty-second wait."
   note "The machine reports $53 once per loss, as a single byte with real-time reporting off; it must not repeat it every five seconds or once per stale level."
 }
