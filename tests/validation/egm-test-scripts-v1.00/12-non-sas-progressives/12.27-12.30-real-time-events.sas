@@ -5,9 +5,10 @@
 # zero, as every other reply in this chapter does, and the game end of a game that won the
 # progressive carries the progressive as its win, with no external bonus in it.
 #
-# The software machine has no progressive (machine.progressives), and this build cannot make a
-# level hit (stimulus.progressive). 12.29 asks for nothing the progressive changes except the group,
-# but it is gated like the rest: zero is what a machine without a progressive reports anyway.
+# 12.28 to 12.30 run on the software machine, built with the declared non-SAS level
+# (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive); 12.27 needs
+# a jackpot limit. 12.29 asks for nothing the progressive changes except the group, but it is gated
+# like the rest: zero is what a machine without a progressive reports anyway.
 
 test "12.27 the progressive hand pay and its reset as events" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
@@ -36,16 +37,18 @@ test "12.27 the progressive hand pay and its reset as events" {
 
 test "12.28 a progressive win as an event" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, stimulus.real_time_events, decoder.lp0E
+  requires machine.progressives, stimulus.progressive, stimulus.real_time_events, stimulus.bill, decoder.lp0E
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm bill insert 1000
   host send lp 0E data 01
   host forget exceptions within 2s
 
-  note "Play the progressive game until a level is won and paid by the machine."
+  egm progressive win level=1
   host expect exception progressive_win within 30s
 
   note "Before the run, configure the machine for a non-SAS progressive at level 1 and select the progressive game."
@@ -57,6 +60,7 @@ test "12.29 a game start reports group zero" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7E
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
@@ -80,6 +84,7 @@ test "12.30 a game end carries the progressive as its win" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, stimulus.progressive, stimulus.real_time_events
   requires stimulus.bill, decoder.lp0E, decoder.event7E, decoder.event7F
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
@@ -89,7 +94,7 @@ test "12.30 a game end carries the progressive as its win" {
   egm bill insert 10000
   host forget exceptions within 2s
 
-  note "Play at the maximum wager until a game wins the progressive, and note the win in accounting credits."
+  egm progressive win level=1
   host expect exception game_started within 30s
   host expect field win_amount of event game_ended > 0 within 30s
 

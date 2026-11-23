@@ -6,27 +6,30 @@
 # each denomination's movement sums to the machine's, and that a game number past the implemented
 # count goes unanswered.
 #
-# The software machine has no progressive (machine.progressives) and refuses $83 rather than
-# invent a total; this build cannot make a level hit (stimulus.progressive). The per-game sums need
-# every game's meter read and added (host.game_meter_delta), as 7.19 and 7.22 already state. Every
-# meter must also match the machine's own display, which is a person's to compare (D40).
+# 12.19 and 12.20 run on the software machine, built with the declared non-SAS level
+# (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive), paid to
+# its credit meter; the rest need a jackpot limit, several games or several denominations.
+# The per-game sums need every game's meter read and added (host.game_meter_delta), as 7.19
+# and 7.22 already state. Every meter must also match the machine's own display, which is a person's to compare (D40).
 
 test "12.19 cumulative progressive wins are the two progressive meters together" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, stimulus.handpay.reset
+  requires machine.progressives, stimulus.progressive, stimulus.handpay.reset, stimulus.bill
   requires decoder.lp6F, decoder.lpAF, decoder.lp83, decoder.lp1B, host.meter_arithmetic
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  host send lp 6F data 060000001D002000
+  host send lp 6F data 0600001D002000
   host remember field meters[0].value as machine_paid
   host remember field meters[1].value as attendant_paid
-  host send lp AF data 060000001D002000
+  host send lp AF data 0600001D002000
   host expect field meters[0].value == saved.machine_paid
   host expect field meters[1].value == saved.attendant_paid
 
@@ -35,7 +38,7 @@ test "12.19 cumulative progressive wins are the two progressive meters together"
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid
   host remember field cumulative_progressive_win as cumulative
 
-  note "Play the progressive game until level 1 is won, note the win in accounting credits, and if it locked the machine up read the hand pay information and reset it."
+  egm progressive win level=1
   host send lp 83 with game_number=0
   host expect field cumulative_progressive_win of lp 83 > saved.cumulative
 
@@ -46,13 +49,15 @@ test "12.19 cumulative progressive wins are the two progressive meters together"
 
 test "12.20 a progressive paid by the machine counts on meter 001D" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive
+  requires machine.progressives, stimulus.progressive, stimulus.bill
   requires decoder.lp6F, decoder.lpAF, host.meter_arithmetic
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001D00
@@ -60,7 +65,7 @@ test "12.20 a progressive paid by the machine counts on meter 001D" {
   host send lp AF data 0400001D00
   host expect field meters[0].value == saved.machine_paid
 
-  note "Set wins to go to the credit meter, play until level 1 is won, and note the win in accounting credits."
+  egm progressive win level=1
   host expect exception progressive_win within 30s
   host send lp 6F data 0400001D00
   host expect field meters[0].value > saved.machine_paid
@@ -121,10 +126,10 @@ test "12.22 each game's cumulative progressive wins" {
   host send lp 56
   host expect field count >= 1
 
-  host send lp 6F data 060001001D002000
+  host send lp 6F data 0600011D002000
   host remember field meters[0].value as machine_paid
   host remember field meters[1].value as attendant_paid
-  host send lp AF data 060001001D002000
+  host send lp AF data 0600011D002000
   host expect field meters[0].value == saved.machine_paid
   host expect field meters[1].value == saved.attendant_paid
 

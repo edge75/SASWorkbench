@@ -7,9 +7,9 @@
 # preamble ($B0) for one denomination. Group 00 means no SAS progressive at all, and then the level
 # bits are all clear.
 #
-# The software machine belongs to no group, so the half of 13.1 and 13.3 that reads group 00 runs
-# here; everything that needs the machine enrolled in group 1 states machine.sas_progressives and
-# skips. Every chapter-13 case assumes the host is the one that owns the progressive category on
+# The software machine belongs to no group unless a case declares one, so the half of 13.1 and 13.3
+# that reads group 00 runs on it as built; 13.2 declares group 1 and is checked against the group the
+# machine reports in $1F (machine.sas_progressives). Every chapter-13 case assumes the host is the one that owns the progressive category on
 # the machine's channel - the machine library ignores the progressive polls on any other channel.
 
 test "13.1 the identification reply carries the group" {
@@ -31,6 +31,7 @@ test "13.1 the identification reply carries the group" {
 test "13.2 the extended information of the machine as a whole carries group and levels" {
   tag @egm-test-scripts @chapter-13 @wire-only @needs-a-person
   requires machine.sas_progressives, decoder.lpB5
+  machine progressive sas group 1 levels 1-4
 
   host connect loopback address 01
   host poll every 200ms

@@ -9,8 +9,9 @@
 #
 # Each case reads the meter with both $6F and $AF, wins level 1 at $5.00, and compares the gain.
 # All of them declare the one-cent accounting unit, so the $5.00 win is five hundred units, and all
-# of them compare the reply with the audit screen, which is a person's to do (D40). Every case
-# needs a progressive won on an enrolled machine, so all of them skip here.
+# of them compare the reply with the audit screen, which is a person's to do (D40). The cases a
+# machine pays itself run on the software machine: they declare it enrolled in group 1, keep level 1
+# broadcast in the background and win it with 'egm progressive win'; the rest need a jackpot limit.
 
 test "13.22 coin out counts what the machine pays itself" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
@@ -93,12 +94,15 @@ test "13.24 a progressive is not a paytable win" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires host.compare_replies, decoder.lp80, decoder.lp6F, decoder.lpAF
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001C00
@@ -107,7 +111,7 @@ test "13.24 a progressive is not a paytable win" {
   host send lp AF data 0400001C00
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, paid to the credit meter.
+  egm progressive win level=1
   host expect exception progressive_win within 10s
   host send lp 6F data 0400001C00
   host expect field meters[0].value == saved.before
@@ -122,12 +126,15 @@ test "13.25 a progressive is not an external bonus" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires host.compare_replies, decoder.lp80, decoder.lp6F, decoder.lpAF
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001E00
@@ -136,7 +143,7 @@ test "13.25 a progressive is not an external bonus" {
   host send lp AF data 0400001E00
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, paid to the credit meter.
+  egm progressive win level=1
   host expect exception progressive_win within 10s
   host send lp 6F data 0400001E00
   host expect field meters[0].value == saved.before
@@ -217,12 +224,15 @@ test "13.28 cumulative progressive wins of the machine as a whole" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires host.meter_arithmetic, decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp83
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
   # Game 0 answers 001D and 0020 added together, in accounting units.
@@ -234,7 +244,7 @@ test "13.28 cumulative progressive wins of the machine as a whole" {
   host expect field game_number of lp 83 == 0
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid
 
-  # A person wins level 1 here; read $1B first if it is a hand pay.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host send lp 83 with game_number=0
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid + 500
@@ -246,12 +256,15 @@ test "13.29 machine-paid progressive wins" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires host.meter_arithmetic, decoder.lp80, decoder.lp6F, decoder.lpAF
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001D00
@@ -260,7 +273,7 @@ test "13.29 machine-paid progressive wins" {
   host send lp AF data 0400001D00
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, paid to the credit meter.
+  egm progressive win level=1
   host expect exception progressive_win within 10s
   host send lp 6F data 0400001D00
   host expect field meters[0].value == saved.before + 500

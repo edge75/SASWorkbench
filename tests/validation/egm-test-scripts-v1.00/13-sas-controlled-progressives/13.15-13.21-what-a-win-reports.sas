@@ -7,8 +7,10 @@
 # queue answers zeros. $87 reports every queued SAS win at once, and only a machine that says so in
 # bit 1 of its third enabled-features byte offers it. All amounts are in cents.
 #
-# 13.20 runs here: the software machine answers the enabled-features poll for the machine as a
-# whole. The rest need a machine enrolled in a group and a progressive won on it.
+# 13.20 runs on any machine. The rest declare the machine enrolled in group 1, checked against the
+# group it reports in $1F (machine.sas_progressives), keep its levels broadcast in the background
+# (host.progressive_broadcast), and win them with 'egm progressive win' (stimulus.progressive), one
+# game paid by the machine to its credit meter after a note has been put in to stake it.
 
 test "13.15 the per-game configuration carries each game's group" {
   tag @egm-test-scripts @chapter-13 @wire-only @needs-a-person
@@ -33,15 +35,17 @@ test "13.15 the per-game configuration carries each game's group" {
 test "13.16 a progressive paid by the machine raises 54" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
-  requires decoder.lp86
+  requires stimulus.bill, decoder.lp86
+  machine progressive sas group 1 levels 1-3
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 86 data 1301010000000500020000000300030000000200
+  host broadcast lp 86 data 1301010000000500020000000300030000000200 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins a level the machine pays to its credit meter or cash-out device here.
+  egm progressive win level=1
   host expect exception progressive_win within 10s
 
   note "Before the run, enrol the machine in group 1 with levels 1, 2 and 3, configure it to pay a progressive to the credit meter or the cash-out device rather than by hand, and select the progressive game."
@@ -50,15 +54,17 @@ test "13.16 a progressive paid by the machine raises 54" {
 test "13.17 the most recent progressive win" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
-  requires decoder.lp80, decoder.lp84
+  requires stimulus.bill, decoder.lp80, decoder.lp84
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins level 1 here.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
 
   host send lp 84
@@ -72,15 +78,17 @@ test "13.17 the most recent progressive win" {
 test "13.18 every level won in one game is queued" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
-  requires decoder.lp86, decoder.lp85
+  requires stimulus.bill, decoder.lp86, decoder.lp85
+  machine progressive sas group 1 levels 1-2
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 86 data 0D01010000000500020000000300
+  host broadcast lp 86 data 0D01010000000500020000000300 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins every level the game can award at once here.
+  egm progressive win level=1,2
   host expect exception sas_progressive_level_hit within 10s
   host forget exceptions within 2s
   host expect exception sas_progressive_level_hit within 20s
@@ -106,34 +114,39 @@ test "13.18 every level won in one game is queued" {
 test "13.19 the progressive win queue reads oldest first" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
-  requires decoder.lp80, decoder.lp85
+  requires stimulus.bill, decoder.lp80, decoder.lp85
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins level 1 here.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host send lp 85
   host expect field progressive_group of lp 85 == 1
   host expect field level of lp 85 == 1
   host expect field amount of lp 85 == 500
 
-  # Read once, the queue is empty.
+  # Read once, the queue is empty. That reading is acknowledged before the next win, or its dequeue would take the win.
   host send lp 85
   host expect field progressive_group of lp 85 == 0
   host expect field level of lp 85 == 0
   host expect field amount of lp 85 == 0
+  host forget exceptions within 2s
 
   # Two more wins, the second after the level is raised: they come back in order.
-  # A person wins level 1 here.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host forget exceptions within 2s
   host expect exception sas_progressive_level_hit within 20s
-  host send lp 80 with progressive_group=1 level=1 amount=700
-  # A person wins level 1 again here.
+  host broadcast stop
+  host broadcast lp 80 with progressive_group=1 level=1 amount=700 every 1s
+  host wait 2s
+  egm progressive win level=1
   host send lp 85
   host expect field amount of lp 85 == 500
   host forget exceptions within 2s
@@ -164,15 +177,17 @@ test "13.20 the machine says whether it reports several wins at once" {
 test "13.21 every level won at once in one reply" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
-  requires decoder.lp86, decoder.lp87
+  requires stimulus.bill, decoder.lp86, decoder.lp87
+  machine progressive sas group 1 levels 1-3
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 86 data 1301010000001500020000001000030000000500
+  host broadcast lp 86 data 1301010000001500020000001000030000000500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins all three levels here.
+  egm progressive win level=1,2,3
   host expect exception sas_progressive_level_hit within 10s
 
   # Three entries of six bytes after the group and the count: $14 bytes.

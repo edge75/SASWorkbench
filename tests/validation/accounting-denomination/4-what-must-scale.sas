@@ -167,6 +167,8 @@ test "AD-23 a handpay with a progressive component stays in cents" {
   requires machine.accounting_denomination
   requires stimulus.handpay
   requires stimulus.progressive
+  # A progressive paid by hand needs the jackpot limit that makes it one.
+  requires machine.jackpot_limit
 
   machine accounting denomination 10c
 

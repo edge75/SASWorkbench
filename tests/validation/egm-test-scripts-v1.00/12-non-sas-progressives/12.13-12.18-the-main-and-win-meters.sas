@@ -5,9 +5,11 @@
 # and never coin out. It is never a paytable win and never an external bonus, paid by either party.
 # Each case reads its meter with $6F and $AF before and after the win, and both polls must agree.
 #
-# The software machine has no progressive (machine.progressives) and this build cannot make a level
-# hit (stimulus.progressive). Every meter must also match the machine's own display, which is a
-# person's to compare (D40). Each case starts with nothing on the credit meter.
+# The two cases a machine pays itself run on the software machine, which is built with the declared
+# non-SAS level (machine.progressives) and wins it with 'egm progressive win' (stimulus.progressive);
+# the four paid by hand need a jackpot limit. Every meter must also match the machine's own display,
+# which is a person's to compare (D40). Each case starts with nothing on the credit meter, and the
+# software machine is given one note to stake its game with.
 
 test "12.13 a progressive paid by the machine is coin out, one paid by hand is not" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
@@ -92,13 +94,15 @@ test "12.14 a progressive paid by hand is a jackpot" {
 
 test "12.15 a progressive is not a machine-paid paytable win" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive
+  requires machine.progressives, stimulus.progressive, stimulus.bill
   requires decoder.lp6F, decoder.lpAF, host.meter_arithmetic
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001C00
@@ -106,7 +110,7 @@ test "12.15 a progressive is not a machine-paid paytable win" {
   host send lp AF data 0400001C00
   host expect field meters[0].value == saved.paytable
 
-  note "Set wins to go to the credit meter and play until level 1 is won."
+  egm progressive win level=1
   host expect exception progressive_win within 30s
   host send lp 6F data 0400001C00
   host expect field meters[0].value == saved.paytable
@@ -119,13 +123,15 @@ test "12.15 a progressive is not a machine-paid paytable win" {
 
 test "12.16 a progressive is not a machine-paid external bonus" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive
+  requires machine.progressives, stimulus.progressive, stimulus.bill
   requires decoder.lp6F, decoder.lpAF, host.meter_arithmetic
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001E00
@@ -133,7 +139,7 @@ test "12.16 a progressive is not a machine-paid external bonus" {
   host send lp AF data 0400001E00
   host expect field meters[0].value == saved.bonus
 
-  note "Set wins to go to the credit meter and play until level 1 is won."
+  egm progressive win level=1
   host expect exception progressive_win within 30s
   host send lp 6F data 0400001E00
   host expect field meters[0].value == saved.bonus
