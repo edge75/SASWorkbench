@@ -54,9 +54,9 @@ public sealed class FakeEgmHandpayTests : IDisposable
     }
 
     /// <summary>Reads long poll 1B and returns its level byte and its five-byte BCD amount, in accounting units.</summary>
-    private (byte Level, long Amount) ReadHandpay()
+    private (byte Level, long Amount) ReadHandpay(bool withCrc = false)
     {
-        LongPollResult result = _host.Execute(0x1B);
+        LongPollResult result = _host.Execute(0x1B, checkSequence: withCrc);
         Assert.True(result.Succeeded, $"long poll 1B went unanswered: {result.Outcome}");
         byte[] frame = result.Frame.ToArray();
         long amount = 0;
@@ -100,6 +100,27 @@ public sealed class FakeEgmHandpayTests : IDisposable
         Assert.True(_host.Execute(0x1F).Succeeded);
         Assert.Equal((0, 0L), ReadHandpay());
         Assert.True(_machine.HandpayPending, "acknowledging the reading must not pay the hand pay");
+    }
+
+    /// <summary>
+    /// The same check as above with the poll sent with a CRC, so the request is longer than the two
+    /// bytes the reply shares with it. The repeat must be compared with what the host sent, as
+    /// libsas compares the command and CRC it received (libsas_threads.cpp:964); comparing with the
+    /// reply, which is written over the request, made a repeat look like a different message and
+    /// acknowledged the reading it should have resent.
+    /// </summary>
+    [Fact]
+    public void A_repeated_hand_pay_poll_with_a_crc_resends_and_a_different_poll_clears()
+    {
+        _machine.RaiseHandpay(HandpayKind.CancelledCredit, 2000);
+        long expected = 2000 / _machine.AccountingCents;
+
+        Assert.Equal(expected, ReadHandpay(withCrc: true).Amount);
+        Assert.Equal(expected, ReadHandpay(withCrc: true).Amount);
+        Assert.Equal(expected, ReadHandpay(withCrc: true).Amount);
+
+        Assert.True(_host.Execute(0x1F).Succeeded);
+        Assert.Equal((0, 0L), ReadHandpay(withCrc: true));
     }
 
     /// <summary>A broadcast acknowledges the reading too, which is what GSA 3.19 turns on.</summary>
