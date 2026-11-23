@@ -157,6 +157,12 @@ public static class ScriptParser
             return;
         }
 
+        if (words[1].Equals("validation", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadMachineValidation(test, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -189,9 +195,25 @@ public static class ScriptParser
         test.DeclaredAt ??= location;
     }
 
+    /// <summary>Reads 'machine validation &lt;style&gt;', the style the machine is assumed to perform.</summary>
+    private static void ReadMachineValidation(TestBuilder test, string[] words, SourceLocation location)
+    {
+        if (words.Length != 3 || !MachineValidationDeclaration.TryParse(words[2], out SasCashoutValidation style))
+            throw new ScriptParseException(location,
+                "expected: machine validation standard|secure_enhanced|system. A machine with no "
+                + "host validation is a standard one on the wire, so there is no fourth style");
+
+        if (test.Validation is not null)
+            throw new ScriptParseException(location,
+                "this case already declares a validation style; a machine performs one at a time");
+
+        test.Validation = new MachineValidationDeclaration(location, style);
+    }
+
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
+        + "machine validation standard|secure_enhanced|system, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1899,9 +1921,11 @@ public static class ScriptParser
 
         public SourceLocation? ChannelsDeclaredAt { get; set; }
 
+        public MachineValidationDeclaration? Validation { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
-            || ChannelsDeclaredAt is not null;
+            || ChannelsDeclaredAt is not null || Validation is not null;
 
         public ScriptTest Build() => new()
         {
@@ -1909,6 +1933,7 @@ public static class ScriptParser
             Location = Location,
             Requirements = Requirements,
             Machine = BuildDeclaration(),
+            Validation = Validation,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

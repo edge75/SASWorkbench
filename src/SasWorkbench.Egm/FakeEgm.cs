@@ -76,11 +76,7 @@ public sealed partial class FakeEgm : IDisposable
     private long _billValueInDollars;
     private long _ticketsPrinted;
 
-    // The most recently printed ticket, which is what the cashout ticket information poll
-    // answers with. One record rather than the library's buffer of thirty-two: this fixture
-    // reads at the write index the way the library's handler does, and everything the buffer
-    // exists for - the unread-record count, the fifteen second reissue, the read index the
-    // enhanced styles advance - belongs to a style this machine does not perform.
+    // The most recently printed ticket, which $3D answers with under standard validation; the enhanced styles keep the buffer instead.
     private ulong _lastValidationNumber;
     private long _lastTicketAmountCents;
 
@@ -374,6 +370,7 @@ public sealed partial class FakeEgm : IDisposable
             return;
 
         _running = true;
+        StartValidationIdReporting();
         foreach (MachineLink link in Links())
             StartLink(link);
     }
@@ -570,6 +567,10 @@ public sealed partial class FakeEgm : IDisposable
     /// <summary>Pays every credit on the machine out as one printed ticket, the machine's usual means.</summary>
     private Ticket? PayOut(string walletDirectory)
     {
+        // The enhanced styles validate through the library's buffer, and the host may withdraw the printer (QSP SasNetwork_Ticket.hpp:756).
+        if (CashoutValidation != SasCashoutValidation.Standard || !HostAllowsPrinter())
+            return PayOutValidated(walletDirectory);
+
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits <= 0)
             return null;
@@ -585,19 +586,7 @@ public sealed partial class FakeEgm : IDisposable
 
         // Non-restricted credits leave on the same cashable ticket, the platform's choice for a promotion it holds no restriction on.
         ClampNonrestricted();
-        Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
-        Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
-
-        // The same ticket counted again in the family the validation meter poll reads. A machine
-        // moves both, and a fixture that moved only one would answer that poll with a zero its own
-        // cashout had just disproved.
-        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Qty, 1);
-        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Cents, cents);
-
-        // The same money in the other unit. A machine keeps both totals, and it is the pair that
-        // makes the accounting denomination visible at all: the cents meter reads the same at
-        // every denomination while this one moves with the unit.
-        Meters.Increment(SasMeterCode.TotalTicketOut_Crd, credits);
+        MeterTicketOut(credits, cents);
 
         DateTime printedAt = DateTime.Now;
         uint number = (uint)Interlocked.Increment(ref _ticketsPrinted);
@@ -613,6 +602,33 @@ public sealed partial class FakeEgm : IDisposable
             Note = "printed by the software machine",
         };
 
+        FileTicket(walletDirectory, ticket);
+        RaiseException(SasExceptionCode.CashoutTicketPrinted);
+        return ticket;
+    }
+
+    /// <summary>Moves every meter a printed cashable ticket moves.</summary>
+    private void MeterTicketOut(long credits, long cents)
+    {
+        Meters.Increment(SasMeterCode.TotalCashableTicketOut_Cents, cents);
+        Meters.Increment(SasMeterCode.TotalSASCashableTicketOut_Qty, 1);
+
+        // The same ticket counted again in the family the validation meter poll reads. A machine
+        // moves both, and a fixture that moved only one would answer that poll with a zero its own
+        // cashout had just disproved.
+        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Qty, 1);
+        Meters.Increment(SasMeterCode.RegularCashableTicketOut_Cents, cents);
+
+        // The same money in the other unit. A machine keeps both totals, and it is the pair that
+        // makes the accounting denomination visible at all: the cents meter reads the same at
+        // every denomination while this one moves with the unit.
+        Meters.Increment(SasMeterCode.TotalTicketOut_Crd, credits);
+    }
+
+    /// <summary>Files a printed ticket in the wallet and records it as the last one printed.</summary>
+    private void FileTicket(string walletDirectory, Ticket ticket)
+    {
+        uint number = ticket.TicketNumber;
         Directory.CreateDirectory(walletDirectory);
         string path = Path.Combine(walletDirectory,
             $"{number:D6}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
@@ -636,9 +652,6 @@ public sealed partial class FakeEgm : IDisposable
             _lastValidationNumber = ticket.ValidationNumber;
             _lastTicketAmountCents = ticket.AmountCents;
         }
-
-        RaiseException(SasExceptionCode.CashoutTicketPrinted);
-        return ticket;
     }
 
     /// <summary>Where this machine's ticket redemption has got to, for a test that asks directly.</summary>
@@ -656,6 +669,10 @@ public sealed partial class FakeEgm : IDisposable
     public bool InsertTicket(Ticket ticket)
     {
         ArgumentNullException.ThrowIfNull(ticket);
+
+        // The host has withdrawn redemption with $7B bit 5, so the ticket is returned to the player unasked (QSP SasNetwork_Ticket.hpp:286).
+        if (!HostAllowsRedemption())
+            return true;
 
         bool taken;
         lock (_gate)
@@ -897,6 +914,7 @@ public sealed partial class FakeEgm : IDisposable
         {
             TickAft(link);
             TickLegacyBonus();
+            TickValidation();
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -949,6 +967,7 @@ public sealed partial class FakeEgm : IDisposable
 
         NoteHandpayAcknowledgement(link, link.Frame.AsSpan(0, count));
         NoteLegacyBonusAcknowledgement(link, link.Frame.AsSpan(0, count));
+        NoteValidationAcknowledgement(link, link.Frame.AsSpan(0, count));
 
         bool ownGeneralPoll = count == 1 && own;
         bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
@@ -993,6 +1012,7 @@ public sealed partial class FakeEgm : IDisposable
                 link.Exceptions.Refuse();
                 ForgetHandpayReading(link);
                 ForgetLegacyBonusReading(link);
+                ForgetValidationRead(link);
             }
 
             link.AwaitingSync = true;
@@ -1225,11 +1245,17 @@ public sealed partial class FakeEgm : IDisposable
                 return;
 
             case SasResponseShape.Data:
+                // The reply is written over the request's buffer, so a $4D read is kept before it is answered.
+                byte[]? validationRead = command == (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO
+                    ? frame.ToArray()
+                    : null;
                 SendData(link, layout, frame);
                 if (command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO)
                     RememberHandpayReading(link, frame);
                 else if (command == (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN)
                     RememberLegacyBonusReading(link, frame);
+                else if (validationRead is not null)
+                    RememberValidationRead(link, validationRead);
                 return;
 
             default:

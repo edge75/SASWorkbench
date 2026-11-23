@@ -252,10 +252,10 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels) =>
+        (step, options, declared, channels, validation) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
-                return DefaultEnvironment.Create(step, options, declared, channels);
+                return DefaultEnvironment.Create(step, options, declared, channels, validation);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -299,6 +299,10 @@ public static class SoftwareMachineEnvironment
                     PlayerDenominationsInCents = declared.PlayerDenominationsInCents,
                 };
             }
+
+            // A case that says which validation style it assumes gets a machine performing it, as an attendant would set it before the test.
+            if (validation is not null)
+                settings = settings with { CashoutValidation = validation.Style };
 
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();

@@ -1377,6 +1377,27 @@ public static partial class SasLayouts
                 DerivedFrom = "lp57_SendPendingCashoutInformation",
                 ConfirmedByCapture = true,
             },
+
+            // The host's answer to a system validation request: a system ID, zero to deny, and the
+            // number to print. The machine answers with one status byte.
+            new()
+            {
+                Command = 0x58,
+                Name = "receive_validation_number",
+                Description = "The validation number the host gives a ticket the machine is holding.",
+                Request =
+                [
+                    Bcd("validation_system_id", 1, SasUnit.Code,
+                        "Which validation system issued the number; zero denies the validation."),
+                    Bcd("validation_number", 8, SasUnit.None, "The number to print, as sixteen digits."),
+                ],
+                Response =
+                [
+                    Byte("status", SasUnit.Code,
+                        "Zero acknowledged, $80 not in a cashout, $81 improper validation rejected."),
+                ],
+                DerivedFrom = "lp58_ReceiveValidationNumber",
+            },
             new()
             {
                 Command = 0x84,

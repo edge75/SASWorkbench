@@ -222,7 +222,7 @@ public sealed class ScriptRunner
         ScriptEnvironment environment;
         try
         {
-            environment = _options.Environment(connect, _options, test.Machine, test.Channels);
+            environment = _options.Environment(connect, _options, test.Machine, test.Channels, test.Validation);
         }
         catch (TransportRefusedException refused)
         {
@@ -341,6 +341,8 @@ public sealed class ScriptRunner
         IEnumerable<Requirement> all = test.Requirements;
         if (test.Machine is { } machine)
             all = all.Append(machine.AsRequirement());
+        if (test.Validation is { } validation)
+            all = all.Append(validation.AsRequirement());
 
         //  The channel arrangement is deliberately not a requirement. No long poll reports how a
         //  machine divides itself, so nothing can answer it before the link opens; opening the
