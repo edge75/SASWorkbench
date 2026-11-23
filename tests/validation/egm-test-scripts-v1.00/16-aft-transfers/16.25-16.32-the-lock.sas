@@ -14,14 +14,19 @@
 # is a note for a person (D40). The software machine takes locks as the platform does (D45): it
 # locks at once whenever it is playable, so a lock request answers $00 rather than $40 there.
 #
-# Two cases carry @finding. 16.30's lock with no timeout is taken and released at once rather than
+# Four cases carry @finding. 16.25's first lock is taken at once and its debit refused, 16.29's
+# second transfer is taken, 16.30's lock with no timeout is taken and released at once rather than
 # refused, and 16.32's transfer-from-the-machine condition stays offered on an empty machine; the
 # reasons are on each case.
 
+# @finding: the first lock answers $00, not $40, because the platform answers locked at once on a
+# playable machine with no game running (QSP SasNetwork_AftTransfer.hpp:1119); and the debit transfer
+# is refused $88 on an unregistered machine (libsas_internal.cpp:2978), so nothing is in progress and
+# the lock after it is granted rather than refused.
 test "16.25 the lock" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
   requires decoder.lp74, decoder.lp72, machine.aft, machine.configuration_options
-  requires stimulus.printer_fault, stimulus.door.main
+  requires stimulus.printer_fault, stimulus.aft_bonus, stimulus.door.main
 
   host connect loopback address 01
   host poll every 200ms
@@ -34,13 +39,14 @@ test "16.25 the lock" {
   host expect field game_lock_status == $FF
 
   # Only transfer to the printer, with the printer out of action: not taken.
-  note "Disconnect or fault the printer before the next step."
+  egm printer fault disconnected
   host send lp 74 data 00049999
   host expect field game_lock_status != $00
   host send lp 74 data 80000000
+  egm printer fault cleared
 
   # Only a bonus to the machine, with bonusing turned off: not taken.
-  note "Turn AFT bonusing off before the next step."
+  egm set aft bonus off
   host send lp 74 data 00089999
   host expect field game_lock_status != $00
   host send lp 74 data 80000000

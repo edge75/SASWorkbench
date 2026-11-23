@@ -113,7 +113,7 @@ public class SessionStreamTests
     public void ATestThatCannotRunStillReachesAVerdictInTheStream()
     {
         (RunReport report, SessionLog log) = Run("""
-            requires stimulus.button.service
+            requires stimulus.button.bet
             host connect loopback address 01
             host expect link up within 2s
             """);
@@ -122,6 +122,6 @@ public class SessionStreamTests
         SessionEvent verdict = Assert.Single(
             log.Snapshot(), e => e.Lane == SessionLane.Verdict);
         Assert.Equal(Verdict.Skip, verdict.Verdict);
-        Assert.Contains("stimulus.button.service", verdict.Detail);
+        Assert.Contains("stimulus.button.bet", verdict.Detail);
     }
 }
