@@ -38,7 +38,7 @@ failures together):
 | 7 | Multi-game | 23 | 6 | 17 | a multi-game machine (13), choosing which game is played (11) |
 | 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15) |
-| 10 | Tickets | 72 | 7 | 65 | secure-enhanced validation (17), a host validation sequence (8), restricted credits (5) |
+| 10 | Tickets | 72 | 37 | 35 | meters by name (16), notes only (7), hand pay validation (3), the $7C and $7D decoders (4) |
 | 11 | Real-time events | 25 | 7 | 18 | a power cycle (4), a multi-denomination machine (3) |
 | 12 | Non-SAS progressives | 30 | 0 | 30 | a non-SAS progressive link on the machine (29), a multi-denomination machine (1) |
 | 13 | SAS-controlled progressives | 40 | 3 | 37 | enrolment in a SAS progressive group (37) |
@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 3 | 14 | a decoder for the command itself (12) |
 | 22 | MJT | 28 | 1 | 27 | multiplied jackpots on the machine (27), a jackpot limit (6), a game held open (5) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **256** | **376** | |
+| | **total** | **632** | **286** | **346** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

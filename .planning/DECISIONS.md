@@ -671,3 +671,31 @@ software run; a person at a cabinet that has them can still run them. A note pul
 worn ribbon ($77) have no platform report either, so each is a capability of its own
 (`stimulus.note_fault.reversed`, `stimulus.printer_fault.ribbon`) that only the manual backend offers.
 The design note is `docs/M7-software-machine-peripherals.md`.
+
+---
+
+# Decision 47
+
+Taken on 2026-11-23 while building the validation styles group of M8, without the user (the brief
+says to take the reasonable choice and list it). Open to review like any other.
+
+## D47 — A case declares the validation style, and the software machine performs it
+
+The style a machine performs is set at the machine and no poll can change it, so a case chooses it
+the way it chooses an accounting denomination: **`machine validation standard|secure_enhanced|system`
+is a declaration** (D36). The software machine is built performing it; any other machine is asked
+`egm.validation` over the link and the case skips when it performs another. Every chapter 10 case
+that required an enhanced style now declares it. There is **no `none`**: a machine with no host
+validation reports the standard style on the wire, so 10.5.1 became the secure enhanced machine
+with no identifier, which is what raises $3F.
+
+The machine's half follows D44: the library's buffer, identifier, exchange and timers check for
+check, and QSP's choices of when to print, when to pay by hand and what the machine can do. Three
+smaller choices go with it:
+
+* `host.validation_sequence` is baseline, true of this build once $58 has a layout.
+* `machine.buffer_depth` (31) is claimed by the software backend, since no poll reports it.
+* `machine.handpay_validation` and `machine.handpay_receipts` stay absent, because the platform
+  validates no hand pay and prints no receipt (QSP `SasNetwork.cpp:617`).
+
+The design note is `docs/M7-software-machine-validation-styles.md`.
