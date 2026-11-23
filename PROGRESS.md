@@ -268,3 +268,4 @@ PHASE:M8 WAVE:aft-phase-2 STATUS:complete TS:2026-11-20T22:01:57Z
 PHASE:M8 WAVE:ch16-limits STATUS:complete TS:2026-11-21T16:05:14Z
 PHASE:M8 WAVE:legacy-bonus STATUS:complete TS:2026-11-22T07:44:56Z
 PHASE:M8 WAVE:software-machine-peripherals STATUS:complete TS:2026-11-23T11:06:34Z
+PHASE:M8 WAVE:software-machine-validation-styles STATUS:complete TS:2026-11-23T13:07:03Z
