@@ -73,9 +73,9 @@ public sealed partial class FakeEgmLegacyBonusTests : IDisposable
     private void Award(long credits, byte taxStatus) =>
         Assert.Equal(LongPollOutcome.Acknowledged, Send8A(credits, taxStatus).Outcome);
 
-    private SasDecoded ReadWin()
+    private SasDecoded ReadWin(bool withCrc = false)
     {
-        LongPollResult result = Host.Execute(0x90, []);
+        LongPollResult result = Host.Execute(0x90, [], checkSequence: withCrc);
         Assert.Equal(LongPollOutcome.Answered, result.Outcome);
         SasDecoded decoded = SasMessageDecoder.DecodeResponse(WinLayout, result.Frame);
         Assert.True(decoded.Succeeded, decoded.Failure);
@@ -206,6 +206,23 @@ public sealed partial class FakeEgmLegacyBonusTests : IDisposable
         SasDecoded cleared = ReadWin();
         Assert.Equal(0, cleared.Number("tax_status"));
         Assert.Equal(0, cleared.Number("bonus"));
+    }
+
+    [Fact]
+    public void A_repeated_90_with_a_crc_resends_the_award_and_a_different_poll_clears_it()
+    {
+        // With a CRC the request is longer than the two bytes its reply shares with it, so the repeat
+        // must be compared with what the host sent, as libsas compares command and CRC
+        // (libsas_threads.cpp:964); the reset waits for a different message (lp.cpp:9022).
+        Start();
+        Award(5, 0x01);
+
+        Assert.Equal(5, ReadWin(withCrc: true).Number("bonus"));
+        Assert.Equal(5, ReadWin(withCrc: true).Number("bonus"));
+        Assert.Equal(5, ReadWin(withCrc: true).Number("bonus"));
+
+        Host.Synchronise();
+        Assert.Equal(0, ReadWin(withCrc: true).Number("bonus"));
     }
 
     [Fact]

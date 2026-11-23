@@ -1253,17 +1253,19 @@ public sealed partial class FakeEgm : IDisposable
                 return;
 
             case SasResponseShape.Data:
-                // The reply is written over the request's buffer, so a $4D read is kept before it is answered.
-                byte[]? validationRead = command == (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO
+                // The reply is written over the request's buffer, so a read awaiting an implied ACK is kept before it is answered.
+                byte[]? request = command is (byte)SasLongPollCode.LP_SENDHANDPAYINFO
+                    or (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN
+                    or (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO
                     ? frame.ToArray()
                     : null;
                 SendData(link, layout, frame);
                 if (command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO)
-                    RememberHandpayReading(link, frame);
+                    RememberHandpayReading(link, request);
                 else if (command == (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN)
-                    RememberLegacyBonusReading(link, frame);
-                else if (validationRead is not null)
-                    RememberValidationRead(link, validationRead);
+                    RememberLegacyBonusReading(link, request);
+                else if (command == (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO)
+                    RememberValidationRead(link, request);
                 return;
 
             default:

@@ -270,3 +270,4 @@ PHASE:M8 WAVE:legacy-bonus STATUS:complete TS:2026-11-22T07:44:56Z
 PHASE:M8 WAVE:software-machine-peripherals STATUS:complete TS:2026-11-23T11:06:34Z
 PHASE:M8 WAVE:software-machine-validation-styles STATUS:complete TS:2026-11-23T13:07:03Z
 PHASE:M8 WAVE:software-machine-lifecycle STATUS:complete TS:2026-11-23T15:33:10Z
+PHASE:M8 WAVE:software-machine-repeat-poll-fix STATUS:complete TS:2026-11-23T17:45:48Z
