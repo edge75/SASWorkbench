@@ -175,6 +175,8 @@ public sealed partial class FakeEgm
                 _printedReissueDue = now + Ticks(PrintedReissue);
             }
 
+            RestartProgressivesLocked();
+
             // libsas_internal.cpp:887 raises $51 again for a hand pay still awaiting its reading.
             handpayAwaitingRead = _handpay is { ReadAcknowledged: false };
             if (handpayAwaitingRead)
@@ -235,6 +237,7 @@ public sealed partial class FakeEgm
         link.UnacknowledgedHandpayPoll = null;
         _unacknowledgedLegacyReads.Remove(link.Channel);
         _unacknowledgedValidationReads.Remove(link.Channel);
+        _unacknowledgedProgressiveReads.Remove(link.Channel);
         _rteEnabled = false;
     }
 
@@ -263,6 +266,7 @@ public sealed partial class FakeEgm
         _legacyBonus = _options.LegacyBonus;
         _gameDelayTenths = 0;
         _gameDelayEnds = 0;
+        ClearProgressivesLocked();
     }
 
     /// <summary>The transfer half of the library's defaults (libsas_internal.cpp:773 to :821) and the platform's asset number 1.</summary>

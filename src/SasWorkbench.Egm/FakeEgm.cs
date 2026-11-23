@@ -53,22 +53,22 @@ public sealed partial class FakeEgm : IDisposable
     private readonly HashSet<byte> _ignoredCommands = [];
 
     /// <summary>
-    /// The commands this fixture has no machinery for: progressives, cards, reels.
+    /// The commands this fixture has no machinery for: cards and reels.
     /// </summary>
     /// <remarks>
     /// Stated here rather than left to the "could not build the values" fallback, because what
     /// this machine is built without is a property of the machine and belongs where a reader
     /// looks for one. The machine library behaves the same way and was read rather than assumed:
-    /// none of these eight ever sends a refusal — a real machine answers or says nothing.
+    /// neither of these ever sends a refusal — a real machine answers or says nothing.
     /// <para>
     /// Kept apart from <see cref="FakeEgmOptions.UnansweredCommands"/>, which a test sets to build
     /// some other machine: if these lived there, a test that set that option for its own reasons
-    /// would silently give this machine a progressive it does not have.
+    /// would silently give this machine reels it does not have.
     /// </para>
     /// </remarks>
     private static readonly FrozenSet<byte> WithoutMachinery = new byte[]
     {
-        0x80, 0x83, 0x84, 0x85, 0x86, 0x87, 0x8E, 0x8F,
+        0x8E, 0x8F,
     }.ToFrozenSet();
 
     // Kept apart from the credit meters on purpose: the bill-value meter is counted in whole
@@ -691,7 +691,11 @@ public sealed partial class FakeEgm : IDisposable
     /// <param name="games">How many games to play.</param>
     /// <param name="betCredits">Credits wagered per game.</param>
     /// <param name="winCredits">Credits won across all of them.</param>
-    public void PlayGames(int games, long betCredits, long winCredits = 0)
+    public void PlayGames(int games, long betCredits, long winCredits = 0) =>
+        PlayGames(games, betCredits, winCredits, progressive: null);
+
+    /// <summary>Plays games; a progressive the last round wins is awarded between its start and its end, and its cents join the end's win.</summary>
+    private void PlayGames(int games, long betCredits, long winCredits, Func<long>? progressive)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(games);
         ArgumentOutOfRangeException.ThrowIfNegative(betCredits);
@@ -769,11 +773,14 @@ public sealed partial class FakeEgm : IDisposable
                 _options.ProgressiveGroup,
             ]);
 
+            // A progressive won in the round is part of what its end reports (QSP ProgressiveWonInRound).
+            long progressiveWon = last && progressive is not null ? progressive() : 0;
+
             // The whole win is attributed to the last round, because this fixture is told one
             // total rather than one figure per round. Stated here rather than divided evenly,
             // which would invent a distribution nobody asked for.
             RaiseEvent((byte)SasExceptionCode.GameEnded,
-                BcdBytes(last ? winCredits * _options.CentsPerGameCredit : 0, 4));
+                BcdBytes(last ? (winCredits * _options.CentsPerGameCredit) + progressiveWon : 0, 4));
         }
 
         if (handpaid)
@@ -923,6 +930,7 @@ public sealed partial class FakeEgm : IDisposable
             TickAft(link);
             TickLegacyBonus();
             TickValidation();
+            TickProgressives();
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -976,6 +984,7 @@ public sealed partial class FakeEgm : IDisposable
         NoteHandpayAcknowledgement(link, link.Frame.AsSpan(0, count));
         NoteLegacyBonusAcknowledgement(link, link.Frame.AsSpan(0, count));
         NoteValidationAcknowledgement(link, link.Frame.AsSpan(0, count));
+        NoteProgressiveAcknowledgement(link, link.Frame.AsSpan(0, count));
 
         bool ownGeneralPoll = count == 1 && own;
         bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
@@ -1021,6 +1030,7 @@ public sealed partial class FakeEgm : IDisposable
                 ForgetHandpayReading(link);
                 ForgetLegacyBonusReading(link);
                 ForgetValidationRead(link);
+                ForgetProgressiveReading(link);
             }
 
             link.AwaitingSync = true;
@@ -1205,6 +1215,10 @@ public sealed partial class FakeEgm : IDisposable
             Ignore(link, command);
             return;
         }
+
+        // The progressive broadcasts and win readings, answered or silenced as the library's own handlers decide.
+        if (AnswerProgressive(link, command, frame))
+            return;
 
         // The legacy bonus polls, answered or silenced as the library's own handlers decide.
         if (AnswerLegacyBonus(link, command, frame))

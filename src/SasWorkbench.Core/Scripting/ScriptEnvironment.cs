@@ -58,7 +58,8 @@ public delegate ScriptEnvironment EnvironmentFactory(
     ScriptRunnerOptions options,
     MachineDeclaration? declared,
     MachineChannelDeclaration? channels = null,
-    MachineValidationDeclaration? validation = null);
+    MachineValidationDeclaration? validation = null,
+    MachineProgressiveDeclaration? progressive = null);
 
 /// <summary>
 /// The environments this assembly can build on its own: a real link to something already
@@ -83,7 +84,8 @@ public static class DefaultEnvironment
         ScriptRunnerOptions options,
         MachineDeclaration? declared = null,
         MachineChannelDeclaration? channels = null,
-        MachineValidationDeclaration? validation = null)
+        MachineValidationDeclaration? validation = null,
+        MachineProgressiveDeclaration? progressive = null)
     {
         IStimulusBackend stimulus = options.Stimulus switch
         {

@@ -466,6 +466,10 @@ public sealed class PollEngine : IDisposable
             if (round.Contains(named))
                 return true;
 
+            // Address 00 is the broadcast every machine on the line hears and none answers.
+            if (named.IsSync)
+                return true;
+
             // A sequence may poll a stranger on purpose, and several cases turn on it: a poll to
             // another machine acknowledges this one without being answered, so the address has to
             // be one no machine here holds. The refusal below guards against a typo becoming a

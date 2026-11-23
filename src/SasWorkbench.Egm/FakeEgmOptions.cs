@@ -40,6 +40,12 @@ public sealed record FakeEgmOptions
     /// <summary>Progressive group the machine belongs to.</summary>
     public byte ProgressiveGroup { get; init; }
 
+    /// <summary>The levels a SAS progressive host feeds, bit 0 for level 1; they need a group.</summary>
+    public uint SasProgressiveLevels { get; init; }
+
+    /// <summary>The levels the machine runs itself, bit 0 for level 1, reported with group zero.</summary>
+    public uint NonSasProgressiveLevels { get; init; }
+
     /// <summary>Machine option bits.</summary>
     public ushort GameOptions { get; init; }
 

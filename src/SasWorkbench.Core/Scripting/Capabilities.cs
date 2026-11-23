@@ -148,6 +148,9 @@ public static partial class CapabilityProbe
 
             // The host can carry each validation exchange step by step, $4C, $4D, $57 and $58 included.
             ["host.validation_sequence"] = "yes",
+
+            // The host can keep progressive levels broadcast in the background while a case waits.
+            [BroadcastStep.Capability] = "yes",
         };
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -260,6 +263,9 @@ public static partial class CapabilityProbe
             // Legacy bonusing and multiplied jackpots have enabled-features bits of their own.
             LegacyBonusCapability,
             MultipliedJackpotCapability,
+
+            // The progressive group is set in the machine's menu and published in its identification reply.
+            MachineProgressiveDeclaration.SasCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
@@ -355,6 +361,9 @@ public static partial class CapabilityProbe
 
         if (asked.Contains(MultipliedJackpotCapability))
             Note(MultipliedJackpotCapability, AskMultipliedJackpot(engine, values));
+
+        if (asked.Contains(MachineProgressiveDeclaration.SasCapability))
+            Note(MachineProgressiveDeclaration.SasCapability, AskSasProgressiveGroup(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }
@@ -685,6 +694,9 @@ public static partial class CapabilityProbe
                 ["stimulus.handpay"] = "yes",
                 ["stimulus.handpay.jackpot"] = "yes",
                 ["stimulus.handpay.reset"] = "yes",
+
+                // It plays a game that wins a progressive level its declaration gave it.
+                ["stimulus.progressive"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -727,6 +739,9 @@ public static partial class CapabilityProbe
                 ["machine.memory_fault.eprom_checksum"] = "yes",
                 ["machine.memory_fault.partitioned_eprom"] = "yes",
                 ["machine.nvram_clear"] = "yes",
+
+                // A person plays the progressive game until a level is won.
+                ["stimulus.progressive"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

@@ -23,7 +23,7 @@ namespace SasWorkbench.Core.Scripting;
 /// or wrap them in <c>test "name" { ... }</c> blocks.
 /// </para>
 /// </remarks>
-public static class ScriptParser
+public static partial class ScriptParser
 {
     private static readonly TimeSpan DefaultWithin = TimeSpan.FromSeconds(5);
 
@@ -163,6 +163,12 @@ public static class ScriptParser
             return;
         }
 
+        if (words[1].Equals("progressive", StringComparison.OrdinalIgnoreCase))
+        {
+            test.Progressive = ReadMachineProgressive(test.Progressive, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -213,7 +219,8 @@ public static class ScriptParser
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
-        + "machine validation standard|secure_enhanced|system, or "
+        + "machine validation standard|secure_enhanced|system, "
+        + "machine progressive sas group <g> levels <list>|non_sas levels <list>, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -446,6 +453,10 @@ public static class ScriptParser
                 test.Steps.Add(new PollEveryStep(location, ParseDuration(words[3], location)));
                 return;
 
+            case "broadcast":
+                test.Steps.Add(ReadBroadcast(words, location));
+                return;
+
             case "wait":
                 if (words.Length != 3)
                     throw new ScriptParseException(location, "expected: host wait <duration>");
@@ -516,7 +527,7 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'host {words[1]}' is not a host action. Expected connect, channel, machine, "
-                    + "poll, wait, warm up, send, forget, remember or expect");
+                    + "poll, wait, warm up, send, broadcast, forget, remember or expect");
         }
     }
 
@@ -875,6 +886,7 @@ public static class ScriptParser
         {
             "exception" => ReadExpectException(words, location, negated: false),
             "no" => ReadExpectNo(words, location),
+            "answer" => ReadExpectAnswer(words, location),
             "meter" => ReadExpectMeter(words, location),
             "field" => ReadExpectField(test, words, location),
             "link" => ReadExpectLink(words, location),
@@ -1454,6 +1466,10 @@ public static class ScriptParser
                 test.Steps.Add(ReadPlay(words, location));
                 return;
 
+            case "progressive":
+                test.Steps.Add(ReadProgressiveWin(words, location));
+                return;
+
             case "press":
                 if (words.Length != 3)
                     throw new ScriptParseException(location, "expected: egm press <button>");
@@ -1576,7 +1592,7 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, nvram, printer, note, set or settle");
+                    + "press, door, handpay, power, memory, nvram, printer, note, progressive, set or settle");
         }
     }
 
@@ -1929,9 +1945,11 @@ public static class ScriptParser
 
         public MachineValidationDeclaration? Validation { get; set; }
 
+        public MachineProgressiveDeclaration? Progressive { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
-            || ChannelsDeclaredAt is not null || Validation is not null;
+            || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null;
 
         public ScriptTest Build() => new()
         {
@@ -1940,6 +1958,7 @@ public static class ScriptParser
             Requirements = Requirements,
             Machine = BuildDeclaration(),
             Validation = Validation,
+            Progressive = Progressive,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

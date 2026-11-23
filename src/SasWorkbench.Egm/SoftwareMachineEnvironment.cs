@@ -122,6 +122,18 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.ClearMemory();
                 return;
 
+            case ProgressiveWinStep win:
+                try
+                {
+                    machine.WinProgressive(win.Levels, win.BetCredits);
+                }
+                catch (InvalidOperationException refused)
+                {
+                    throw new StimulusUnavailableException($"the software machine cannot do '{win.Describe()}': {refused.Message}");
+                }
+
+                return;
+
             case HandpayResetStep:
                 if (!machine.ResetHandpay())
                     throw new StimulusUnavailableException(
@@ -267,10 +279,10 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels, validation) =>
+        (step, options, declared, channels, validation, progressive) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
-                return DefaultEnvironment.Create(step, options, declared, channels, validation);
+                return DefaultEnvironment.Create(step, options, declared, channels, validation, progressive);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -319,6 +331,17 @@ public static class SoftwareMachineEnvironment
             if (validation is not null)
                 settings = settings with { CashoutValidation = validation.Style };
 
+            // A case that says which progressive levels it assumes gets a machine with them, as the operator and the game would set them.
+            if (progressive is not null)
+            {
+                settings = settings with
+                {
+                    ProgressiveGroup = progressive.Group,
+                    SasProgressiveLevels = progressive.SasLevels,
+                    NonSasProgressiveLevels = progressive.NonSasLevels,
+                };
+            }
+
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();
 
@@ -350,6 +373,7 @@ public static class SoftwareMachineEnvironment
                     .Concat(machine.Channels.Open.Select(channel =>
                         new KeyValuePair<string, string?>(
                             MachineChannelDeclaration.CapabilityFor(channel), "yes")))
+                    .Concat(NonSasProgressives(progressive))
                     .ToDictionary(pair => pair.Key, pair => pair.Value),
                 OpenChannel = another =>
                 {
@@ -360,6 +384,15 @@ public static class SoftwareMachineEnvironment
                 },
             };
         };
+
+    /// <summary>
+    /// The levels this machine runs itself, which it claims because it was built with them: they
+    /// report group zero on every poll, so no machine can be asked for them.
+    /// </summary>
+    private static IEnumerable<KeyValuePair<string, string?>> NonSasProgressives(MachineProgressiveDeclaration? progressive) =>
+        progressive is { NonSasLevels: not 0 }
+            ? [new(MachineProgressiveDeclaration.NonSasCapability, MachineProgressiveDeclaration.DescribeLevels(progressive.NonSasLevels))]
+            : [];
 
     /// <summary>
     /// A floor of software machines, one multi-drop line per channel, for a case that names a

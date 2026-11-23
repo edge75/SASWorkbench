@@ -38,6 +38,9 @@ public sealed record ScriptTest
     /// <summary>The validation style this case assumes the machine performs, when it says.</summary>
     public MachineValidationDeclaration? Validation { get; init; }
 
+    /// <summary>The progressive levels this case assumes the machine is configured with, when it says.</summary>
+    public MachineProgressiveDeclaration? Progressive { get; init; }
+
     /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
     public MachineChannelDeclaration? Channels { get; init; }
 
