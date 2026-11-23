@@ -145,6 +145,9 @@ public static partial class CapabilityProbe
             // sum or difference of such values; also true of this build, not of the machine.
             ["host.compare_replies"] = "yes",
             ["host.meter_arithmetic"] = "yes",
+
+            // The host can carry each validation exchange step by step, $4C, $4D, $57 and $58 included.
+            ["host.validation_sequence"] = "yes",
         };
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -647,6 +650,9 @@ public static partial class CapabilityProbe
                 ["machine.restricted_credits"] = "yes",
                 ["stimulus.aft_configuration"] = "yes",
                 ["stimulus.credit_limit"] = "yes",
+
+                // The validation buffer holds thirty-one unread records, as the library it mirrors (libsas_wrapper.cpp:2263); no poll reports it.
+                ["machine.buffer_depth"] = "31",
 
                 // The software machine takes a ticket handed to it directly, with no directory in
                 // between, so this is true of the machine rather than of a path on disk.

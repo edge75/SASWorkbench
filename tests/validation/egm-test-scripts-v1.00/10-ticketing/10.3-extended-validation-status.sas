@@ -42,7 +42,7 @@ test "10.3.2 the extended validation status poll is answered" {
 
 test "10.3.3 the printer is declared a cashout device" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, decoder.lp4C, decoder.lp4D
   requires stimulus.bill, stimulus.button.collect, printer.wallet
 
@@ -79,7 +79,7 @@ test "10.3.3 the printer is declared a cashout device" {
 
 test "10.3.4 the printer is declared a handpay receipt device" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, printer.wallet, decoder.lp1B
   requires machine.handpay_receipts
 
@@ -115,7 +115,7 @@ test "10.3.4 the printer is declared a handpay receipt device" {
 
 test "10.3.5 hand pays and their receipts are validated" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires machine.handpay_validation
 
@@ -165,7 +165,7 @@ test "10.3.7 tickets may be printed for foreign restricted amounts" {
 
 test "10.3.8 ticket redemption is turned on by its own bit" {
   tag @egm-test-scripts @chapter-10
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, decoder.lp4C
 
   host connect loopback address 01
@@ -190,7 +190,7 @@ test "10.3.8 ticket redemption is turned on by its own bit" {
 
 test "10.3.9 secure enhanced validation is configured through the status poll" {
   tag @egm-test-scripts @chapter-10
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B
 
 

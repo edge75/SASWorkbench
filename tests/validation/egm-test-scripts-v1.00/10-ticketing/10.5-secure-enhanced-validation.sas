@@ -7,25 +7,49 @@
 # printed ticket nobody has read.
 #
 # Every case here needs a machine performing this style. That is memory the host cannot write, so
-# a machine in another style skips by name rather than being driven into a state it is not in.
-# A fixture exists for a real machine (fixtures/nvram/secure-enhanced.nvram.gz); this build's
-# software machine comes up performing standard validation and a script cannot change it, which
-# is why the whole section skips against the loopback peer.
+# each case declares it: the software machine is built performing it, and any other machine is
+# asked and skips by name when it performs another. A fixture exists for a real machine
+# (fixtures/nvram/secure-enhanced.nvram.gz).
 #
 # Every case that prints reads its own record back with $4D before it ends. A record left unread
 # makes the machine's next cash-out a hand pay, which would turn the case after this one into a
 # test of something else.
 
 test "10.5.1 a machine with no validation configured refuses to print" {
-  tag @egm-test-scripts @chapter-10
-  requires egm.validation == none
-  requires decoder.lp3F, host.validation_sequence
-  note "With no validation style configured the machine cannot number a ticket, so a cashout raises the no-validation-information exception rather than producing paper. A machine that printed an unnumbered ticket would have produced money nobody can account for."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  machine validation secure_enhanced
+  requires decoder.lp7B, decoder.lp4C, decoder.lp1B, host.validation_sequence
+  requires stimulus.bill, stimulus.button.collect, stimulus.handpay.reset
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # A machine that holds an identifier is made to forget it: $7B bit 15 cleared cancels it. A machine
+  # that was never given one reports the same from power-up.
+  host send lp 7B data 088000000000000000
+  host expect exception validation_id_not_configured within 20s
+
+  # The cash-out cannot be numbered, so it is paid by hand rather than printed.
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+
+  # Paid, reset and given an identifier again, so the next case finds a machine that prints.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host send lp 4C with validation_id=1 sequence_number=1
+  host expect no exception validation_id_not_configured within 20s
+
+  note "The document names no style here; a machine with no host validation is a standard one on the wire, which numbers its own tickets, so the case is the secure enhanced machine that has no identifier. The exception it raises is $3F, the validation identifier not configured."
 }
 
 test "10.5.2 the host sets the secure enhanced validation identifier" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp4C, decoder.lp4D, stimulus.bill, stimulus.button.collect, printer.wallet
 
   host connect loopback address 01
@@ -76,7 +100,7 @@ test "10.5.2 the host sets the secure enhanced validation identifier" {
 
 test "10.5.3 the cashout ticket information poll answers under this style" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp3D, decoder.lp4C, decoder.lp4D
   requires stimulus.bill, stimulus.button.collect, printer.wallet
 
@@ -109,7 +133,7 @@ test "10.5.3 the cashout ticket information poll answers under this style" {
 
 test "10.5.4 a printed ticket raises its exception under this style" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires stimulus.bill, stimulus.button.collect, printer.wallet
   requires decoder.lp4C, decoder.lp4D
 
@@ -140,14 +164,14 @@ test "10.5.4 a printed ticket raises its exception under this style" {
 
 test "10.5.5 a non-validating host must not read the ticket under this style" {
   tag @egm-test-scripts @chapter-10 @channel2
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp3D, host.validation_sequence
   note "The two-host form of 10.2.3. The same absence of a channel gate on the cashout ticket information poll applies here, so this is expected to show the same finding against the machine library."
 }
 
 test "10.5.6 a non-validating host must not read a validated hand pay" {
   tag @egm-test-scripts @chapter-10 @channel2 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires stimulus.handpay, stimulus.handpay.reset, decoder.lp4D
   note "Force a hand pay on a machine validating hand pays, then ask for it from the channel that owns no validation."
   note "Not written yet: it needs a secure enhanced memory with validation on a second channel, and the committed one keeps every category on channel 1."
@@ -155,7 +179,7 @@ test "10.5.6 a non-validating host must not read a validated hand pay" {
 
 test "10.5.7 a validated hand pay carries a number and an amount" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires machine.handpay_validation
 
@@ -192,7 +216,7 @@ test "10.5.7 a validated hand pay carries a number and an amount" {
 
 test "10.5.8 the enhanced validation information poll reads the buffer back" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp4C, decoder.lp4D, stimulus.bill, stimulus.button.collect, printer.wallet
 
   host connect loopback address 01
@@ -240,7 +264,7 @@ test "10.5.8 the enhanced validation information poll reads the buffer back" {
 
 test "10.5.9 the validation type field says what kind of transaction it was" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires stimulus.bill, stimulus.button.collect, printer.wallet
   requires machine.handpay_validation, machine.handpay_receipts
@@ -298,7 +322,7 @@ test "10.5.9 the validation type field says what kind of transaction it was" {
 
 test "10.5.10 the machine generates a sixteen-digit validation number" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp4C, decoder.lp4D, stimulus.bill, stimulus.button.collect, printer.wallet
 
   host connect loopback address 01
@@ -326,7 +350,7 @@ test "10.5.10 the machine generates a sixteen-digit validation number" {
 
 test "10.5.11 ticket numbers run in sequence" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp4C, decoder.lp4D, stimulus.bill, stimulus.button.collect, printer.wallet
 
   host connect loopback address 01
@@ -359,14 +383,261 @@ test "10.5.11 ticket numbers run in sequence" {
 
 test "10.5.12 the buffer is circular and the oldest record is the one lost" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires stimulus.bill, stimulus.button.collect, machine.buffer_depth
-  note "Print more tickets than the buffer holds and read it back: the newest are all present and the oldest have gone, in that order. Needs the machine's own buffer depth, which no poll reports."
+  requires decoder.lp4C, decoder.lp4D, printer.wallet
+
+  # Thirty-two tickets through a buffer of thirty-one, each read as it prints so the printer stays the
+  # cash-out device; the thirty-second takes the slot the first was in.
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # Ticket 1.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+  host remember field validation_number of lp 4D as first
+
+  # Ticket 2.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+  host remember field validation_number of lp 4D as second
+
+  # Ticket 3.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 4.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 5.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 6.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 7.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 8.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 9.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 10.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 11.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 12.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 13.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 14.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 15.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 16.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 17.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 18.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 19.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 20.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 21.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 22.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 23.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 24.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 25.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 26.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 27.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 28.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 29.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 30.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # Ticket 31.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+  host remember field validation_number of lp 4D as thirty_first
+
+  # Ticket 32.
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field validation_number of lp 4D == ticket.validation_number
+
+  # The newest in slot 1, where the oldest was; the second still in slot 2; the thirty-first in the last.
+  host send lp 4D data 01
+  host expect field validation_number of lp 4D == ticket.validation_number
+  host expect field validation_number of lp 4D != saved.first
+  host send lp 4D data 02
+  host expect field validation_number of lp 4D == saved.second
+  host send lp 4D data 1F
+  host expect field validation_number of lp 4D == saved.thirty_first
+
+  note "Assumes a buffer of thirty-one records starting at index 1, the machine library's; a machine with another depth wraps at another ticket."
 }
 
 test "10.5.13 a ticket printed while the link is down is still on the record" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires decoder.lp4C, decoder.lp4D, stimulus.bill, stimulus.button.collect, printer.wallet
 
   host connect loopback address 01

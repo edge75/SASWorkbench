@@ -86,7 +86,7 @@ public sealed partial class FakeEgm
         0x74 => LockAndStatus(request),
         0x90 => LegacyBonusWin(),
         0x9A => LegacyBonusMeters(layout, request),
-        0x7B => ExtendedValidationStatus(),
+        0x7B => ExtendedValidationStatus(request),
 
         0x18 => GamesSince(),
         0x19 => new Dictionary<string, object>
@@ -122,7 +122,7 @@ public sealed partial class FakeEgm
         0x49 => Single("bills_in_stacker", SasMeterCode.NumberOfBillsCurrentlyInTheStacker),
         0x4A => Single("stacker_credits", SasMeterCode.TotalValueOfBillsCurrentlyInTheStacker_Crd),
         0x4C => SecureEnhancedValidationId(layout, request),
-        0x4D => NoAnswer,
+        0x4D => EnhancedValidationInformation(request),
         0x4F => HopperStatus(),
         0x50 => ValidationMeters(layout, request),
         0x51 => new Dictionary<string, object> { ["games"] = Games },
@@ -134,6 +134,7 @@ public sealed partial class FakeEgm
         0x55 => new Dictionary<string, object> { ["selected_game"] = 0L },
         0x56 => EnabledGames(),
         0x57 => PendingCashout(),
+        0x58 => ReceiveValidationNumber(layout, request),
         0xB2 => EnabledPlayerDenominations(),
         0xB3 => new Dictionary<string, object>
         {
@@ -309,23 +310,6 @@ public sealed partial class FakeEgm
         };
     }
 
-    /// <summary>How this machine has been told to validate, and how it is set now.</summary>
-    /// <remarks>
-    /// Only the form with an empty control mask reaches here, so nothing is being set and the
-    /// reply is a reading. Every status bit reads zero, and that is a statement rather than a
-    /// placeholder: nothing in this machine sets one, and the bits are not derived from the
-    /// validation style it does model — the two are different things in the library, and guessing
-    /// a bit pattern from the style is exactly the kind of invention a layout is meant to stop.
-    /// </remarks>
-    private Dictionary<string, object> ExtendedValidationStatus() => new()
-    {
-        ["length"] = 0x0A,
-        ["asset_number"] = (long)AssetNumber,
-        ["current_validation_status"] = 0L,
-        ["cashable_ticket_expiration"] = 0L,
-        ["restricted_ticket_expiration"] = 0L,
-    };
-
     /// <summary>
     /// What the hopper is doing, on a machine that has no hopper to ask.
     /// </summary>
@@ -399,20 +383,6 @@ public sealed partial class FakeEgm
     };
 
     /// <summary>
-    /// What this machine is waiting to be told how to pay out, which is nothing.
-    /// </summary>
-    /// <remarks>
-    /// This machine performs standard validation and prints its ticket the moment it is asked to,
-    /// so no cashout is ever held waiting for a host to validate one. The library's own name for
-    /// that state is the code answered here, and the amount that goes with it is zero.
-    /// </remarks>
-    private static Dictionary<string, object> PendingCashout() => new()
-    {
-        ["cashout_type"] = (byte)0x80,
-        ["amount"] = 0L,
-    };
-
-    /// <summary>
     /// Which denominations a player may choose, on a machine that was told.
     /// </summary>
     /// <remarks>
@@ -446,45 +416,6 @@ public sealed partial class FakeEgm
             values[$"denominations[{i}].denomination"] = codes[i];
 
         return values;
-    }
-
-    /// <summary>
-    /// The identifier and sequence number a machine performing secure enhanced validation puts on
-    /// its tickets.
-    /// </summary>
-    /// <remarks>
-    /// The library answers this only on a machine configured for that validation, and is silent
-    /// otherwise; so is this one. What comes back is what the machine now holds, which is what the
-    /// host just sent unless the host sent a zero identifier - the library's way of asking without
-    /// setting.
-    /// </remarks>
-    private Dictionary<string, object>? SecureEnhancedValidationId(
-        SasMessageLayout layout, ReadOnlySpan<byte> request)
-    {
-        if (_options.CashoutValidation != SasCashoutValidation.SecureEnhanced)
-            return NoAnswer;
-
-        SasDecoded asked = SasMessageDecoder.DecodeRequest(layout, request);
-        if (asked.Number("validation_id") is not { } identifier
-            || asked.Number("sequence_number") is not { } sequence)
-        {
-            return null;
-        }
-
-        lock (_gate)
-        {
-            if (identifier != 0)
-            {
-                _secureValidationId = (uint)identifier;
-                _secureSequenceNumber = (uint)sequence;
-            }
-
-            return new Dictionary<string, object>
-            {
-                ["validation_id"] = (long)_secureValidationId,
-                ["sequence_number"] = (long)_secureSequenceNumber,
-            };
-        }
     }
 
     /// <summary>
@@ -702,7 +633,8 @@ public sealed partial class FakeEgm
             // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT) and bit 2 legacy bonus awards, each set while the operator has it on.
             ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits()),
             ["validation_style"] = (byte)validation,
-            ["validation_extensions"] = (byte)0,
+            // QSP sets the extensions bit for the enhanced styles (SasNetwork.cpp:290).
+            ["validation_extensions"] = (byte)(redemption ? 1 : 0),
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
             // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430).
             ["feature_codes_2"] = (byte)(_aftOn ? 0x40 : 0x00),

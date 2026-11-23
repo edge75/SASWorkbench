@@ -9,9 +9,8 @@
 #
 # The document puts the machine in system validation for all four. That governs how a printed
 # ticket gets its number, not how a ticket is redeemed, so the two ticket-in cases run whatever the
-# validation style. The two ticket-out cases need a host that answers a system validation request
-# (host.validation_sequence), which this build does not have, so they run on a standard-validation
-# machine instead and skip elsewhere.
+# validation style. The cashable ticket-out case declares system validation and answers the
+# machine's request with $57 and $58, as the document has it.
 
 test "23.13 cashable ticket in, in cents and in quantity" {
   tag @egm-test-scripts @chapter-23 @needs-stimulus @needs-a-person
@@ -135,10 +134,10 @@ test "23.13.1 restricted ticket in, in cents and in quantity" {
 
 test "23.13.2 cashable ticket out, in cents and in quantity" {
   tag @egm-test-scripts @chapter-23 @needs-stimulus @needs-a-person
-  requires egm.validation == standard
+  machine validation system
   requires stimulus.bill, stimulus.button.collect, stimulus.settle, printer.wallet
-  requires decoder.lp6F, decoder.lpAF, decoder.lp2F, decoder.lp3D
-  requires host.compare_replies, host.meter_arithmetic
+  requires decoder.lp6F, decoder.lpAF, decoder.lp2F, decoder.lp4D, decoder.lp57, decoder.lp58
+  requires host.compare_replies, host.meter_arithmetic, host.validation_sequence
 
   host connect loopback address 01
   host poll every 200ms
@@ -164,14 +163,18 @@ test "23.13.2 cashable ticket out, in cents and in quantity" {
 
   egm bill insert 100
   egm press collect
+  host expect exception system_validation_request within 5s
+  host send lp 57
+  host send lp 58 with validation_system_id=1 validation_number=231302
+  host expect field status of lp 58 == 0
   egm expect ticket printed within 20s
   egm expect ticket amount_cents >= 100
   egm expect ticket validation_type == cashable_from_cashout
 
-  # The ticket's value in cents, as the machine reports it, checked against the printed ticket.
-  host send lp 3D
-  host expect field ticket_amount == ticket.amount_cents
-  host remember field ticket_amount as ticket_cents
+  # The ticket's value in cents, as the machine records it, checked against the printed ticket.
+  host send lp 4D data 00
+  host expect field amount of lp 4D == ticket.amount_cents
+  host remember field amount of lp 4D as ticket_cents
 
   host send lp 6F data 0600000E001200
   host expect field meters[0].code == $0E

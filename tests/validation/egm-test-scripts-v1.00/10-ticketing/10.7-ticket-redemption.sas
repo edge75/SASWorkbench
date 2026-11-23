@@ -13,7 +13,7 @@
 
 test "10.7.1 redemption is enabled through the status poll" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
   requires stimulus.ticket, decoder.lp7B, decoder.lp4C, decoder.lp70, decoder.lp71
 
   host connect loopback address 01
@@ -54,7 +54,7 @@ test "10.7.1 redemption is enabled through the status poll" {
 test "10.7.2 a ticket offered to the machine raises its exception" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
@@ -75,7 +75,7 @@ test "10.7.2 a ticket offered to the machine raises its exception" {
 test "10.7.3 the host reads the ticket the machine is holding" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
@@ -98,7 +98,7 @@ test "10.7.3 the host reads the ticket the machine is holding" {
 test "10.7.4 the machine answers the redemption poll" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
@@ -148,7 +148,7 @@ test "10.7.7 restricted tickets credit the restricted meter" {
 test "10.7.8 the transfer complete exception follows the credit" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, decoder.lp4C, decoder.lp70, decoder.lp71
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
@@ -219,7 +219,7 @@ test "10.7.15 restricted tickets in are counted in cents and quantity" {
 test "10.7.18 a ticket inserted is reported in the event format" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, stimulus.real_time_events, decoder.lp4C, decoder.lp70, decoder.lp71
-  requires egm.validation == secure_enhanced
+  machine validation secure_enhanced
 
   host connect loopback address 01
   host poll every 200ms
@@ -242,5 +242,29 @@ test "10.7.18 a ticket inserted is reported in the event format" {
 test "10.7.19 a transfer complete is reported in the event format" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   requires stimulus.ticket, stimulus.real_time_events, host.validation_sequence
-  note "The same as 10.7.18 for the transfer-complete exception, which needs the host to complete the redemption exchange first."
+  requires decoder.lp4C, decoder.lp70, decoder.lp71
+  machine validation secure_enhanced
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  # A machine in secure enhanced validation keeps its acceptor off until a host sets its identifier.
+  host send lp 4C with validation_id=1 sequence_number=1
+
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  egm ticket insert amount=1000 validation=0000000000000019
+  host expect exception ticket_inserted within 8s
+  host send lp 70
+  host expect field validation_data of lp 70 == 0000000000000019
+
+  # Redeemed, so the machine reports the transfer complete, in the event format.
+  host send lp 71 with transfer_code=ttc_valid_cashable_ticket transfer_amount=1000 parsing_code=0 validation_data=0000000000000019
+  host expect field machine_status of lp 71 == gmsc_ticket_redemption_pending
+  host expect exception ticket_transfer_complete within 8s
+  host send lp 71 with transfer_code=ttc_request_for_current_ticket_status
+  host expect field machine_status of lp 71 == gmsc_cashable_ticket_redeemed
+
+  host send lp 0E data 00
 }
