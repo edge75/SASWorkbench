@@ -1401,7 +1401,7 @@ public static class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|ticket|play|press|door|handpay|set|aft|settle|expect ...");
+                "expected: egm bill|ticket|play|press|door|handpay|printer|note|set|aft|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -1537,11 +1537,37 @@ public static class ScriptParser
                 test.Steps.Add(ReadMemoryFault(words, location));
                 return;
 
+            case "printer":
+                test.Steps.Add(ReadPeripheralFault(PeripheralDevice.Printer, words, location));
+                return;
+
+            case "note":
+                test.Steps.Add(ReadPeripheralFault(PeripheralDevice.Note, words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, set or settle");
+                    + "press, door, handpay, power, memory, printer, note, set or settle");
         }
+    }
+
+    /// <summary>Reads <c>egm printer fault &lt;kind&gt;</c> or <c>egm note fault &lt;kind&gt;</c>.</summary>
+    private static PeripheralFaultStep ReadPeripheralFault(
+        PeripheralDevice device, string[] words, SourceLocation location)
+    {
+        IReadOnlyList<string> faults = PeripheralFaultStep.Faults[device];
+        string expected = $"expected: egm {PeripheralFaultStep.WordFor(device)} fault <kind>, where the kind is one of "
+                          + string.Join(", ", faults);
+
+        if (words.Length != 4 || !words[2].Equals("fault", StringComparison.OrdinalIgnoreCase))
+            throw new ScriptParseException(location, expected);
+
+        string fault = words[3].ToLowerInvariant();
+        if (!faults.Contains(fault))
+            throw new ScriptParseException(location, $"'{words[3]}' is not a {PeripheralFaultStep.WordFor(device)} fault. {expected}");
+
+        return new PeripheralFaultStep(location, device, fault);
     }
 
     /// <summary>Reads <c>egm memory fault &lt;kind&gt;</c>.</summary>

@@ -645,3 +645,29 @@ platform with restricted tickets off. `machine.transfer_limit` is read off the `
 `machine.configuration_options` are claimed by the software backend, as no poll reports them, and
 the setter steps `egm set credit limit` and `egm set aft on|off` need `stimulus.credit_limit` and
 `stimulus.aft_configuration`.
+
+---
+
+# Decision 46
+
+Taken on 2026-11-23 while building the peripherals group of M8, without the user (the brief says to
+take the reasonable choice and list it). Open to review like any other.
+
+## D46 — The software machine has only the peripherals the platform has
+
+The protocol half of a peripheral fault is the library's exception queue and nothing more; every
+code is the platform's choice, written from its condition table. So the software machine gains
+exactly what the platform reports: the **service button** (change lamp $71/$72), **note acceptor
+faults** (stacker full $27, jam $28, malfunction $29, a returned note $2B, counterfeit $2C) and
+**printer faults** (disconnected or failed $75/$76, jam $78, paper out $61, paper low $74), each
+raised once while active and cleared by `egm <device> fault cleared` or `egm settle`. Every fault but
+low paper takes the machine out of play, as the platform's lockup does.
+
+It does **not** gain a coin acceptor, a hopper or reels, because the platform has none: it never
+writes $21 to $25, $2D, $79, $80, $81 or $40 to $46, and its hopper meters are marked unsupported.
+`stimulus.coin`, `stimulus.hopper`, `stimulus.reel`, `machine.partial_pay` and
+`machine.external_coin_acceptor` therefore stay absent, and the cases needing them keep skipping on a
+software run; a person at a cabinet that has them can still run them. A note pulled back ($2A) and a
+worn ribbon ($77) have no platform report either, so each is a capability of its own
+(`stimulus.note_fault.reversed`, `stimulus.printer_fault.ribbon`) that only the manual backend offers.
+The design note is `docs/M7-software-machine-peripherals.md`.

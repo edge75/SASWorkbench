@@ -6,12 +6,34 @@
 # and the meters must show it; at cashout only cashable and non-restricted credit can leave as
 # money, while restricted credit stays or leaves as a ticket that can only be played.
 #
-# 16.88 runs against the software machine; the other two need a printer that can be put out of action.
+# 16.87 and 16.88 run against the software machine; 16.89 is notes only, as the software machine neither turns a cash out
+# its printer cannot take into a hand pay nor prints restricted tickets.
 
+# @finding: refused at once with $87, not pending then $90. A printer out of action takes the platform
+# out of play (QSP ConditionDefaults.h:74, SasNetwork_AftTransfer.hpp:1339), so the library refuses the
+# transfer as one it cannot take now (lp.cpp:5333) before the receipt is considered; with only receipts
+# unavailable it would refuse $90 at once (lp.cpp:5367), never pending first.
 test "16.87 a receipt the machine cannot print" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-a-person @finding
   requires decoder.lp72, machine.aft
-  requires stimulus.printer_fault
+  requires stimulus.printer_fault, stimulus.asset_number, stimulus.settle
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # Name, account and balance as receipt data, as in 16.62, with the printer out of action.
+  egm printer fault disconnected
+  host send lp 72 data 4E0000000000000500000000000000000000008039300000000000000000000000000000000000000000000001310000000000001810094A6F6520536D697468110434323432130500002395000000
+  host expect field transfer_status == $40
+  host expect field receipt_status == $40
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $90
+  host expect field receipt_status == $FF
+  egm printer fault cleared
 
   note "With the receipt printer out of action, or on a machine with none, ask for a full cashable transfer with a receipt and patron details: it is answered pending with the receipt pending ($40 and $40)."
   note "The status read then shows the transfer failed for want of a receipt device ($90) and receipt status $FF."
