@@ -177,8 +177,8 @@ public sealed partial class FakeEgm
         lock (_openDoors)
             doorOpen = _openDoors.Count > 0;
 
-        // A peripheral tilt is busy too (QSP SasGameRules.h:255).
-        return doorOpen || !_enabled || PeripheralTilt();
+        // A peripheral or memory tilt is busy too (QSP SasGameRules.h:255, :278).
+        return doorOpen || !_enabled || PeripheralTilt() || MemoryTilt();
     }
 
     /// <summary>True while an acknowledged bonus must stay in escrow: a hand pay, a busy state or the game delay.</summary>

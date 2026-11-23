@@ -111,11 +111,36 @@ test "16.83 a refused transfer takes no place in the history" {
 
 test "16.84 the current record before and after a memory clear" {
   tag @egm-test-scripts @chapter-16 @needs-a-person @destructive
-  requires decoder.lp72, machine.aft
+  requires decoder.lp72, machine.aft, stimulus.asset_number, stimulus.button.collect
   requires machine.nvram_clear
 
-  note "On an empty machine, a transfer needing a lock fails unlocked: the status read shows $94, position 0, nothing moved, and reading it again gives the same."
-  note "Clear the machine's memory so its history is empty and set it up for transfers again. The status read now shows position 0, transfer status $FF and receipt status $FF."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm press collect
+  host forget exceptions within 2s
+
+  # On an empty machine, a transfer needing a lock fails unlocked, and reading it twice agrees.
+  host send lp 72 data 36000000000000050000000000000000000000403930000000000000000000000000000000000000000000000135000000000000000000
+  host expect field transfer_status == $94
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $94
+  host expect field transaction_buffer_position == 0
+  host expect field cashable_amount == 0
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $94
+  host expect field transaction_buffer_position == 0
+  host expect field cashable_amount == 0
+
+  # Cleared and set up for transfers again, the machine has no current record.
+  egm nvram clear
+  host expect link up within 120s
+  egm set asset number 12345
+  host send lp 72 data 02FF00
+  host expect field transaction_buffer_position == 0
+  host expect field transfer_status == $FF
+  host expect field receipt_status == $FF
 }
 
 test "16.86 a machine with no transfers yet" {
@@ -123,5 +148,15 @@ test "16.86 a machine with no transfers yet" {
   requires decoder.lp72, machine.aft
   requires machine.nvram_clear
 
-  note "Clear the machine's memory so no transfer has ever completed, and read the status: position 0, transfer status $FF and receipt status $FF."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # Cleared, no transfer has ever completed.
+  egm nvram clear
+  host expect link up within 120s
+  host send lp 72 data 02FF00
+  host expect field transaction_buffer_position == 0
+  host expect field transfer_status == $FF
+  host expect field receipt_status == $FF
 }

@@ -130,6 +130,31 @@ public sealed partial class FakeEgm
         ClearConditions(PrinterConditions.Values);
     }
 
+    /// <summary>
+    /// The codes the active conditions raise again at power-up: those the platform restores from its memory,
+    /// and the disconnected printer it finds again once started (QSP ConditionHandler.cpp:662, :741).
+    /// </summary>
+    private (List<SasExceptionCode> Restored, List<SasExceptionCode> Rederived) RestoredConditionCodes()
+    {
+        List<SasExceptionCode> restored = [];
+        List<SasExceptionCode> rederived = [];
+        lock (_conditions)
+        {
+            foreach (PeripheralCondition condition in _conditions.Values)
+            {
+                if (ReferenceEquals(condition, PrinterConditions["disconnected"]))
+                    rederived.Add(condition.Raised);
+                else
+                    restored.Add(condition.Raised);
+            }
+
+            if (_serviceRequest)
+                restored.Add(SasExceptionCode.ChangeLampOn);
+        }
+
+        return (restored, rederived);
+    }
+
     /// <summary>True while a condition that takes the machine out of play is active.</summary>
     private bool PeripheralTilt()
     {

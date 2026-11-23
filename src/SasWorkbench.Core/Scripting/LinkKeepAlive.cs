@@ -35,7 +35,7 @@ public sealed class LinkKeepAlive : IDisposable
     /// machine restarts and is resynchronised afterwards, and a sync poll sent before the power goes
     /// would acknowledge the very exception the case is checking survives the restart.
     /// </summary>
-    public static bool Suits(StimulusStep step) => step is not (PowerCycleStep or MemoryFaultStep);
+    public static bool Suits(StimulusStep step) => step is not (PowerCycleStep or MemoryFaultStep or NvramClearStep);
 
     /// <summary>Starts keeping the link alive, or returns null when the host polls on its own timer.</summary>
     public static LinkKeepAlive? Start(PollEngine engine) => Start(engine, Interval);

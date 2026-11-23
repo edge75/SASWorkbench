@@ -732,15 +732,16 @@ public class MachineDeclarationTests
         Assert.Equal("stimulus.handpay.reset", Assert.IsType<HandpayResetStep>(test.Steps[2]).RequiredCapability);
     }
 
-    // Power cycles and memory faults are things only a person at the cabinet can do, so they are
-    // stimuli like a door: a backend that cannot do them makes the case skip with the reason.
+    // Power cycles, memory faults and memory clears are stimuli like a door: a backend that cannot
+    // do them makes the case skip with the reason.
     [Fact]
-    public void A_power_cycle_and_a_memory_fault_are_machine_stimuli()
+    public void A_power_cycle_a_memory_fault_and_a_memory_clear_are_machine_stimuli()
     {
         ScriptTest test = Assert.Single(ScriptParser.Parse("""
             egm power cycle
             egm memory fault cmos-lost
             egm memory fault clear
+            egm nvram clear
             """, "test.sas").Tests);
 
         Assert.Equal("machine.power_cycle", Assert.IsType<PowerCycleStep>(test.Steps[0]).RequiredCapability);
@@ -748,6 +749,26 @@ public class MachineDeclarationTests
         MemoryFaultStep lost = Assert.IsType<MemoryFaultStep>(test.Steps[1]);
         Assert.Equal((MemoryFaultKind.CmosLost, "machine.memory_fault"), (lost.Kind, lost.RequiredCapability));
         Assert.Equal(MemoryFaultKind.Clear, Assert.IsType<MemoryFaultStep>(test.Steps[2]).Kind);
+        Assert.Equal("machine.nvram_clear", Assert.IsType<NvramClearStep>(test.Steps[3]).RequiredCapability);
+    }
+
+    // A fault some machines never report needs a capability of its own, so a case needing it skips there.
+    [Theory]
+    [InlineData("cmos-lost", "machine.memory_fault")]
+    [InlineData("eprom-changed", "machine.memory_fault")]
+    [InlineData("clear", "machine.memory_fault")]
+    [InlineData("cmos-recovered", "machine.memory_fault.cmos_recovered")]
+    [InlineData("cmos-bad-device", "machine.memory_fault.cmos_bad_device")]
+    [InlineData("eeprom-data", "machine.memory_fault.eeprom")]
+    [InlineData("eeprom-bad-device", "machine.memory_fault.eeprom")]
+    [InlineData("eprom-bad-checksum", "machine.memory_fault.eprom_checksum")]
+    [InlineData("partitioned-eprom-changed", "machine.memory_fault.partitioned_eprom")]
+    [InlineData("partitioned-eprom-bad-checksum", "machine.memory_fault.partitioned_eprom")]
+    public void Each_memory_fault_needs_the_capability_of_the_code_it_raises(string kind, string capability)
+    {
+        ScriptTest test = Assert.Single(ScriptParser.Parse($"egm memory fault {kind}", "test.sas").Tests);
+
+        Assert.Equal(capability, Assert.IsType<MemoryFaultStep>(test.Steps[0]).RequiredCapability);
     }
 
     [Theory]
@@ -756,26 +777,29 @@ public class MachineDeclarationTests
     [InlineData("egm memory fault")]
     [InlineData("egm memory fault cmos")]
     [InlineData("egm memory error cmos-lost")]
-    public void A_power_cycle_or_memory_fault_written_wrongly_is_a_mistake_in_the_script(string line)
+    [InlineData("egm nvram")]
+    [InlineData("egm nvram reset")]
+    public void A_power_cycle_memory_fault_or_clear_written_wrongly_is_a_mistake_in_the_script(string line)
     {
         Assert.Throws<ScriptParseException>(() => ScriptParser.Parse(line));
     }
 
-    // Neither the software machine nor the peripheral driver can cut power or break a memory
-    // device, so only the manual backend claims them; claiming them elsewhere would turn a skip
-    // into a case that waits on nothing.
+    // A person can do all three, and the software machine models them; the peripheral driver cannot
+    // cut power or break a memory device, so claiming them there would turn a skip into a case that
+    // waits on nothing. The faults the platform never reports are offered by a person alone.
     [Fact]
-    public void Only_a_person_offers_power_cycles_and_memory_faults()
+    public void A_person_and_the_software_machine_offer_power_cycles_memory_faults_and_clears()
     {
-        foreach (string key in new[] { "machine.power_cycle", "machine.memory_fault" })
+        foreach (string key in new[] { "machine.power_cycle", "machine.memory_fault", "machine.nvram_clear" })
         {
             Assert.True(CapabilityProbe.ForStimulus(StimulusBackend.Manual).ContainsKey(key));
-            foreach (StimulusBackend backend in new[]
-                     { StimulusBackend.Software, StimulusBackend.Qpm, StimulusBackend.None })
-            {
-                Assert.False(CapabilityProbe.ForStimulus(backend).ContainsKey(key));
-            }
+            Assert.True(CapabilityProbe.ForStimulus(StimulusBackend.Software).ContainsKey(key));
+            Assert.False(CapabilityProbe.ForStimulus(StimulusBackend.Qpm).ContainsKey(key));
+            Assert.False(CapabilityProbe.ForStimulus(StimulusBackend.None).ContainsKey(key));
         }
+
+        Assert.True(CapabilityProbe.ForStimulus(StimulusBackend.Manual).ContainsKey("machine.memory_fault.eeprom"));
+        Assert.False(CapabilityProbe.ForStimulus(StimulusBackend.Software).ContainsKey("machine.memory_fault.eeprom"));
     }
 
     [Theory]

@@ -96,6 +96,8 @@ test "4.23.1 one hand pay, read once" {
 test "4.23.2 two hand pays, in turn" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
   requires stimulus.handpay.jackpot, stimulus.handpay.reset, machine.power_cycle, stimulus.settle
+  # The second jackpot arrives while the first is still held, which only a hand pay queue can do.
+  requires machine.handpay_queue
   requires decoder.lp1B
 
   host connect loopback address 01

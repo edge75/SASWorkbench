@@ -675,6 +675,12 @@ public static partial class CapabilityProbe
                 ["stimulus.door.drop"] = "yes",
                 ["stimulus.door.belly"] = "yes",
 
+                // It keeps what the library's image and the platform keep across a restart, raises $32 and $36 as the
+                // platform does and clears its memory as the operator does; the faults the platform never reports stay absent.
+                ["machine.power_cycle"] = "yes",
+                ["machine.memory_fault"] = "yes",
+                ["machine.nvram_clear"] = "yes",
+
                 // The machine is told the outcome, so a jackpot is as available as a cash-out.
                 ["stimulus.handpay"] = "yes",
                 ["stimulus.handpay.jackpot"] = "yes",
@@ -712,9 +718,15 @@ public static partial class CapabilityProbe
                 ["stimulus.handpay.jackpot"] = "yes",
                 ["stimulus.handpay.reset"] = "yes",
 
-                // Only a person at the cabinet can do either, and the cases that need them carry @destructive.
+                // A person at the cabinet can do all of these, every memory fault included, and the cases that need them carry @destructive.
                 ["machine.power_cycle"] = "yes",
                 ["machine.memory_fault"] = "yes",
+                ["machine.memory_fault.cmos_recovered"] = "yes",
+                ["machine.memory_fault.cmos_bad_device"] = "yes",
+                ["machine.memory_fault.eeprom"] = "yes",
+                ["machine.memory_fault.eprom_checksum"] = "yes",
+                ["machine.memory_fault.partitioned_eprom"] = "yes",
+                ["machine.nvram_clear"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

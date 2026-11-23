@@ -119,6 +119,7 @@ test "AD-41 a sub-cent accounting denomination is refused" {
   tag @accounting-denomination @needs-configuration
   requires decoder.lp1F
   requires machine.accounting_denomination
+  requires machine.config_file
   requires machine.nvram_clear
 
   machine accounting denomination 10c

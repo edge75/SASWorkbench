@@ -24,11 +24,12 @@
 
 test "16.3 a basic registration" {
   tag @egm-test-scripts @chapter-16 @destructive
-  requires decoder.lp73, machine.aft, machine.power_cycle
+  requires decoder.lp73, machine.aft, machine.power_cycle, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host expect field registration_status == $00
@@ -57,11 +58,12 @@ test "16.3 a basic registration" {
 
 test "16.4 a registration naming another asset number is refused" {
   tag @egm-test-scripts @chapter-16 @destructive
-  requires decoder.lp73, machine.aft, machine.power_cycle
+  requires decoder.lp73, machine.aft, machine.power_cycle, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   # Initialising with asset 54321 on a machine that is 12345: not registered, and the machine
   # reports its own number, not the one it was sent.
@@ -252,13 +254,18 @@ test "16.10 a link lost in the middle of registration cancels it" {
   host expect field registration_status == $80
 }
 
+# @finding: a memory error neither cancels the registration nor raises $6E. The library keeps the
+# registration in its image and only a memory clear empties it, silently (libsas_internal.cpp:756),
+# with what was owed dropped (QSP SasNetwork.cpp:1218); memory found invalid at power-up starts no
+# link at all (QSP SasNetwork.cpp:309).
 test "16.11 a memory fault cancels the registration" {
-  tag @egm-test-scripts @chapter-16 @destructive
-  requires decoder.lp73, machine.aft, machine.memory_fault
+  tag @egm-test-scripts @chapter-16 @destructive @finding
+  requires decoder.lp73, machine.aft, machine.memory_fault, stimulus.asset_number
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  egm set asset number 12345
 
   host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
   host send lp 73 data 1D0139300000214365870900000000000000000000000000000021430500

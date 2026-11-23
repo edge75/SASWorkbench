@@ -912,6 +912,14 @@ public sealed partial class FakeEgm : IDisposable
     {
         while (_running)
         {
+            // A machine with no power hears the line and answers nothing.
+            if (_poweredOff)
+            {
+                link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
+                link.Message.Clear();
+                continue;
+            }
+
             TickAft(link);
             TickLegacyBonus();
             TickValidation();

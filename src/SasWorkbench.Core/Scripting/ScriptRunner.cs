@@ -1314,7 +1314,7 @@ public sealed class ScriptRunner
                     environment.Stimulus.Apply(step, machine);
             }
 
-            MachineResynchronisation? resync = step is PowerCycleStep or MemoryFaultStep
+            MachineResynchronisation? resync = step is PowerCycleStep or MemoryFaultStep or NvramClearStep
                 ? MachineResynchronisation.Run(engine)
                 : null;
             if (resync is { Failed: true } stillChirping)

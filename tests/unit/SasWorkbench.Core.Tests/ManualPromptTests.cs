@@ -85,6 +85,8 @@ public class ManualPromptTests
     [InlineData("stimulus.handpay.reset")]
     [InlineData("machine.power_cycle")]
     [InlineData("machine.memory_fault")]
+    [InlineData("machine.memory_fault.eeprom")]
+    [InlineData("machine.nvram_clear")]
     public void APersonIsOfferedTheActionsTheGsaScriptsNeed(string capability)
     {
         var backend = new ManualStimulusBackend((_, _) => PromptAnswer.Done, TimeSpan.FromSeconds(1));

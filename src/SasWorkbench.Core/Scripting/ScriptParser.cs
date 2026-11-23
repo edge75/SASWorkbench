@@ -1559,6 +1559,12 @@ public static class ScriptParser
                 test.Steps.Add(ReadMemoryFault(words, location));
                 return;
 
+            case "nvram":
+                if (words.Length != 3 || !words[2].Equals("clear", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: egm nvram clear");
+                test.Steps.Add(new NvramClearStep(location));
+                return;
+
             case "printer":
                 test.Steps.Add(ReadPeripheralFault(PeripheralDevice.Printer, words, location));
                 return;
@@ -1570,7 +1576,7 @@ public static class ScriptParser
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, printer, note, set or settle");
+                    + "press, door, handpay, power, memory, nvram, printer, note, set or settle");
         }
     }
 

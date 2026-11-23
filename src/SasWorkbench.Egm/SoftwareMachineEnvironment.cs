@@ -107,6 +107,21 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            // The software machine keeps what the library and the platform keep across a restart, and nothing else.
+            case PowerCycleStep:
+                machine.PowerCycle();
+                return;
+
+            case MemoryFaultStep memory:
+                if (machine.MemoryFault(memory.Kind) is { } noReport)
+                    throw new StimulusUnavailableException($"the software machine cannot do '{memory.Describe()}': {noReport}");
+
+                return;
+
+            case NvramClearStep:
+                machine.ClearMemory();
+                return;
+
             case HandpayResetStep:
                 if (!machine.ResetHandpay())
                     throw new StimulusUnavailableException(
