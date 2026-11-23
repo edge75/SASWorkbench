@@ -699,3 +699,37 @@ smaller choices go with it:
   validates no hand pay and prints no receipt (QSP `SasNetwork.cpp:617`).
 
 The design note is `docs/M7-software-machine-validation-styles.md`.
+
+---
+
+# Decision 48
+
+Taken on 2026-11-23 while building the life cycle group of M8, without the user (the brief says to
+take the reasonable choice and list it). Open to review like any other.
+
+## D48 — The software machine is power cycled, faulted and cleared as its platform is
+
+A power cycle keeps exactly what the library's image keeps (`sNvramData`, libsas_db.h:855) and what
+the platform keeps in its own memory, and starts everything else again: the link waits for a
+synchronisation poll, real-time reporting is off, the transfer lock is gone. The power exceptions
+are the platform's: $18 on every start whether or not anything noticed the power go, the conditions
+it restores, then $17 (QSP SasNetwork.cpp:159, SasNetwork_Conditions.hpp:477). The machine is dead
+to the line for half a second while off.
+
+Three choices go with it:
+
+* **A memory fault is the one the platform finds while running.** `egm memory fault cmos-lost`
+  raises $32 with the link up and takes the machine out of play until a memory clear. Memory found
+  invalid at power-up starts no link at all on the platform (QSP SasNetwork.cpp:309), so the host
+  would hear nothing; that path is not modelled.
+* **The faults the platform never reports have capabilities of their own**, so a case needing
+  $31, $33, $34, $35, $37, $38 or $39 skips on the software machine rather than failing after a
+  step that could not happen: `machine.memory_fault.cmos_recovered`, `.cmos_bad_device`, `.eeprom`,
+  `.eprom_checksum` and `.partitioned_eprom`, offered by the manual backend only. A case stays one
+  test: 4.15 to 4.19 need them all and skip whole.
+* **A memory clear is `egm nvram clear`**, also reached by `egm memory fault clear`, and includes
+  the attendant setting the poll address again; the platform would come back at address 1 with
+  asset number 1, and the asset number does. It reports $3A, $7A and then $3C as the configuration
+  completes (QSP SasNetwork.cpp:1219, SasNetwork_Conditions.hpp:63).
+
+The design note is `docs/M7-software-machine-lifecycle.md`.
