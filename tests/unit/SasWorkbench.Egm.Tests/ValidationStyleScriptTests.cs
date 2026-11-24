@@ -48,7 +48,7 @@ public class ValidationStyleScriptTests
     public void A_machine_the_build_did_not_configure_is_asked_and_skips_on_another_style()
     {
         // A standard machine that ignores the declaration, as every machine this build did not make does.
-        EnvironmentFactory unconfigurable = (step, options, declared, channels, _, _, _) =>
+        EnvironmentFactory unconfigurable = (step, options, declared, channels, _, _, _, _) =>
             SoftwareMachineEnvironment.For()(step, options, declared, channels);
 
         TestOutcome result = Run("""

@@ -20,6 +20,9 @@ internal sealed record HandpayOwed(
     /// <summary>The part of the amount a progressive won, which the attendant-paid progressive meter takes.</summary>
     public long ProgressiveCents { get; init; }
 
+    /// <summary>The extra part of a multiplied win, which the attendant-paid external bonus meter takes.</summary>
+    public long MultipliedCents { get; init; }
+
     /// <summary>A progressive level is reported in cents, every other level in accounting units (libsas_internal.cpp:4899).</summary>
     public bool InCents => Level is >= 0x01 and <= 0x20;
 }
@@ -138,17 +141,20 @@ public sealed partial class FakeEgm
         }
         else
         {
-            // A progressive's part is an attendant-paid progressive win, the rest a paytable win (QSP AsyncHandpayComplete).
+            // A progressive's part is an attendant-paid progressive win, a multiplier's an external bonus, the rest a paytable win (QSP AsyncHandpayComplete).
             long progressive = paid.ProgressiveCents / AccountingCents;
+            long multiplied = paid.MultipliedCents / AccountingCents;
             Meters.Increment(SasMeterCode.TotalJackpotCredits, credits);
             if (progressive > 0)
                 Meters.Increment(SasMeterCode.TotalAttendantPaidProgressiveWin_Crd, progressive);
-            if (credits - progressive > 0)
-                Meters.Increment(SasMeterCode.TotalAttendantPaidPaytableWin_Crd, credits - progressive);
+            if (multiplied > 0)
+                Meters.Increment(SasMeterCode.TotalAttendantPaidExternalBonusWin_Crd, multiplied);
+            if (credits - progressive - multiplied > 0)
+                Meters.Increment(SasMeterCode.TotalAttendantPaidPaytableWin_Crd, credits - progressive - multiplied);
         }
 
         if (reported)
-            Queue((byte)SasExceptionCode.HandpayWasReset, [], priority: true);
+            QueueHandpayWasReset();
         return true;
     }
 
@@ -224,6 +230,6 @@ public sealed partial class FakeEgm
         }
 
         if (resetNowReported)
-            Queue((byte)SasExceptionCode.HandpayWasReset, [], priority: true);
+            QueueHandpayWasReset();
     }
 }

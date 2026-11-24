@@ -186,6 +186,9 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine takes part in component authentication; off, as QSP starts the library (SasNetwork.cpp:302).</summary>
     public bool ComponentAuthentication { get; init; }
 
+    /// <summary>Whether the machine multiplies jackpots; off, as QSP starts the library (SasNetwork.cpp:286).</summary>
+    public bool MultipliedJackpot { get; init; }
+
     /// <summary>How long the machine takes to authenticate a component once the host has asked.</summary>
     /// <remarks>Long enough that a host reading the status at once still finds the authentication running.</remarks>
     public TimeSpan AuthenticationTime { get; init; } = TimeSpan.FromSeconds(5);

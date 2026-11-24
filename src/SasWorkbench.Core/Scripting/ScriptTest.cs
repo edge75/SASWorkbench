@@ -44,6 +44,9 @@ public sealed record ScriptTest
     /// <summary>Whether this case assumes the machine takes part in component authentication.</summary>
     public MachineAuthenticationDeclaration? Authentication { get; init; }
 
+    /// <summary>Whether this case assumes the machine multiplies jackpots.</summary>
+    public MachineMultipliedJackpotDeclaration? MultipliedJackpot { get; init; }
+
     /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
     public MachineChannelDeclaration? Channels { get; init; }
 

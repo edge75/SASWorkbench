@@ -124,6 +124,8 @@ public sealed partial class FakeEgm
 
             ClearMachineLocked();
             RestartAuthenticationLocked();
+            RestartMultipliedJackpotLocked();
+            _multipliedAwardAfterHandpay = null;
         }
 
         Meters.ClearAll();
@@ -178,6 +180,7 @@ public sealed partial class FakeEgm
 
             RestartProgressivesLocked();
             RestartAuthenticationLocked();
+            RestartMultipliedJackpotLocked();
 
             // libsas_internal.cpp:887 raises $51 again for a hand pay still awaiting its reading.
             handpayAwaitingRead = _handpay is { ReadAcknowledged: false };

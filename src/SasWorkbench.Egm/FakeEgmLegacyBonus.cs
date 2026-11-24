@@ -22,8 +22,8 @@ internal readonly record struct LegacyBonusAward(byte Multiplier, long Multiplie
 /// <c>IsLegacyBonusBusyCondition</c>, <c>GameDelay</c>), reduced to what this machine has.
 /// </para>
 /// <para>
-/// Multiplied jackpots are not offered: QSP never gives the library the jackpot multiplier bit
-/// (SasNetwork.cpp:286) and performs nothing for $8B, so the library answers $8B with silence.
+/// Multiplied jackpots are off unless a case declares them, as QSP never gives the library the jackpot
+/// multiplier bit (SasNetwork.cpp:286); see the multiplied jackpot partial.
 /// </para>
 /// </remarks>
 public sealed partial class FakeEgm
@@ -93,7 +93,7 @@ public sealed partial class FakeEgm
                 return true;
 
             case (byte)SasLongPollCode.LP_INITMULTIPLEJACKPOT:
-                // Needs the jackpot multiplier bit as well (lp.cpp:8691), which this machine never sets.
+                AnswerMultipliedJackpot(link, frame);
                 return true;
 
             case (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN:
@@ -282,18 +282,8 @@ public sealed partial class FakeEgm
         }
 
         // A bonus from $8A has no multiplier and no multiplied win (SasNetwork_AftTransfer.hpp:1738).
-        var award = new LegacyBonusAward(0x00, 0, taxStatus, credits);
         _legacyMeters[taxStatus] += credits;
-        _lastLegacyAward = award;
-
-        // The payload SAS_LegacyBonusAward builds (libsas.cpp:2634 to :2643).
-        RaiseEvent((byte)SasExceptionCode.LegacyBonusPayOrJackpotAwarded,
-        [
-            award.Multiplier,
-            .. BcdBytes(award.MultipliedWin, 4),
-            award.TaxStatus,
-            .. BcdBytes(award.Bonus, 4),
-        ]);
+        RaiseLegacyBonusAwardLocked(new LegacyBonusAward(0x00, 0, taxStatus, credits));
     }
 
     /// <summary>What long poll $90 answers: the last award, until a reading of it has been acknowledged.</summary>
