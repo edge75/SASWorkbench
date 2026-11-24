@@ -17,6 +17,7 @@ internal static class ProbeCommand
         CapabilitySet capabilities = CapabilityProbe.Baseline();
         var peripherals = new QpmOptions(line.Value("qpm-shm"), line.Value("egm-resources"));
         string? refusal = null;
+        int exit = 0;
 
         string? stimulus = line.Value("stimulus");
         if (stimulus is not null)
@@ -81,6 +82,15 @@ internal static class ProbeCommand
                 Console.WriteLine($"             {caps.Caveat}");
         }
 
+        if (line.Value("serial") is { } named)
+        {
+            WakeupBitCheck check = SerialTransport.CheckWakeupBit(new SerialTransportOptions(named));
+            string verdict = check.CarriesWakeupBit ? "carries the wakeup bit" : "refused";
+            Console.WriteLine($"  {named}  {verdict} — {check.Detail}");
+            if (!check.CarriesWakeupBit)
+                exit = 1;
+        }
+
         Console.WriteLine();
         Console.WriteLine("What a test may require");
 
@@ -104,7 +114,7 @@ internal static class ProbeCommand
             + "over the link once one is up rather than probed from here");
         Console.WriteLine("  channel.2-4        carried through the model, but no second link is wired");
 
-        return 0;
+        return exit;
     }
 
     private static void Describe(QpmStimulusBackend backend)
