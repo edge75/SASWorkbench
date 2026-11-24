@@ -764,3 +764,31 @@ smaller choices go with it:
   jackpot limit of group 5.
 
 The design note is `docs/M7-software-machine-progressives.md`.
+
+---
+
+# Decision 50
+
+Taken on 2026-11-23 while building the game-in-progress group of M8, without the user (the brief
+says to take the reasonable choice and list it). Open to review like any other.
+
+## D50 — A case holds a game or a cash out open, and sets one jackpot limit
+
+No poll reports a jackpot limit, and no poll can open a game, so all three are the case's to work at
+the machine, the way a credit limit is (D45): **`egm set jackpot limit <cents>`**,
+**`egm game start [bet=n]` / `egm game end [win=n]`** and **`egm press collect lasting <duration>`**,
+needing `stimulus.jackpot_limit`, `stimulus.game_in_progress` and `stimulus.cashout_in_progress`,
+which the software and manual backends offer. `machine.jackpot_limit` is claimed by the software
+backend. What each does is the platform's, in its simplest form (D44):
+
+* **One limit for every award.** The platform keeps a game win limit and a progressive win limit;
+  this machine keeps one figure and weighs a game win, a progressive (by the round's progressive
+  total), a legacy bonus and an AFT coin-out bonus against it, strictly greater, as the market does.
+  Zero is no limit and the default, so nothing written before changes.
+* **One hand pay at a time**, where the library queues them: a progressive won with a jackpot joins
+  it, and a legacy bonus over the limit waits until the reset before it has been reported.
+* **Poker is left out.** The platform hands the library a dealt hand and held cards but raises no
+  draw request, so two of the five poker cases could never run, and the other three would need a
+  second game model; `machine.poker` stays absent.
+
+The design note is `docs/M7-software-machine-game-in-progress.md`.

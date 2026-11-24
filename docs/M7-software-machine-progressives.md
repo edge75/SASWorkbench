@@ -70,7 +70,9 @@ being broadcast are QSP's, each with a one-line "QSP" comment in the code.
 
 * A progressive paid by an attendant: it needs a jackpot limit (group 5), so 12.5 to 12.9, 12.13,
   12.14, 12.17, 12.18, 12.21, 12.27, 13.10 to 13.14, 13.22, 13.23, 13.26, 13.27, 13.30, 13.33 and
-  13.37 keep skipping on `machine.jackpot_limit` or `machine.progressives`.
+  13.37 keep skipping on `machine.jackpot_limit` or `machine.progressives`. *Built since, in group 5
+  of M8: all of them run but 12.6 and 13.11 (a hand pay queue), 12.13 (a hopper) and 13.33 (several
+  games); see `M7-software-machine-game-in-progress.md`.*
 * Several games or denominations: 12.4, 12.22 to 12.26, 13.4, 13.15, 13.31 to 13.35 skip on
   `machine.multiple_games` or `machine.multiple_denominations`.
 * A win cumulated across one game cycle in $84 (the addenda's total of a cycle), the platform's win
