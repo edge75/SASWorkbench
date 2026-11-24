@@ -126,7 +126,7 @@ public sealed partial class FakeEgm
             doorOpen = _openDoors.Count > 0;
 
         // A ticket printing interrupts play too (QSP eCashTicketOut, ConditionDefaults.h:65); a game in progress does not.
-        return !doorOpen && _enabled && _handpay is not { Reset: false } && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull && !ProgressiveWaitLocked()
+        return !doorOpen && _enabled && _handpay is null && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull && !ProgressiveWaitLocked()
                && _cashoutDue == 0;
     }
 

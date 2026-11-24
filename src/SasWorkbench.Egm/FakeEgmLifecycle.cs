@@ -144,7 +144,8 @@ public sealed partial class FakeEgm
     /// <summary>The restart after a power cut: what is kept stays, what the library and the platform restore is reported again.</summary>
     private void StartUp()
     {
-        bool reissueCompletion, recoverValidation, handpayAwaitingRead;
+        bool reissueCompletion, recoverValidation;
+        byte recoveredCode;
         long now = Stopwatch.GetTimestamp();
         lock (_gate)
         {
@@ -178,14 +179,13 @@ public sealed partial class FakeEgm
                 _printedReissueDue = now + Ticks(PrintedReissue);
             }
 
+            recoveredCode = UnreadAnnouncementLocked();
             RestartProgressivesLocked();
             RestartAuthenticationLocked();
             RestartMultipliedJackpotLocked();
 
             // libsas_internal.cpp:887 raises $51 again for a hand pay still awaiting its reading.
-            handpayAwaitingRead = _handpay is { ReadAcknowledged: false };
-            if (handpayAwaitingRead)
-                _handpayIssuedAt = now;
+            RestartHandpaysLocked();
         }
 
         // A count kept in memory only, so it starts again (QSP ConditionHandler.cpp:81).
@@ -194,9 +194,7 @@ public sealed partial class FakeEgm
         if (reissueCompletion)
             QueueRanked((byte)SasExceptionCode.AFTTransferComplete);
         if (recoverValidation)
-            QueueRanked((byte)SasExceptionCode.CashoutTicketPrinted);
-        if (handpayAwaitingRead)
-            QueueRanked((byte)SasExceptionCode.HandpayIsPending);
+            QueueRanked(recoveredCode);
 
         RaisePowerUpExceptions();
         StartValidationIdReporting();
@@ -264,7 +262,7 @@ public sealed partial class FakeEgm
         ClearTransfersLocked();
         ClearValidationLocked();
 
-        _handpay = null;
+        ClearHandpaysLocked();
         Array.Clear(_legacyEscrow);
         Array.Clear(_legacyMeters);
         _lastLegacyAward = default;

@@ -314,11 +314,11 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot) =>
+        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
                 return DefaultEnvironment.Create(
-                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot);
+                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -386,6 +386,10 @@ public static class SoftwareMachineEnvironment
             if (multipliedJackpot is not null)
                 settings = settings with { MultipliedJackpot = true };
 
+            // A case that says how the machine reports and validates hand pays gets one that does, as set at a memory reset.
+            if (handpay is not null)
+                settings = settings with { LegacyHandpayReporting = handpay.Legacy, HandpayValidation = handpay.Validation };
+
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();
 
@@ -418,6 +422,7 @@ public static class SoftwareMachineEnvironment
                         new KeyValuePair<string, string?>(
                             MachineChannelDeclaration.CapabilityFor(channel), "yes")))
                     .Concat(NonSasProgressives(progressive))
+                    .Concat(Handpays(settings))
                     .ToDictionary(pair => pair.Key, pair => pair.Value),
                 OpenChannel = another =>
                 {
@@ -428,6 +433,27 @@ public static class SoftwareMachineEnvironment
                 },
             };
         };
+
+    /// <summary>
+    /// How this machine reports and validates hand pays, which it claims because it was built that way: no poll
+    /// reports either. The queue holds sixteen, as the library's does (HANDPAY_BUFFER_LENGTH, libsas_db.h:72).
+    /// </summary>
+    private static IEnumerable<KeyValuePair<string, string?>> Handpays(FakeEgmOptions settings)
+    {
+        if (settings.LegacyHandpayReporting)
+        {
+            yield return new(MachineHandpayDeclaration.LegacyCapability, "yes");
+        }
+        else
+        {
+            yield return new(MachineHandpayDeclaration.QueueCapability, "yes");
+            yield return new(MachineHandpayDeclaration.QueueSizeCapability,
+                HandpayQueue.Length.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        if (settings.HandpayValidation)
+            yield return new(MachineHandpayDeclaration.ValidationCapability, "yes");
+    }
 
     /// <summary>
     /// The levels this machine runs itself, which it claims because it was built with them: they

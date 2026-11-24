@@ -121,7 +121,7 @@ public class LinklessSkipTests
         {
             Stimulus = StimulusBackend.Qpm,
             StimulusOffer = new Dictionary<string, string?> { ["stimulus.button.collect"] = "yes" },
-            Environment = (_, _, _, _, _, _, _, _) => throw new TransportRefusedException("no machine dialled in"),
+            Environment = (_, _, _, _, _, _, _, _, _) => throw new TransportRefusedException("no machine dialled in"),
         });
 
         TestOutcome outcome = runner.Run(test);

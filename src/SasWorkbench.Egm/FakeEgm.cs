@@ -123,7 +123,15 @@ public sealed partial class FakeEgm : IDisposable
         Channels = _options.Channels ?? SasChannelPlan.Only(_options.Channel, _options.Address);
         ChannelRefusal = _options.ChannelRefusal;
 
-        _links.Add(new MachineLink(transport, _options.Channel, _options.Address));
+        _links.Add(NewLink(transport, _options.Channel, _options.Address));
+    }
+
+    /// <summary>A link whose acknowledged exceptions reach the hand pay queue, as the library's dequeue hands them on.</summary>
+    private MachineLink NewLink(ISasTransport transport, SasChannel channel, SasAddress address)
+    {
+        var link = new MachineLink(transport, channel, address);
+        link.Exceptions.Acknowledged = code => NoteHandpayExceptionAcknowledgedLocked(link, code);
+        return link;
     }
 
     /// <summary>How this machine is divided between hosts.</summary>
@@ -164,7 +172,7 @@ public sealed partial class FakeEgm : IDisposable
                 $"channel {(int)channel} is already open on this machine.");
         }
 
-        var opened = new MachineLink(transport, channel, address);
+        var opened = NewLink(transport, channel, address);
         lock (_gate)
             _links.Add(opened);
 
@@ -933,6 +941,9 @@ public sealed partial class FakeEgm : IDisposable
         /// <summary>The hand pay reading last sent on this link and not yet acknowledged, or null.</summary>
         public byte[]? UnacknowledgedHandpayPoll { get; set; }
 
+        /// <summary>This channel's hand pay queue, which the library keeps per channel.</summary>
+        public HandpayQueue Handpays { get; } = new();
+
         public SasSymbol[] Incoming { get; } = new SasSymbol[HostMessage.MaxSymbols];
 
         public List<SasSymbol> Message { get; } = new(HostMessage.MaxSymbols);
@@ -957,6 +968,7 @@ public sealed partial class FakeEgm : IDisposable
             }
 
             TickAft(link);
+            TickHandpay();
             TickMultipliedJackpot(link);
             TickLegacyBonus();
             TickValidation();
@@ -1176,6 +1188,10 @@ public sealed partial class FakeEgm : IDisposable
         {
             foreach (byte value in event_.Data)
                 link.Frame[length++] = value;
+
+            // An event taken off the queue is not held for acknowledgement here, so the hand pay queue hears of it as it leaves.
+            lock (_gate)
+                NoteHandpayExceptionAcknowledgedLocked(link, event_.Code);
         }
 
         ushort crc = SasCrc.Compute(link.Frame.AsSpan(0, length));
@@ -1306,15 +1322,12 @@ public sealed partial class FakeEgm : IDisposable
 
             case SasResponseShape.Data:
                 // The reply is written over the request's buffer, so a read awaiting an implied ACK is kept before it is answered.
-                byte[]? request = command is (byte)SasLongPollCode.LP_SENDHANDPAYINFO
-                    or (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN
+                byte[]? request = command is (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN
                     or (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO
                     ? frame.ToArray()
                     : null;
                 SendData(link, layout, frame);
-                if (command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO)
-                    RememberHandpayReading(link, request);
-                else if (command == (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN)
+                if (command == (byte)SasLongPollCode.LP_SENDLEGACYBONUSWIN)
                     RememberLegacyBonusReading(link, request);
                 else if (command == (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO)
                     RememberValidationRead(link, request);
@@ -1378,7 +1391,10 @@ public sealed partial class FakeEgm : IDisposable
 
     private void SendData(MachineLink link, SasMessageLayout layout, ReadOnlySpan<byte> request)
     {
-        Dictionary<string, object>? values = ValuesFor(layout, request);
+        // The hand pay queue is kept per channel, so its reading is the one reply that needs the link.
+        Dictionary<string, object>? values = layout.Command == (byte)SasLongPollCode.LP_SENDHANDPAYINFO
+            ? ReadHandpay(link, request)
+            : ValuesFor(layout, request);
         if (values is null)
         {
             // The layout says this command is answered with data and no values could be built for

@@ -61,7 +61,8 @@ public delegate ScriptEnvironment EnvironmentFactory(
     MachineValidationDeclaration? validation = null,
     MachineProgressiveDeclaration? progressive = null,
     MachineAuthenticationDeclaration? authentication = null,
-    MachineMultipliedJackpotDeclaration? multipliedJackpot = null);
+    MachineMultipliedJackpotDeclaration? multipliedJackpot = null,
+    MachineHandpayDeclaration? handpay = null);
 
 /// <summary>
 /// The environments this assembly can build on its own: a real link to something already
@@ -89,7 +90,8 @@ public static class DefaultEnvironment
         MachineValidationDeclaration? validation = null,
         MachineProgressiveDeclaration? progressive = null,
         MachineAuthenticationDeclaration? authentication = null,
-        MachineMultipliedJackpotDeclaration? multipliedJackpot = null)
+        MachineMultipliedJackpotDeclaration? multipliedJackpot = null,
+        MachineHandpayDeclaration? handpay = null)
     {
         IStimulusBackend stimulus = options.Stimulus switch
         {

@@ -23,6 +23,9 @@ internal sealed class ExceptionQueue
     private PendingEvent? _unacknowledged;
     private int _repeats;
 
+    /// <summary>Called with an exception's code once the host has acknowledged it, as the library's dequeue does.</summary>
+    public Action<byte>? Acknowledged { get; set; }
+
     /// <summary>Exceptions still to be sent, the overflow included and the one awaiting acknowledgement not.</summary>
     public int Count => _queue.Count + (_overflowPending ? 1 : 0);
 
@@ -159,8 +162,11 @@ internal sealed class ExceptionQueue
     /// <summary>The host's next message was not a repeat, so the exception last sent was received.</summary>
     public void Acknowledge()
     {
+        PendingEvent? acknowledged = _unacknowledged;
         _unacknowledged = null;
         _repeats = 0;
+        if (acknowledged is { } sent)
+            Acknowledged?.Invoke(sent.Code);
     }
 
     /// <summary>Empties the queue outright, as a memory clear zeroes the library's copy of it (libsas_internal.cpp:756).</summary>

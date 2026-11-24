@@ -186,6 +186,12 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine takes part in component authentication; off, as QSP starts the library (SasNetwork.cpp:302).</summary>
     public bool ComponentAuthentication { get; init; }
 
+    /// <summary>Whether the library reports hand pays the legacy way (SAS 6.02 7.8.2); off, the queue, as QSP's default flags have it (SasNetwork.cpp:605).</summary>
+    public bool LegacyHandpayReporting { get; init; }
+
+    /// <summary>Whether the machine validates hand pays when the host asks with long poll 7B bit 2; QSP does not (SasNetwork.cpp:617).</summary>
+    public bool HandpayValidation { get; init; }
+
     /// <summary>Whether the machine multiplies jackpots; off, as QSP starts the library (SasNetwork.cpp:286).</summary>
     public bool MultipliedJackpot { get; init; }
 
