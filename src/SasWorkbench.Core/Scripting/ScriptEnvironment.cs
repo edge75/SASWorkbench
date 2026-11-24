@@ -59,7 +59,8 @@ public delegate ScriptEnvironment EnvironmentFactory(
     MachineDeclaration? declared,
     MachineChannelDeclaration? channels = null,
     MachineValidationDeclaration? validation = null,
-    MachineProgressiveDeclaration? progressive = null);
+    MachineProgressiveDeclaration? progressive = null,
+    MachineAuthenticationDeclaration? authentication = null);
 
 /// <summary>
 /// The environments this assembly can build on its own: a real link to something already
@@ -85,7 +86,8 @@ public static class DefaultEnvironment
         MachineDeclaration? declared = null,
         MachineChannelDeclaration? channels = null,
         MachineValidationDeclaration? validation = null,
-        MachineProgressiveDeclaration? progressive = null)
+        MachineProgressiveDeclaration? progressive = null,
+        MachineAuthenticationDeclaration? authentication = null)
     {
         IStimulusBackend stimulus = options.Stimulus switch
         {

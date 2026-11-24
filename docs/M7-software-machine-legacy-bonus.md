@@ -68,9 +68,11 @@ Each of these carries a "QSP" comment in the code.
 
 * Multiplied jackpots, so the 27 chapter 22 cases that need one skip on `machine.multiplied_jackpot`.
 * A jackpot limit: a bonus above it would be a hand pay (`SasNetwork_AftTransfer.hpp:1708`), so the
-  eight chapter 15 cases that need one still skip on `machine.jackpot_limit`.
+  eight chapter 15 cases that need one still skip on `machine.jackpot_limit`. *Built since, in group
+  5 of M8: see `M7-software-machine-game-in-progress.md`.*
 * A game or a cash out held open, maintenance mode, game recall and tilts, so a bonus during a game
-  or a cash out is never seen; 15.5 skips on `stimulus.cashout_in_progress`.
+  or a cash out is never seen; 15.5 skips on `stimulus.cashout_in_progress`. *The game and the cash
+  out were built in group 5 of M8; maintenance, recall and tilts were not.*
 * The platform's limits on money in, so a bonus is never refused for size.
 * The electronic-transfer meters QSP refreshes after an award.
 * Persistence: the escrow and the award live only as long as the machine.

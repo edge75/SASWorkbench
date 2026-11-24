@@ -7,8 +7,8 @@
 # amount and never includes an external bonus.
 #
 # Each case declares the machine enrolled in group 1, checked against the group it reports
-# (machine.sas_progressives); the wins are 'egm progressive win', paid to the credit meter, so the
-# hand pay of 13.37 still needs a jackpot limit.
+# (machine.sas_progressives); the wins are 'egm progressive win', paid to the credit meter, or by hand
+# in 13.37 below the jackpot limit it sets.
 
 test "13.36 the loss of broadcasts as an event" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
@@ -37,17 +37,23 @@ test "13.37 a progressive hand pay as an event" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires stimulus.real_time_events, machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lp0E, decoder.lp80, decoder.lp1B
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host send lp 0E data 01
   host forget exceptions within 2s
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
+  # The events still queued answer any long poll while reporting is on, so they are drained first.
+  host forget exceptions within 2s
   host send lp 1B
   host expect field progressive_group of lp 1B == 1
   host expect field level of lp 1B == 1

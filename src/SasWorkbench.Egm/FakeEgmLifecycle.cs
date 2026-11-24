@@ -123,6 +123,7 @@ public sealed partial class FakeEgm
             }
 
             ClearMachineLocked();
+            RestartAuthenticationLocked();
         }
 
         Meters.ClearAll();
@@ -176,6 +177,7 @@ public sealed partial class FakeEgm
             }
 
             RestartProgressivesLocked();
+            RestartAuthenticationLocked();
 
             // libsas_internal.cpp:887 raises $51 again for a hand pay still awaiting its reading.
             handpayAwaitingRead = _handpay is { ReadAcknowledged: false };
@@ -266,6 +268,10 @@ public sealed partial class FakeEgm
         _legacyBonus = _options.LegacyBonus;
         _gameDelayTenths = 0;
         _gameDelayEnds = 0;
+        _gameInProgress = false;
+        _cashoutDue = 0;
+        _cashoutWallet = null;
+        _roundProgressiveHandpay = null;
         ClearProgressivesLocked();
     }
 

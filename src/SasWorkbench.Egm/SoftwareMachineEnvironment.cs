@@ -80,6 +80,28 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.Cashout(walletDirectory);
                 return;
 
+            case SlowCashoutStep slow:
+                Refusable(slow, () => machine.CashoutLasting(walletDirectory, slow.Lasting));
+                return;
+
+            case StartGameStep start:
+                Refusable(start, () => machine.StartGame(start.BetCredits));
+                return;
+
+            case EndGameStep end:
+                Refusable(end, () => machine.EndGame(end.WinCredits));
+                return;
+
+            case ComponentChangeStep:
+                if (machine.ChangeComponent() is { } noComponents)
+                    throw new StimulusUnavailableException($"the software machine cannot do '{step.Describe()}': {noComponents}");
+
+                return;
+
+            case SetJackpotLimitStep jackpot:
+                machine.SetJackpotLimit(jackpot.Cents);
+                return;
+
             case PressButtonStep press when press.Button is "service":
                 machine.PressService();
                 return;
@@ -125,7 +147,7 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
             case ProgressiveWinStep win:
                 try
                 {
-                    machine.WinProgressive(win.Levels, win.BetCredits);
+                    machine.WinProgressive(win.Levels, win.BetCredits, win.WinCredits);
                 }
                 catch (InvalidOperationException refused)
                 {
@@ -193,6 +215,19 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 throw new StimulusUnavailableException(
                     $"the software machine cannot do '{step.Describe()}' "
                     + $"(needs {step.RequiredCapability})");
+        }
+    }
+
+    /// <summary>Runs a stimulus the machine may refuse in its present state, reporting the refusal as one.</summary>
+    private static void Refusable(StimulusStep step, Action act)
+    {
+        try
+        {
+            act();
+        }
+        catch (InvalidOperationException refused)
+        {
+            throw new StimulusUnavailableException($"the software machine cannot do '{step.Describe()}': {refused.Message}");
         }
     }
 }
@@ -279,10 +314,10 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels, validation, progressive) =>
+        (step, options, declared, channels, validation, progressive, authentication) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
-                return DefaultEnvironment.Create(step, options, declared, channels, validation, progressive);
+                return DefaultEnvironment.Create(step, options, declared, channels, validation, progressive, authentication);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -341,6 +376,10 @@ public static class SoftwareMachineEnvironment
                     NonSasProgressiveLevels = progressive.NonSasLevels,
                 };
             }
+
+            // A case that says the machine takes part in component authentication gets one that does, as the platform would be started.
+            if (authentication is not null)
+                settings = settings with { ComponentAuthentication = true };
 
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();

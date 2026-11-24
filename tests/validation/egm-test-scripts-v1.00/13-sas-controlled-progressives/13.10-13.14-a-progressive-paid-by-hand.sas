@@ -6,22 +6,25 @@
 # until every queued win has been read with $85 (or $87). The hand pay information reports the
 # group, the highest level that contributed, and an amount in cents that includes any partial pay.
 #
-# Winning a progressive is not something this build can make a machine do (stimulus.progressive),
-# and a machine on a SAS progressive also expects the host to keep broadcasting every level while
-# the case runs, which this build cannot do while it waits for an exception
-# (host.progressive_broadcast). Where the win happens is marked in each case; the amount assumed is
-# the $5.00 the case broadcasts to level 1 before it starts.
+# Each case declares the machine enrolled in group 1, keeps its levels broadcast in the background
+# (host.progressive_broadcast), sets the jackpot limit to $4.00 and wins with 'egm progressive win';
+# level 1 stands at the $5.00 the case broadcasts. 13.13 wins ten credits from the paytable in the
+# same game. 13.11 needs a hand pay queue, which the platform has not.
 
 test "13.10 the hit and the hand pay are reported and reissued" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @destructive @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, machine.power_cycle, stimulus.door.main, stimulus.handpay.reset
   requires host.poll_sequence, decoder.lp80, decoder.lp1B, decoder.lp85
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
   # Nothing is reported while no general poll goes out.
@@ -29,7 +32,7 @@ test "13.10 the hit and the hand pay are reported and reissued" {
   host send sync
   egm door main open
   egm door main close
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
 
   # Polling resumes: $56 and $51 first, in either order, then the doors.
   host poll every 200ms
@@ -56,9 +59,16 @@ test "13.10 the hit and the hand pay are reported and reissued" {
   host expect exception sas_progressive_level_hit within 20s
   host expect no exception handpay_is_pending within 30s
 
-  # Fifteen seconds of silence, then the machine's own general poll three times.
+  # Fifteen seconds with no poll to the machine, then its own general poll three times. The level is
+  # still broadcast to address 00 meanwhile, or the machine would also report losing it ($53).
   host poll sequence
-  host wait 15s
+  host wait 4s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 4s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 4s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 3s
   host send sync
   host send gp draws sas_progressive_level_hit
   host send gp draws sas_progressive_level_hit
@@ -156,14 +166,18 @@ test "13.12 the hand pay information of a progressive win" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lp80, decoder.lp1B, decoder.lp85
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
 
@@ -189,14 +203,18 @@ test "13.13 a progressive and a machine jackpot in one hand pay" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lp80, decoder.lp1B, decoder.lp85
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins level 1 and a machine jackpot in the same game here.
+  egm progressive win level=1 win=10
   host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
 
@@ -220,14 +238,18 @@ test "13.14 two progressives won in one hand pay" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lp86, decoder.lp1B, decoder.lp85
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1-2
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 86 data 0D01010000000500020000000300
+  host broadcast lp 86 data 0D01010000000500020000000300 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  # A person wins levels 1 and 2 in the same game here.
+  egm progressive win level=1,2
   host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
 

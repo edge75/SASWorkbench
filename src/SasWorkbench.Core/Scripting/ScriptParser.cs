@@ -163,6 +163,12 @@ public static partial class ScriptParser
             return;
         }
 
+        if (words[1].Equals("component", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadMachineAuthentication(test, words, location);
+            return;
+        }
+
         if (words[1].Equals("progressive", StringComparison.OrdinalIgnoreCase))
         {
             test.Progressive = ReadMachineProgressive(test.Progressive, words, location);
@@ -216,11 +222,28 @@ public static partial class ScriptParser
         test.Validation = new MachineValidationDeclaration(location, style);
     }
 
+    /// <summary>Reads 'machine component authentication on', that the machine takes part in component authentication.</summary>
+    private static void ReadMachineAuthentication(TestBuilder test, string[] words, SourceLocation location)
+    {
+        if (words.Length != 4 || !words[2].Equals("authentication", StringComparison.OrdinalIgnoreCase)
+            || !words[3].Equals("on", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ScriptParseException(location,
+                "expected: machine component authentication on. A machine taking no part is the default, so there is no 'off'");
+        }
+
+        if (test.Authentication is not null)
+            throw new ScriptParseException(location, "this case already declares component authentication");
+
+        test.Authentication = new MachineAuthenticationDeclaration(location);
+    }
+
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
         + "machine validation standard|secure_enhanced|system, "
-        + "machine progressive sas group <g> levels <list>|non_sas levels <list>, or "
+        + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
+        + "machine component authentication on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1435,7 +1458,7 @@ public static partial class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|ticket|play|press|door|handpay|printer|note|set|aft|settle|expect ...");
+                "expected: egm bill|ticket|play|press|door|handpay|printer|note|set|aft|component|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -1470,6 +1493,20 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadProgressiveWin(words, location));
                 return;
 
+            case "game":
+                test.Steps.Add(ReadGame(words, location));
+                return;
+
+            case "component":
+                if (words.Length != 3 || !words[2].Equals("change", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: egm component change");
+                test.Steps.Add(new ComponentChangeStep(location));
+                return;
+
+            case "press" when words.Length == 5 && words[3].Equals("lasting", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadSlowCashout(words, location));
+                return;
+
             case "press":
                 if (words.Length != 3)
                     throw new ScriptParseException(location, "expected: egm press <button>");
@@ -1493,6 +1530,11 @@ public static partial class ScriptParser
                              && words[2].Equals("aft", StringComparison.OrdinalIgnoreCase)
                              && words[3].ToLowerInvariant() is "on" or "off":
                 test.Steps.Add(new SetAftStep(location, words[3].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
+            case "set" when words.Length >= 3
+                             && words[2].Equals("jackpot", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadJackpotLimit(words, location));
                 return;
 
             case "set" when words.Length >= 3
@@ -1544,7 +1586,7 @@ public static partial class ScriptParser
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set aft on|off, egm set aft bonus on|off, or egm set legacy bonus on|off");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set jackpot limit <cents>, egm set aft on|off, egm set aft bonus on|off, or egm set legacy bonus on|off");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);
@@ -1947,9 +1989,12 @@ public static partial class ScriptParser
 
         public MachineProgressiveDeclaration? Progressive { get; set; }
 
+        public MachineAuthenticationDeclaration? Authentication { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
-            || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null;
+            || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null
+            || Authentication is not null;
 
         public ScriptTest Build() => new()
         {
@@ -1959,6 +2004,7 @@ public static partial class ScriptParser
             Machine = BuildDeclaration(),
             Validation = Validation,
             Progressive = Progressive,
+            Authentication = Authentication,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

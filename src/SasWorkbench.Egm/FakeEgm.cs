@@ -114,6 +114,7 @@ public sealed partial class FakeEgm : IDisposable
         _aftOn = _options.Aft;
         _creditLimitCents = _options.CreditLimitCents;
         _legacyBonus = _options.LegacyBonus;
+        RegisterComponentsLocked();
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -702,26 +703,43 @@ public sealed partial class FakeEgm : IDisposable
         ArgumentOutOfRangeException.ThrowIfNegative(winCredits);
         WaitOutGameDelay();
 
-        // A wager and a win are both numbers of game credits; the meters they feed are in
-        // accounting units. The two are the same size only when a game credit happens to be worth
-        // one accounting unit.
-        long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
-        long won = winCredits * _options.CentsPerGameCredit / AccountingCents;
-
         // The credit meter is read and written back under the gate, so a bonus paid meanwhile is not lost.
         using Lock.Scope creditsHeld = _gate.EnterScope();
+        ThrowIfGameInProgress();
+        Wager(games, betCredits, winCredits);
+
+        // A game start and a game end for each round, the way the platform above the machine
+        // library raises them: unconditionally, whether or not the host has asked for reporting.
+        // The whole win is attributed to the last round, because this fixture is told one total.
+        for (int round = 0; round < games - 1; round++)
+        {
+            RaiseGameStarted(betCredits);
+            RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes(0, 4));
+        }
+
+        RaiseGameStarted(betCredits);
+
+        // A progressive won in the round is part of what its end reports (QSP ProgressiveWonInRound).
+        long progressiveWon = progressive is not null ? progressive() : 0;
+        EndRound(games, winCredits, progressiveWon);
+    }
+
+    /// <summary>The wager of every round: coin in and games played move, and the credits leave the meter.</summary>
+    /// <param name="winCredits">The win to come, refused here when it would need a hand pay while one is held.</param>
+    private void Wager(int games, long betCredits, long winCredits)
+    {
+        // A wager and a win are both numbers of game credits; the meters they feed are in
+        // accounting units, the same size only when a game credit is worth one accounting unit.
+        long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
                 $"The machine holds {credits} accounting unit(s) and cannot wager {wagered}.");
 
-        // A win past the credit limit needs a hand pay, so it is refused before any meter moves while one is still held.
-        bool handpayHeld;
-        lock (_gate)
-            handpayHeld = _handpay is not null;
-        if (handpayHeld && WinPassesCreditLimit(credits - wagered, won))
+        // A win past a limit needs a hand pay, so it is refused before any meter moves while one is still held.
+        if (_handpay is not null && WinIsHandpaid(credits - wagered, WonUnits(winCredits)))
             throw new InvalidOperationException(
-                "the win passes the credit limit, and the machine already holds a hand pay");
+                "the win passes the credit or jackpot limit, and the machine already holds a hand pay");
 
         Meters.Increment(SasMeterCode.GamesPlayed, games);
         Meters.Increment(SasMeterCode.TotalCoinInCredits, wagered);
@@ -733,13 +751,42 @@ public sealed partial class FakeEgm : IDisposable
         if (PlayNonrestricted(wagered - restrictedPlayed) is var nonrestrictedPlayed and > 0)
             Meters.Increment(SasMeterCode.TotalNonrestrictedAmountPlayed_Crd, nonrestrictedPlayed);
 
-        // A win that would take the credit meter past its limit goes to an attendant (QSP CombinedAwardIsHandpaid).
-        bool handpaid = WinPassesCreditLimit(credits - wagered, won);
-
         // Both are meters, and the library reads them by code in its own handler for long poll
         // $18: games since the last reset, and games since the slot door last closed.
         Meters.Increment(SasMeterCode.GamesSinceLastReset, games);
         Meters.Increment(SasMeterCode.GamesSinceSlotDoorClosure, games);
+        Meters.SetCurrentCredits(credits - wagered);
+        PublishRestricted();
+    }
+
+    /// <summary>The game start event: what was staked, coin in, the wager type and the group.</summary>
+    private void RaiseGameStarted(long betCredits)
+    {
+        // A new round has won nothing on its progressive levels yet (QSP ProgressiveWonInRound.RoundStarted).
+        _roundProgressiveCents = 0;
+        RaiseEvent((byte)SasExceptionCode.GameStarted,
+        [
+            .. BcdBytes(Math.Min(betCredits, 9999), 2),
+            .. BcdBytes(Meters.Read(SasMeterCode.TotalCoinInCredits), 4),
+            WagerType(betCredits),
+            _options.ProgressiveGroup,
+        ]);
+    }
+
+    /// <summary>A win of game credits in accounting units.</summary>
+    private long WonUnits(long winCredits) => winCredits * _options.CentsPerGameCredit / AccountingCents;
+
+    /// <summary>
+    /// The end of the last round: the outcome meters, the win to the credit meter or to an attendant,
+    /// the game end event, then the game delay and whatever waited for the game to end.
+    /// </summary>
+    private void EndRound(int games, long winCredits, long progressiveCents)
+    {
+        long won = WonUnits(winCredits);
+        long credits = Meters.Read(SasMeterCode.CurrentCredits);
+
+        // A win past the credit limit or above the jackpot limit goes to an attendant (QSP CombinedAwardIsHandpaid).
+        bool handpaid = WinIsHandpaid(credits, won);
         if (winCredits > 0)
         {
             Meters.Increment(SasMeterCode.GamesWon, 1);
@@ -755,38 +802,18 @@ public sealed partial class FakeEgm : IDisposable
             Meters.Increment(SasMeterCode.GamesLost, games);
         }
 
-        Meters.SetCurrentCredits(credits - wagered + (handpaid ? 0 : won));
+        Meters.SetCurrentCredits(credits + (handpaid ? 0 : won));
         PublishRestricted();
 
-        // A game start and a game end for each round, the way the platform above the machine
-        // library raises them: unconditionally, whether or not the host has asked for reporting.
-        // With reporting off a host sees the two bare codes it has always seen; with it on the
-        // same two events carry what was staked and what was won.
-        for (int round = 0; round < games; round++)
-        {
-            bool last = round == games - 1;
-            RaiseEvent((byte)SasExceptionCode.GameStarted,
-            [
-                .. BcdBytes(Math.Min(betCredits, 9999), 2),
-                .. BcdBytes(Meters.Read(SasMeterCode.TotalCoinInCredits), 4),
-                WagerType(betCredits),
-                _options.ProgressiveGroup,
-            ]);
-
-            // A progressive won in the round is part of what its end reports (QSP ProgressiveWonInRound).
-            long progressiveWon = last && progressive is not null ? progressive() : 0;
-
-            // The whole win is attributed to the last round, because this fixture is told one
-            // total rather than one figure per round. Stated here rather than divided evenly,
-            // which would invent a distribution nobody asked for.
-            RaiseEvent((byte)SasExceptionCode.GameEnded,
-                BcdBytes(last ? (winCredits * _options.CentsPerGameCredit) + progressiveWon : 0, 4));
-        }
+        RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes((winCredits * _options.CentsPerGameCredit) + progressiveCents, 4));
+        _gameInProgress = false;
 
         if (handpaid)
             RaiseHandpay(Core.Scripting.HandpayKind.Jackpot, won * AccountingCents);
+        RaiseRoundProgressiveHandpay();
 
         StartGameDelay();
+        ReleaseLockPendingOnGameEnd();
     }
 
     /// <summary>
@@ -931,6 +958,8 @@ public sealed partial class FakeEgm : IDisposable
             TickLegacyBonus();
             TickValidation();
             TickProgressives();
+            TickCashout();
+            TickAuthentication();
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -1223,6 +1252,12 @@ public sealed partial class FakeEgm : IDisposable
         // The legacy bonus polls, answered or silenced as the library's own handlers decide.
         if (AnswerLegacyBonus(link, command, frame))
             return;
+
+        if (command == (byte)SasLongPollCode.LP_SENDAUTHENTICATION)
+        {
+            AnswerAuthentication(link, frame);
+            return;
+        }
 
         //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
         //  validation does not answer the cashout ticket information poll at all. Silence rather

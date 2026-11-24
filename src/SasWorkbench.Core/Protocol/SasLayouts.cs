@@ -794,6 +794,7 @@ public static partial class SasLayouts
                 // write the other.
                 ConfirmedByCapture = true,
             },
+            SendAuthenticationInfo(),
             RegisterGamingMachine(),
             TransferFunds(),
             new()

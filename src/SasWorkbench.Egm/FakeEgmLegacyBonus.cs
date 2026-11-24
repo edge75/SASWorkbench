@@ -181,9 +181,11 @@ public sealed partial class FakeEgm
         return doorOpen || !_enabled || PeripheralTilt() || MemoryTilt();
     }
 
-    /// <summary>True while an acknowledged bonus must stay in escrow: a hand pay, a busy state or the game delay.</summary>
+    /// <summary>True while an acknowledged bonus must stay in escrow: a hand pay, a busy state, a game, a cash out or the game delay.</summary>
+    /// <remarks>A game and a printing ticket hold it as QSP's escrow does (SasNetwork_AftTransfer.hpp:1669, SasNetwork_Conditions.hpp:404).</remarks>
     private bool LegacyEscrowHeldLocked() =>
-        IsLegacyBonusBusyLocked() || _handpay is { Reset: false } || GameDelayRunningLocked();
+        IsLegacyBonusBusyLocked() || _handpay is { Reset: false } || GameDelayRunningLocked()
+        || _gameInProgress || _cashoutDue != 0;
 
     private bool GameDelayRunningLocked() =>
         _gameDelayEnds != 0 && Stopwatch.GetTimestamp() < _gameDelayEnds;
@@ -248,6 +250,10 @@ public sealed partial class FakeEgm
 
             for (byte taxStatus = 0; taxStatus < LegacyTaxStatuses; taxStatus++)
             {
+                // A hand pay reset but not yet reported keeps the one hand pay this machine holds, so an award above the limit waits for its $52.
+                if (_handpay is { Reset: true } && OverJackpotLimit(_legacyEscrow[taxStatus] * AccountingCents))
+                    continue;
+
                 long due = _legacyEscrow[taxStatus];
                 _legacyEscrow[taxStatus] = 0;
                 if (due > 0)
@@ -257,15 +263,23 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>
-    /// One award, with the gate held: onto the credit meter as a machine-paid external bonus, onto
+    /// One award, with the gate held: onto the credit meter as a machine-paid external bonus (or to an attendant above the jackpot limit), onto
     /// the legacy meter for its tax status, stored for $90 and reported by $7C.
     /// </summary>
     private void PayLegacyBonusLocked(byte taxStatus, long credits)
     {
-        // A win the machine pays onto the credit meter, metered as the AFT coin-out bonus is (QSP BonusIn, MoneyInHandler.cpp:635).
-        Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
-        Meters.Increment(SasMeterCode.TotalCoinOutCredits, credits);
-        Meters.Increment(SasMeterCode.TotalMachinePaidExternalBonusWin_Crd, credits);
+        // An award above the jackpot limit is an external bonus hand pay, reported at once all the same (QSP SasNetwork_AftTransfer.hpp:1708).
+        if (OverJackpotLimit(credits * AccountingCents))
+        {
+            RaiseBonusHandpay(credits * AccountingCents);
+        }
+        else
+        {
+            // A win the machine pays onto the credit meter, metered as the AFT coin-out bonus is (QSP BonusIn, MoneyInHandler.cpp:635).
+            Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + credits);
+            Meters.Increment(SasMeterCode.TotalCoinOutCredits, credits);
+            Meters.Increment(SasMeterCode.TotalMachinePaidExternalBonusWin_Crd, credits);
+        }
 
         // A bonus from $8A has no multiplier and no multiplied win (SasNetwork_AftTransfer.hpp:1738).
         var award = new LegacyBonusAward(0x00, 0, taxStatus, credits);

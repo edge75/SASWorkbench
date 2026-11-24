@@ -27,8 +27,8 @@ public class GroupedPromptTests
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
             Stimulus = StimulusBackend.Manual,
-            Environment = (step, options, declared, channels, validation, progressive) =>
-                software(step, options, declared, channels, validation, progressive) with { Stimulus = person },
+            Environment = (step, options, declared, channels, validation, progressive, authentication) =>
+                software(step, options, declared, channels, validation, progressive, authentication) with { Stimulus = person },
             PollInterval = TimeSpan.Zero,
             ResponseTimeout = TimeSpan.FromSeconds(5),
             QuietGap = TimeSpan.FromMilliseconds(15),

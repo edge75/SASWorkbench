@@ -6,9 +6,10 @@
 # each denomination's movement sums to the machine's, and that a game number past the implemented
 # count goes unanswered.
 #
-# 12.19 and 12.20 run on the software machine, built with the declared non-SAS level
+# 12.19 to 12.21 run on the software machine, built with the declared non-SAS level
 # (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive), paid to
-# its credit meter; the rest need a jackpot limit, several games or several denominations.
+# its credit meter or, below a jackpot limit the case sets, by hand; the rest need several games or
+# several denominations.
 # The per-game sums need every game's meter read and added (host.game_meter_delta), as 7.19
 # and 7.22 already state. Every meter must also match the machine's own display, which is a person's to compare (D40).
 
@@ -79,14 +80,17 @@ test "12.20 a progressive paid by the machine counts on meter 001D" {
 
 test "12.21 a progressive paid by hand counts on meter 0020" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, stimulus.bill
   requires stimulus.handpay.reset, decoder.lp6F, decoder.lpAF, decoder.lp1B, host.meter_arithmetic
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400002000
@@ -94,7 +98,7 @@ test "12.21 a progressive paid by hand counts on meter 0020" {
   host send lp AF data 0400002000
   host expect field meters[0].value == saved.attendant_paid
 
-  note "Play until level 1 is won as a hand pay, and note the amount in accounting credits."
+  egm progressive win level=1
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   egm handpay reset

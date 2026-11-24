@@ -103,6 +103,12 @@ public enum SasComparison
 /// <param name="Value">What to compare it against.</param>
 public sealed record SasCondition(string Field, SasComparison Comparison, long Value)
 {
+    /// <summary>Names no field but the bytes still unread, for a reply whose tail is there only for some statuses.</summary>
+    public const string RemainingBytes = "@remaining";
+
+    /// <summary>A condition on how many bytes are left before the check sequence.</summary>
+    public static SasCondition Remaining(SasComparison comparison, long value) => new(RemainingBytes, comparison, value);
+
     public override string ToString() => $"{Field} {Comparison} {Value}";
 }
 

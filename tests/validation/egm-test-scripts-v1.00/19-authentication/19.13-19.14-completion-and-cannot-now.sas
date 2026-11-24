@@ -15,7 +15,8 @@
 
 test "19.13 authentication complete is repeated until the result is read" {
   tag @egm-test-scripts @chapter-19 @needs-a-person @destructive
-  requires machine.component_authentication, decoder.lp6E
+  machine component authentication on
+  requires decoder.lp6E
   requires machine.power_cycle, host.timing, host.poll_sequence
 
   host connect loopback address 01
@@ -79,7 +80,8 @@ test "19.13 authentication complete is repeated until the result is read" {
 
 test "19.14 a component that cannot be authenticated now" {
   tag @egm-test-scripts @chapter-19 @needs-a-person
-  requires machine.component_authentication, decoder.lp6E, stimulus.component_busy
+  machine component authentication on
+  requires decoder.lp6E, stimulus.component_busy
 
   note "Put a component into a state where it cannot be authenticated for now - the manufacturer says how. Ask to authenticate it with action $02, using a method it lists: the reply is status $C5."
   note "Then read the status of a component that can be authenticated, with action $01: status, name, size and available methods, and those methods are the ones the component reported before. The document asks for them to match the reply to the refused request, which carries no methods; compare them with 19.5's reading instead."

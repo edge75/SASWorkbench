@@ -11,19 +11,23 @@
 # All of them declare the one-cent accounting unit, so the $5.00 win is five hundred units, and all
 # of them compare the reply with the audit screen, which is a person's to do (D40). The cases a
 # machine pays itself run on the software machine: they declare it enrolled in group 1, keep level 1
-# broadcast in the background and win it with 'egm progressive win'; the rest need a jackpot limit.
+# broadcast in the background and win it with 'egm progressive win'. Those paid by hand set the jackpot
+# limit to $4.00 first, below the level's $5.00.
 
 test "13.22 coin out counts what the machine pays itself" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset, host.meter_arithmetic
   requires decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400000100
@@ -32,7 +36,7 @@ test "13.22 coin out counts what the machine pays itself" {
   host send lp AF data 0400000100
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, paid to the credit meter.
+  egm progressive win level=1
   host expect exception progressive_win within 10s
   host send lp 6F data 0400000100
   host expect field meters[0].value == saved.before + 500
@@ -41,7 +45,8 @@ test "13.22 coin out counts what the machine pays itself" {
   host remember field meters[0].value of lp AF as credited
 
   # Configured as a hand pay, the next win does not reach coin out.
-  # A person wins level 1 here, as a hand pay.
+  egm set jackpot limit 400
+  egm progressive win level=1
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset
@@ -61,12 +66,16 @@ test "13.23 the jackpot meter counts what the attendant pays" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset, host.meter_arithmetic
   requires decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400000200
@@ -75,7 +84,7 @@ test "13.23 the jackpot meter counts what the attendant pays" {
   host send lp AF data 0400000200
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset
@@ -159,12 +168,16 @@ test "13.26 a progressive hand pay is not an attendant-paid paytable win" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset, host.compare_replies
   requires decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400001F00
@@ -173,7 +186,7 @@ test "13.26 a progressive hand pay is not an attendant-paid paytable win" {
   host send lp AF data 0400001F00
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset
@@ -192,12 +205,16 @@ test "13.27 a progressive hand pay is not an attendant-paid external bonus" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset, host.compare_replies
   requires decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400002100
@@ -206,7 +223,7 @@ test "13.27 a progressive hand pay is not an attendant-paid external bonus" {
   host send lp AF data 0400002100
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset
@@ -289,12 +306,16 @@ test "13.30 attendant-paid progressive wins" {
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.jackpot_limit, stimulus.handpay.reset, host.meter_arithmetic
   requires decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B
+  requires stimulus.bill
   machine accounting denomination 1c
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 6F data 0400002000
@@ -303,7 +324,7 @@ test "13.30 attendant-paid progressive wins" {
   host send lp AF data 0400002000
   host expect field meters[0].value == saved.before
 
-  # A person wins level 1 here, as a hand pay.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset

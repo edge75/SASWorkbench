@@ -5,7 +5,7 @@
 # and the credit meter shows it at once. The three bonuses used throughout are five deductible,
 # six non-deductible and seven wager-match credits, eighteen in all.
 #
-# The software machine sets no jackpot limit and has no hopper, so 15.29 and 15.30 skip. Every
+# The software machine has a jackpot limit a case sets, but no hopper, so 15.29 skips. Every
 # meter here is read through $6F in accounting credits; each must also match the machine's own
 # display (D40).
 
@@ -52,6 +52,7 @@ test "15.29 a bonus reaches coin out by the machine's meter model" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   # A bonus above the jackpot limit is paid by an attendant and never counts as coin out.
@@ -81,6 +82,7 @@ test "15.30 a bonus paid by an attendant is a jackpot" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   host send lp 6F data 0400000200
