@@ -819,3 +819,34 @@ running machine shows. The default stays the platform's:
 * `machine.multiple_components` is read off the count in the $6E list reply.
 
 The design note is `docs/M7-software-machine-authentication.md`.
+
+---
+
+# Decision 52
+
+Taken on 2026-11-24 while building the multiplied jackpot group of M8. The user decided that multiplied
+jackpots are on only when a case declares them, as D51 does for component authentication; the
+application half below is this build's own choice, open to review like any other.
+
+## D52 — A case declares multiplied jackpots, which the platform does not perform
+
+QSP starts the library without the jackpot multiplier bit (SasNetwork.cpp:286; the one place that sets it,
+SasNetwork.cpp:491, fills a structure that never reaches the library) and drops $8B in its default branch
+(SasNetwork_Callbacks.hpp:198), so a machine like the platform answers $8B with silence and every chapter 22
+case after 22.1 would skip. It is built anyway because the protocol half is the library's: `lp8B` and
+`SAS_LegacyBonusAward`. The default stays the platform's:
+
+* **`machine multiplied jackpot on` is a declaration** (D47). The software machine is built multiplying and
+  reports bit 0 of the first enabled-features byte while legacy bonusing is on; any other machine is asked
+  off that bit (`machine.multiplied_jackpot`) and the case skips when it is clear. There is no `off`.
+* **The application half is the simplest that the document describes:** a game multiplies by the setting in
+  force when it started; only a paytable win inside the inclusive range, at the maximum bet when asked; the
+  extra part (win times one less than the multiplier) is a machine-paid external bonus on the credit meter,
+  on the legacy meter bit 7 chooses, reported by $7C with tax status 00, sharing one $7C with a bonus held
+  for the game end; a win paid by hand takes the extra part into its hand pay (attendant-paid external
+  bonus) and its $7C follows the $52; a lost link or a restart switches it off; a command it cannot apply
+  is acknowledged and changes nothing.
+* **Left out:** a progressive's part of a win is not multiplied, and the extra part is not weighed against
+  the jackpot or credit limit, so 22.18.1 and 22.18.2 stay notes.
+
+The design note is `docs/M7-software-machine-multiplied-jackpots.md`.
