@@ -32,16 +32,16 @@ failures together):
 | ch | chapter | cases | run | skip | what blocks the most of them |
 |---:|---|---:|---:|---:|---|
 | 3 | Communications | 24 | 14 | 10 | host timing (2), watching for the chirp (2), a configurable address (2) |
-| 4 | Required exceptions | 60 | 29 | 31 | a hopper (8), a coin (4), memory faults the platform never reports (5); 1 of the 29 fails, a finding |
-| 5 | Required long polls | 27 | 13 | 14 | more than one hand pay held at once (4), legacy hand pay (3), a hopper (2), partial pay (2) |
+| 4 | Required exceptions | 60 | 30 | 30 | a hopper (8), a coin (4), memory faults the platform never reports (5); 1 of the 30 fails, a finding |
+| 5 | Required long polls | 27 | 19 | 8 | a hopper (2), partial pay (2), notes only (1); 1 of the 19 fails, a finding |
 | 6 | Required meters | 72 | 66 | 6 | a coin (4); 4 of the 66 fail, all of them findings |
 | 7 | Multi-game | 23 | 7 | 16 | a multi-game machine (13), choosing which game is played (11) |
 | 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 9 | Multi-denomination | 24 | 2 | 22 | a multi-denomination machine (22), the $B0 preamble (15) |
-| 10 | Tickets | 72 | 37 | 35 | meters by name (16), notes only (7), hand pay validation (3), the $7C and $7D decoders (4) |
+| 10 | Tickets | 72 | 39 | 33 | meters by name (16), notes only (7), the $7C and $7D decoders (4), hand pay receipts (2) |
 | 11 | Real-time events | 25 | 7 | 18 | notes only (7), watching for the chirp (2), a card game (2) |
-| 12 | Non-SAS progressives | 30 | 22 | 8 | a multi-game machine (3), a multi-denomination machine (3); 1 of the 22 fails, a finding |
-| 13 | SAS-controlled progressives | 40 | 32 | 8 | a multi-game machine (4), a multi-denomination machine (3), a hand pay queue (1); 1 of the 32 fails, a finding |
+| 12 | Non-SAS progressives | 30 | 23 | 7 | a multi-game machine (3), a multi-denomination machine (3); 1 of the 23 fails, a finding |
+| 13 | SAS-controlled progressives | 40 | 33 | 7 | a multi-game machine (4), a multi-denomination machine (3); 1 of the 33 fails, a finding |
 | 14 | AFT bonusing | 11 | 11 | 0 | 2 of the 11 fail, both findings |
 | 15 | Legacy bonusing | 37 | 20 | 17 | a card game (3), a multi-game machine (3), a multi-denomination machine (2); 2 of the 20 fail, both findings |
 | 16 | AFT transfers | 90 | 79 | 11 | host timing (4), notes only (2); 21 of the 79 fail, all of them findings |
@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 4 | 13 | a decoder for the command itself (12) |
 | 22 | MJT | 28 | 19 | 9 | a multi-game machine (3), a multi-denomination machine (2), notes only (1), a non-SAS progressive (1), a wide area progressive (1), the maximum bet (1) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **394** | **238** | |
+| | **total** | **632** | **405** | **227** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
