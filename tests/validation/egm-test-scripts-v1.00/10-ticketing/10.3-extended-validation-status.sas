@@ -116,6 +116,7 @@ test "10.3.4 the printer is declared a handpay receipt device" {
 test "10.3.5 hand pays and their receipts are validated" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   machine validation secure_enhanced
+  machine handpay validation on
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires machine.handpay_validation
 

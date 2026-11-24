@@ -850,3 +850,38 @@ case after 22.1 would skip. It is built anyway because the protocol half is the 
   the jackpot or credit limit, so 22.18.1 and 22.18.2 stay notes.
 
 The design note is `docs/M7-software-machine-multiplied-jackpots.md`.
+
+---
+
+# Decision 53
+
+Taken on 2026-11-24 while building the hand pay queue group of M8, without the user (the brief says to
+take the reasonable choice and list it). Open to review like any other.
+
+## D53 — A case declares hand pay validation, which the platform does not perform
+
+QSP clears hand pay validation and hand pay receipts in the library's status word (SasNetwork.cpp:617), so
+long poll 7B never reports bit 2 and no hand pay is ever validated; D47 left `machine.handpay_validation`
+absent on that ground. Of the two patterns, this takes **"on only when declared"** (D51, D52) rather than an
+honest skip (D46), because the protocol half is wholly the library's and already mirrored for tickets: the
+validation buffer, the no-receipt types $40 and $60, the meters, and the choice of $3E over $3D on a secure
+enhanced machine (`libsas_internal.cpp:5928`, `:690`). D46 keeps out what the library cannot do without a
+device the platform lacks; here only the platform's call is missing. The default stays the platform's:
+
+* **`machine handpay validation on` is a declaration** (D47). No poll can say whether a machine validates
+  hand pays without the host first switching it on, so only the software machine built that way claims
+  `machine.handpay_validation`, as only it claims a non-SAS progressive (D49).
+* **The application half is the simplest the document describes:** the attendant's reset, while the host has
+  bit 2 on, starts and completes a cash-out of the hand pay with the no-receipt type. Secure enhanced only; a
+  system-validated hand pay would wait for $58, and no case asks for one. Receipts stay absent.
+
+Two smaller choices go with it:
+
+* **D50's one hand pay at a time is lifted.** The platform still locks up for one hand pay at a time, and the
+  library still refuses a second until the first is reset, but a hand pay reset before the host read it stays
+  in the library's queue of sixteen, on each channel, and the next one queues behind it.
+* **Legacy reporting is a declaration, `machine handpay legacy`.** QSP offers it, chosen only straight after a
+  memory reset (SasNetwork.cpp:605, :862), and no poll reports it; the software machine built that way claims
+  `machine.legacy_handpay`, and one built without claims `machine.handpay_queue` and its size.
+
+The design note is `docs/M7-software-machine-handpay-queue.md`.

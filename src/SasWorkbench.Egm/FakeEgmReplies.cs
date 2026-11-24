@@ -98,7 +98,6 @@ public sealed partial class FakeEgm
             ["total_jackpot"] = Meters.Read(SasMeterCode.TotalJackpotCredits),
             ["games_played"] = Meters.Read(SasMeterCode.GamesPlayed),
         },
-        0x1B => HandpayInformation(),
         0x1C => new Dictionary<string, object>
         {
             ["total_coin_in"] = Meters.Read(SasMeterCode.TotalCoinInCredits),

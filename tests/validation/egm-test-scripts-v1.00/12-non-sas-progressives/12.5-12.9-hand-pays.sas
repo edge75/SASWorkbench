@@ -10,7 +10,7 @@
 #
 # Each case declares the machine's non-SAS level, sets the jackpot limit below the level's value
 # ($10.00 on the software machine) and wins it with 'egm progressive win'. 12.8 wins ten credits from
-# the paytable in the same game. 12.6 needs a hand pay queue, which the platform has not.
+# the paytable in the same game, and 12.6 wins twice, the first reset before the host reads it.
 
 test "12.5 the hand pay of a progressive win is reported first and repeated" {
   tag @egm-test-scripts @chapter-12 @needs-a-person @destructive
@@ -70,18 +70,22 @@ test "12.5 the hand pay of a progressive win is reported first and repeated" {
 # A second progressive won while the first is still unread: the reset of the first is held back,
 # and the readings come out oldest first.
 test "12.6 two progressive hand pays are queued" {
-  tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, machine.handpay_queue
-  requires stimulus.handpay.reset, host.poll_sequence, decoder.lp1B
+  tag @egm-test-scripts @chapter-12 @needs-stimulus
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, machine.handpay_queue, stimulus.bill
+  requires stimulus.handpay.reset, decoder.lp1B
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 2000
   host forget exceptions within 2s
 
-  note "Play the progressive game until level 1 is won as a hand pay, and note the amount."
+  # Level 1 won as a hand pay, and announced again fifteen seconds later.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 20s
   host expect exception handpay_is_pending within 20s
 
@@ -89,7 +93,8 @@ test "12.6 two progressive hand pays are queued" {
   egm handpay reset
   host expect no exception handpay_was_reset within 20s
 
-  note "Play until level 1 is won as a hand pay again, and note the amount."
+  # Level 1 won again, also a hand pay.
+  egm progressive win level=1
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   host expect field progressive_group of lp 1B == 0
@@ -107,7 +112,7 @@ test "12.6 two progressive hand pays are queued" {
   host expect exception handpay_was_reset within 15s
 
   note "Before the run, configure the machine for a non-SAS progressive at level 1, a jackpot limit below the level's value and no partial pay, and select the progressive game."
-  note "The first reading carries the first win's amount and the second the second's, each including any partial pay; compare them with the amounts noted."
+  note "The first reading carries the first win's amount and the second the second's, each including any partial pay. On the software machine both are the level's $10.00."
   note "The document also stops the round and sends a broadcast, three readings and a broadcast: every reading carries the second win, because none of them was acknowledged by anything but a repeat. This build sends no broadcast long poll, so that sequence is a person's to read in the frames."
 }
 

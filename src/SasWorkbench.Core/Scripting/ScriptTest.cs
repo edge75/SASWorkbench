@@ -47,6 +47,9 @@ public sealed record ScriptTest
     /// <summary>Whether this case assumes the machine multiplies jackpots.</summary>
     public MachineMultipliedJackpotDeclaration? MultipliedJackpot { get; init; }
 
+    /// <summary>How this case assumes the machine reports and validates hand pays.</summary>
+    public MachineHandpayDeclaration? Handpay { get; init; }
+
     /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
     public MachineChannelDeclaration? Channels { get; init; }
 

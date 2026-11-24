@@ -181,6 +181,12 @@ public static partial class ScriptParser
             return;
         }
 
+        if (words[1].Equals("handpay", StringComparison.OrdinalIgnoreCase))
+        {
+            test.Handpay = ReadMachineHandpay(test.Handpay, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -260,12 +266,34 @@ public static partial class ScriptParser
         test.MultipliedJackpot = new MachineMultipliedJackpotDeclaration(location);
     }
 
+    /// <summary>Reads 'machine handpay legacy' or 'machine handpay validation on', each at most once.</summary>
+    private static MachineHandpayDeclaration ReadMachineHandpay(
+        MachineHandpayDeclaration? earlier, string[] words, SourceLocation location)
+    {
+        bool legacy = words.Length == 3 && words[2].Equals("legacy", StringComparison.OrdinalIgnoreCase);
+        bool validation = words.Length == 4 && words[2].Equals("validation", StringComparison.OrdinalIgnoreCase)
+                          && words[3].Equals("on", StringComparison.OrdinalIgnoreCase);
+        if (!legacy && !validation)
+        {
+            throw new ScriptParseException(location,
+                "expected: machine handpay legacy, or machine handpay validation on. The hand pay queue without "
+                + "validation is the default, so neither has an 'off'");
+        }
+
+        if ((legacy && earlier is { Legacy: true }) || (validation && earlier is { Validation: true }))
+            throw new ScriptParseException(location, "this case already declares that");
+
+        earlier ??= new MachineHandpayDeclaration(location, false, false);
+        return earlier with { Legacy = earlier.Legacy || legacy, Validation = earlier.Validation || validation };
+    }
+
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
         + "machine validation standard|secure_enhanced|system, "
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
-        + "machine component authentication on, machine multiplied jackpot on, or "
+        + "machine component authentication on, machine multiplied jackpot on, "
+        + "machine handpay legacy|validation on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -2015,10 +2043,12 @@ public static partial class ScriptParser
 
         public MachineMultipliedJackpotDeclaration? MultipliedJackpot { get; set; }
 
+        public MachineHandpayDeclaration? Handpay { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
             || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null
-            || Authentication is not null || MultipliedJackpot is not null;
+            || Authentication is not null || MultipliedJackpot is not null || Handpay is not null;
 
         public ScriptTest Build() => new()
         {
@@ -2030,6 +2060,7 @@ public static partial class ScriptParser
             Progressive = Progressive,
             Authentication = Authentication,
             MultipliedJackpot = MultipliedJackpot,
+            Handpay = Handpay,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

@@ -110,13 +110,13 @@ public sealed partial class FakeEgm
         if (extra <= 0)
             return;
 
-        if (handpaid && _handpay is { Reset: false } owed)
+        if (handpaid && _handpay is { } owed)
         {
-            _handpay = owed with
+            AmendHandpayLocked(owed with
             {
                 AmountCents = owed.AmountCents + (extra * AccountingCents),
                 MultipliedCents = owed.MultipliedCents + (extra * AccountingCents),
-            };
+            });
             _multipliedAwardAfterHandpay = new LegacyBonusAward(setting.Multiplier, extra, 0x00, 0);
             return;
         }
@@ -172,19 +172,14 @@ public sealed partial class FakeEgm
         ]);
     }
 
-    /// <summary>Queues hand pay was reset, then the multiplied award that waited for it.</summary>
-    private void QueueHandpayWasReset()
+    /// <summary>The multiplied award that waited for the hand pay's $52, queued behind it. Called under the gate.</summary>
+    private void AwardMultipliedAfterHandpayLocked()
     {
-        Queue((byte)SasExceptionCode.HandpayWasReset, [], priority: true);
+        if (_multipliedAwardAfterHandpay is not { } award)
+            return;
 
-        lock (_gate)
-        {
-            if (_multipliedAwardAfterHandpay is not { } award)
-                return;
-
-            _multipliedAwardAfterHandpay = null;
-            AwardMultipliedLocked(award);
-        }
+        _multipliedAwardAfterHandpay = null;
+        AwardMultipliedLocked(award);
     }
 
     /// <summary>The channel that owns legacy bonusing going quiet past the loop break switches multiplied jackpots off.</summary>

@@ -197,24 +197,26 @@ public sealed partial class FakeEgm
             _roundProgressiveHandpay = null;
 
             // One lockup for everything the round won (QSP NvramHandler.cpp:1294); the amount is then in cents (libsas_internal.cpp:4899).
-            _handpay = _handpay is { Reset: false } held
-                ? held with
+            if (_handpay is { } held)
+            {
+                AmendHandpayLocked(held with
                 {
                     AmountCents = held.AmountCents + owed.Cents,
                     Level = owed.Level,
                     Group = owed.Group,
                     ProgressiveCents = held.ProgressiveCents + owed.Cents,
-                    ReadAcknowledged = false,
-                }
-                : new HandpayOwed(Core.Scripting.HandpayKind.Jackpot, owed.Cents, owed.Level, ReadAcknowledged: false)
+                });
+            }
+            else
+            {
+                StartHandpayLocked(new HandpayOwed(Core.Scripting.HandpayKind.Jackpot, owed.Cents, owed.Level)
                 {
                     Group = owed.Group,
                     ProgressiveCents = owed.Cents,
-                };
-            _handpayIssuedAt = Stopwatch.GetTimestamp();
+                });
+            }
         }
 
-        Queue((byte)SasExceptionCode.HandpayIsPending, [], priority: true);
         WithdrawLockIfUnplayable();
     }
 }

@@ -184,7 +184,7 @@ public sealed partial class FakeEgm
     /// <summary>True while an acknowledged bonus must stay in escrow: a hand pay, a busy state, a game, a cash out or the game delay.</summary>
     /// <remarks>A game and a printing ticket hold it as QSP's escrow does (SasNetwork_AftTransfer.hpp:1669, SasNetwork_Conditions.hpp:404).</remarks>
     private bool LegacyEscrowHeldLocked() =>
-        IsLegacyBonusBusyLocked() || _handpay is { Reset: false } || GameDelayRunningLocked()
+        IsLegacyBonusBusyLocked() || _handpay is not null || GameDelayRunningLocked()
         || _gameInProgress || _cashoutDue != 0;
 
     private bool GameDelayRunningLocked() =>
@@ -250,10 +250,6 @@ public sealed partial class FakeEgm
 
             for (byte taxStatus = 0; taxStatus < LegacyTaxStatuses; taxStatus++)
             {
-                // A hand pay reset but not yet reported keeps the one hand pay this machine holds, so an award above the limit waits for its $52.
-                if (_handpay is { Reset: true } && OverJackpotLimit(_legacyEscrow[taxStatus] * AccountingCents))
-                    continue;
-
                 long due = _legacyEscrow[taxStatus];
                 _legacyEscrow[taxStatus] = 0;
                 if (due > 0)

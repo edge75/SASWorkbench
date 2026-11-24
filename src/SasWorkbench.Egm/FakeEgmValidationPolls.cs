@@ -233,7 +233,7 @@ public sealed partial class FakeEgm
             }
 
             _hostValidationStatus = current;
-            reply = (ushort)(current & GameValidationStatus);
+            reply = (ushort)(current & GameValidationStatusNow);
 
             if (_seIsSet && (mask & SecureEnhancedConfigured) != 0 && (states & SecureEnhancedConfigured) == 0)
             {

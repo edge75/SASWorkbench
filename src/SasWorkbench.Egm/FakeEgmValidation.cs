@@ -217,7 +217,7 @@ public sealed partial class FakeEgm
     /// sasStartCashout: refused while a validation is in progress or the identifier is unset, then
     /// the write index advances and the slot is written (libsas_wrapper.cpp:2212). Called under the gate.
     /// </summary>
-    private bool TryStartCashout(long cents, ushort ticketNumber, out ulong number)
+    private bool TryStartCashout(long cents, ushort ticketNumber, out ulong number, byte type = 0x00)
     {
         number = 0;
         if (_cashoutState != CashoutValidationState.None)
@@ -245,7 +245,7 @@ public sealed partial class FakeEgm
 
         // QSP reports the expiration it prints, in days (SasNetwork_Ticket.hpp:313).
         _buffer[_bufferIndex] = new ValidationRecord(
-            Type: 0x00, at, number, cents, ticketNumber, SystemId: 0, _cashableExpirationDays, Completed: false);
+            Type: type, at, number, cents, ticketNumber, SystemId: 0, _cashableExpirationDays, Completed: false);
         return true;
     }
 
@@ -277,6 +277,7 @@ public sealed partial class FakeEgm
     private void CompleteCashout()
     {
         bool announce;
+        byte code;
         lock (_gate)
         {
             _cashoutState = CashoutValidationState.None;
@@ -293,10 +294,11 @@ public sealed partial class FakeEgm
             // A full buffer is an inhibiting lockup on the platform (QSP SasNetwork_Callbacks.hpp:367).
             if (_pendingRecords >= BufferItems - 1)
                 _validationBufferFull = true;
+            code = UnreadAnnouncementLocked();
         }
 
         if (announce)
-            QueueRanked((byte)SasExceptionCode.CashoutTicketPrinted);
+            QueueRanked(code);
         WithdrawLockIfUnplayable();
     }
 
@@ -320,8 +322,7 @@ public sealed partial class FakeEgm
             if (_handpay is not null)
                 return;
 
-            _handpay = new HandpayOwed(HandpayKind.CancelledCredit, cents, CancelledCreditLevel, ReadAcknowledged: false);
-            _handpayIssuedAt = Stopwatch.GetTimestamp();
+            StartHandpayLocked(new HandpayOwed(HandpayKind.CancelledCredit, cents, CancelledCreditLevel));
         }
 
         if (Meters.Read(SasMeterCode.CurrentCredits) > restricted)
@@ -330,7 +331,6 @@ public sealed partial class FakeEgm
             ClampNonrestricted();
         }
 
-        Queue((byte)SasExceptionCode.HandpayIsPending, [], priority: true);
         WithdrawLockIfUnplayable();
     }
 
@@ -427,6 +427,7 @@ public sealed partial class FakeEgm
     private void RetireValidationRecord()
     {
         bool announce;
+        byte code;
         lock (_gate)
         {
             if (_pendingRecords == 0)
@@ -442,11 +443,12 @@ public sealed partial class FakeEgm
                 _validationRecordsUnread = false;
                 _unreadSince = 0;
             }
+
+            code = UnreadAnnouncementLocked();
         }
 
-        // The library always reissues $3D here; QSP never writes a hand pay record, so $3E never arises.
         if (announce)
-            QueueRanked((byte)SasExceptionCode.CashoutTicketPrinted);
+            QueueRanked(code);
     }
 
     /// <summary>Runs the validation timers: $3F every fifteen seconds, $3D every fifteen, the ten-second unread rule and $57.</summary>
@@ -457,6 +459,7 @@ public sealed partial class FakeEgm
 
         long now = Stopwatch.GetTimestamp();
         bool idNotConfigured = false, reissuePrinted = false, requestAgain = false, timedOut = false;
+        byte printedCode = (byte)SasExceptionCode.CashoutTicketPrinted;
         long? owed = null;
 
         lock (_gate)
@@ -474,6 +477,7 @@ public sealed partial class FakeEgm
             {
                 reissuePrinted = true;
                 _printedReissueDue = now + Ticks(PrintedReissue);
+                printedCode = UnreadAnnouncementLocked();
             }
 
             // libsas_threads.cpp:2365, unread past ten seconds takes the printer out of use (QSP SasNetwork_Callbacks.hpp:381).
@@ -504,7 +508,7 @@ public sealed partial class FakeEgm
         if (idNotConfigured)
             QueueRanked((byte)SasExceptionCode.ValidationIdNotConfigured);
         if (reissuePrinted)
-            QueueRanked((byte)SasExceptionCode.CashoutTicketPrinted);
+            QueueRanked(printedCode);
         if (requestAgain)
             QueueRanked((byte)SasExceptionCode.SystemValidationRequest);
         if (timedOut)

@@ -9,7 +9,7 @@
 # Each case declares the machine enrolled in group 1, keeps its levels broadcast in the background
 # (host.progressive_broadcast), sets the jackpot limit to $4.00 and wins with 'egm progressive win';
 # level 1 stands at the $5.00 the case broadcasts. 13.13 wins ten credits from the paytable in the
-# same game. 13.11 needs a hand pay queue, which the platform has not.
+# same game, and 13.11 wins twice, the first reset before the host reads it.
 
 test "13.10 the hit and the hand pay are reported and reissued" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @destructive @needs-a-person
@@ -99,18 +99,23 @@ test "13.10 the hit and the hand pay are reported and reissued" {
 }
 
 test "13.11 two progressive hand pays are queued in order" {
-  tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-13 @needs-stimulus
   requires machine.sas_progressives, stimulus.progressive, host.progressive_broadcast
   requires machine.handpay_queue, machine.jackpot_limit, stimulus.handpay.reset
   requires host.poll_sequence, decoder.lp80, decoder.lp1B, decoder.lp85
+  requires stimulus.bill
+  machine progressive sas group 1 levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  egm bill insert 2000
   host forget exceptions within 2s
 
-  # A person wins level 1 here, as a hand pay.
+  # Level 1 won as a hand pay.
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
   host forget exceptions within 2s
@@ -120,8 +125,12 @@ test "13.11 two progressive hand pays are queued in order" {
   # Keyed off before the host has read it: no reset is reported yet.
   egm handpay reset
   host expect no exception handpay_was_reset within 5s
-  host send lp 80 with progressive_group=1 level=1 amount=700
-  # A person wins level 1 again here, also a hand pay.
+  host broadcast stop
+  host broadcast lp 80 with progressive_group=1 level=1 amount=700 every 1s
+  host wait 2s
+
+  # Level 1 won again, also a hand pay.
+  egm progressive win level=1
 
   # The first read reports the first win, and its reset follows.
   host send lp 1B
