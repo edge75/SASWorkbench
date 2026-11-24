@@ -266,6 +266,10 @@ public static partial class CapabilityProbe
 
             // The progressive group is set in the machine's menu and published in its identification reply.
             MachineProgressiveDeclaration.SasCapability,
+
+            // Component authentication has its enabled-features bit, and the component list says how many there are.
+            MachineAuthenticationDeclaration.Capability,
+            MultipleComponentsCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
@@ -364,6 +368,12 @@ public static partial class CapabilityProbe
 
         if (asked.Contains(MachineProgressiveDeclaration.SasCapability))
             Note(MachineProgressiveDeclaration.SasCapability, AskSasProgressiveGroup(engine, values));
+
+        if (asked.Contains(MachineAuthenticationDeclaration.Capability))
+            Note(MachineAuthenticationDeclaration.Capability, AskComponentAuthentication(engine, values));
+
+        if (asked.Contains(MultipleComponentsCapability))
+            Note(MultipleComponentsCapability, AskMultipleComponents(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }
@@ -703,6 +713,9 @@ public static partial class CapabilityProbe
                 ["stimulus.jackpot_limit"] = "yes",
                 ["stimulus.game_in_progress"] = "yes",
                 ["stimulus.cashout_in_progress"] = "yes",
+
+                // A component installed at the machine, which is all the library lets an application change.
+                ["stimulus.component_change"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -753,6 +766,9 @@ public static partial class CapabilityProbe
                 ["stimulus.jackpot_limit"] = "yes",
                 ["stimulus.game_in_progress"] = "yes",
                 ["stimulus.cashout_in_progress"] = "yes",
+
+                // A person installs or updates a component by the manufacturer's means.
+                ["stimulus.component_change"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

@@ -114,6 +114,7 @@ public sealed partial class FakeEgm : IDisposable
         _aftOn = _options.Aft;
         _creditLimitCents = _options.CreditLimitCents;
         _legacyBonus = _options.LegacyBonus;
+        RegisterComponentsLocked();
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -958,6 +959,7 @@ public sealed partial class FakeEgm : IDisposable
             TickValidation();
             TickProgressives();
             TickCashout();
+            TickAuthentication();
             int read = link.Transport.Read(link.Incoming, TimeSpan.FromMilliseconds(10));
             if (read == 0)
             {
@@ -1250,6 +1252,12 @@ public sealed partial class FakeEgm : IDisposable
         // The legacy bonus polls, answered or silenced as the library's own handlers decide.
         if (AnswerLegacyBonus(link, command, frame))
             return;
+
+        if (command == (byte)SasLongPollCode.LP_SENDAUTHENTICATION)
+        {
+            AnswerAuthentication(link, frame);
+            return;
+        }
 
         //  Section 15.5, as the library reads it: a machine performing secure enhanced or system
         //  validation does not answer the cashout ticket information poll at all. Silence rather

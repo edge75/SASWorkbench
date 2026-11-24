@@ -637,8 +637,8 @@ public sealed partial class FakeEgm
             // QSP sets the extensions bit for the enhanced styles (SasNetwork.cpp:290).
             ["validation_extensions"] = (byte)(redemption ? 1 : 0),
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
-            // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430).
-            ["feature_codes_2"] = (byte)(_aftOn ? 0x40 : 0x00),
+            // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430); bit 4 is component authentication.
+            ["feature_codes_2"] = (byte)((_aftOn ? 0x40 : 0x00) | ComponentAuthenticationFeatureBits()),
             // QSP reports multiple SAS progressive wins on every machine (SasNetwork.cpp:306).
             ["feature_codes_3"] = (byte)0x02,
             ["reserved"] = new byte[3],

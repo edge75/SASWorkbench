@@ -232,7 +232,7 @@ public class ChannelScriptTests
         bool opened = false;
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
-            Environment = (_, _, _, _, _, _) =>
+            Environment = (_, _, _, _, _, _, _) =>
             {
                 opened = true;
                 throw new TransportRefusedException("the environment was asked for a link");
@@ -260,7 +260,7 @@ public class ChannelScriptTests
 
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
-            Environment = (_, _, _, _, _, _) =>
+            Environment = (_, _, _, _, _, _, _) =>
                 throw new TransportRefusedException("the environment was asked for a link"),
         });
 

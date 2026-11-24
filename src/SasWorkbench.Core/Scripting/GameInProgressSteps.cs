@@ -40,3 +40,14 @@ public sealed record SetJackpotLimitStep(SourceLocation Location, long Cents) : 
 
     public override string Describe() => $"set jackpot limit {Cents} cents";
 }
+
+/// <summary>Installs or updates a component that takes part in authentication, changing the component list.</summary>
+public sealed record ComponentChangeStep(SourceLocation Location) : StimulusStep(Location)
+{
+    public override string RequiredCapability => "stimulus.component_change";
+
+    public override string Describe() => "component change";
+
+    public override string? Guidance =>
+        "Add, remove, update or reorder a component that takes part in authentication, by the manufacturer's means.";
+}
