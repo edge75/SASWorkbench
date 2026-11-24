@@ -274,3 +274,4 @@ PHASE:M8 WAVE:software-machine-repeat-poll-fix STATUS:complete TS:2026-11-23T17:
 PHASE:M8 WAVE:software-machine-progressives STATUS:complete TS:2026-11-23T20:40:16Z
 PHASE:M8 WAVE:software-machine-game-in-progress STATUS:complete TS:2026-11-24T00:47:45Z
 PHASE:M8 WAVE:software-machine-authentication STATUS:complete TS:2026-11-24T03:31:50Z
+PHASE:M8 WAVE:software-machine-mjt STATUS:complete TS:2026-11-24T15:32:31Z
