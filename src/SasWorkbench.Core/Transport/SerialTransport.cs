@@ -9,7 +9,8 @@ namespace SasWorkbench.Core.Transport;
 /// <param name="PortName">
 /// The plain port name, such as <c>COM12</c>. Do not prefix it: the framework builds the
 /// extended device path itself and rejects a hand-built one, which is why ports above nine
-/// are unreachable for tools that prefix them by hand.
+/// are unreachable for tools that prefix them by hand. On Linux, a device path such as
+/// <c>/dev/ttyS4</c>, or just <c>ttyS4</c>.
 /// </param>
 /// <param name="BaudRate">19200 in every SAS deployment.</param>
 public sealed record SerialTransportOptions(string PortName, int BaudRate = 19200);
@@ -25,9 +26,9 @@ public sealed record SerialTransportOptions(string PortName, int BaudRate = 1920
 /// drained onto the wire before every parity change.
 /// </para>
 /// <para>
-/// On anything other than Windows this refuses to open. The framework's serial layer discards
-/// mark and space parity on those platforms with no exception and no warning, so the wakeup bit
-/// would simply never be sent and every test would pass over a link that does not work.
+/// On Linux the framework's serial layer discards mark and space parity with no exception and no
+/// warning, so the port is driven through the kernel's terminal requests instead, with stick
+/// parity, and refused when its driver does not keep it. Anywhere else this refuses to open.
 /// </para>
 /// <para>
 /// Reported as unverified, because only an on-board UART has been measured (a Quixant IQ-2 on
@@ -43,6 +44,13 @@ public sealed class SerialTransport : ISasTransport
         "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters "
         + "are unmeasured, so treat a pass over one as untested.");
 
+    private static readonly TransportCapabilities LinuxCaps = new(
+        TransportKind.Serial,
+        CarriesWakeupBit: true,
+        TransportFidelity.Unverified,
+        "Linux stick parity, checked on each port when it opens and refused if the driver drops it; "
+        + "not yet measured on a board, and USB adapters are unmeasured.");
+
     private static readonly TransportCapabilities RefusedCaps = new(
         TransportKind.Serial,
         CarriesWakeupBit: false,
@@ -53,6 +61,7 @@ public sealed class SerialTransport : ISasTransport
     private readonly Lock _gate = new();
     private readonly byte[] _readBuffer = new byte[512];
     private SerialPort? _port;
+    private LinuxSerialPort? _linux;
 
     public SerialTransport(SerialTransportOptions options)
     {
@@ -63,9 +72,11 @@ public sealed class SerialTransport : ISasTransport
     public string Description { get; }
 
     public TransportCapabilities Capabilities =>
-        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? WindowsCaps : RefusedCaps;
+        RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? WindowsCaps
+        : LinuxTermiosDevice.IsSupported ? LinuxCaps
+        : RefusedCaps;
 
-    public bool IsConnected => _port is { IsOpen: true };
+    public bool IsConnected => _port is { IsOpen: true } || _linux is not null;
 
     /// <summary>
     /// Names the ports this machine has, so a runner can skip with a reason instead of failing
@@ -83,13 +94,56 @@ public sealed class SerialTransport : ISasTransport
         }
     }
 
+    /// <summary>
+    /// Says whether a named port can carry the wakeup bit, leaving its settings as they were.
+    /// </summary>
+    public static WakeupBitCheck CheckWakeupBit(SerialTransportOptions options)
+    {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            using SerialPort port = CreatePort(options);
+            try
+            {
+                port.Open();
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException
+                                       or ArgumentException or InvalidOperationException)
+            {
+                return new WakeupBitCheck(false, $"Cannot open {options.PortName}: {ex.Message}");
+            }
+
+            return new WakeupBitCheck(
+                true, $"{options.PortName} opened; Windows carries mark and space parity.");
+        }
+
+        if (!LinuxTermiosDevice.IsSupported)
+            return new WakeupBitCheck(false, RefusedCaps.Caveat!);
+
+        try
+        {
+            using LinuxTermiosDevice device =
+                LinuxTermiosDevice.Open(LinuxSerialPort.DevicePath(options.PortName));
+            return LinuxSerialPort.Probe(device, options.BaudRate);
+        }
+        catch (Exception ex) when (ex is TransportRefusedException or IOException)
+        {
+            return new WakeupBitCheck(false, ex.Message);
+        }
+    }
+
     public void Open()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            throw new TransportRefusedException(
-                "Serial SAS is refused on this platform: mark and space parity are discarded "
-                + "without error here, so the wakeup bit would never reach the gaming machine. "
-                + "Use the TCP transport, or run the serial link on Windows.");
+        {
+            if (!LinuxTermiosDevice.IsSupported)
+                throw new TransportRefusedException(
+                    "Serial SAS is refused on this platform: mark and space parity are discarded "
+                    + "without error here, so the wakeup bit would never reach the gaming machine. "
+                    + "Use the TCP transport, or run the serial link on Windows or Linux.");
+
+            OpenLinux();
+            return;
+        }
 
         lock (_gate)
         {
@@ -111,6 +165,33 @@ public sealed class SerialTransport : ISasTransport
             }
 
             _port = port;
+        }
+    }
+
+    private void OpenLinux()
+    {
+        lock (_gate)
+        {
+            if (_linux is not null)
+                return;
+
+            LinuxTermiosDevice device =
+                LinuxTermiosDevice.Open(LinuxSerialPort.DevicePath(_options.PortName));
+            try
+            {
+                _linux = LinuxSerialPort.Open(device, _options.BaudRate);
+            }
+            catch (IOException ex)
+            {
+                device.Dispose();
+                throw new TransportRefusedException(
+                    $"Cannot configure {_options.PortName}: {ex.Message}", ex);
+            }
+            catch (TransportRefusedException)
+            {
+                device.Dispose();
+                throw;
+            }
         }
     }
 
@@ -152,6 +233,12 @@ public sealed class SerialTransport : ISasTransport
     {
         lock (_gate)
         {
+            if (_linux is { } linux)
+            {
+                WriteSymbols(linux, symbols);
+                return;
+            }
+
             SerialPort? port = _port;
             if (port is null || !port.IsOpen)
                 return;
@@ -162,6 +249,9 @@ public sealed class SerialTransport : ISasTransport
 
     public int Read(Span<SasSymbol> destination, TimeSpan timeout)
     {
+        if (_linux is { } linux)
+            return ReadSymbols(linux, destination, timeout, _readBuffer);
+
         SerialPort? port = _port;
         if (port is null || !port.IsOpen)
             return 0;
@@ -232,6 +322,9 @@ public sealed class SerialTransport : ISasTransport
     {
         lock (_gate)
         {
+            _linux?.Dispose();
+            _linux = null;
+
             SerialPort? port = _port;
             _port = null;
             if (port is null)

@@ -153,7 +153,7 @@ public static partial class CapabilityProbe
             [BroadcastStep.Capability] = "yes",
         };
 
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) || LinuxTermiosDevice.IsSupported)
         {
             string[] ports = SerialTransport.AvailablePorts();
             if (ports.Length > 0)

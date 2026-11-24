@@ -166,6 +166,12 @@ public class SerialTransportTests
             // No such port on a build agent, so opening still refuses — with a different reason.
             Assert.Throws<TransportRefusedException>(transport.Open);
         }
+        else if (LinuxTermiosDevice.IsSupported)
+        {
+            // Linux carries it through stick parity, so a missing port refuses for being missing.
+            Assert.True(transport.Capabilities.CarriesWakeupBit);
+            Assert.Throws<TransportRefusedException>(transport.Open);
+        }
         else
         {
             Assert.False(transport.Capabilities.CarriesWakeupBit);
