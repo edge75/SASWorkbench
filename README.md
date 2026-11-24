@@ -77,9 +77,14 @@ sasctl run tests/regression --loopback --stimulus software   # against the softw
 sasctl egm --tcp 127.0.0.1:9760 --dial                       # run that machine as a peer
 sasctl run tests/regression --tcp 127.0.0.1:9760             # and point the host at it
 sasctl probe                                                 # what can this machine do?
+sasctl probe --serial /dev/ttyS4                             # can this port carry the wakeup bit?
 sasctl catalogue layouts                                     # every reply we can decode
 sasctl catalogue undecoded                                   # and why we cannot decode the rest
 ```
+
+A serial link works on Windows and on Linux (x86-64, ARM64) with the board's own UART; on Linux
+a port whose driver will not keep mark and space parity is refused, never used without the wakeup
+bit. USB serial adapters are unmeasured. See `docs/M8-linux-serial.md`.
 
 `SasWorkbench` is the same engine with a window. The centre is one time-ordered stream of
 everything the session did — the wire, the exceptions, the stimulus, the assertions and the
