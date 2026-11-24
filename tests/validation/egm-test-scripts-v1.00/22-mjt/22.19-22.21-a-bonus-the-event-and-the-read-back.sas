@@ -8,32 +8,70 @@
 # the poll that implies the reply was lost gets the award again. The machine library clears it in
 # exactly that way, queued behind the host's acknowledgement and skipped while a repeat is pending.
 #
-# The software machine takes legacy bonuses and answers $90 but offers no multiplied jackpots, so
-# all three skip on machine.multiplied_jackpot; 22.19 also needs a game held open.
+# Each case declares multiplied jackpots, which the software machine then performs; 22.19 holds each
+# game open with 'egm game start' and sends the bonus before 'egm game end'.
 
 test "22.19 a bonus during a multiplied game is paid but not multiplied" {
-  tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, stimulus.game_in_progress
-  requires stimulus.real_time_events, decoder.lp0E, decoder.event7C
+  tag @egm-test-scripts @chapter-22 @needs-stimulus
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, stimulus.game_in_progress, stimulus.bill
+  requires stimulus.real_time_events, decoder.lp0E, decoder.event7F, decoder.event7C
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
   host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
   host send lp 8B data 0000000000000000010100
   host send lp 8B data 0000000099999999020000
   host forget exceptions within 2s
 
-  note "Before the run, enable legacy bonusing and multiplied jackpots at the machine. The steps leave two times enabled for every win."
-  note "Send a deductible legacy bonus of five credits ($8A) while idle: acknowledged, the credit meter grows by five, and $7C carries multiplier 0, multiplied win 0, tax status 00 and bonus 5."
-  note "Then play, sending the same bonus during every game until one wins. Each losing game ends with the five credits paid and $7C as above. The winning game pays five plus twice the win, and its $7C carries multiplier 2, the win as the extra part, tax status 00 and bonus 5. Disable afterwards; it is acknowledged."
+  # A deductible bonus of five credits while idle.
+  host send lp 8A data 0000000500
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 5 within 8s
+  host forget exceptions within 2s
+
+  # The same bonus during a losing game: paid at its end, nothing multiplied.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000500
+  egm game end
+  host expect field win_amount of event game_ended == 0 within 8s
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 5 within 8s
+  host forget exceptions within 2s
+
+  # The same bonus during a winning game: one $7C with the extra part and the bonus kept apart.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000500
+  egm game end win=10
+  host expect field win_amount of event game_ended != 0 within 8s
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 2 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 10 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 5 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000000000000010100
+
+  note "Before the run, enable legacy bonusing and multiplied jackpots at the machine. Each bonus is acknowledged; the credit meter grows by five, five, and five plus twice the win, as the machine shows. On a real machine send the bonus during every game until one wins."
   note "The document's losing-game criterion gives the extra part as the base win; with no win there is nothing to multiply, so zero is what this case expects. It also names an undefined key's acknowledgement after the disable and enable pair."
 }
 
 test "22.20 the bonus event carries the multiplier and its tax status" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
@@ -72,7 +110,10 @@ test "22.20 the bonus event carries the multiplier and its tax status" {
 
 test "22.21 the last multiplied win is read back once" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.lp90, decoder.event7F, decoder.event7C
 

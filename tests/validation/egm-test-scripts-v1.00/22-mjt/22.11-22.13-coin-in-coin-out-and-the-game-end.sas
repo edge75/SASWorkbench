@@ -5,12 +5,14 @@
 # coin out. The game end event, though, reports only what the game itself paid; the extra part is
 # the $7C's to report.
 #
-# The software machine offers no multiplied jackpots, so all three skip on machine.multiplied_jackpot.
-# The meters are read with the selected-meter poll $6F, which this build decodes.
+# Each case declares multiplied jackpots (D52). The meters are read with the selected-meter poll $6F, which this build decodes.
 
 test "22.11 credits won through a multiplier count as coin in when wagered" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot, host.meter_arithmetic
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, host.meter_arithmetic
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.lp6F, decoder.event7F, decoder.event7C
 
@@ -30,6 +32,7 @@ test "22.11 credits won through a multiplier count as coin in when wagered" {
   egm play games=1 bet=1 win=10
   host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
   host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host forget exceptions within 2s
 
   # Thirty credits came from that win; stake all thirty on the next game.
   egm play games=1 bet=30 win=0
@@ -44,7 +47,10 @@ test "22.11 credits won through a multiplier count as coin in when wagered" {
 
 test "22.12 a multiplied win lands on coin out whole" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot, host.meter_arithmetic
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, host.meter_arithmetic
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.lp6F, decoder.event7F, decoder.event7C
 
@@ -78,7 +84,10 @@ test "22.12 a multiplied win lands on coin out whole" {
 
 test "22.13 the game end event leaves the multiplied part out" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
@@ -96,6 +105,7 @@ test "22.13 the game end event leaves the multiplied part out" {
   egm play games=1 bet=1 win=0
   host expect field win_amount of event game_ended == 0 within 8s
   host expect no exception legacy_bonus_pay_or_jackpot_awarded within 5s
+  host forget exceptions within 2s
 
   egm play games=1 bet=1 win=10
   host expect field win_amount of event game_ended != 0 within 8s

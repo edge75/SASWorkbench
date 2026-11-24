@@ -50,9 +50,9 @@ failures together):
 | 19 | Authentication | 16 | 12 | 4 | cutting a component's link (2), host timing (1), a component that cannot be authenticated now (1); 5 of the 12 fail, all of them findings |
 | 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 4 | 13 | a decoder for the command itself (12) |
-| 22 | MJT | 28 | 1 | 27 | multiplied jackpots on the machine (27), a jackpot limit (6), a game held open (5) |
+| 22 | MJT | 28 | 19 | 9 | a multi-game machine (3), a multi-denomination machine (2), notes only (1), a non-SAS progressive (1), a wide area progressive (1), the maximum bet (1) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **376** | **256** | |
+| | **total** | **632** | **394** | **238** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
