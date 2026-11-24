@@ -168,16 +168,24 @@ test "AD-23 a handpay with a progressive component stays in cents" {
   requires stimulus.handpay
   requires stimulus.progressive
   # A progressive paid by hand needs the jackpot limit that makes it one.
-  requires machine.jackpot_limit
+  requires machine.jackpot_limit, machine.sas_progressives, host.progressive_broadcast, stimulus.bill
 
   machine accounting denomination 10c
+  machine progressive sas group 1 levels 1
 
   note "Configuration B. Force a handpay of one hundred pesos with a progressive component, at level 01."
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 5s
+  host broadcast lp 80 with progressive_group=1 level=1 amount=10000 every 1s
+  egm set jackpot limit 500
+  egm bill insert 1000
+  host forget exceptions within 2s
 
+  # One hundred pesos won on level 1, above the limit.
+  egm progressive win level=1
+  host expect exception handpay_is_pending within 10s
   host send lp 1B
   host expect field level == 1
   host expect field amount == 10000

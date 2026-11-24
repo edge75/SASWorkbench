@@ -6,8 +6,13 @@
 # information poll $1B then describes like any other jackpot - group 0, level 0, the bonus as the
 # amount - and $7C follows the reset rather than the award.
 #
-# The software machine takes legacy bonuses but sets no jackpot limit (machine.jackpot_limit), so
-# only 15.9 runs here.
+# The software machine takes legacy bonuses and a jackpot limit a case sets ('egm set jackpot limit',
+# here four dollars, below 500 credits and above 5 at any denomination up to 80 cents). 15.12 still
+# needs a partial pay and a hopper, which the platform has not.
+#
+# @finding (15.11): the platform holds every bonus of one tax status that arrives during a hand pay
+# as one amount (QSP SasNetwork_AftTransfer.hpp:1664) and pays it as one award after the reset, so
+# the second 500 and the 5 come back as one hand pay of 505; the document wants them apart.
 
 test "15.9 the last bonus can be read back" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
@@ -62,6 +67,7 @@ test "15.10 a bonus above the jackpot limit is a hand pay" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   host send lp 8A data 0000050000
@@ -81,7 +87,7 @@ test "15.10 a bonus above the jackpot limit is a hand pay" {
 }
 
 test "15.11 two bonuses above the limit are two hand pays" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
+  tag @egm-test-scripts @chapter-15 @needs-a-person @finding
   requires machine.legacy_bonus, machine.jackpot_limit, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B, host.meter_arithmetic
 
@@ -90,6 +96,7 @@ test "15.11 two bonuses above the limit are two hand pays" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   host send lp 6F data 0400000C00

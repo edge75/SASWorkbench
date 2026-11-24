@@ -5,26 +5,31 @@
 # zero, as every other reply in this chapter does, and the game end of a game that won the
 # progressive carries the progressive as its win, with no external bonus in it.
 #
-# 12.28 to 12.30 run on the software machine, built with the declared non-SAS level
-# (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive); 12.27 needs
-# a jackpot limit. 12.29 asks for nothing the progressive changes except the group, but it is gated
+# All four run on the software machine, built with the declared non-SAS level
+# (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive); 12.27 sets
+# a jackpot limit below the level's $10.00 so the win is paid by hand. With reporting on, a long poll
+# sent while events are queued draws one of them (D44), so 12.27 drains them before reading the hand pay. 12.29 asks for nothing the progressive changes except the group, but it is gated
 # like the rest: zero is what a machine without a progressive reports anyway.
 
 test "12.27 the progressive hand pay and its reset as events" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, stimulus.bill
   requires stimulus.real_time_events, stimulus.handpay.reset, decoder.lp0E, decoder.lp1B
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host send lp 0E data 01
   host forget exceptions within 2s
 
-  note "Play the progressive game until level 1 is won as a hand pay."
+  egm progressive win level=1
   host expect exception handpay_is_pending within 30s
+  host forget exceptions within 2s
   host send lp 1B
   host expect field progressive_group of lp 1B == 0
 

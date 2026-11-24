@@ -6,16 +6,39 @@
 # away without disturbing the first. In every one of them the status the host reads afterwards
 # must be exactly what happened to the money.
 #
-# The software machine holds all three kinds of credit and a credit limit a case can set, so all but
-# 16.57, which needs a game left running, run against it.
+# The software machine holds all three kinds of credit, a credit limit a case can set, and a game a
+# case leaves running, so all of them run against it.
 
 test "16.57 a transfer that arrives during a game waits for it" {
   tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
-  requires stimulus.game_in_progress
+  requires stimulus.game_in_progress, stimulus.bill, stimulus.asset_number
 
-  note "Start a game and, while it is still running, ask for a partial cashable transfer into the machine: it is answered as pending ($40)."
-  note "Once the game ends the transfer completes, and $69 then repeats about every fifteen seconds until the status is read."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm bill insert 1000
+  host forget exceptions within 2s
+
+  # Five cashable dollars, partial, asked for while the game runs: pending, and nothing moves.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 72 data 36010000000000050000000000000000000000003930000000000000000000000000000000000000000000000136000000000000000000
+  host expect field transfer_status of lp 72 == $40
+  host expect no exception aft_transfer_complete within 2s
+  host send lp 72 data 02FF00
+  host expect field transfer_status of lp 72 == $40
+
+  # Once the game ends it completes, and $69 is raised again until the status is read.
+  egm game end
+  host expect exception aft_transfer_complete within 10s
+  host expect exception aft_transfer_complete within 20s
+  host send lp 72 data 02FF00
+  host expect field transfer_status of lp 72 == 0
+  host expect field cashable_amount of lp 72 == 500
+
+  note "The game is started and left running until the steps end it."
 }
 
 test "16.58 partial transfers to the host take what there is" {

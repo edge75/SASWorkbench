@@ -50,8 +50,11 @@ test "16.18 the reply to a status request" {
   host expect field aft_status == 0
 }
 
+# @finding (16.19): mid-game the platform still reports every configured transfer as available,
+# because a game in progress does not stop play (QSP AftAvailability.h:186, ConditionDefaults.h:61);
+# the document wants none. The lock is answered pending, as the document wants.
 test "16.19 which transfers the machine will take now" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus
+  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus @finding
   requires decoder.lp74, decoder.lp1B, machine.aft, host.compare_replies
   requires stimulus.bill, stimulus.door.main, stimulus.game_in_progress, stimulus.printer_fault
   requires stimulus.handpay, stimulus.handpay.reset, stimulus.settle
@@ -96,8 +99,21 @@ test "16.19 which transfers the machine will take now" {
   egm handpay reset
   host expect exception handpay_was_reset within 15s
 
+  # In the middle of a game: the lock answers pending, and nothing is available.
+  egm bill insert 1000
+  host forget exceptions within 2s
+  egm game start bet=1
+  host send lp 74 data FF000000
+  host expect field available_transfers == 0
+  host send lp 74 data 000F9999
+  host expect field game_lock_status == $40
+  host expect field available_transfers == 0
+  host send lp 74 data 80000000
+  host expect field available_transfers == 0
+  egm game end
+
   note "The bits of the first reading: 0 transfer to the machine, 1 transfer from it, 2 transfer to its printer, 3 a win waiting to be cashed out to the host, 4 a bonus to the machine. Each is set only if the machine could do that right now; compare them with its configuration."
-  note "In the middle of a game or inside the attendant menu, the read, the lock (which answers $40) and the cancel all report nothing available; once the game ends or the menu is left, the first reading comes back."
+  note "Inside the attendant menu, too, the read, the lock and the cancel all report nothing available; once the menu is left, the first reading comes back (machine.audit_menu)."
   note "With the printer disconnected or faulted, the three replies match the first reading except that transfer to the printer is off, and it stays off on the cancel sent while the printer is being reconnected."
   note "Not run: the read sent with a broken check sequence must be ignored or refused (host.bad_crc)."
 }
