@@ -74,16 +74,17 @@ public static partial class ScriptParser
         return new ExpectAnswerStep(location, silence.Command, silence.Data);
     }
 
-    /// <summary>Reads <c>egm progressive win level=&lt;n&gt; [bet=&lt;credits&gt;]</c>.</summary>
+    /// <summary>Reads <c>egm progressive win level=&lt;n&gt; [bet=&lt;credits&gt;] [win=&lt;credits&gt;]</c>.</summary>
     private static ProgressiveWinStep ReadProgressiveWin(string[] words, SourceLocation location)
     {
-        const string Usage = "expected: egm progressive win level=<1-32>[,<1-32>...] [bet=<credits>]";
+        const string Usage = "expected: egm progressive win level=<1-32>[,<1-32>...] [bet=<credits>] [win=<credits>]";
 
         if (words.Length < 4 || !words[2].Equals("win", StringComparison.OrdinalIgnoreCase))
             throw new ScriptParseException(location, Usage);
 
         var levels = new List<int>();
         long bet = 1;
+        long win = 0;
         foreach (string word in words[3..])
         {
             string[] pair = word.Split('=', 2);
@@ -103,6 +104,12 @@ public static partial class ScriptParser
                 continue;
             }
 
+            if (pair.Length == 2 && pair[0].Equals("win", StringComparison.OrdinalIgnoreCase)
+                && long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out win))
+            {
+                continue;
+            }
+
             if (pair.Length != 2 || !pair[0].Equals("bet", StringComparison.OrdinalIgnoreCase)
                 || !long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out bet) || bet < 1)
             {
@@ -113,6 +120,6 @@ public static partial class ScriptParser
         if (levels.Count == 0)
             throw new ScriptParseException(location, Usage);
 
-        return new ProgressiveWinStep(location, levels, bet);
+        return new ProgressiveWinStep(location, levels, bet) { WinCredits = win };
     }
 }

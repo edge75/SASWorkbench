@@ -1470,6 +1470,14 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadProgressiveWin(words, location));
                 return;
 
+            case "game":
+                test.Steps.Add(ReadGame(words, location));
+                return;
+
+            case "press" when words.Length == 5 && words[3].Equals("lasting", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadSlowCashout(words, location));
+                return;
+
             case "press":
                 if (words.Length != 3)
                     throw new ScriptParseException(location, "expected: egm press <button>");
@@ -1493,6 +1501,11 @@ public static partial class ScriptParser
                              && words[2].Equals("aft", StringComparison.OrdinalIgnoreCase)
                              && words[3].ToLowerInvariant() is "on" or "off":
                 test.Steps.Add(new SetAftStep(location, words[3].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
+            case "set" when words.Length >= 3
+                             && words[2].Equals("jackpot", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadJackpotLimit(words, location));
                 return;
 
             case "set" when words.Length >= 3
@@ -1544,7 +1557,7 @@ public static partial class ScriptParser
                     || !words[3].Equals("denomination", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new ScriptParseException(location,
-                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set aft on|off, egm set aft bonus on|off, or egm set legacy bonus on|off");
+                        "expected: egm set accounting denomination <cents>c|code <hex>, egm set asset number <decimal>, egm set credit limit <cents>, egm set jackpot limit <cents>, egm set aft on|off, egm set aft bonus on|off, or egm set legacy bonus on|off");
                 }
 
                 (byte code, int unit) = ReadDenomination(words[4..], location);

@@ -697,6 +697,12 @@ public static partial class CapabilityProbe
 
                 // It plays a game that wins a progressive level its declaration gave it.
                 ["stimulus.progressive"] = "yes",
+
+                // A script sets its jackpot limit, which no poll reports, and holds a game or a cash out open to poll during it.
+                ["machine.jackpot_limit"] = "yes",
+                ["stimulus.jackpot_limit"] = "yes",
+                ["stimulus.game_in_progress"] = "yes",
+                ["stimulus.cashout_in_progress"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -742,6 +748,11 @@ public static partial class CapabilityProbe
 
                 // A person plays the progressive game until a level is won.
                 ["stimulus.progressive"] = "yes",
+
+                // A person sets the jackpot limit in the operator's menu, and leaves a game or a cash out running.
+                ["stimulus.jackpot_limit"] = "yes",
+                ["stimulus.game_in_progress"] = "yes",
+                ["stimulus.cashout_in_progress"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

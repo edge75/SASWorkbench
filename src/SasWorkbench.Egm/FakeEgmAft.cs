@@ -55,7 +55,7 @@ public sealed partial class FakeEgm
     private long _hostCashoutDue;
     private string? _hostCashoutWallet;
 
-    /// <summary>Whether the machine is locked for a transfer: $00 locked or $FF not; it locks at once, so never $40 pending.</summary>
+    /// <summary>Whether the machine is locked for a transfer: $00 locked, $40 pending while a game runs, or $FF not.</summary>
     public byte AftLockStatus
     {
         get
@@ -125,7 +125,9 @@ public sealed partial class FakeEgm
         lock (_openDoors)
             doorOpen = _openDoors.Count > 0;
 
-        return !doorOpen && _enabled && _handpay is not { Reset: false } && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull && !ProgressiveWaitLocked();
+        // A ticket printing interrupts play too (QSP eCashTicketOut, ConditionDefaults.h:65); a game in progress does not.
+        return !doorOpen && _enabled && _handpay is not { Reset: false } && !PeripheralTilt() && !MemoryTilt() && !_validationBufferFull && !ProgressiveWaitLocked()
+               && _cashoutDue == 0;
     }
 
     /// <summary>What the platform publishes as available now: everything configured, nothing while unplayable.</summary>
@@ -179,8 +181,10 @@ public sealed partial class FakeEgm
                 {
                     _lockRemainingHundredths = timeout;
 
-                    // QSP's lock provider locks at once whenever the machine is playable, and no game here is ever left running.
-                    if (_lockStatus == NotLocked && IsPlayable())
+                    // QSP's lock provider locks at once whenever the machine is playable, and holds it pending while a game runs (DecideAftLockAnswer).
+                    if (_gameInProgress && _lockStatus != Locked && IsPlayable())
+                        HoldLockPending();
+                    else if (_lockStatus == NotLocked && IsPlayable())
                         LockGame();
                     else if (_lockStatus == Locked)
                         LockGame();
@@ -261,6 +265,13 @@ public sealed partial class FakeEgm
 
         if (previous != Locked)
             QueueRanked((byte)SasExceptionCode.GameLocked);
+    }
+
+    /// <summary>A lock pending until the running game ends, timed as a lock is; $6F waits for the lock itself.</summary>
+    private void HoldLockPending()
+    {
+        _lockStatus = LockPending;
+        ArmLockStep(Stopwatch.GetTimestamp());
     }
 
     /// <summary>One step of the lock timer from <paramref name="from"/>: five seconds while more than that is left, otherwise what is left.</summary>
@@ -347,7 +358,8 @@ public sealed partial class FakeEgm
                 else
                 {
                     ArmLockStep(due);
-                    QueueRanked((byte)SasExceptionCode.GameLocked);
+                    if (_lockStatus == Locked)
+                        QueueRanked((byte)SasExceptionCode.GameLocked);
                 }
             }
 

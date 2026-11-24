@@ -21,7 +21,7 @@ internal readonly record struct ProgressiveWin(byte Level, long Cents, bool Sas)
 /// stale - is answered as QSP answers it (<c>SasNetwork_Progressives.hpp</c>), reduced to what this machine has.
 /// </para>
 /// <para>
-/// A win the attendant pays is not modelled: it needs a jackpot limit this machine does not have.
+/// A win above the jackpot limit is paid by an attendant, as the round's hand pay (FakeEgmGameInProgress.cs).
 /// </para>
 /// </remarks>
 public sealed partial class FakeEgm
@@ -370,12 +370,12 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>
-    /// Plays one game that wins a level, paid by the machine to its credit meter, the way QSP reports it:
+    /// Plays one game that wins a level, paid by the machine to its credit meter or by hand above the jackpot limit, the way QSP reports it:
     /// a SAS level is announced at the win and its payment reported at the award, a level the machine
     /// runs itself is reported once, at the award (SasNetwork_Progressives.hpp:104, :425).
     /// </summary>
     /// <exception cref="InvalidOperationException">A level is not configured, waits for its broadcast, or stands at nothing.</exception>
-    public void WinProgressive(IReadOnlyList<int> levels, long betCredits)
+    public void WinProgressive(IReadOnlyList<int> levels, long betCredits, long winCredits = 0)
     {
         var wins = new List<(byte Level, long Cents, bool Sas)>();
         lock (_gate)
@@ -403,7 +403,7 @@ public sealed partial class FakeEgm
             }
         }
 
-        PlayGames(1, betCredits, 0, () => wins.Sum(win => AwardProgressive(win.Level, win.Cents, win.Sas)));
+        PlayGames(1, betCredits, winCredits, () => wins.Sum(win => AwardProgressive(win.Level, win.Cents, win.Sas)));
     }
 
     /// <summary>The win as the round makes it: reported, metered, and added to what the game end reports.</summary>
@@ -416,6 +416,14 @@ public sealed partial class FakeEgm
             RaiseException(SasExceptionCode.SASProgressiveLevelHit);
             lock (_gate)
                 _winPendingDeadline = Deadline(ProgressiveWindow);
+        }
+
+        // Above the jackpot limit the award is the round's hand pay: a level the machine runs is queued without $54 (QSP SendHitOnly, libsas_wrapper.cpp:3867).
+        if (ProgressiveIsHandpaid(level, cents, sas))
+        {
+            if (!sas)
+                QueueProgressiveWin(level, cents, sas: false);
+            return cents;
         }
 
         // The award: machine-paid progressive win and coin out (QSP SasNetwork_Progressives.hpp:399, SasNetwork_Meters.hpp:361).

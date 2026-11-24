@@ -1,19 +1,24 @@
 namespace SasWorkbench.Core.Scripting;
 
-/// <summary>Plays one game that wins one or more progressive levels, paid by the machine to its credit meter.</summary>
+/// <summary>Plays one game that wins one or more progressive levels, and optionally a paytable win with them.</summary>
 /// <remarks>
 /// The level's value is the machine's: what the host last broadcast for a SAS level, and the
-/// machine's own amount for a level it runs itself. A win paid by an attendant is a jackpot limit's
-/// business and is not this step.
+/// machine's own amount for a level it runs itself. Whether the machine or an attendant pays it is
+/// the machine's jackpot limit's to decide.
 /// </remarks>
 public sealed record ProgressiveWinStep(SourceLocation Location, IReadOnlyList<int> Levels, long BetCredits) : StimulusStep(Location)
 {
+    /// <summary>What the same game wins from its paytable, in game credits.</summary>
+    public long WinCredits { get; init; }
+
     public override string RequiredCapability => "stimulus.progressive";
 
-    public override string Describe() => $"progressive win level={string.Join(',', Levels)} bet={BetCredits}";
+    public override string Describe() =>
+        $"progressive win level={string.Join(',', Levels)} bet={BetCredits}" + (WinCredits > 0 ? $" win={WinCredits}" : "");
 
     public override string? Guidance =>
-        $"Play the progressive game at {BetCredits} credit(s) a game until one game wins level(s) {string.Join(", ", Levels)}, paid to the credit meter.";
+        $"Play the progressive game at {BetCredits} credit(s) a game until one game wins level(s) {string.Join(", ", Levels)}"
+        + (WinCredits > 0 ? $" and {WinCredits} credit(s) from the paytable." : ".");
 }
 
 /// <summary>
