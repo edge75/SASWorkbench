@@ -764,6 +764,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         // A new round has won nothing on its progressive levels yet (QSP ProgressiveWonInRound.RoundStarted).
         _roundProgressiveCents = 0;
+        CaptureRoundMultiplierLocked(betCredits);
         RaiseEvent((byte)SasExceptionCode.GameStarted,
         [
             .. BcdBytes(Math.Min(betCredits, 9999), 2),
@@ -810,6 +811,7 @@ public sealed partial class FakeEgm : IDisposable
 
         if (handpaid)
             RaiseHandpay(Core.Scripting.HandpayKind.Jackpot, won * AccountingCents);
+        SettleRoundMultiplierLocked(won, handpaid);
         RaiseRoundProgressiveHandpay();
 
         StartGameDelay();
@@ -955,6 +957,7 @@ public sealed partial class FakeEgm : IDisposable
             }
 
             TickAft(link);
+            TickMultipliedJackpot(link);
             TickLegacyBonus();
             TickValidation();
             TickProgressives();

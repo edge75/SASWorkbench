@@ -7,12 +7,13 @@
 # of the machine's own total. A per-game poll for a game number past the last implemented one is
 # ignored.
 #
-# The software machine is neither multi-game nor multi-denomination and has no multiplied
-# jackpots, and this build cannot choose which game or denomination is played; all five skip.
+# The software machine is neither multi-game nor multi-denomination, and this build cannot choose
+# which game or denomination is played; all five skip.
 
 test "22.22 legacy bonus meters by game add up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.multiple_games
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.multiple_games
   requires stimulus.select_game, host.game_meter_delta
   requires decoder.lp9A, decoder.lp51, decoder.lp56, decoder.event7C
 
@@ -23,7 +24,8 @@ test "22.22 legacy bonus meters by game add up" {
 
 test "22.23 machine-paid external bonus by game adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.multiple_games
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.multiple_games
   requires stimulus.select_game, host.game_meter_delta
   requires decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56, decoder.event7C
 
@@ -34,7 +36,8 @@ test "22.23 machine-paid external bonus by game adds up" {
 
 test "22.24 attendant-paid external bonus by game adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.multiple_games
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.multiple_games
   requires machine.jackpot_limit, stimulus.select_game, stimulus.handpay.reset
   requires host.game_meter_delta, decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56
   requires decoder.lp1B, decoder.event7C
@@ -47,7 +50,8 @@ test "22.24 attendant-paid external bonus by game adds up" {
 
 test "22.25 machine-paid external bonus by denomination adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.multiple_denominations
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.multiple_denominations
   requires stimulus.select_denomination, host.meter_arithmetic
   requires decoder.lpB2, decoder.lpB0, decoder.lp6F, decoder.event7C
 
@@ -58,7 +62,8 @@ test "22.25 machine-paid external bonus by denomination adds up" {
 
 test "22.26 attendant-paid external bonus by denomination adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.multiple_denominations
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.multiple_denominations
   requires machine.jackpot_limit, stimulus.select_denomination, stimulus.handpay.reset
   requires host.meter_arithmetic, decoder.lpB2, decoder.lpB0, decoder.lp6F, decoder.lp1B
   requires decoder.event7C

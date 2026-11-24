@@ -10,9 +10,9 @@
 #
 # The machine library ignores $8B unless both the legacy-bonus and the jackpot-multiplier feature
 # bits are set. 22.1 turns legacy bonusing off first, which the software machine and a person at the
-# cabinet can both do. The software machine takes legacy bonuses but, like the platform it mirrors,
-# never sets the jackpot-multiplier bit, so every case that needs a multiplied win skips on
-# machine.multiplied_jackpot, which is read off the machine.
+# cabinet can both do. The platform never sets the jackpot-multiplier bit, so every case that needs a
+# multiplied win declares 'machine multiplied jackpot on' (D52): the software machine is then built
+# multiplying, and any other machine is asked off its enabled features and skips when the bit is clear.
 #
 # The document recommends real-time reporting on, so the cases turn it on; with it off, $7F and $7C
 # arrive as one byte each and the credit meter carries the evidence instead.
@@ -40,7 +40,10 @@ test "22.1 multiplied jackpots are ignored with legacy bonusing off" {
 
 test "22.2 a lost link switches multiplied jackpots off" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus @destructive
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.power_cycle
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, machine.power_cycle
   requires stimulus.real_time_events, stimulus.bill, stimulus.play, host.poll_sequence
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
@@ -96,7 +99,10 @@ test "22.2 a lost link switches multiplied jackpots off" {
 
 test "22.3 multiplied jackpots are switched on and off" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 

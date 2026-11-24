@@ -169,6 +169,12 @@ public static partial class ScriptParser
             return;
         }
 
+        if (words[1].Equals("multiplied", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadMachineMultipliedJackpot(test, words, location);
+            return;
+        }
+
         if (words[1].Equals("progressive", StringComparison.OrdinalIgnoreCase))
         {
             test.Progressive = ReadMachineProgressive(test.Progressive, words, location);
@@ -238,12 +244,28 @@ public static partial class ScriptParser
         test.Authentication = new MachineAuthenticationDeclaration(location);
     }
 
+    /// <summary>Reads 'machine multiplied jackpot on', that the machine multiplies jackpots.</summary>
+    private static void ReadMachineMultipliedJackpot(TestBuilder test, string[] words, SourceLocation location)
+    {
+        if (words.Length != 4 || !words[2].Equals("jackpot", StringComparison.OrdinalIgnoreCase)
+            || !words[3].Equals("on", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ScriptParseException(location,
+                "expected: machine multiplied jackpot on. A machine without multiplied jackpots is the default, so there is no 'off'");
+        }
+
+        if (test.MultipliedJackpot is not null)
+            throw new ScriptParseException(location, "this case already declares multiplied jackpots");
+
+        test.MultipliedJackpot = new MachineMultipliedJackpotDeclaration(location);
+    }
+
     private const string MachineUsage =
         "expected: machine accounting denomination <cents>c|code <hex>, or "
         + "machine player denominations <cents>c [<cents>c ...], or "
         + "machine validation standard|secure_enhanced|system, "
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
-        + "machine component authentication on, or "
+        + "machine component authentication on, machine multiplied jackpot on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1991,10 +2013,12 @@ public static partial class ScriptParser
 
         public MachineAuthenticationDeclaration? Authentication { get; set; }
 
+        public MachineMultipliedJackpotDeclaration? MultipliedJackpot { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
             || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null
-            || Authentication is not null;
+            || Authentication is not null || MultipliedJackpot is not null;
 
         public ScriptTest Build() => new()
         {
@@ -2005,6 +2029,7 @@ public static partial class ScriptParser
             Validation = Validation,
             Progressive = Progressive,
             Authentication = Authentication,
+            MultipliedJackpot = MultipliedJackpot,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

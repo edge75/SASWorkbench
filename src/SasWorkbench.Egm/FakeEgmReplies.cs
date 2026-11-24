@@ -632,7 +632,7 @@ public sealed partial class FakeEgm
         {
             ["game_number"] = game,
             // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT) and bit 2 legacy bonus awards, each set while the operator has it on.
-            ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits()),
+            ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits() | MultipliedJackpotFeatureBits()),
             ["validation_style"] = (byte)validation,
             // QSP sets the extensions bit for the enhanced styles (SasNetwork.cpp:290).
             ["validation_extensions"] = (byte)(redemption ? 1 : 0),

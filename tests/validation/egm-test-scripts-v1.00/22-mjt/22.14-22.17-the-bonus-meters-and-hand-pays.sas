@@ -6,12 +6,15 @@
 # when the win is over the jackpot limit and an attendant pays it by hand. In the hand pay case the
 # $7C arrives only after the hand pay is reset.
 #
-# The software machine offers no multiplied jackpots, so all four skip on machine.multiplied_jackpot;
-# the hand pay pair also needs a jackpot limit set below the win (machine.jackpot_limit).
+# Each case declares multiplied jackpots (D52); the hand pay pair also sets a jackpot limit below the
+# win (machine.jackpot_limit).
 
 test "22.14 a deductible multiplied win paid to the credit meter" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot, host.meter_arithmetic
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, host.meter_arithmetic
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.lp6F, decoder.lp9A, decoder.event7F, decoder.event7C
 
@@ -47,7 +50,10 @@ test "22.14 a deductible multiplied win paid to the credit meter" {
 
 test "22.15 a non-deductible multiplied win paid to the credit meter" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot, host.meter_arithmetic
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, host.meter_arithmetic
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.lp6F, decoder.lp9A, decoder.event7F, decoder.event7C
 
@@ -86,7 +92,10 @@ test "22.15 a non-deductible multiplied win paid to the credit meter" {
 
 test "22.16 a deductible multiplied win paid by hand" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.jackpot_limit
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, machine.jackpot_limit
   requires host.meter_arithmetic, stimulus.real_time_events, stimulus.bill, stimulus.play
   requires stimulus.handpay.reset, decoder.lp0E, decoder.lp1B, decoder.lp6F, decoder.lp9A
   requires decoder.event7F, decoder.event7C
@@ -97,6 +106,7 @@ test "22.16 a deductible multiplied win paid by hand" {
   egm settle
   host send lp 0E data 01
   egm bill insert 2000
+  egm set jackpot limit 100000
   host forget exceptions within 2s
 
   host send lp 6F data 0600001E002100
@@ -124,13 +134,16 @@ test "22.16 a deductible multiplied win paid by hand" {
   host expect field meters[0].value == saved.machine_paid
   host expect field meters[1].value == saved.attendant_paid + 4000
 
-  note "Before the run, enable legacy bonusing and multiplied jackpots, set the jackpot limit below 2000 credits and switch partial pay off; the host must not ignore exception 51."
+  note "Before the run, enable legacy bonusing and multiplied jackpots and switch partial pay off; the host must not ignore exception 51. The steps set the jackpot limit to $1,000, below the 2000-credit win."
   note "The hand pay amount must be the jackpot the machine shows; the document does not say whether that is the game's win or the multiplied total, so the amount is a person's to compare. The meters must match the machine's own display (D40)."
 }
 
 test "22.17 a non-deductible multiplied win paid by hand" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.jackpot_limit
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, machine.jackpot_limit
   requires host.meter_arithmetic, stimulus.real_time_events, stimulus.bill, stimulus.play
   requires stimulus.handpay.reset, decoder.lp0E, decoder.lp1B, decoder.lp6F, decoder.lp9A
   requires decoder.event7F, decoder.event7C
@@ -141,6 +154,7 @@ test "22.17 a non-deductible multiplied win paid by hand" {
   egm settle
   host send lp 0E data 01
   egm bill insert 2000
+  egm set jackpot limit 100000
   host forget exceptions within 2s
 
   host send lp 6F data 0600001E002100
@@ -152,6 +166,7 @@ test "22.17 a non-deductible multiplied win paid by hand" {
   host send lp 8B data 0000000099999999830000
   egm play games=1 bet=1 win=2000
   host expect exception handpay_is_pending within 10s
+  host expect field win_amount of event game_ended != 0 within 8s
   host send lp 1B
   host expect field amount != 0
   host expect field partial_pay == 0
@@ -167,6 +182,6 @@ test "22.17 a non-deductible multiplied win paid by hand" {
   host expect field meters[0].value == saved.machine_paid
   host expect field meters[1].value == saved.attendant_paid + 4000
 
-  note "Before the run, enable legacy bonusing and multiplied jackpots, set the jackpot limit below 2000 credits and switch partial pay off; the host must not ignore exception 51."
+  note "Before the run, enable legacy bonusing and multiplied jackpots and switch partial pay off; the host must not ignore exception 51. The steps set the jackpot limit to $1,000, below the 2000-credit win."
   note "As in 22.15, the document writes the multiplier as plain 3 and this case expects bit 7 set. The hand pay amount and the meters are compared with the machine's display by a person (D40)."
 }

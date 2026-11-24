@@ -160,9 +160,9 @@ public sealed partial class FakeEgmLegacyBonusTests : IDisposable
     }
 
     [Fact]
-    public void A_multiplied_jackpot_is_always_silent_because_the_multiplier_bit_is_never_set()
+    public void A_multiplied_jackpot_is_silent_on_a_machine_built_without_the_multiplier_bit()
     {
-        // lp.cpp:8691 returns without sending unless the jackpot multiplier bit is set as well.
+        // lp.cpp:8691 returns without sending unless the jackpot multiplier bit is set as well, which it is only when a case declares it.
         Start();
 
         LongPollResult result = Host.Execute(0x8B, Convert.FromHexString("0000000099999999020000"));

@@ -5,13 +5,13 @@
 # extra part lands on 001E when the machine pays it and on 0021 when the win goes to a hand pay.
 # The section heading carries no steps of its own, so the chapter's cases are its three parts.
 #
-# This build cannot make a progressive level hit (stimulus.progressive), the software machine has
-# no progressive and no multiplied jackpots, and a SAS progressive also needs the host to broadcast
-# level amounts (host.progressive_broadcast). The three cases are notes and skip on those.
+# The three cases are notes. The software machine does not multiply a progressive's part of a win
+# (D52), 22.18.2 needs a non-SAS level and 22.18.3 a wide area progressive (machine.wap_progressives).
 
 test "22.18.1 a SAS progressive win is multiplied" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.sas_progressives
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.sas_progressives
   requires host.progressive_broadcast, stimulus.progressive, machine.jackpot_limit
   requires stimulus.handpay.reset, decoder.lp0E, decoder.lp1B, decoder.lp6F
   requires decoder.event7F, decoder.event7C
@@ -24,7 +24,8 @@ test "22.18.1 a SAS progressive win is multiplied" {
 
 test "22.18.2 a non-SAS standalone progressive win is multiplied" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.progressives
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.progressives
   requires stimulus.progressive, machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lp0E, decoder.lp1B, decoder.lp6F, decoder.event7F, decoder.event7C
 
@@ -35,7 +36,8 @@ test "22.18.2 a non-SAS standalone progressive win is multiplied" {
 
 test "22.18.3 a wide area progressive win is never multiplied" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.wap_progressives
+  machine multiplied jackpot on
+  requires machine.legacy_bonus, machine.wap_progressives
   requires stimulus.progressive, decoder.lp0E, decoder.lp6F, decoder.event7F
 
   note "Configure the machine for a wide area progressive in group 0, level 1, with no levels broadcast by the host. Enable legacy bonusing and multiplied jackpots."

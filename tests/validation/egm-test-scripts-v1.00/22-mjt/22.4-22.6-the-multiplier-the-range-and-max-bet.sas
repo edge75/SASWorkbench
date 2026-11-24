@@ -5,13 +5,16 @@
 # as it is with no $7C at all. With the wager type set to max bet only, a game staked at less than
 # the machine's maximum is not multiplied.
 #
-# None of this runs on the software machine, which has no multiplied jackpots; each case skips
-# naming machine.multiplied_jackpot. The steps use the software stimulus's fixed wins so the
-# figures can be stated; on a real machine a person plays until the machine wins.
+# Each case declares multiplied jackpots (D52). The steps use the software stimulus's fixed wins so
+# the figures can be stated; on a real machine a person plays until the machine wins. 22.6 still
+# skips on machine.max_bet, which no poll reports.
 
 test "22.4 each multiplier from two to ten" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
@@ -90,7 +93,10 @@ test "22.4 each multiplier from two to ten" {
 
 test "22.5 only wins inside the range are multiplied" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
@@ -141,7 +147,10 @@ test "22.5 only wins inside the range are multiplied" {
 
 test "22.6 max-bet only multiplies only max-bet games" {
   tag @egm-test-scripts @chapter-22 @needs-stimulus
-  requires machine.legacy_bonus, machine.multiplied_jackpot, machine.max_bet
+  machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  requires machine.legacy_bonus, machine.max_bet
   requires stimulus.real_time_events, stimulus.bill, stimulus.play
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
