@@ -272,3 +272,4 @@ PHASE:M8 WAVE:software-machine-validation-styles STATUS:complete TS:2026-11-23T1
 PHASE:M8 WAVE:software-machine-lifecycle STATUS:complete TS:2026-11-23T15:33:10Z
 PHASE:M8 WAVE:software-machine-repeat-poll-fix STATUS:complete TS:2026-11-23T17:45:48Z
 PHASE:M8 WAVE:software-machine-progressives STATUS:complete TS:2026-11-23T20:40:16Z
+PHASE:M8 WAVE:software-machine-game-in-progress STATUS:complete TS:2026-11-24T00:47:45Z

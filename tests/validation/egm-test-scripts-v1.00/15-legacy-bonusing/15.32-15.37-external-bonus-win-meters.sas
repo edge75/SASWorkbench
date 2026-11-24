@@ -6,8 +6,8 @@
 # denomination, and the per-game and per-denomination meters must grow by exactly what the
 # machine total grew by.
 #
-# The software machine sets no jackpot limit and is neither a multi-game nor a multi-denomination
-# machine, so only 15.32 runs here.
+# The software machine takes a jackpot limit a case sets, but is neither a multi-game nor a
+# multi-denomination machine, so 15.32 and 15.35 run here.
 
 test "15.32 a bonus paid by the machine is an external bonus win" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
@@ -65,6 +65,7 @@ test "15.35 a bonus paid by an attendant is an attendant external bonus" {
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   host send lp 6F data 0400002100

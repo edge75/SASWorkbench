@@ -59,6 +59,8 @@ test "14.7 a bonus too large for the machine is paid as a jackpot" {
   egm set asset number 12345
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set credit limit 10000
+  egm set jackpot limit 7500
   host forget exceptions within 2s
 
   # Five hundred dollars, above both limits.

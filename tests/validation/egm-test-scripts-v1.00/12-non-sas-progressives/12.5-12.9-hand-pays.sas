@@ -8,20 +8,23 @@
 # together everything the attendant pays - the progressive, any machine jackpot won with it, and
 # any partial pay.
 #
-# None of this runs here: the software machine has no progressive (machine.progressives) and this
-# build cannot make one hit (stimulus.progressive), so the win is a person's step. Each case also
-# needs the jackpot limit set below the progressive's value and partial pay off.
+# Each case declares the machine's non-SAS level, sets the jackpot limit below the level's value
+# ($10.00 on the software machine) and wins it with 'egm progressive win'. 12.8 wins ten credits from
+# the paytable in the same game. 12.6 needs a hand pay queue, which the platform has not.
 
 test "12.5 the hand pay of a progressive win is reported first and repeated" {
   tag @egm-test-scripts @chapter-12 @needs-a-person @destructive
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, machine.power_cycle
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, machine.power_cycle, stimulus.bill
   requires host.poll_sequence, stimulus.door.main, stimulus.handpay.reset, decoder.lp1B
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host forget exceptions within 2s
 
   # Two door events queued before the win, with nobody polling.
@@ -29,11 +32,14 @@ test "12.5 the hand pay of a progressive win is reported first and repeated" {
   host send sync
   egm door main open
   egm door main close
-  note "Play the progressive game until level 1 is won and the machine locks up for a hand pay."
+  egm progressive win level=1
 
-  # The hand pay comes out ahead of the door events that were queued before it.
+  # The hand pay comes out ahead of the door events that were queued before it. A long poll between
+  # two general polls acknowledges the first; two in a row would be an implied NACK (section 3.3).
   host send gp draws handpay_is_pending
+  host send lp 1F
   host send gp draws slot_door_opened
+  host send lp 1F
   host send gp draws slot_door_closed
 
   host poll every 200ms
@@ -107,17 +113,20 @@ test "12.6 two progressive hand pays are queued" {
 
 test "12.7 the hand pay reading for a progressive win" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, stimulus.bill
   requires stimulus.handpay.reset, decoder.lp1B
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  note "Play the progressive game until level 1 is won as a hand pay, and note the amount."
+  egm progressive win level=1
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   host expect field progressive_group of lp 1B == 0
@@ -134,17 +143,20 @@ test "12.7 the hand pay reading for a progressive win" {
 
 test "12.8 a progressive and a machine jackpot paid as one hand pay" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, stimulus.bill
   requires stimulus.handpay.reset, decoder.lp1B
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  note "Play until one game wins both progressive level 1 and a paytable jackpot above the limit, and note both amounts."
+  egm progressive win level=1 win=10
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   host expect field progressive_group of lp 1B == 0
@@ -159,17 +171,20 @@ test "12.8 a progressive and a machine jackpot paid as one hand pay" {
 
 test "12.9 two progressives paid as one hand pay" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, stimulus.progressive, machine.jackpot_limit
+  requires machine.progressives, stimulus.progressive, machine.jackpot_limit, stimulus.bill
   requires stimulus.handpay.reset, decoder.lp1B
+  machine progressive non_sas levels 1,2
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  note "Play until one game wins two progressives at once, and note both amounts."
+  egm progressive win level=1,2
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   host expect field progressive_group of lp 1B == 0

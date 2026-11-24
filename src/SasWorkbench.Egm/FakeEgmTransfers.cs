@@ -435,7 +435,7 @@ public sealed partial class FakeEgm
     private List<Action> TickTransfer(long now)
     {
         List<Action> after = [];
-        if (_completionDue != 0 && now >= _completionDue)
+        if (_completionDue != 0 && now >= _completionDue && !TransferWaitsForGameEnd())
             after.AddRange(CompleteTransfer());
 
         after.AddRange(TickReceipt(now));
@@ -455,6 +455,16 @@ public sealed partial class FakeEgm
         }
 
         return after;
+    }
+
+    /// <summary>A transfer to the machine waits for the running game to end, answered pending meanwhile (QSP AftTransferWaitsForGameEnd).</summary>
+    private bool TransferWaitsForGameEnd()
+    {
+        if (!_gameInProgress || _aftCycle is not (AftCycle.Pending or AftCycle.PendingPartial))
+            return false;
+
+        int slot = _zeroAmount != AftZeroAmount.NonZero ? 0 : _aftIndex;
+        return _history[slot].TransferType is 0x00 or 0x10 or 0x11;
     }
 
     private List<Action> CompleteTransfer()
@@ -502,6 +512,15 @@ public sealed partial class FakeEgm
                 if (record.Restricted != 0)
                     record.Expiration = AddRestricted(record.Restricted, record.PoolId, record.Expiration);
                 return UpdateTransfer(0x00, record.Cashable, record.Restricted, record.Nonrestricted);
+
+            case 0x10 when OverJackpotLimit(record.Cashable + record.Nonrestricted):
+            {
+                // A coin-out bonus above the jackpot limit is paid by hand as a jackpot bonus is (QSP SasNetwork_AftTransfer.hpp:629).
+                long owed = record.Cashable + record.Nonrestricted;
+                List<Action> after = [() => RaiseBonusHandpay(owed)];
+                after.AddRange(UpdateTransfer(0x00, record.Cashable, 0, record.Nonrestricted));
+                return after;
+            }
 
             case 0x10:
             {

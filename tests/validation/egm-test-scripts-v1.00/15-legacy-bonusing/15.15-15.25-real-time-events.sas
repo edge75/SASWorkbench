@@ -102,7 +102,7 @@ test "15.19 a game end" {
 
 test "15.20 a bonus is not part of the game's win" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.legacy_bonus, stimulus.game_in_progress, stimulus.real_time_events
+  requires machine.legacy_bonus, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
   host connect loopback address 01
@@ -110,10 +110,29 @@ test "15.20 a bonus is not part of the game's win" {
   host expect link up within 30s
   egm settle
   host send lp 0E data 01
+  egm bill insert 1000
   host forget exceptions within 2s
 
-  note "Before the run, enable legacy bonusing. During a winning game send a deductible bonus of five credits before the game ends: $7F carries the game's own win and not the five credits, and $7C carries tax status 00 and bonus 5."
-  note "Repeat with a losing game: $7F carries a win of zero, and $7C the same five credits."
+  # A winning game: $7F carries the game's own five credits, and the bonus comes apart in $7C.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000500
+  egm game end win=5
+  host expect field win_amount of event game_ended == 500 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 5 within 8s
+  host forget exceptions within 2s
+
+  # A losing game: $7F carries nothing.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000500
+  egm game end
+  host expect field win_amount of event game_ended == 0 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 5 within 8s
+
+  note "Before the run, enable legacy bonusing. Each game is started and left running until the steps end it."
+  note "The win is in the accounting denomination, as 11.18 says; the five-credit win is the game's own and must match the machine's display."
 }
 
 test "15.21 a draw request" {

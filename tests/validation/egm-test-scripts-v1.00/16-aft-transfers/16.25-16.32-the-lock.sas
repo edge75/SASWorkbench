@@ -12,7 +12,8 @@
 #
 # Whether the machine can be played is the half of each case nobody can read over the wire, so it
 # is a note for a person (D40). The software machine takes locks as the platform does (D45): it
-# locks at once whenever it is playable, so a lock request answers $00 rather than $40 there.
+# locks at once whenever it is playable and no game is running, so a lock request answers $00
+# there, and $40 only during a game held open with 'egm game start'.
 #
 # Four cases carry @finding. 16.25's first lock is taken at once and its debit refused, 16.29's
 # second transfer is taken, 16.30's lock with no timeout is taken and released at once rather than
@@ -67,7 +68,7 @@ test "16.25 the lock" {
 
 test "16.26 cancelling a lock" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp74, machine.aft, stimulus.door.main, stimulus.game_in_progress
+  requires decoder.lp74, machine.aft, stimulus.door.main, stimulus.game_in_progress, stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
@@ -87,8 +88,20 @@ test "16.26 cancelling a lock" {
   host send lp 74 data 80000000
   host expect field game_lock_status == $FF
 
+  # During a game the lock answers pending and the cancel not locked.
+  egm bill insert 1000
+  host forget exceptions within 2s
+  egm game start bet=1
+  host send lp 74 data 000F9999
+  host expect field game_lock_status == $40
+  host send lp 74 data 80000000
+  host expect field game_lock_status == $FF
+  egm game end
+  host send lp 74 data FF000000
+  host expect field game_lock_status == $FF
+
   note "At the machine: playable throughout, except between the lock and its cancel."
-  note "Then start a game and send the lock and the cancel while it is still running: the lock answers $40 and the cancel $FF, and the machine stays playable."
+  note "The game is started and left running until the steps end it; the machine stays playable."
 }
 
 test "16.27 a lock is lost when the machine becomes unplayable" {

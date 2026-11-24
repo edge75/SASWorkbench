@@ -12,7 +12,17 @@ namespace SasWorkbench.Egm;
 /// <param name="Reset">True once the attendant has reset it, while $52 waits for the reading to be acknowledged.</param>
 /// <param name="Bonus">True for a bonus jackpot the host sent over funds transfer, which the attendant pays as an external bonus.</param>
 internal sealed record HandpayOwed(
-    HandpayKind Kind, long AmountCents, byte Level, bool ReadAcknowledged, bool Reset = false, bool Bonus = false);
+    HandpayKind Kind, long AmountCents, byte Level, bool ReadAcknowledged, bool Reset = false, bool Bonus = false)
+{
+    /// <summary>The progressive group long poll 1B reports: the game's for a SAS level, zero otherwise.</summary>
+    public byte Group { get; init; }
+
+    /// <summary>The part of the amount a progressive won, which the attendant-paid progressive meter takes.</summary>
+    public long ProgressiveCents { get; init; }
+
+    /// <summary>A progressive level is reported in cents, every other level in accounting units (libsas_internal.cpp:4899).</summary>
+    public bool InCents => Level is >= 0x01 and <= 0x20;
+}
 
 public sealed partial class FakeEgm
 {
@@ -84,7 +94,10 @@ public sealed partial class FakeEgm
     {
         lock (_gate)
         {
-            _handpay = new HandpayOwed(HandpayKind.Jackpot, amountCents, 0x00, ReadAcknowledged: false, Bonus: true);
+            // A second bonus is added to the external bonus hand pay still owed (QSP MoneyInHandler BonusIn).
+            _handpay = _handpay is { Bonus: true, Reset: false } owed
+                ? owed with { AmountCents = owed.AmountCents + amountCents, ReadAcknowledged = false }
+                : new HandpayOwed(HandpayKind.Jackpot, amountCents, 0x00, ReadAcknowledged: false, Bonus: true);
             _handpayIssuedAt = Stopwatch.GetTimestamp();
         }
 
@@ -125,8 +138,13 @@ public sealed partial class FakeEgm
         }
         else
         {
+            // A progressive's part is an attendant-paid progressive win, the rest a paytable win (QSP AsyncHandpayComplete).
+            long progressive = paid.ProgressiveCents / AccountingCents;
             Meters.Increment(SasMeterCode.TotalJackpotCredits, credits);
-            Meters.Increment(SasMeterCode.TotalAttendantPaidPaytableWin_Crd, credits);
+            if (progressive > 0)
+                Meters.Increment(SasMeterCode.TotalAttendantPaidProgressiveWin_Crd, progressive);
+            if (credits - progressive > 0)
+                Meters.Increment(SasMeterCode.TotalAttendantPaidPaytableWin_Crd, credits - progressive);
         }
 
         if (reported)
@@ -135,7 +153,7 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>What long poll 1B answers: the hand pay until its reading is acknowledged, zeros after.</summary>
-    /// <remarks>The amount is in accounting units, as Table 7.8 has it when no progressive contributed.</remarks>
+    /// <remarks>The amount is in accounting units, or in cents when a progressive contributed (Table 7.8).</remarks>
     private Dictionary<string, object> HandpayInformation()
     {
         HandpayOwed? owed;
@@ -145,9 +163,9 @@ public sealed partial class FakeEgm
         bool reports = owed is { ReadAcknowledged: false };
         return new Dictionary<string, object>
         {
-            ["progressive_group"] = (byte)0,
+            ["progressive_group"] = reports ? owed!.Group : (byte)0,
             ["level"] = reports ? owed!.Level : (byte)0,
-            ["amount"] = reports ? owed!.AmountCents / AccountingCents : 0L,
+            ["amount"] = !reports ? 0L : owed!.InCents ? owed.AmountCents : owed.AmountCents / AccountingCents,
             ["partial_pay"] = 0L,
             ["reset_id"] = (byte)0,
             ["session_game_win"] = 0L,

@@ -6,14 +6,14 @@
 # when the screen closes. Bonuses sent while it waits add up into one award. With a door open, in
 # maintenance or in game recall it does not take the bonus at all, and answers busy.
 #
-# The software machine takes legacy bonuses; what it cannot do here is hold a game or a cash out
-# open (stimulus.game_in_progress, stimulus.cashout_in_progress), answer busy in a form this build
-# asserts (host.busy_reply) or open a player's screen. The cases turn real-time reporting on, as
-# 15.1 explains, and read the bonus out of the $7C event.
+# The software machine takes legacy bonuses and holds a game or a cash out open for a case
+# ('egm game start', 'egm press collect lasting'); what it cannot do here is answer busy in a form
+# this build asserts (host.busy_reply) or open a player's screen. The cases turn real-time
+# reporting on, as 15.1 explains, and read the bonus out of the $7C event.
 
 test "15.4 a bonus sent during a game is paid after it" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.legacy_bonus, stimulus.game_in_progress, stimulus.real_time_events
+  requires machine.legacy_bonus, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
   requires decoder.lp0E, decoder.event7F, decoder.event7C
 
   host connect loopback address 01
@@ -24,11 +24,42 @@ test "15.4 a bonus sent during a game is paid after it" {
   host forget exceptions within 2s
   host send lp 2E data 3200
 
-  note "Before the run, enable legacy bonusing, and if the machine offers one, choose a card game or a double-up."
-  note "Start a game and send a bonus of three non-deductible credits (8A data 00 00 00 03 01) before it ends: it is acknowledged. When the game ends, $7F comes first, the machine holds for five seconds, and then pays three credits with $7C carrying tax status 01 and bonus 3."
-  note "Start another and send the same bonus three times before it ends: all three are acknowledged, and after $7F and the delay one award of nine credits arrives, tax status 01."
-  note "Send a zero delay (2E data 00 00), play a game, and confirm no delay follows it."
-  note "Then reach a winning hand before the draw, stop polling and send the bonus. After five seconds of silence the machine chirps its address every 200 ms (host.chirp). Finish the game: the machine holds five seconds, pays three credits, and on resuming polling reports $7F and then $7C with tax status 01 and bonus 3."
+  egm bill insert 1000
+  host forget exceptions within 2s
+
+  # A bonus during a game is acknowledged and held: $7F comes first, then the five-second delay, then the award.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000301
+  host expect no exception legacy_bonus_pay_or_jackpot_awarded within 2s
+  egm game end
+  host expect exception game_ended within 5s
+  host expect no exception legacy_bonus_pay_or_jackpot_awarded within 4s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 1 within 8s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host forget exceptions within 2s
+
+  # Three during the next game are one award of nine.
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000301
+  host send lp 8A data 0000000301
+  host send lp 8A data 0000000301
+  egm game end
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 1 within 10s
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 9 within 10s
+  host forget exceptions within 2s
+
+  # With no delay the award follows the game end at once.
+  host send lp 2E data 0000
+  egm game start bet=1
+  host forget exceptions within 2s
+  host send lp 8A data 0000000301
+  egm game end
+  host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 3 within 2s
+
+  note "Before the run, enable legacy bonusing, and if the machine offers one, choose a card game or a double-up. Each game is started and left running until the steps end it."
+  note "Not run here: reach a winning hand before the draw, stop polling and send the bonus. After five seconds of silence the machine chirps its address every 200 ms (host.chirp). Finish the game: the machine holds five seconds, pays three credits, and on resuming polling reports $7F and then $7C with tax status 01 and bonus 3."
 }
 
 test "15.5 an idle machine pays at once, and a cash out comes first" {
@@ -55,13 +86,14 @@ test "15.5 an idle machine pays at once, and a cash out comes first" {
   # Sent while the machine is cashing out: acknowledged, and paid only once the cash out is done.
   egm bill insert 2000
   host forget exceptions within 2s
-  egm press collect
+  egm press collect lasting 3s
   host send lp 8A data 0000000301
+  host expect no exception legacy_bonus_pay_or_jackpot_awarded within 1s
   host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 1 within 15s
   host expect field bonus_amount of event legacy_bonus_pay_or_jackpot_awarded == 3 within 15s
 
   note "Before the run, enable legacy bonusing and leave the machine idle and playable."
-  note "Skips on the software machine: its cash out is over before any poll can follow the button, so a bonus can never be sent during one (stimulus.cashout_in_progress)."
+  note "The cash out must still be under way when the bonus is sent: a ticket printing, or coins paying out. The software machine prints for three seconds."
   note "The cash out raises its own events - a ticket printed or coins paid - before $7C; that the bonus came after the cash out finished, and not before it, is read in the trace."
 }
 

@@ -266,6 +266,10 @@ public sealed partial class FakeEgm
         _legacyBonus = _options.LegacyBonus;
         _gameDelayTenths = 0;
         _gameDelayEnds = 0;
+        _gameInProgress = false;
+        _cashoutDue = 0;
+        _cashoutWallet = null;
+        _roundProgressiveHandpay = null;
         ClearProgressivesLocked();
     }
 
