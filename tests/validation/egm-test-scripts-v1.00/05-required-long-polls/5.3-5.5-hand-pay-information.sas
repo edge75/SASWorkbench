@@ -90,19 +90,80 @@ test "5.4.2 a cancelled-credit hand pay with a partial pay" {
 
 # The legacy form keeps one hand pay and forgets it on the reset, whether or not it was ever read.
 test "5.5.1 a legacy jackpot hand pay reads zero after the reset" {
-  tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.legacy_handpay, stimulus.handpay.jackpot, stimulus.handpay.reset
+  tag @egm-test-scripts @chapter-5 @needs-stimulus
+  requires machine.legacy_handpay, stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
+  machine accounting denomination 5c
+  machine handpay legacy
 
-  note "Configure the machine for legacy hand pay, a low jackpot limit and a partial pay of ten coins. Play to a jackpot hand pay and watch for thirty seconds: exactly one $51, not one every fifteen seconds."
-  note "Read the hand pay information: the jackpot, shaped as in 5.3.2. Reset the hand pay: $52. Read it again: every byte between the command and the check sequence is zero."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Exactly one $51, not one every fifteen seconds.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host forget exceptions within 2s
+  host expect no exception handpay_is_pending within 30s
+
+  host send lp 1B
+  host expect field progressive_group of lp 1B == 0
+  host expect field level of lp 1B == 0
+  host expect field amount of lp 1B == 30000
+  host expect field partial_pay of lp 1B == 0
+
+  # The reset brings $52, and the reading after it is zeros throughout.
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host wait 1s
+  host send lp 1B
+  host expect field progressive_group of lp 1B == 0
+  host expect field level of lp 1B == 0
+  host expect field amount of lp 1B == 0
+  host expect field partial_pay of lp 1B == 0
+  host expect field reset_id of lp 1B == 0
+
+  note "Configure legacy hand pay and a jackpot limit below fifteen hundred dollars before the run. The document adds a partial pay of ten coins; a machine without a hopper pays none, so the partial pay reads zero."
 }
 
 test "5.5.2 a legacy cancelled-credit hand pay reads zero after the reset" {
-  tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.legacy_handpay, stimulus.handpay, stimulus.handpay.reset
+  tag @egm-test-scripts @chapter-5 @needs-stimulus
+  requires machine.legacy_handpay, stimulus.handpay, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
+  machine accounting denomination 5c
+  machine handpay legacy
 
-  note "Configure the machine for legacy hand pay, a low hopper limit and a partial pay of ten coins. Put more credits than the limit on it, cash out, and watch for thirty seconds: exactly one $51."
-  note "Read the hand pay information: the cash out, shaped as in 5.4.2. Reset the hand pay: $52. Read it again: every byte between the command and the check sequence is zero."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Exactly one $51, not one every fifteen seconds.
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  host forget exceptions within 2s
+  host expect no exception handpay_is_pending within 30s
+
+  host send lp 1B
+  host expect field progressive_group of lp 1B == 0
+  host expect field level of lp 1B == $80
+  host expect field amount of lp 1B == 400
+  host expect field partial_pay of lp 1B == 0
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host wait 1s
+  host send lp 1B
+  host expect field progressive_group of lp 1B == 0
+  host expect field level of lp 1B == 0
+  host expect field amount of lp 1B == 0
+  host expect field partial_pay of lp 1B == 0
+  host expect field reset_id of lp 1B == 0
+
+  note "Configure legacy hand pay before the run. The document cashes out over a low hopper limit with a partial pay of ten coins; a machine without a hopper pays it all by hand, so the partial pay reads zero."
 }

@@ -180,6 +180,7 @@ test "10.5.6 a non-validating host must not read a validated hand pay" {
 test "10.5.7 a validated hand pay carries a number and an amount" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   machine validation secure_enhanced
+  machine handpay validation on
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires machine.handpay_validation
 
