@@ -740,9 +740,9 @@ public class ScriptRunnerTests
         var runner = new ScriptRunner(new ScriptRunnerOptions
         {
             Stimulus = StimulusBackend.Software,
-            Environment = (step, options, declared, channels, validation, progressive) =>
+            Environment = (step, options, declared, channels, validation, progressive, authentication) =>
             {
-                ScriptEnvironment environment = software(step, options, declared, channels, validation, progressive);
+                ScriptEnvironment environment = software(step, options, declared, channels, validation, progressive, authentication);
                 return environment with { HostTransport = wrap(environment.HostTransport) };
             },
             PollInterval = TimeSpan.FromMilliseconds(20),

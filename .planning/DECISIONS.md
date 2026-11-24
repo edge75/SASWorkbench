@@ -792,3 +792,30 @@ backend. What each does is the platform's, in its simplest form (D44):
   second game model; `machine.poker` stays absent.
 
 The design note is `docs/M7-software-machine-game-in-progress.md`.
+
+---
+
+# Decision 51
+
+Taken on 2026-11-24 while building the authentication group of M8, without the user (the brief says
+to take the reasonable choice and list it). Open to review like any other.
+
+## D51 — A case declares component authentication, which the platform does not perform
+
+QSP starts the library with component authentication off and registers no component
+(SasNetwork.cpp:302, "TODO modify when LibQpm supports component authentication"), so a machine
+like the platform answers $6E with silence and every chapter 19 case after 19.1 would skip. D46
+would leave it there. It is built anyway because the protocol half is wholly the library's, the
+library is under test, and its $6E handler differs from the document in three ways that only a
+running machine shows. The default stays the platform's:
+
+* **`machine component authentication on` is a declaration** (D47). The software machine is built
+  taking part; any other machine is asked off bit 4 of its second enabled-features byte
+  (`machine.component_authentication`) and the case skips when it is clear. There is no `off`, as
+  taking no part is the default.
+* **The application half is this build's own, said as such:** two components, CRC-16 only (seeded,
+  from the offset), five seconds to finish, and `egm component change` installing a third with $8E,
+  the one change the library supports (`stimulus.component_change`, software and manual backends).
+* `machine.multiple_components` is read off the count in the $6E list reply.
+
+The design note is `docs/M7-software-machine-authentication.md`.

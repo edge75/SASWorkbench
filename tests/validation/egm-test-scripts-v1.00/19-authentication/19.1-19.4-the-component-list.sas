@@ -10,10 +10,9 @@
 # The requests are written as bytes, length byte first. With action $00 the request is that action
 # alone; with actions $01 and $02 an addressing mode, a length and the index or name follow.
 #
-# Only 19.1 runs here. The software machine advertises no authentication and this build has no
-# layout for the $6E reply, so the rest name machine.component_authentication and decoder.lp6E. The
-# field names they assert on are the ones that layout is expected to take: component_list_crc,
-# status, name_length, name, size_length, size, available_methods, method, authentication_length.
+# Every case after 19.1 declares the machine taking part, which the software machine is built to do
+# with two components and any other machine is asked off that feature bit. 19.4 still needs a
+# component whose link can be cut (stimulus.component_link).
 
 # Whichever way the bit is set passes; what it must agree with is the machine's configuration.
 test "19.1 the enabled-features reply says whether authentication is supported" {
@@ -33,7 +32,8 @@ test "19.1 the enabled-features reply says whether authentication is supported" 
 # The list as a whole: its check sequence, how many components it has, and nothing else.
 test "19.2 the number of installed components" {
   tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E
+  machine component authentication on
+  requires decoder.lp6E
 
   host connect loopback address 01
   host poll every 200ms
@@ -53,17 +53,35 @@ test "19.2 the number of installed components" {
 # A change to the installed components changes the list's check sequence.
 test "19.3 the component list check sequence follows the list" {
   tag @egm-test-scripts @chapter-19 @needs-a-person
-  requires machine.component_authentication, decoder.lp6E, host.compare_replies
+  machine component authentication on
+  requires decoder.lp6E, host.compare_replies
   requires stimulus.component_change
 
-  note "Read the list with action $00 and keep its check sequence. Add, remove, update or reorder a component that takes part in authentication, by whatever means the manufacturer provides."
-  note "Read the list again: it is still a well-formed list reply, as in 19.2, and its check sequence differs from the first reading."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  host send lp 6E data 0100
+  host expect field status of lp 6E == 1
+  host remember field component_list_crc of lp 6E as before
+
+  egm component change
+
+  # Still a well-formed list reply, as in 19.2, with a different check sequence.
+  host send lp 6E data 0100
+  host expect field status of lp 6E == 1
+  host expect field size_length of lp 6E >= 1
+  host expect field size of lp 6E >= 1
+  host expect field component_list_crc of lp 6E != saved.before
+
+  note "On a real machine the change is a person's: add, remove, update or reorder a component that takes part in authentication, by whatever means the manufacturer provides."
 }
 
 # $8E for a real change to the list, and silence for a component that merely drops out.
 test "19.4 a change to the list raises component list changed" {
   tag @egm-test-scripts @chapter-19 @needs-a-person
-  requires machine.component_authentication, stimulus.component_change, stimulus.component_link
+  machine component authentication on
+  requires stimulus.component_change, stimulus.component_link
 
   note "Add, remove, update or reorder a component that takes part in authentication: $8E on the next general poll."
   note "Cut the communication with such a component, and separately cycle its power: neither raises $8E. A peripheral that stops answering is still installed, only unavailable."

@@ -222,7 +222,8 @@ public sealed partial class ScriptRunner
         ScriptEnvironment environment;
         try
         {
-            environment = _options.Environment(connect, _options, test.Machine, test.Channels, test.Validation, test.Progressive);
+            environment = _options.Environment(
+                connect, _options, test.Machine, test.Channels, test.Validation, test.Progressive, test.Authentication);
         }
         catch (TransportRefusedException refused)
         {
@@ -345,6 +346,8 @@ public sealed partial class ScriptRunner
             all = all.Append(validation.AsRequirement());
         if (test.Progressive?.AsRequirement() is { } progressive)
             all = all.Append(progressive);
+        if (test.Authentication is { } authentication)
+            all = all.Append(authentication.AsRequirement());
 
         //  The channel arrangement is deliberately not a requirement. No long poll reports how a
         //  machine divides itself, so nothing can answer it before the link opens; opening the

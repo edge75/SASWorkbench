@@ -129,7 +129,7 @@ public static class SasMessageDecoder
         {
             string path = prefix is null ? field.Name : $"{prefix}.{field.Name}";
 
-            if (field.PresentWhen is not null && !Holds(field.PresentWhen, values, prefix))
+            if (field.PresentWhen is not null && !Holds(field.PresentWhen, values, prefix, payload.Length - cursor))
                 continue;
 
             if (field.IsGroup)
@@ -454,15 +454,24 @@ public static class SasMessageDecoder
         return null;
     }
 
-    private static bool Holds(SasCondition condition, List<SasValue> values, string? prefix)
+    private static bool Holds(SasCondition condition, List<SasValue> values, string? prefix, int remaining)
     {
-        SasValue? source = null;
-        if (prefix is not null)
-            source = values.FirstOrDefault(v => v.Path == $"{prefix}.{condition.Field}");
-        source ??= values.FirstOrDefault(v => v.Path == condition.Field);
+        long actual;
+        if (condition.Field == SasCondition.RemainingBytes)
+        {
+            actual = remaining;
+        }
+        else
+        {
+            SasValue? source = null;
+            if (prefix is not null)
+                source = values.FirstOrDefault(v => v.Path == $"{prefix}.{condition.Field}");
+            source ??= values.FirstOrDefault(v => v.Path == condition.Field);
 
-        if (source?.Number is not { } actual)
-            return false;
+            if (source?.Number is not { } number)
+                return false;
+            actual = number;
+        }
 
         return condition.Comparison switch
         {

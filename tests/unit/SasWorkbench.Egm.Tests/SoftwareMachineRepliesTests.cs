@@ -124,6 +124,9 @@ public class SoftwareMachineRepliesTests
 
             // No cards, no reels — see WithoutMachinery.
             0x8E, 0x8F,
+
+            // Component authentication is off, as the platform starts the library (lp.cpp:3739).
+            0x6E,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -147,7 +150,7 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(89, SasLayouts.All.Count);
+        Assert.Equal(90, SasLayouts.All.Count);
         Assert.Equal(82, answered);
     }
 
@@ -164,6 +167,7 @@ public class SoftwareMachineRepliesTests
     {
         0x6F or 0xAF => [0x04, 0x00, 0x00, 0x00, 0x00],
         0x2F => [0x03, 0x00, 0x00, 0x00],
+        0x6E => [0x01, 0x00],
         0x71 => [0x01, (byte)SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS],
         0x72 => [0x02, 0xFF, 0x00],
         0x73 => [0x01, 0xFF],
