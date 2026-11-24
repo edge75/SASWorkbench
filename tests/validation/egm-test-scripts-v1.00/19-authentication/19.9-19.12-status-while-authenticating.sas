@@ -10,16 +10,18 @@
 #
 # The requests are as in 19.7: CRC-16, a two-byte seed of zero, a one-byte offset of zero.
 #
-# From the gaming machine library's source, read but not measured, three things these cases are
-# expected to catch on a machine built on it - UNKNOWN until one is:
-#   - a status $40 reply leaves out the authentication length byte (see 19.7);
-#   - a component's result is cleared the moment either action reports it, acknowledged or not,
-#     so action $03 after a read of the result answers $FF where 19.9 and 19.11 expect the result;
-#   - an abandoned component reports $C1 on the next read rather than the $FF 19.12 expects.
+# @finding (19.9, 19.10, 19.11): a status $40 reply leaves out the authentication length byte
+# (libsas lp.cpp:3851, :3986, :4054; see 19.7).
+# @finding (19.9, 19.12): a component's result is cleared the moment either action reports it,
+# acknowledged or not (lp.cpp:3867, :4075), so a second read answers $FF or status 0 where the
+# document still expects the result.
+# @finding (19.12): starting a second authentication marks the first aborted (lp.cpp:3956), so the
+# next read of it reports $C1 once rather than the $FF the document expects.
 
 test "19.9 reading the status of the component being authenticated" {
-  tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E, host.compare_replies
+  tag @egm-test-scripts @chapter-19 @wire-only @finding
+  machine component authentication on
+  requires decoder.lp6E, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -57,8 +59,9 @@ test "19.9 reading the status of the component being authenticated" {
 }
 
 test "19.10 asking how the authentication went" {
-  tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E, host.compare_replies
+  tag @egm-test-scripts @chapter-19 @wire-only @finding
+  machine component authentication on
+  requires decoder.lp6E, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -91,8 +94,9 @@ test "19.10 asking how the authentication went" {
 
 # Asking about each component in turn until one is no longer in progress, then reading its result.
 test "19.11 the result is cleared once it has been read" {
-  tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E
+  tag @egm-test-scripts @chapter-19 @wire-only @finding
+  machine component authentication on
+  requires decoder.lp6E
 
   host connect loopback address 01
   host poll every 200ms
@@ -124,8 +128,9 @@ test "19.11 the result is cleared once it has been read" {
 
 # A second authentication started over the first: the first is abandoned and has nothing to say.
 test "19.12 starting another authentication abandons the first" {
-  tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, machine.multiple_components, decoder.lp6E
+  tag @egm-test-scripts @chapter-19 @wire-only @finding
+  machine component authentication on
+  requires machine.multiple_components, decoder.lp6E
   requires host.compare_replies
 
   host connect loopback address 01

@@ -11,7 +11,8 @@
 
 test "19.15 authentication complete in real-time mode" {
   tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E
+  machine component authentication on
+  requires decoder.lp6E
   requires stimulus.real_time_events, decoder.lp0E
 
   host connect loopback address 01
@@ -40,9 +41,22 @@ test "19.15 authentication complete in real-time mode" {
 
 test "19.16 component list changed in real-time mode" {
   tag @egm-test-scripts @chapter-19 @needs-a-person
-  requires machine.component_authentication, stimulus.component_change
+  machine component authentication on
+  requires stimulus.component_change
   requires stimulus.real_time_events, decoder.lp0E
 
-  note "Turn real-time reporting on with long poll $0E, data 01. Add, remove, update or reorder a component that takes part in authentication: $8E arrives as address, $FF, $8E and the check sequence, on a long poll as readily as on a general poll."
-  note "Applies only to a machine that passes 19.4 and supports real-time reporting (11.1). Turn reporting off again afterwards."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  host send lp 0E data 01
+  egm component change
+  host expect exception component_list_changed within 10s
+
+  # Turn reporting off again.
+  host send lp 0E data 00
+  host forget exceptions within 2s
+
+  note "Check in the frames that the event is address, $FF, $8E and the check sequence, and nothing more; the document lets it arrive on a long poll as readily as on a general poll. Applies only to a machine that passes 19.4 and supports real-time reporting (11.1)."
 }

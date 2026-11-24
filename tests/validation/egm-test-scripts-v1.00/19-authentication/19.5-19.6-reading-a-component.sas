@@ -13,7 +13,8 @@
 # Index 1 read twice, the second time compared with the first; the walk and the names are notes.
 test "19.5 reading a component by index and by name" {
   tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E, host.compare_replies
+  machine component authentication on
+  requires decoder.lp6E, host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
@@ -40,7 +41,8 @@ test "19.5 reading a component by index and by name" {
 # Out of contact is status $81, and back in contact is status 0 again.
 test "19.6 a component that is out of contact" {
   tag @egm-test-scripts @chapter-19 @needs-a-person
-  requires machine.component_authentication, decoder.lp6E, stimulus.component_link
+  machine component authentication on
+  requires decoder.lp6E, stimulus.component_link
 
   note "Read component 1 by index: status 0. Cut the communication with it, by the manufacturer's means, and read it again: status $81 and nothing after the status but the check sequence."
   note "Restore the communication and read it again: status 0. Do the same for every index the list reports."

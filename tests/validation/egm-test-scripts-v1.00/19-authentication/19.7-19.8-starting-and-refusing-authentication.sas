@@ -14,14 +14,20 @@
 # cannot branch on which, so 19.8 waits long enough for either and then asks: both paths end in a
 # status of $80 or more, and the next question answers $FF.
 #
-# From the gaming machine library's source, read but not measured: a status $40 reply is built
-# with the authentication length byte written and then left out of the length, so the reply ends
-# after the method. SAS 6.02 Table 17.1b includes that byte, so the authentication_length steps
-# are expected to fail on a machine built on that library - UNKNOWN until one is measured.
+# @finding (19.7): a status $40 reply is built with the authentication length byte written past the
+# end and left out of the length (libsas lp.cpp:3986, and :3851, :4054 for actions $01 and $03), so
+# the reply ends after the method and the authentication_length steps fail. The document's layout
+# includes the byte.
+#
+# 19.8 passes on the software machine, but only by the second path for its last request: the
+# library's offset check flags an offset only when both halves of its sixteen-byte comparison
+# exceed the size, and its test against an empty size compares a pointer (lp.cpp:3941, :3942), so
+# an eight-byte offset past the end is accepted at $40 and fails only if the application fails it.
 
 test "19.7 starting an authentication" {
-  tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E
+  tag @egm-test-scripts @chapter-19 @wire-only @finding
+  machine component authentication on
+  requires decoder.lp6E
 
   host connect loopback address 01
   host poll every 200ms
@@ -48,7 +54,8 @@ test "19.7 starting an authentication" {
 
 test "19.8 authentication requests the machine must refuse" {
   tag @egm-test-scripts @chapter-19 @wire-only
-  requires machine.component_authentication, decoder.lp6E
+  machine component authentication on
+  requires decoder.lp6E
 
   host connect loopback address 01
   host poll every 200ms
@@ -106,5 +113,5 @@ test "19.8 authentication requests the machine must refuse" {
   host expect field status of lp 6E == $FF
 
   note "A refusal at once is a status from $80 up with only the check sequence after it. An acceptance is $40, then $8F, then a failure from $C0 up; an acceptance that ends in $41 is the defect this case looks for."
-  note "From the library's source, read but not measured: its offset check flags an offset only when both halves of a sixteen-byte comparison exceed the size, so an eight-byte offset is accepted at $40 and whether it then fails is up to the application - UNKNOWN until measured."
+  note "The library accepts the eight-byte offset at $40 rather than refusing it at once (lp.cpp:3942); the software machine then fails it at $C0, as an application should, but a real one may not."
 }
