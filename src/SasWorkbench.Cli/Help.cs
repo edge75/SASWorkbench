@@ -43,7 +43,7 @@ internal static class Help
 
             RUN
               --tcp <host:port>       reach the machine over TCP, overriding what the script says
-              --serial <port>         reach it over a serial port, such as COM12
+              --serial <port>         reach it over a serial port, such as COM12 or /dev/ttyS4
               --loopback              run against the software machine in this process
               --address <hh>          poll address, in hex, overriding the script
               --channel <1-4>         which channel to drive
@@ -402,11 +402,18 @@ internal static class Help
               disagree cannot be used together, and every action here says so rather than reading
               a configuration out of the wrong bytes.
 
+            PROBE
+              --serial <port>         open one port, check that it keeps mark and space parity
+                                      (the wakeup bit), and put its settings back. Exits 1 when
+                                      the port cannot carry the wakeup bit. Do not name a port
+                                      another program is using: its settings change briefly
+
             EXAMPLES
               sasctl run tests/regression --loopback --stimulus software
               sasctl run tests/conformance/10.1 --tcp 127.0.0.1:7200 --report html,junit
               sasctl probe
               sasctl probe --stimulus qpm --egm-resources <demo>/Resources
+              sasctl probe --serial /dev/ttyS4
               sasctl egm --tcp 127.0.0.1:7200 --dial
               sasctl qpm status --egm-resources <demo>/Resources
               sasctl qpm audit open --egm-resources <demo>/Resources
