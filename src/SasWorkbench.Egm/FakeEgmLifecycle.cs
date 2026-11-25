@@ -237,6 +237,7 @@ public sealed partial class FakeEgm
     {
         link.AwaitingSync = true;
         link.LastWasOwnGeneralPoll = false;
+        link.LastOwnLongPoll = null;
         link.LastHeard = 0;
         link.RomSignature = null;
         link.RomSignatureSent = false;

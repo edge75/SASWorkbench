@@ -462,6 +462,7 @@ public static class ScriptEmitter
             ? $"egm handpay jackpot {handpay.AmountCents}"
             : $"egm handpay {handpay.AmountCents}",
         HandpayResetStep => "egm handpay reset",
+        PowerCycleStep { Resynchronise: false } => "egm power cycle without sync",
         PowerCycleStep => "egm power cycle",
         NvramClearStep => "egm nvram clear",
         MemoryFaultStep fault =>
