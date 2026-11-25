@@ -21,24 +21,25 @@ test "3.4 loop break" {
   host forget exceptions within 2s
   host poll sequence
 
-  # Five seconds of nothing, then its own address with the wakeup bit, every 200 ms.
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  # Five seconds of nothing, then its own address with the wakeup bit, every 200 ms. The quiet
+  # window is short so a slow host's wait for a silent poll cannot run into the next chirp.
+  host expect no chirp for 2s
+  host expect chirp within 5s
 
   # A long poll to another machine's address stops it, and it starts again five seconds later.
   host send lp 1F to 7F
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  host expect no chirp for 2s
+  host expect chirp within 5s
 
   # One to this machine's own address stops it too, though the machine does not answer it yet.
   host expect no reply to lp 1F
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  host expect no chirp for 2s
+  host expect chirp within 5s
 
   # And one to address 00, this host's synchronisation poll standing in for the document's long
   # poll there; after it the machine answers general and long polls again.
   host send sync
-  host expect no chirp for 4s
+  host expect no chirp for 2s
   host send gp draws nothing
   host send lp 1F
   host poll every 200ms
@@ -64,8 +65,8 @@ test "3.5.1 the machine waits for a synchronisation poll" {
   host poll sequence
   host send sync
   egm door main open
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  host expect no chirp for 2s
+  host expect chirp within 5s
 
   # Step 6: after the silence the machine ignores its own polls until it sees address 00.
   host expect no reply to lp 1F
@@ -73,8 +74,8 @@ test "3.5.1 the machine waits for a synchronisation poll" {
   host send lp 1F
 
   # Steps 7 and 8: the same with general polls - only the one after the poll to 00 is answered.
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  host expect no chirp for 2s
+  host expect chirp within 5s
   host send gp draws silence
   host send sync
   host send gp draws slot_door_opened

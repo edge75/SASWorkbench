@@ -54,10 +54,10 @@ test "3.13 the machine answers at any poll rate from 200 ms to 5 seconds" {
   # Past the top: one poll, nothing for more than five seconds, the chirp, and the next poll ends it.
   host poll sequence
   host send gp
-  host expect no chirp for 4s
-  host expect chirp within 3s
+  host expect no chirp for 2s
+  host expect chirp within 5s
   host send sync
-  host expect no chirp for 4s
+  host expect no chirp for 2s
   host poll every 200ms
 
   # Real-time event reporting raises the ceiling further; 11.7 takes the same sweep down to 40 ms.

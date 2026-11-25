@@ -38,7 +38,10 @@ test "3.2 a poll without the wakeup bit is ignored or refused" {
   host wait 1s
   host send lp 1F without wakeup
 
-  # The same poll with the bit is answered, so the silence above was about the bit.
+  # The same poll with the bit is answered, so the silence above was about the bit. Bytes without
+  # it are not a message to the machine, so a slow host's waits can amount to a loop break: the
+  # synchronisation poll first.
+  host send sync
   host send lp 1F
   host poll every 200ms
 
