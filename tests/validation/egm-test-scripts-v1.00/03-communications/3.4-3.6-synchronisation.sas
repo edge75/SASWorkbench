@@ -3,24 +3,52 @@
 # A machine that has heard nothing for five seconds declares the loop broken, throws away
 # everything queued against its last reply, and chirps its own address every 200 ms until some
 # poll arrives. It then waits for a synchronisation poll before it will act on anything addressed
-# to it. The waiting is observable from a sequence; the chirp is not asserted by this build.
+# to it. In a sequence the host leaves the line quiet and listens, so the chirp is asserted.
 
 # The chirp itself, and what silences it. Three addresses are polled in turn - another machine's,
 # this machine's, and the synchronisation address - and each stops the chirp, which is the point:
 # the machine is listening to the line rather than to its own address.
 test "3.4 loop break" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.chirp
+  tag @egm-test-scripts @chapter-3 @wire-only
+  requires host.chirp, host.poll_sequence
+  requires decoder.lp1F
 
-  note "Bring the link up, stop polling, and wait more than five seconds. The machine sends one byte every 200 ms - its own address with the wakeup bit set. Then send a long poll to another machine's address: the chirp stops. Wait five seconds again and send one to this machine's address: it stops. Wait again and send one to address 00: it stops. Any poll on the line ends the chirp, whoever it is addressed to."
-  note "Start polling again. After the first synchronisation poll the machine answers general polls with an exception byte and answers long polls."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+  host poll sequence
+
+  # Five seconds of nothing, then its own address with the wakeup bit, every 200 ms.
+  host expect no chirp for 4s
+  host expect chirp within 3s
+
+  # A long poll to another machine's address stops it, and it starts again five seconds later.
+  host send lp 1F to 7F
+  host expect no chirp for 4s
+  host expect chirp within 3s
+
+  # One to this machine's own address stops it too, though the machine does not answer it yet.
+  host expect no reply to lp 1F
+  host expect no chirp for 4s
+  host expect chirp within 3s
+
+  # And one to address 00, this host's synchronisation poll standing in for the document's long
+  # poll there; after it the machine answers general and long polls again.
+  host send sync
+  host expect no chirp for 4s
+  host send gp draws nothing
+  host send lp 1F
+  host poll every 200ms
 }
 
 # What a machine does with the polls that arrive before it has been synchronised. The GSA tool
 # turns its own resynchronisation off to test this; here a sequence does the same.
 test "3.5.1 the machine waits for a synchronisation poll" {
   tag @egm-test-scripts @chapter-3 @needs-stimulus
-  requires host.poll_sequence, stimulus.door.main, stimulus.settle
+  requires host.poll_sequence, host.chirp, stimulus.door.main, stimulus.settle
   requires decoder.lp1F
 
   host connect loopback address 01
@@ -36,7 +64,8 @@ test "3.5.1 the machine waits for a synchronisation poll" {
   host poll sequence
   host send sync
   egm door main open
-  host wait 6s
+  host expect no chirp for 4s
+  host expect chirp within 3s
 
   # Step 6: after the silence the machine ignores its own polls until it sees address 00.
   host expect no reply to lp 1F
@@ -44,7 +73,8 @@ test "3.5.1 the machine waits for a synchronisation poll" {
   host send lp 1F
 
   # Steps 7 and 8: the same with general polls - only the one after the poll to 00 is answered.
-  host wait 6s
+  host expect no chirp for 4s
+  host expect chirp within 3s
   host send gp draws silence
   host send sync
   host send gp draws slot_door_opened
@@ -57,7 +87,7 @@ test "3.5.1 the machine waits for a synchronisation poll" {
   host poll every 200ms
   egm door main close
 
-  note "The document's poll to address 00 in steps 6 and 9 is the identification long poll sent to 00; this host's synchronisation poll, a general poll to 00, stands in for it. During each silence the document has the machine chirp every 200 ms; this build does not assert the chirp."
+  note "The document's poll to address 00 in steps 6 and 9 is the identification long poll sent to 00; this host's synchronisation poll, a general poll to 00, stands in for it. During each silence the machine chirps every 200 ms, which the host listens for."
 }
 
 # A hand pay survives the loop break that discarded its acknowledgement. The machine answers the

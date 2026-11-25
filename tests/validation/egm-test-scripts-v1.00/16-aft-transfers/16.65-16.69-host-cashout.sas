@@ -44,12 +44,35 @@ test "16.65 the host turns cashout to the host on and off" {
 }
 
 test "16.66 the cashout button asks the host first" {
-  tag @egm-test-scripts @chapter-16 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
   requires stimulus.button.collect, stimulus.bill, machine.transfer_limit, host.timing
+  requires stimulus.asset_number, printer.wallet
 
-  note "The host ignores $6A throughout. Load ten cents of each credit type with transfer flag bit 2 set, then send a zero transfer to the host with flags 0, 1 and 2 set, which enables cashout to the host."
-  note "Press cashout: $6A comes on a general poll and repeats about every 800 ms for eight seconds; then the machine pays by its usual means."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm press collect
+  host forget exceptions within 2s
+
+  # Five dollars on, and cash-out to the host turned on by the same transfer.
+  host send lp 72 data 36000000000000050000000000000000000000033930000000000000000000000000000000000000000000000131000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+
+  # The host ignores $6A: it comes again every 800 ms, and then the machine pays the usual way.
+  egm press collect
+  host expect exception aft_request_for_host_cashout within 5s
+  host expect exception aft_request_for_host_cashout every 800ms
+  host expect exception aft_request_for_host_cashout every 800ms
+  egm expect ticket printed within 20s
+  host forget exceptions within 2s
+  host expect no exception aft_request_for_host_cashout within 3s
+
+  note "The host ignores $6A throughout. The document loads ten cents of each credit type; the software machine holds cashable credits only, so five dollars of them stand in."
+  note "Press cashout: $6A comes on a general poll and repeats about every 800 ms for eight seconds; then the machine pays by its usual means. The steps above assert the repeat and the payment; that it lasts eight seconds is read off the wire log."
   note "Send the same pair with bit 2 clear and the transfer limit below five dollars: pressing cashout raises no $6A and the machine pays at once. With the limit back above a hundred dollars and the credits reloaded, the button again raises $6A for eight seconds before the machine pays."
 }
 

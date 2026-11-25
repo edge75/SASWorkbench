@@ -21,16 +21,28 @@ test "3.1 communication protocol" {
 }
 
 # The wakeup bit is what starts a message, so a poll sent without it must be ignored or refused.
-# Sending one needs a transport that will drop the bit on request, and this one will not: dropping
-# it silently is the degradation D2 exists to refuse, and there is no way to ask for it deliberately
-# either. So the case skips naming that rather than asserting the machine's silence for some other
-# reason - a poll nothing sent is not a poll the machine ignored.
+# Every transport this host opens carries the bit symbol by symbol (D2), so leaving it off is a
+# deliberate act the host can perform, not a degradation it could fall into.
 test "3.2 a poll without the wakeup bit is ignored or refused" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_without_wakeup
+  tag @egm-test-scripts @chapter-3 @wire-only
+  requires host.poll_without_wakeup, host.poll_sequence
+  requires decoder.lp1F
 
-  note "Send a long poll to the machine's own address with the wakeup bit clear, twice, a second apart. The machine either ignores it or refuses it by answering its address ORed with $80. Either is a pass; an ordinary reply is a failure."
-  note "When it answers or refuses any poll, the address it sends carries no wakeup bit."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host poll sequence
+
+  # Twice, a second apart: silence or the refusal passes, an ordinary reply fails.
+  host send lp 1F without wakeup
+  host wait 1s
+  host send lp 1F without wakeup
+
+  # The same poll with the bit is answered, so the silence above was about the bit.
+  host send lp 1F
+  host poll every 200ms
+
+  note "Every answer and refusal the machine sends is checked for a wakeup bit as it arrives; one carrying it fails the step that read it."
 }
 
 # A command the machine does not implement gets no reply at all, and the case pairs it with one the

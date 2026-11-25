@@ -154,8 +154,8 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(92, SasLayouts.All.Count);
-        Assert.Equal(82, answered);
+        Assert.Equal(93, SasLayouts.All.Count);
+        Assert.Equal(83, answered);
     }
 
     /// <summary>
@@ -175,6 +175,8 @@ public class SoftwareMachineRepliesTests
         0x71 => [0x01, (byte)SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS],
         0x72 => [0x02, 0xFF, 0x00],
         0x73 => [0x01, 0xFF],
+        // A date the library takes: an all-zero month is refused (lp.cpp:7772).
+        0x7F => [0x06, 0x15, 0x20, 0x31, 0x10, 0x30, 0x00],
         _ => new byte[SasCommandFraming.RequestDataBytes(command) ?? 0],
     };
 

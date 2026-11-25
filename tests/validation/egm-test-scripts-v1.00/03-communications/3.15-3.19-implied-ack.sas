@@ -206,10 +206,50 @@ test "3.18 a poll to another machine acknowledges" {
 # A global broadcast - a poll to address 00 - acknowledges too, which is the case that makes this
 # host's own synchronisation poll impossible to keep off the line.
 test "3.19 a global broadcast acknowledges" {
-  tag @egm-test-scripts @chapter-3 @needs-a-person
-  requires host.poll_sequence, stimulus.handpay, stimulus.button.service
-  requires decoder.lp1B, decoder.lp7F
+  tag @egm-test-scripts @chapter-3 @needs-stimulus @destructive
+  requires host.poll_sequence, stimulus.handpay, stimulus.handpay.reset, stimulus.button.service
+  requires stimulus.settle
+  requires decoder.lp1B, decoder.lp1F, decoder.lp7F
 
-  note "Configure the machine for a hand pay queue, create a jackpot hand pay, and create the change lamp on and change lamp off exceptions. Establish communication, then send a general poll to the machine's address, the hand pay information poll, a receive date and time addressed to 00, the hand pay poll again, and that broadcast again."
-  note "The first hand pay reading carries the amount, the broadcast is not answered, and the second reading is all zeros. Then alternate the broadcast with a general poll to the machine's address until the exceptions run out: the general polls draw them and the broadcast is never answered."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # Change lamp on and off, then the hand pay, which goes ahead of them.
+  host poll sequence
+  host send sync
+  egm press service
+  egm press service
+  egm handpay 2000
+  host wait 2s
+  host send sync
+  host send lp 1F
+
+  # The reading, a date and time sent to 00, the reading again: the broadcast is not answered and
+  # it acknowledged the first reading, so the second is all zeros.
+  host send gp draws handpay_is_pending
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host send lp 7F data 06152031103000 to 00
+  host send lp 1B
+  # All zeros is the hand pay queue rule (SAS 6.02 7.8.1); libsas answers it from v5.4.6.14 (quixantplc/libsas#258).
+  host expect field amount of lp 1B == 0
+  host send lp 7F data 06152031103000 to 00
+
+  # The broadcast between the machine's own general polls moves the queue on and is never answered.
+  host send gp draws change_lamp_on
+  host send lp 7F data 06152031103000 to 00
+  host send gp draws change_lamp_off
+
+  host poll every 200ms
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "The note the hand pay was made with is reported after the change lamp; what it is reported as depends on the machine's reporting, so it is left to the round."
+  note "The broadcast sets the machine's clock to June 15 2031, hence destructive: set it back when the case is done."
 }
