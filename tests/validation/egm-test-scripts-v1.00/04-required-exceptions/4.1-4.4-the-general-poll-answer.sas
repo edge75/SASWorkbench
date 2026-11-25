@@ -75,11 +75,23 @@ test "4.1 a general poll to this machine's address, and only this machine's" {
 # manufacturer holds.
 test "4.2 the ROM signature comes back on a general poll" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.rom_signature
+  requires machine.rom_signature, stimulus.settle
   requires decoder.lp21
 
-  note "Ask for the ROM signature with a seed of zero. The machine acknowledges the poll and goes on answering everything else while it calculates - there is no time limit on how long that takes."
-  note "The first general poll after the calculation finishes is answered with the machine's address, the command byte $21, the two-byte signature and the check sequence. The signature matches what the manufacturer says it is for that seed. Ask them for a seed and its signature if zero is not one they publish."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # Seed zero: acknowledged, and the machine goes on answering while it calculates.
+  host send lp 21 data 0000
+  host send lp 1F
+
+  # The round's general polls carry it once it is ready. There is no time limit, so the wait is long.
+  host expect rom signature within 120s
+
+  note "The signature matches what the manufacturer says it is for seed zero; the run's record shows it. Ask them for a seed and its signature if zero is not one they publish."
 }
 
 # No activity is a statement, not a silence: with nothing queued the machine still answers, with

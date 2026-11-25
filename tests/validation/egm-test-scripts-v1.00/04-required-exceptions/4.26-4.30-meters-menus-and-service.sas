@@ -37,17 +37,45 @@ test "4.27 bill totals reset" {
 # One exception on entering however many screens are walked, one on leaving.
 test "4.28 display meters entered and exited" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.audit_menu
+  requires machine.audit_menu, stimulus.settle
 
-  note "Enter the machine's audit or display screens - the ones that do not need the door open: one $82 on a general poll. Walk through every screen: no further $82. Leave: one $83."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  egm menu attendant enter
+  host expect exception display_meters_or_attendant_menu_entered within 8s
+  host expect no exception display_meters_or_attendant_menu_entered within 3s
+
+  egm menu attendant leave
+  host expect exception display_meters_or_attendant_menu_exited within 8s
+  host expect no exception display_meters_or_attendant_menu_exited within 3s
+
+  note "Walk through every screen while inside: no further $82. The software machine has no screens to walk."
 }
 
 # The self-test menu, which does need the door open, and has its own pair.
 test "4.29 self test entered and exited" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.audit_menu
+  requires machine.audit_menu, stimulus.settle
 
-  note "Enter the machine's self-test or set-up screens - the ones that need the door open: one $84 on a general poll. Walk through every screen: no further $84. Leave: one $85."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  egm menu operator enter
+  host expect exception self_test_or_operator_menu_entered within 8s
+  host expect no exception self_test_or_operator_menu_entered within 3s
+
+  egm menu operator leave
+  host expect exception self_test_or_operator_menu_exited within 8s
+  host expect no exception self_test_or_operator_menu_exited within 3s
+
+  note "Open the main door first on a real machine; its open and close exceptions come as well. Walk through every screen while inside: no further $84."
 }
 
 test "4.30.1 an attendant takes the machine out of service" {

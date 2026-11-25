@@ -86,12 +86,34 @@ test "11.24 the player chooses a different game" {
 
 # The signature, which with reporting on comes back as the answer to a long poll and with it off
 # comes back on a general poll - the same reply either way, on whichever poll the loop offers.
+# @finding: with reporting on and nothing queued, a long poll is answered as itself and the signature
+# waits for a general poll. The library sends it in a long poll's window only while an exception is
+# queued (libsas_threads.cpp:3367).
 test "11.25 the ROM signature in both modes" {
-  tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires machine.rom_signature
+  tag @egm-test-scripts @chapter-11 @needs-a-person @finding
+  requires machine.rom_signature, host.poll_sequence, stimulus.settle
   requires decoder.lp21, decoder.lp0E
 
-  note "With reporting on and a polling loop carrying no general polls, ask for the ROM signature. The machine acknowledges with its address and no wakeup bit, stays playable and stays idle, and answers a later long poll with the address, the command byte $21, the two-byte signature and a check sequence."
-  note "Turn reporting off, switch to a loop with general polls, and ask again: the same reply arrives on a general poll instead."
-  note "The signature matches what the manufacturer says it is, both times. There is no time limit on how long the calculation takes. See 4.2 and 5.10."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # Reporting on, and a loop of long polls only.
+  host poll sequence
+  host send sync
+  host send lp 0E data 01
+  host send lp 21 data 0000
+  host send lp 1F
+  host send lp 1F
+  host expect rom signature within 2s
+
+  # Reporting off and general polls again: the signature arrives on one.
+  host send lp 0E data 00
+  host poll every 200ms
+  host send lp 21 data 0000
+  host expect rom signature within 120s
+
+  note "The machine stays playable and idle while it calculates, and there is no time limit on how long that takes; the waits above are what the software machine needs. The signature matches what the manufacturer says it is, both times. See 4.2 and 5.10."
 }

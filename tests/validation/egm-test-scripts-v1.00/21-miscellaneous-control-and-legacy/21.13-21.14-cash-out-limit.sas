@@ -2,13 +2,14 @@
 #
 # Long poll $A4 asks for the largest amount the machine will pay from its hopper (or by whatever
 # cash-out it uses) before it locks up for an attendant. The request names a game, two BCD digits;
-# the reply echoes the game and gives the limit in accounting units, also BCD. This build has no
-# layout for $A4, so neither case can run, and when one exists the limit still has to be compared
-# with the figure in the machine's own set-up screens (D40).
+# the reply echoes the game and gives the limit in accounting units, also BCD. The library answers
+# only once the machine has set a limit, which one without a hopper never does, so both cases need a
+# machine that reports one (machine.cashout_limit); the limit is then compared with the figure in the
+# machine's own set-up screens (D40).
 
 test "21.13 the cash-out limit of the machine" {
   tag @egm-test-scripts @chapter-21 @wire-only
-  requires decoder.lpA4
+  requires decoder.lpA4, machine.cashout_limit
 
   host connect loopback address 01
   host poll every 200ms
@@ -24,7 +25,7 @@ test "21.13 the cash-out limit of the machine" {
 # The same question for every game the machine has, and silence for one it does not have.
 test "21.14 the cash-out limit of each game" {
   tag @egm-test-scripts @chapter-21 @wire-only
-  requires decoder.lp51, decoder.lpA4
+  requires decoder.lp51, decoder.lpA4, machine.cashout_limit
 
   host connect loopback address 01
   host poll every 200ms

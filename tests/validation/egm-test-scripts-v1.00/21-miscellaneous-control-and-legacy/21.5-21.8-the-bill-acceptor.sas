@@ -100,7 +100,7 @@ test "21.7 the host chooses which notes are taken" {
   # Leave the machine as the case found it.
   host send lp 08 with denominations=4294967295 action=1
 
-  note "Not run here: with only $5 and $20 allowed, a $10 note is refused - no $10 note-accepted exception and no movement on the bill meter - and with no denomination allowed every note is refused. The software stimulus raises an error when offered a note the host has disabled instead of reporting it handed back (stimulus.bill_refused), so these halves are a person's or a manual stimulus's to check."
+  note "Not run here: with only $5 and $20 allowed, a $10 note is refused - no $10 note-accepted exception and no movement on the bill meter - and with no denomination allowed every note is refused. The software stimulus hands a refused note back without saying so (stimulus.bill_refused), so these halves are a person's or a manual stimulus's to check."
   note "Offer every note the acceptor supports at each stage, not only the ones above; the denomination bits are $1, $2, $5, $10, $20, $25, $50, $100 from the lowest bit upwards."
   note "Then switch every denomination off in the machine's own configuration (or switch the acceptor off there if it has no per-denomination setting) and send $08 with all bits set: every note is still refused. That half needs the machine configured by a person (machine.bill_configuration)."
   note "Not run: $08 with a broken check sequence must be ignored or refused (host.bad_crc)."
@@ -108,8 +108,10 @@ test "21.7 the host chooses which notes are taken" {
 
 # The action byte: with bit 0 clear the acceptor turns itself off after each note it takes, until
 # the host turns it back on.
+# @finding: the second note after action 0 is taken. The library hands the action byte to the
+# application (lp.cpp:449), and the platform's handler leaves it unused (QSP SasNetwork_Callbacks.hpp:508).
 test "21.8 the acceptor can be told to stop after every note" {
-  tag @egm-test-scripts @chapter-21 @needs-stimulus
+  tag @egm-test-scripts @chapter-21 @needs-stimulus @finding
   requires decoder.lp08, decoder.lp06, stimulus.bill
 
   host connect loopback address 01

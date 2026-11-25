@@ -87,5 +87,5 @@ test "5.10 the ROM signature" {
   note "Ask the manufacturer for the signature of the machine's code for two seeds. Send the signature poll with the first seed: the machine acknowledges with its address, stays playable and idle, and a later general poll carries $21, the two-byte signature and the check sequence. It matches the manufacturer's value. Do the same with the second seed."
   note "Send a broadcast and the first seed again, then the second seed straight after: both acknowledged, and the signature that eventually arrives is the second one's. Note how long it took."
   note "Stop the round and ask again, then wait that long without polling: nothing is sent. Poll the identification poll until it is answered, then general polls: the first two carry the signature, the third repeats it or is unanswered, and a fourth after an identification poll carries it too. After that, a general poll is answered with a one-byte exception."
-  note "A signature poll with a broken check sequence is ignored or refused, and the machine keeps answering the host throughout. This build cannot decode the signature reply or send a broken check sequence."
+  note "A signature poll with a broken check sequence is ignored or refused, and the machine keeps answering the host throughout. This build cannot send a broken check sequence (host.bad_crc)."
 }
