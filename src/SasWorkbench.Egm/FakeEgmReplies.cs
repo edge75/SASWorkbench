@@ -80,6 +80,9 @@ public sealed partial class FakeEgm
         },
         0x7E => DateAndTime(),
         0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
+
+        // QSP never sets a cash-out limit, having no hopper, so the library leaves $A4 unanswered (lp.cpp:9546).
+        0xA4 => NoAnswer,
         0xA0 => EnabledFeatures(request),
         0x6F or 0xAF => SelectedMeters(request),
         0x3D => LastCashout(),

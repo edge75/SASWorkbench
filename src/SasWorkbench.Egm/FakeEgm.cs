@@ -482,8 +482,8 @@ public sealed partial class FakeEgm : IDisposable
     /// </summary>
     /// <param name="cents">Face value of the note, in cents.</param>
     /// <exception cref="ArgumentOutOfRangeException">No exception code exists for that value.</exception>
-    /// <exception cref="InvalidOperationException">The host has disabled that denomination.</exception>
-    public void InsertBill(int cents)
+    /// <returns>False when the acceptor refused the note and handed it back, as the host has it switched off or the denomination disabled.</returns>
+    public bool InsertBill(int cents)
     {
         (SasMeterCode countMeter, int denomination) = cents switch
         {
@@ -498,11 +498,11 @@ public sealed partial class FakeEgm : IDisposable
                 "The protocol has no bill-accepted exception for that value."),
         };
 
+        // QSP inhibits the validator while the host has it off or the note is not enabled, so the note comes back (SasNetwork_Callbacks.hpp:486, :508).
         lock (_gate)
         {
-            if ((_enabledNotes & (1u << denomination)) == 0)
-                throw new InvalidOperationException(
-                    $"The host has disabled {cents}-cent notes, so this machine returns it.");
+            if (_acceptorDisabledByHost || (_enabledNotes & (1u << denomination)) == 0)
+                return false;
         }
 
         long credits = cents / AccountingCents;
@@ -535,6 +535,7 @@ public sealed partial class FakeEgm : IDisposable
             Bcd((byte)denomination),
             .. BcdBytes(Meters.Read(countMeter), 4),
         ]);
+        return true;
     }
 
     /// <summary>One byte of binary coded decimal, the way the machine library writes one.</summary>
@@ -609,6 +610,9 @@ public sealed partial class FakeEgm : IDisposable
             AmountCents = cents,
             TicketNumber = number,
             PrintedAt = printedAt,
+            Location = TicketText().Location,
+            Address1 = TicketText().Address1,
+            Address2 = TicketText().Address2,
             Note = "printed by the software machine",
         };
 
@@ -952,6 +956,12 @@ public sealed partial class FakeEgm : IDisposable
         /// <summary>This channel's hand pay queue, which the library keeps per channel.</summary>
         public HandpayQueue Handpays { get; } = new();
 
+        /// <summary>The ROM signature registered for this channel and not yet acknowledged, or null.</summary>
+        public ushort? RomSignature { get; set; }
+
+        /// <summary>True once the pending signature has gone out, until a later message acknowledges it.</summary>
+        public bool RomSignatureSent { get; set; }
+
         public SasSymbol[] Incoming { get; } = new SasSymbol[HostMessage.MaxSymbols];
 
         public List<SasSymbol> Message { get; } = new(HostMessage.MaxSymbols);
@@ -1049,7 +1059,10 @@ public sealed partial class FakeEgm : IDisposable
         if (!ownGeneralPoll)
         {
             lock (_gate)
+            {
                 link.Exceptions.Acknowledge();
+                NoteRomSignatureAcknowledged(link);
+            }
         }
 
         if (_options.ResponseDelay > TimeSpan.Zero)
@@ -1089,6 +1102,7 @@ public sealed partial class FakeEgm : IDisposable
                 ForgetLegacyBonusReading(link);
                 ForgetValidationRead(link);
                 ForgetProgressiveReading(link);
+                NoteRomSignatureUnacknowledged(link);
             }
 
             link.AwaitingSync = true;
@@ -1114,6 +1128,10 @@ public sealed partial class FakeEgm : IDisposable
             return;
 
         Interlocked.Increment(ref _generalPolls);
+
+        // A pending ROM signature takes the poll ahead of any exception (libsas_threads.cpp:3369).
+        if (SendPendingRomSignature(link))
+            return;
 
         bool realTime;
         PendingEvent? queued;
@@ -1249,6 +1267,13 @@ public sealed partial class FakeEgm : IDisposable
         //  owns no category. A broadcast poll is not addressed to this machine and is left alone.
         if (frame[0] == link.Address.Value)
         {
+            // The same gate lets a pending ROM signature through first, while an exception is due (libsas_threads.cpp:3367).
+            bool signatureFirst;
+            lock (_gate)
+                signatureFirst = _rteEnabled && link.Exceptions.Count > 0 && link.RomSignature is not null;
+            if (signatureFirst && SendPendingRomSignature(link))
+                return;
+
             PendingEvent? preempting;
             lock (_gate)
             {
@@ -1318,6 +1343,23 @@ public sealed partial class FakeEgm : IDisposable
         {
             AnswerPreamble(link, frame);
             return;
+        }
+
+        // The ticket text and custom ticket data polls also act on a broadcast, unanswered.
+        switch (command)
+        {
+            case (byte)SasLongPollCode.LP_ROMVERIFICATION:
+                AnswerRomSignature(link, frame);
+                return;
+            case (byte)SasLongPollCode.LP_SETEXTENDEDTICKET:
+                AnswerExtendedTicketData(link, frame);
+                return;
+            case (byte)SasLongPollCode.LP_SETTICKETDATA:
+                AnswerTicketData(link, frame);
+                return;
+            case (byte)SasLongPollCode.LP_AFT_SETCUSTOMTICKET:
+                AnswerCustomTicketData(link, frame);
+                return;
         }
 
         // Every handler left tests the address and drops a poll to 00 (lp.cpp:1299); $7F, $80 and $86 took theirs above.
@@ -1401,6 +1443,10 @@ public sealed partial class FakeEgm : IDisposable
                 }
 
                 return true;
+
+            case 0x06:
+            case 0x07:
+                return ApplyAcceptorSwitch(command);
 
             case 0x09:
                 return ApplyEnableDisableGame(frame);

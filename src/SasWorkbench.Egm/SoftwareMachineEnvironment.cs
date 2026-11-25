@@ -110,6 +110,10 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 Unless(game, machine.SetGameEnabled(game.Game, game.Enabled));
                 return;
 
+            case MenuStep menu:
+                Unless(menu, machine.SetMenu(menu.Menu, menu.Enter));
+                return;
+
             case SetPollAddressStep address:
                 Unless(address, machine.SetPollAddress(address.Address));
                 return;

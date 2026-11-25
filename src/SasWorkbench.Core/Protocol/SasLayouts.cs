@@ -799,6 +799,7 @@ public static partial class SasLayouts
             MultiDenominationPreamble(),
             RegisterGamingMachine(),
             TransferFunds(),
+            .. Miscellaneous(),
             new()
             {
                 Command = 0x7B,

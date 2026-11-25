@@ -31,6 +31,9 @@ public enum GeneralPollOutcome
 
     /// <summary>The engine was not running, or the poll could not be put on the link.</summary>
     NotSent,
+
+    /// <summary>The machine answered with the ROM signature a long poll $21 asked it for.</summary>
+    RomSignature,
 }
 
 /// <summary>

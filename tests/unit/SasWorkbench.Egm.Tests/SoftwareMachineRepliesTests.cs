@@ -131,6 +131,9 @@ public class SoftwareMachineRepliesTests
 
             // A single-game machine leaves the multi-denomination extensions bit clear, so the preamble is silent (lp.cpp:9843).
             0xB0,
+
+            // No cash-out limit is set, as the platform has no hopper (lp.cpp:9546).
+            0xA4,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -154,8 +157,8 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(93, SasLayouts.All.Count);
-        Assert.Equal(83, answered);
+        Assert.Equal(100, SasLayouts.All.Count);
+        Assert.Equal(89, answered);
     }
 
     /// <summary>
@@ -175,6 +178,9 @@ public class SoftwareMachineRepliesTests
         0x71 => [0x01, (byte)SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS],
         0x72 => [0x02, 0xFF, 0x00],
         0x73 => [0x01, 0xFF],
+        // The ticket text polls asked with no lines only read the status flag; $76 clears.
+        0x7C or 0x7D => [0x00],
+        0x76 => [0x01, 0x80],
         // A date the library takes: an all-zero month is refused (lp.cpp:7772).
         0x7F => [0x06, 0x15, 0x20, 0x31, 0x10, 0x30, 0x00],
         _ => new byte[SasCommandFraming.RequestDataBytes(command) ?? 0],

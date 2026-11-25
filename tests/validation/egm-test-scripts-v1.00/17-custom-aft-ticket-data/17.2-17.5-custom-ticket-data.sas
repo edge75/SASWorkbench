@@ -6,8 +6,9 @@
 # to the machine's text; a cleared set prints standard tickets again; and what was loaded survives
 # a power cycle. A graphics selector, if the printer has one, is passed on to it the same way.
 #
-# Every case needs the custom-data command decoded, which it is not, and a machine that says yes
-# in 17.1; the ticket itself is read by a person.
+# Every case needs a machine that prints transfer tickets with custom data and says yes in 17.1
+# (machine.custom_ticket_data); the platform prints no transfer tickets, so none runs on the software
+# machine. The ticket itself is read by a person.
 
 test "17.2 clearing the custom ticket data" {
   tag @egm-test-scripts @chapter-17 @needs-a-person

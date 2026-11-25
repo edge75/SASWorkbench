@@ -82,7 +82,8 @@ public sealed partial class FakeEgm
         long owed = amountCents;
         if (kind == HandpayKind.CancelledCredit)
         {
-            InsertBill(checked((int)amountCents));
+            if (!InsertBill(checked((int)amountCents)))
+                throw new InvalidOperationException("the note acceptor refused the note the hand pay is made with, as the host has it off");
             long restricted = CurrentRestrictedCents() / AccountingCents;
             long credits = Meters.Read(SasMeterCode.CurrentCredits) - restricted;
             owed = credits * AccountingCents;

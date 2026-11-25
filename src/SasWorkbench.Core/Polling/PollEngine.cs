@@ -176,6 +176,9 @@ public sealed partial class PollEngine : IDisposable
     /// <summary>Every non-zero exception a general poll returned.</summary>
     public event Action<ExceptionReport>? ExceptionReported;
 
+    /// <summary>Raised for every ROM signature the machine sends, on whichever poll it arrives.</summary>
+    public event Action<RomSignatureReport>? RomSignatureReported;
+
     /// <summary>Raised when the link changes state.</summary>
     public event Action<LinkState>? LinkStateChanged;
 
@@ -683,6 +686,10 @@ public sealed partial class PollEngine : IDisposable
 
         byte[] frame = _inbound.AsSpan(0, received).ToArray();
 
+        // The signature a long poll $21 asked for answers a general poll in its own three-field format.
+        if (IsRomSignature(frame))
+            return ReadRomSignature(frame, wakeup, latency);
+
         // A reply of more than one byte to a general poll is the real-time event format: the
         // machine's address, the event marker, the exception code and whatever that exception
         // carries. Read as a whole message or not at all — taking the first byte for an exception
@@ -1070,6 +1077,8 @@ public sealed partial class PollEngine : IDisposable
         // rather than in Interpret, which decides what a reply was and raises nothing.
         if (result.Outcome == LongPollOutcome.AnsweredWithEvent)
             ReportEventFromLongPoll(result.Frame);
+        else if (result.Outcome == LongPollOutcome.AnsweredWithRomSignature)
+            ReportRomSignature(result.Frame, onLongPoll: true);
 
         lock (_submitGate)
         {
@@ -1133,6 +1142,15 @@ public sealed partial class PollEngine : IDisposable
             Interlocked.Increment(ref _badCrcs);
             return new LongPollResult(command, _options.Channel, LongPollOutcome.BadCheckSequence,
                 frame, latency, "The frame check sequence did not match.");
+        }
+
+        if (command != (byte)SasLongPollCode.LP_ROMVERIFICATION && IsRomSignature(frame))
+        {
+            return new LongPollResult(command, _options.Channel, LongPollOutcome.AnsweredWithRomSignature,
+                frame, latency,
+                $"The machine answered with the ROM signature rather than with the reply to long poll "
+                + $"${command:X2}, which it does while event reporting is on and an exception is queued. "
+                + "The signature was kept and reported.");
         }
 
         if (IsEventInsteadOfReply(command, frame))
@@ -1268,7 +1286,8 @@ public sealed partial class PollEngine : IDisposable
 
         if (command == GeneralPoll)
             return frame.Length == 1
-                || (frame[0] == address && frame[1] == HostMessage.RealTimeEventIdentifier);
+                || (frame[0] == address && frame[1] == HostMessage.RealTimeEventIdentifier)
+                || (frame[0] == address && frame[1] == (byte)SasLongPollCode.LP_ROMVERIFICATION);
 
         if (frame.Length == 1)
             return frame[0] == address || frame[0] == (byte)(address | HostMessage.GeneralPollFlag);
@@ -1284,6 +1303,10 @@ public sealed partial class PollEngine : IDisposable
         {
             return true;
         }
+
+        // The pending ROM signature takes a long poll's window the way a queued event does.
+        if (frame[1] == (byte)SasLongPollCode.LP_ROMVERIFICATION && frame.Length == RomSignatureLength)
+            return true;
 
         return frame[1] == (byte)command
                || (frame.Length == 2 && frame[1] == HostMessage.BusyResponseByte);

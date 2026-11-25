@@ -225,26 +225,107 @@ test "10.3.10 the status poll addressed to everybody is not answered" {
   host send gp draws nothing
 }
 
+# The ticket text polls. What they set only shows on the paper, so each case prints a ticket and reads the
+# lines off it in the wallet. The text is ASCII in hexadecimal: each line is its data code, its length
+# and its characters, and $7D takes a host identifier and an expiration before three lines in order.
 test "10.3.11 extended ticket data is set" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7C
-  note "Send the extended ticket data poll carrying the location and address lines a ticket is to be printed with, then print one and read the paper. The text only appears on the ticket, so the check is at the printer and not on the link."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == standard
+  requires decoder.lp7C, stimulus.bill, stimulus.button.collect, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  # TEST CASINO, 1 TEST ROAD and TESTVILLE as location and the two address lines: the reply says they were set.
+  host send lp 7C data 25000B5445535420434153494E4F010B31205445535420524F414402095445535456494C4C45
+  host expect field ticket_data_status of lp 7C == 1
+
+  # Asked again with no lines, the flag the last reply carried is clear.
+  host send lp 7C data 00
+  host expect field ticket_data_status of lp 7C == 0
+
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  egm expect ticket location == TEST CASINO
+  egm expect ticket address1 == 1 TEST ROAD
+  egm expect ticket address2 == TESTVILLE
+  host expect exception cashout_ticket_printed within 5s
+
+  note "The restricted and debit ticket titles ($10, $20) only appear on those tickets, which this case does not print."
 }
 
 test "10.3.12 extended ticket data addressed to everybody" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7C
-  note "The same poll sent to address 00 reaches every machine and is answered by none. Confirm the text reaches the paper of a machine that never acknowledged the poll."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == standard
+  requires decoder.lp7C, stimulus.bill, stimulus.button.collect, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  # FLOOR WIDE, 9 SHARED WAY and EVERYTOWN to address 00: no machine answers, every machine sets them.
+  host send lp 7C data 25000A464C4F4F522057494445010C39205348415245442057415902094556455259544F574E to 00
+
+  # The machine that never answered says it was set when it is asked.
+  host send lp 7C data 00
+  host expect field ticket_data_status of lp 7C == 1
+
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  egm expect ticket location == FLOOR WIDE
+  egm expect ticket address1 == 9 SHARED WAY
+  egm expect ticket address2 == EVERYTOWN
+  host expect exception cashout_ticket_printed within 5s
 }
 
 test "10.3.13 ticket data is set" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7D
-  note "Send the ticket data poll and print a ticket carrying what it set. Read the paper for the values."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == standard
+  requires decoder.lp7D, stimulus.bill, stimulus.button.collect, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  # Host 1, thirty days, then DATA CASINO, 2 DATA ROAD and DATAVILLE.
+  host send lp 7D data 2501001E0B4441544120434153494E4F0B32204441544120524F4144094441544156494C4C45
+  host expect field ticket_data_status of lp 7D == 1
+
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  egm expect ticket location == DATA CASINO
+  egm expect ticket address1 == 2 DATA ROAD
+  egm expect ticket address2 == DATAVILLE
+  host expect exception cashout_ticket_printed within 5s
+
+  note "The expiration $7D carries is printed only where long poll 7B has set none; read it off the paper of a machine that prints one."
 }
 
 test "10.3.14 ticket data addressed to everybody" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7D
-  note "The broadcast form, answered by nobody and acted on by everybody. Read the paper of a machine that never acknowledged it."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  requires egm.validation == standard
+  requires decoder.lp7D, stimulus.bill, stimulus.button.collect, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  # Host 2, thirty days, then OLD CASINO, 3 OLD ROAD and OLDVILLE, to address 00.
+  host send lp 7D data 2202001E0A4F4C4420434153494E4F0A33204F4C4420524F4144084F4C4456494C4C45 to 00
+
+  egm bill insert 2000
+  egm press collect
+  egm expect ticket printed within 20s
+  egm expect ticket location == OLD CASINO
+  egm expect ticket address1 == 3 OLD ROAD
+  egm expect ticket address2 == OLDVILLE
+  host expect exception cashout_ticket_printed within 5s
 }

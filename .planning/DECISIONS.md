@@ -937,3 +937,33 @@ the reasonable choice and list it). Open to review like any other.
   but $7F, $80 and $86 makes it.
 
 The design note is `docs/M7-software-machine-host-timing.md`.
+
+---
+
+# Decision 56
+
+Taken on 2026-11-25 while building the remaining decoders group of M8, without the user (the brief says to take the
+reasonable choice and list it). Open to review like any other.
+
+## D56 — The software machine has the platform's menus and signature, and skips what the platform never does
+
+The protocol half of $06, $07, $21, $76, $7C, $7D and $A4 is the library's, mirrored check for check (D44). The
+application half is QSP's where QSP has one, and otherwise an honest skip, because none of what is missing is a
+library feature the platform merely leaves off (as D51 to D53 were):
+
+* **Two menus are stimuli, `egm menu attendant|operator enter|leave`**, reporting $82 and $83, or $84 and $85, as
+  QSP's attendant key and operator mode do. `machine.audit_menu` is offered by the software and manual backends. The
+  menus report and do not stop play, which no case here needs.
+* **The ROM signature is the build's own stand-in**: the protocol's CRC-16 over a fixed image, started from the
+  seed, ready at once; `machine.rom_signature` is offered by the software backend and, as the manufacturer's figure,
+  by the manual one. The host hears the signature on a general poll or in a long poll's window and reports it, and
+  `host expect [no] rom signature within <d>` asserts it.
+* **A note the acceptor refuses is handed back silently**, whether $07 switched it off or $08 left its denomination
+  out; the software stimulus no longer fails on one.
+* **A cash-out limit is read off the machine** (`machine.cashout_limit`, $A4 for game zero). QSP sets none, having no
+  hopper, so 21.13 and 21.14 skip (D46).
+* **Custom transfer ticket data stays absent** (`machine.custom_ticket_data`): the library's $76 answers, and QSP
+  prints no transfer ticket to put it on, so chapter 17 after 17.1 skips.
+* **D48 stands for the memory faults** QSP never reports ($31, $33 to $35, $37 to $39): 4.15 to 4.19 skip.
+
+The design note is `docs/M7-software-machine-misc.md`.

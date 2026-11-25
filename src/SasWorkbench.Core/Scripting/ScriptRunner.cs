@@ -460,6 +460,7 @@ public sealed partial class ScriptRunner
                 Log.Exception(report, clock, SasNames.ExceptionName(report.Code));
                 exceptions.Add(report);
             };
+            opened.RomSignatureReported += report => exceptions.Signatures.Add(report);
 
             hosts.Add(step.Channel, opened, clock);
             return (opened, null);
@@ -804,6 +805,8 @@ public sealed partial class ScriptRunner
 
                 ExpectChirpStep chirp => ExpectChirp(chirp, engine, machine, at),
 
+                ExpectRomSignatureStep signature => ExpectRomSignature(signature, engine, machine, exceptions.Signatures, at),
+
                 SendWithoutWakeupStep bare => SendWithoutWakeup(bare, engine, at),
 
                 ExpectExceptionRepeatStep repeat => CheckRepeat(repeat, engine, machine, exceptions, at),
@@ -920,6 +923,9 @@ public sealed partial class ScriptRunner
         private readonly Lock _gate = new();
         private readonly List<ExceptionReport> _all = [];
         private readonly HashSet<(SasChannel Channel, long Sequence)> _consumed = [];
+
+        /// <summary>The ROM signatures heard, kept beside the exceptions they share the general poll with.</summary>
+        public RomSignatures Signatures { get; } = new();
 
         public void Add(ExceptionReport report)
         {

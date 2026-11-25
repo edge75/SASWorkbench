@@ -600,7 +600,8 @@ public static partial class ScriptParser
                 return;
 
             case "expect":
-                test.Steps.Add(ReadExpectLine(words, location) ?? ReadExpect(test, words, location));
+                test.Steps.Add(ReadExpectLine(words, location) ?? ReadExpectRomSignature(words, location)
+                    ?? ReadExpect(test, words, location));
                 return;
 
             case "remember":
@@ -1570,6 +1571,10 @@ public static partial class ScriptParser
             case "set" when words.Length >= 3
                              && words[2].Equals("game", StringComparison.OrdinalIgnoreCase):
                 test.Steps.Add(ReadSetGame(words, location));
+                return;
+
+            case "menu":
+                test.Steps.Add(ReadMenu(words, location));
                 return;
 
             case "component":
