@@ -16,6 +16,9 @@ test "22.18.1 a SAS progressive win is multiplied" {
   requires stimulus.handpay.reset, decoder.lp0E, decoder.lp1B, decoder.lp6F
   requires decoder.event7F, decoder.event7C
 
+  # The software machine does not multiply a progressive's part of a win (D52).
+  requires machine.multiplied_progressive_win
+
   note "Configure the machine for SAS progressive group 1, level 1, and broadcast that level at 500 with one level per update. Enable legacy bonusing and multiplied jackpots; the host must not ignore exception 51."
   note "Read 001E and 0021 ($6F), enable three times for every win, and play until level 1 hits. $7F carries the progressive amount as the game's win; $54 and $56 are reported; $7C follows and the credit meter grows by three times the award. 001E grows by twice the award and 0021 does not move, both matching the machine's display (D40)."
   note "Disable, then enable three times for wins of 9998 and 9999 only, and hit level 1 again: no $7C, and nothing extra on the credit meter."

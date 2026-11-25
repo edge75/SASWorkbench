@@ -121,9 +121,39 @@ test "15.36 attendant-paid bonuses by game add up" {
 
 test "15.37 attendant-paid bonuses by denomination add up" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.legacy_bonus, machine.multiple_denominations, machine.jackpot_limit
   requires stimulus.select_denomination, stimulus.handpay.reset
-  requires decoder.lpB2, decoder.lpB0, host.meter_arithmetic
+  requires decoder.lpB2, decoder.lpB0, decoder.lp1B, host.meter_arithmetic
 
-  note "As 15.34, with meter 0021 and one wager-match bonus above the jackpot limit per denomination, each paid by an attendant as in 15.35. Run only on a multi-denomination machine (9.1)."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  egm set jackpot limit 400
+  host forget exceptions within 2s
+
+  host send lp B2
+  host expect field count of lp B2 >= 2
+
+  # One cent: the machine's 0021 and the denomination's, then one wager-match bonus above the limit.
+  egm select denomination 1c
+  host send lp 6F data 0400002100
+  host remember field meters[0].value as machine_before
+  host send lp B0 data 07016F0400002100
+  host remember field meters[0].value as cent1_before
+  host send lp 8A data 0000050002
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount == 500
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 15s
+  host send lp 6F data 0400002100
+  host expect field meters[0].value == saved.machine_before + 500
+  host send lp B0 data 07016F0400002100
+  host expect field meters[0].value == saved.cent1_before + 500
+
+  note "As 15.34, with meter 0021 and one wager-match bonus above the jackpot limit per denomination, each paid by an attendant as in 15.35; the steps take one cent. Repeat until every denomination has been through. Run only on a multi-denomination machine (9.1)."
 }

@@ -30,6 +30,9 @@ test "4.27 bill totals reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
   requires machine.nvram_clear
 
+  # Clearing the period meters on their own is an operator's screen no stimulus here offers.
+  requires stimulus.period_meter_clear
+
   note "In the machine's set-up screens, clear its period meters: one $7B on a general poll. Clear its lifetime meters: another $7B."
 }
 

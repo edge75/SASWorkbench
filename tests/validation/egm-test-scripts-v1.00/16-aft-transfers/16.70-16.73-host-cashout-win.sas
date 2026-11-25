@@ -7,15 +7,37 @@
 #
 # The software machine takes a credit limit from a script and, as the platform it mirrors does, hands a
 # win past it to an attendant without offering it to the host: 16.73 passes, and the three that wait
-# for $6B are findings. 16.70 also needs the repeat timed.
+# for $6B are findings.
 
+# @finding: no $6B, and the win is a hand pay, as in 16.71 (libsas_wrapper.cpp:3285, QSP CombinedAwardIsHandpaid).
 test "16.70 a win over the credit limit asks the host first" {
-  tag @egm-test-scripts @chapter-16 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-16 @needs-stimulus @needs-a-person @finding
   requires decoder.lp72, machine.aft
   requires machine.credit_limit, machine.transfer_limit, stimulus.play, host.timing
+  requires stimulus.credit_limit, stimulus.asset_number
 
-  note "Set the credit limit low enough that one win goes over it. Load ten cents of each type, then send a zero transfer to the host with flags 0, 1 and 2 set; both are pending or complete ($40 or $00)."
-  note "Play to a win over the limit: $6B comes on a general poll and repeats about every 800 ms for eight seconds, then the machine pays the usual way."
+  machine accounting denomination 1c
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+
+  # Credit on the machine, with flags 0, 1 and 2 set: cash-out to the host on, and wins offered to it.
+  host send lp 72 data 36000000000000050000000000000000000000073930000000000000000000000000000000000000000000000131000000000000000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  egm set credit limit 1000
+  host forget exceptions within 2s
+
+  # A win over the limit: $6B, repeated about every 800 ms.
+  egm play games=1 bet=1 win=10
+  host expect exception aft_request_for_host_to_cashout_win within 5s
+  host expect exception aft_request_for_host_to_cashout_win every 800ms
+
+  note "The document loads ten cents of each credit type and then sends a zero transfer to the host carrying the flags; the steps set the flags on the transfer that loads cashable credit."
+  note "After eight seconds of $6B the machine pays the usual way."
   note "Send the pair again with bit 2 clear and the transfer limit below five dollars: a win over the credit limit raises no $6B. With the limit restored above a hundred dollars and the credits reloaded, the next such win raises $6B for eight seconds before the machine pays."
 }
 

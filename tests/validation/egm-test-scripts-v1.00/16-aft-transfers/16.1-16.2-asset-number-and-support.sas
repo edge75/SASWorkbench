@@ -10,10 +10,23 @@
 
 test "16.1 the asset number is set at the machine and kept" {
   tag @egm-test-scripts @chapter-16 @needs-a-person @destructive
-  requires machine.aft, machine.audit_menu, machine.power_cycle
+  requires machine.aft, machine.audit_menu, machine.power_cycle, stimulus.asset_number
+  requires decoder.lp74
 
-  note "In the machine's configuration screens, try to type characters outside printable ASCII into the asset number: the machine refuses them."
-  note "Set the asset number to 12345, save, and cycle the power. Back in the same screen the number is still 12345."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # Set at the machine and saved, then the power cycled: the number is still 12345.
+  egm set asset number 12345
+  host send lp 74 data FF000000
+  host expect field asset_number == 12345
+  egm power cycle
+  host expect link up within 30s
+  host send lp 74 data FF000000
+  host expect field asset_number == 12345
+
+  note "The configuration screen refusing characters outside printable ASCII in the asset number, and showing 12345 after the power cycle, is checked at the machine; the steps read the number back over the link."
 }
 
 test "16.2 the enabled-features reply says whether transfers are on" {

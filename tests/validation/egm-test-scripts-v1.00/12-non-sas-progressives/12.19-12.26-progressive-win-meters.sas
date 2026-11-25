@@ -212,16 +212,19 @@ test "12.25 each denomination's machine-paid progressive wins add up to the mach
 
 test "12.26 each denomination's attendant-paid progressive wins add up to the machine's" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive non_sas levels 1
   requires machine.progressives, machine.multiple_denominations, stimulus.select_denomination
   requires stimulus.progressive, machine.jackpot_limit, stimulus.handpay.reset
   requires decoder.lpB0, decoder.lpB2, decoder.lp1B, host.meter_arithmetic
-  requires meter.attendant_paid_progressive_win
+  requires stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm set jackpot limit 500
   host forget exceptions within 2s
 
   host send lp B2
@@ -232,7 +235,10 @@ test "12.26 each denomination's attendant-paid progressive wins add up to the ma
   host send lp B0 data 07026F0400002000
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine and play until level 1 is won as a hand pay."
+  # Level 1 is won at one cent, above the jackpot limit, so it is paid by hand.
+  egm select denomination 1c
+  egm bill insert 2000
+  egm progressive win level=1
   host expect exception handpay_is_pending within 20s
   host send lp 1B
   egm handpay reset

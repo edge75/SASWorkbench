@@ -146,8 +146,38 @@ test "3.5.2 a hand pay survives an implied NACK" {
 test "3.6 synchronisation after a power cycle" {
   tag @egm-test-scripts @chapter-3 @needs-a-person @destructive
   requires machine.power_cycle, host.poll_sequence, host.chirp
+  requires decoder.lp1F
 
-  note "Bring the link up, cut the machine's power, stop polling, and power it back on. Once it has booted it chirps every 200 ms."
-  note "With the host's resynchronisation turned off, poll it: it ignores everything. Power cycle again and poll again: still nothing. Stop polling and send its identification poll, a poll to address 00, and its identification poll again - only the third is answered."
-  note "Power cycle once more, then send a general poll to its address, one to another address, and one to its address again. Only the third draws an exception byte."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  # The power is cut with the link up and polling stopped; once booted the machine chirps.
+  host poll sequence
+  egm power cycle without sync
+  host expect chirp within 7s
+
+  # Polled without a synchronisation poll, it ignores everything, and again after another power cycle.
+  host send gp draws silence
+  host expect no reply to lp 1F
+  egm power cycle without sync
+  host send gp draws silence
+  host expect no reply to lp 1F
+
+  # The identification poll, a poll to 00, and the identification poll again: only the third is answered.
+  host expect no reply to lp 1F
+  host send sync
+  host send lp 1F
+
+  # Power cycled once more: its own general poll, one to another address, and its own again; only
+  # the third draws an exception byte.
+  egm power cycle without sync
+  host send gp draws silence
+  host send gp draws silence to 7F
+  host send gp draws any
+
+  host poll every 200ms
 }

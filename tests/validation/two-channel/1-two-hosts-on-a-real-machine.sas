@@ -86,8 +86,8 @@ test "VC-04 what a host cannot read for itself" {
   tag @channel2 @needs-configuration
 
   # Nothing on a wire settles either of these, so the case is a pair of notes and skips with the
-  # capability naming what it would take: a person at the machine's own menu.
-  requires machine.audit_menu
+  # capability naming what it would take: a person reading the machine's own menu.
+  requires machine.audit_menu, machine.audit_screens
 
   note "No long poll reports which channel owns which category, so a host cannot read the arrangement off the wire and the map on a run's record is what the case declared. Check it against the machine: audit menu, SAS configuration, Ports."
   note "A machine with one serial port cannot open a second channel whatever its memory says. Its audit page lists a port per channel with a poll address, and only the ports the cabinet has."

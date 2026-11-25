@@ -13,6 +13,8 @@
 test "10.4.1 the total ticket out meter counts every kind of ticket" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
   requires machine.restricted_credits, stimulus.handpay
+  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
+  requires machine.restricted_tickets
   note "Print a cashable ticket, a restricted ticket and a debit ticket in turn, reading the total ticket out meter before and after each. Every one of the three moves it by its own amount. Producing a restricted or a debit ticket needs credits this build cannot put on the machine."
 }
 

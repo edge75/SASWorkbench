@@ -113,6 +113,10 @@ test "3.9 a memory fault resets the address to zero" {
   tag @egm-test-scripts @chapter-3 @needs-a-person @destructive
   requires machine.memory_fault
 
+  # The software machine raises its memory error while running, with the link up; memory found
+  # invalid while it starts, which leaves the platform at address 0 (QSP SasNetwork.cpp:309), it does not model.
+  requires machine.memory_fault.at_start_up
+
   note "With the link up, create a critical memory error at the machine and let it boot back to a playable state. It has reset its address to 0 and ignores every general and long poll until an address above 0 is configured."
 }
 

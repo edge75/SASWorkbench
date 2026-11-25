@@ -45,11 +45,68 @@ test "11.14 notes follow the mode" {
 # The same thing across a power cycle, which is where the mode is lost and the queue is not.
 test "11.15 a queue of notes changes format with the mode" {
   tag @egm-test-scripts @chapter-11 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires machine.power_cycle, host.poll_sequence, stimulus.real_time_events, stimulus.bill
+  requires stimulus.credit_limit, stimulus.settle
+  requires decoder.lp0E, decoder.lp1F
 
-  note "Play off or cash out all credits and set a high credit limit. With reporting off, insert several notes between $1 and $500 including one with no code of its own: each comes back as its own denomination's exception on a general poll, and the odd one as $4F."
-  note "Turn reporting on and insert the same set: each comes back as an event, $4F preferred. Stop polling, insert them again, start polling: still events, so the queue kept them."
-  note "Stop polling, insert them again, and power cycle before polling. Reporting is off again, so the queued notes come back as their own denomination codes with $4F for the odd one - the format followed the mode at the moment they left, not the mode when they were taken."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  egm set credit limit 100000
+  host send lp 0E data 00
+  host forget exceptions within 2s
+
+  # Reporting off: each note comes back as its own denomination's exception, one byte each.
+  host poll sequence
+  host send sync
+  egm bill insert 100
+  egm bill insert 500
+  egm bill insert 2000
+  host send sync
+  host send gp draws bare usd_1_bill_accepted
+  host send lp 1F
+  host send gp draws bare usd_5_bill_accepted
+  host send lp 1F
+  host send gp draws bare usd_20_bill_accepted
+  host send lp 1F
+  host send gp draws bare nothing
+
+  # Reporting on, the same notes taken while nobody polls: each comes back as an event.
+  host send lp 0E data 01
+  egm bill insert 100
+  egm bill insert 500
+  egm bill insert 2000
+  host send sync
+  host send gp draws event bill_accepted
+  host send sync
+  host send gp draws event bill_accepted
+  host send sync
+  host send gp draws event bill_accepted
+  host send sync
+  host send gp draws event nothing
+
+  # Taken again and the power cycled before polling: reporting is off, so they leave as their own codes.
+  egm bill insert 100
+  egm bill insert 500
+  egm bill insert 2000
+  egm power cycle
+  # The machine chirps after booting, so the first sync may read a chirp as its reply; the second
+  # is answered on a quiet line.
+  host send sync
+  host send sync
+  host send gp draws bare usd_1_bill_accepted
+  host send lp 1F
+  host send gp draws bare usd_5_bill_accepted
+  host send lp 1F
+  host send gp draws bare usd_20_bill_accepted
+  host send lp 1F
+  host poll every 200ms
+
+  note "The document also asks for a note with no code of its own, which comes back as $4F in both modes. This machine's acceptor takes 1, 2, 5, 10, 20, 50 and 100 only, each of which has a code, so that note is checked on a machine whose acceptor takes one."
 }
 
 # What the $4F event carries, field by field.

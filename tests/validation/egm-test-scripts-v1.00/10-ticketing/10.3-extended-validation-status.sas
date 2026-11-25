@@ -155,12 +155,16 @@ test "10.3.5 hand pays and their receipts are validated" {
 test "10.3.6 restricted tickets may be printed" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
   requires decoder.lp7B, machine.restricted_credits
+  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
+  requires machine.restricted_tickets
   note "Set the restricted-ticket bit, read it back, then cash out restricted credits and confirm a restricted ticket is printed. Restricted credits have to be put on the machine first, which needs a transfer this build cannot make."
 }
 
 test "10.3.7 tickets may be printed for foreign restricted amounts" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
   requires decoder.lp7B, machine.restricted_credits
+  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
+  requires machine.restricted_tickets
   note "Set the foreign-restricted bit, read it back, and confirm the machine prints for a restricted amount it did not itself issue."
 }
 
