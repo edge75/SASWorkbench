@@ -885,3 +885,31 @@ Two smaller choices go with it:
   `machine.legacy_handpay`, and one built without claims `machine.handpay_queue` and its size.
 
 The design note is `docs/M7-software-machine-handpay-queue.md`.
+
+---
+
+# Decision 54
+
+Taken on 2026-11-24 while building the multiple games group of M8, without the user (the brief says to take the
+reasonable choice and list it). Open to review like any other.
+
+## D54 — A case declares the machine's games, and the platform's choices fill them in
+
+QSP supports several games and denominations: it configures each game in the library (SasNetwork.cpp:1243), sets
+the multi-denomination extensions bit on every machine (SasNetwork.cpp:304), and its demo holds four games at
+different denominations. So this is neither "on only when declared" because the platform lacks it (D51 to D53) nor
+an honest skip (D46): it is the platform's behaviour, and only **which** games a machine holds is the case's to say.
+
+* **`machine games <cents>c [<cents>c ...]` is a declaration** (D36), one denomination per game. The software machine
+  is built with those games and, unless the case declares an accounting denomination, counts in cents as the
+  platform does. Any other machine is asked off $51 and $B2 (`machine.multiple_games`,
+  `machine.multiple_denominations`). Without the declaration the software machine keeps its single game and the
+  extensions bit clear, so nothing written before changes.
+* **The player and the operator are stimuli**: `egm select game <n>`, `egm select denomination <c>c` and
+  `egm set game <n> on|off`, offered by the software and manual backends.
+* **The platform never reports $89 or $1F**, so `stimulus.bet_button` and `machine.player_input_state` are offered
+  by the manual backend only, and 11.4, 11.21, 15.16 and 15.23 skip on a software run (D46).
+* **Left out:** a game at more than one denomination, total won credits per game, and the once-a-second limit on
+  reporting a selection.
+
+The design note is `docs/M7-software-machine-multiple-games.md`.

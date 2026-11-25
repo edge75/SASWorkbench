@@ -7,21 +7,22 @@
 # the last one implemented gets no answer.
 #
 # These need a multi-game or multi-denomination machine enrolled in a group, a progressive won on
-# it, and for the denomination cases the $B0 preamble, which this build cannot decode
-# (decoder.lpB0). Written for game 1 at the one-cent accounting unit; the document repeats each
+# it, and for the denomination cases the $B0 preamble. Written for game 1 at the one-cent
+# accounting unit; the document repeats each
 # for every enabled game or denomination, in sets of up to twenty.
 
 test "13.31 cumulative progressive wins of one game" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_games, stimulus.progressive
-  requires host.progressive_broadcast, host.meter_arithmetic
+  requires host.progressive_broadcast, host.meter_arithmetic, stimulus.select_game, stimulus.bill
   requires decoder.lp51, decoder.lp56, decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp83, decoder.lp85
-  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
   host forget exceptions within 2s
 
   host send lp 51
@@ -40,7 +41,10 @@ test "13.31 cumulative progressive wins of one game" {
   host expect field game_number of lp 83 == 1
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid
 
-  # A person wins level 1 on game 1 here; read $1B first if it is a hand pay.
+  # Level 1 is won on game 1, paid to the credit meter.
+  egm bill insert 1000
+  egm select game 1
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host send lp 83 with game_number=1
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid + 500
@@ -55,15 +59,16 @@ test "13.31 cumulative progressive wins of one game" {
 
 test "13.32 machine-paid progressive wins add up across games" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_games, stimulus.progressive
-  requires host.progressive_broadcast, host.meter_arithmetic
+  requires host.progressive_broadcast, host.meter_arithmetic, stimulus.select_game, stimulus.bill
   requires decoder.lp51, decoder.lp56, decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp85
-  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
   host forget exceptions within 2s
 
   host send lp 51
@@ -76,7 +81,10 @@ test "13.32 machine-paid progressive wins add up across games" {
   host send lp 6F data 0400011D00
   host remember field meters[0].value as game_before
 
-  # A person wins level 1 on game 1 here, paid to the credit meter.
+  # Level 1 is won on game 1, paid to the credit meter.
+  egm bill insert 1000
+  egm select game 1
+  egm progressive win level=1
   host expect exception sas_progressive_level_hit within 10s
   host send lp 85
   host forget exceptions within 2s

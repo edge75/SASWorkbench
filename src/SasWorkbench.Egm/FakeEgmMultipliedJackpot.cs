@@ -84,7 +84,7 @@ public sealed partial class FakeEgm
 
     /// <summary>A game takes the setting in force as it starts; one changed while it runs waits for the next.</summary>
     private void CaptureRoundMultiplierLocked(long betCredits) =>
-        _roundMultipliedJackpot = _multipliedJackpot is { } setting && (!setting.MaxBetOnly || betCredits >= _options.MaxBet)
+        _roundMultipliedJackpot = _multipliedJackpot is { } setting && (!setting.MaxBetOnly || betCredits >= PlayedMaxBet)
             ? setting
             : null;
 

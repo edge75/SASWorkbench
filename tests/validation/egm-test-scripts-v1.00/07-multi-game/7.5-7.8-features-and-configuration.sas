@@ -5,7 +5,7 @@
 # common to all of them is that the reply names the game it answers for, so a machine that
 # answered every request with game zero's details would be caught by the echo alone.
 #
-# The software machine holds one game, number one. A machine with several games is asked the same
+# The software machine holds one game, number one, unless a case declares more. A machine with several games is asked the same
 # questions for each number in its enabled list (long poll 56); the language has no loop, so the
 # steps below name game one and the notes say what repeats.
 
@@ -38,11 +38,36 @@ test "7.5 the features reply is given for each game" {
 # set up, and the expected values are read off the machine's own screens.
 test "7.6 the identification reply summarises every enabled game" {
   tag @egm-test-scripts @chapter-7 @needs-a-person
-  requires decoder.lp1F, machine.multiple_games, machine.enable_games
+  machine games 1c 2c 5c 10c
+  requires decoder.lp1F, decoder.lp53, machine.multiple_games, machine.enable_games
+  requires host.compare_replies
 
-  note "Enable two games whose maximum bets and theoretical paybacks differ. Read long poll 1F: the game identifier is the manufacturer's assigned code, the denomination is the code for the accounting denomination, the progressive group is zero unless progressives are configured, and the paytable matches the audit display."
-  note "The maximum bet is the larger of the two games' maximum bets, or 255 when it exceeds 255. The payback is the average of the two games' theoretical paybacks."
-  note "Enable every game and read 1F again: the payback is now the average over all of them and the maximum bet is the largest any of them allows."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # Two games left to the player, the third and fourth withdrawn at the operator's menu.
+  egm set game 3 off
+  egm set game 4 off
+
+  host send lp 53 with game_number=1
+  host remember field max_bet of lp 53 as bet1
+  host send lp 53 with game_number=2
+  host remember field max_bet of lp 53 as bet2
+
+  host send lp 1F
+  host expect field denomination of lp 1F >= 1
+  host expect field max_bet of lp 1F >= saved.bet1
+  host expect field max_bet of lp 1F >= saved.bet2
+  host expect field base_percentage of lp 1F >= 1
+
+  egm set game 3 on
+  egm set game 4 on
+  host send lp 1F
+  host expect field max_bet of lp 1F >= saved.bet1
+
+  note "The game identifier must be the manufacturer's assigned code, the progressive group zero unless progressives are configured, and the paytable the one the audit display shows; a person reads those."
+  note "The payback is the average of the two games' paybacks, which $53 carries as text the language cannot add, so a person compares them. With every game enabled it is the average over all of them."
 }
 
 # Game zero's configuration, the machine as a whole. Only the echo and the progressive group can be

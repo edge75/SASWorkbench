@@ -50,6 +50,9 @@ public sealed record ScriptTest
     /// <summary>How this case assumes the machine reports and validates hand pays.</summary>
     public MachineHandpayDeclaration? Handpay { get; init; }
 
+    /// <summary>The games this case assumes the machine holds.</summary>
+    public MachineGamesDeclaration? Games { get; init; }
+
     /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
     public MachineChannelDeclaration? Channels { get; init; }
 

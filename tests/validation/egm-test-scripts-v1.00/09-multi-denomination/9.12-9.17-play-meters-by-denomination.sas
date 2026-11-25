@@ -9,12 +9,12 @@
 # The set is fixed at one cent (code 01) and five cents (code 02), game 0000, because the language
 # has no loops: a machine without one of them cannot answer the preamble for it, and the case
 # skips at the reading it could not take. Playing at five cents, and any further denomination, is the same case
-# with the codes swapped or added. The preamble has no layout here yet (`decoder.lpB0`), so its
-# replies are read as the meter poll they wrap. Choosing a denomination on the machine is a
-# person's job (`stimulus.select_denomination`).
+# with the codes swapped or added. The preamble's replies are read under the field names of the
+# meter poll they wrap, and the software machine is declared with games at 1, 2, 5 and 10 cents.
 
 test "9.12 coin in by denomination adds up to coin in" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
   requires stimulus.bill, stimulus.play
@@ -31,7 +31,7 @@ test "9.12 coin in by denomination adds up to coin in" {
   host send lp B0 data 07026F0400000000
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=3 bet=2 win=0
   host expect meter total_coin_in += 6 within 5s
@@ -50,6 +50,7 @@ test "9.12 coin in by denomination adds up to coin in" {
 
 test "9.13 coin out by denomination adds up to coin out" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
   requires stimulus.bill, stimulus.play
@@ -66,7 +67,7 @@ test "9.13 coin out by denomination adds up to coin out" {
   host send lp B0 data 07026F0400000100
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=1 bet=2 win=10
   host expect meter total_coin_out += 10 within 5s
@@ -85,6 +86,7 @@ test "9.13 coin out by denomination adds up to coin out" {
 
 test "9.14 jackpot by denomination adds up to jackpot" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, decoder.lp1B, host.meter_arithmetic
   requires stimulus.settle, stimulus.handpay.jackpot, stimulus.handpay.reset
@@ -101,7 +103,7 @@ test "9.14 jackpot by denomination adds up to jackpot" {
   host send lp B0 data 07026F0400000200
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm settle
   host forget exceptions within 2s
   egm handpay jackpot 150000
@@ -125,6 +127,7 @@ test "9.14 jackpot by denomination adds up to jackpot" {
 
 test "9.15 games played by denomination adds up to games played" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
   requires stimulus.bill, stimulus.play
@@ -141,7 +144,7 @@ test "9.15 games played by denomination adds up to games played" {
   host send lp B0 data 07026F0400000500
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=4 bet=1 win=0
   host expect meter games_played += 4 within 5s
@@ -160,6 +163,7 @@ test "9.15 games played by denomination adds up to games played" {
 
 test "9.16 games won by denomination adds up to games won" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
   requires stimulus.bill, stimulus.play
@@ -176,7 +180,7 @@ test "9.16 games won by denomination adds up to games won" {
   host send lp B0 data 07026F0400000600
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=1 bet=1 win=5
   host expect meter games_won += 1 within 5s
@@ -195,6 +199,7 @@ test "9.16 games won by denomination adds up to games won" {
 
 test "9.17 games lost by denomination adds up to games lost" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
   requires stimulus.bill, stimulus.play
@@ -211,7 +216,7 @@ test "9.17 games lost by denomination adds up to games lost" {
   host send lp B0 data 07026F0400000700
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=1 bet=1 win=0
   host expect meter games_lost += 1 within 5s

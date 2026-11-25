@@ -129,6 +129,7 @@ public sealed partial class FakeEgm
         }
 
         Meters.ClearAll();
+        ClearGameMeters();
         Interlocked.Exchange(ref _billValueInDollars, 0);
         Interlocked.Exchange(ref _ticketsPrinted, 0);
 

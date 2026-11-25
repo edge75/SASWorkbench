@@ -175,9 +175,11 @@ test "12.24 each game's attendant-paid progressive wins add up to the machine's"
 
 test "12.25 each denomination's machine-paid progressive wins add up to the machine's" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive non_sas levels 1
   requires machine.progressives, machine.multiple_denominations, stimulus.select_denomination
   requires stimulus.progressive, decoder.lpB0, decoder.lpB2, host.meter_arithmetic
-  requires meter.machine_paid_progressive_win
+  requires stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
@@ -191,7 +193,9 @@ test "12.25 each denomination's machine-paid progressive wins add up to the mach
   host send lp B0 data 07026F0400001D00
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine and play until level 1 is won and paid by the machine."
+  egm select denomination 1c
+  egm bill insert 2000
+  egm progressive win level=1
 
   host send lp B0 data 07016F0400001D00
   host remember field meters[0].value as cent1_after

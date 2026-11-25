@@ -52,8 +52,32 @@ test "11.23 which cards were held" {
 
 test "11.24 the player chooses a different game" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_games
-  requires decoder.lp55
+  requires decoder.lp55, stimulus.select_game, stimulus.real_time_events, decoder.event8C
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host forget exceptions within 2s
+
+  host send lp 0E data 01
+  egm select game 2
+  host expect field game_number of event game_selected == 2 within 5s
+  host forget exceptions within 2s
+  host send lp 55
+  host expect field selected_game of lp 55 == 2
+
+  # The game menu: no game is selected while it is open.
+  egm select game 0
+  host expect field game_number of event game_selected == 0 within 5s
+  host forget exceptions within 2s
+  host send lp 0E data 00
+
+  egm select game 3
+  host expect exception game_selected within 5s
+  egm select game 0
+  host expect exception game_selected within 5s
 
   note "Only for multi-game machines. With reporting on, select a new game: one $8C carrying its number as two BCD digits. Read the selected game number: the same number comes back."
   note "Enter the game selection menu: another $8C, with the number zero - no game is selected while the menu is open."

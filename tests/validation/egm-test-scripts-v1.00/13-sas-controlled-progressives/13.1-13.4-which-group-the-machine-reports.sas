@@ -70,8 +70,31 @@ test "13.3 the extended information of each game carries group and levels" {
 
 test "13.4 the per-denomination information carries group and levels" {
   tag @egm-test-scripts @chapter-13 @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1-4
   requires machine.sas_progressives, machine.multiple_denominations
   requires decoder.lpB0, decoder.lpB2, decoder.lp56
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  host send lp B2
+  host expect field count of lp B2 >= 2
+
+  # Game zero at one cent, then at five cents: the machine's group and levels at each.
+  host send lp B0 data 0401B50000
+  host expect field base_command of lp B0 == 0xB5
+  host expect field denomination of lp B0 == 1
+  host expect field game_number of lp B0 == 0
+  host expect field progressive_group of lp B0 == 1
+  host expect field progressive_levels of lp B0 >= 1
+  host send lp B0 data 0402B50000
+  host expect field base_command of lp B0 == 0xB5
+  host expect field progressive_group of lp B0 == 1
+
+  host send lp 56
+  host expect field count of lp 56 >= 1
 
   note "Only for a multi-denomination machine. Enable every player denomination and enrol the machine in group 1 with levels 1 to 4."
   note "Send $B5 for game 0 through the $B0 preamble at the denomination in play. The reply echoes that denomination and the wrapped command, its length byte counts what follows, the game number is 0000, the maximum bet is the largest wager of any game, and group and level bits are the machine's."

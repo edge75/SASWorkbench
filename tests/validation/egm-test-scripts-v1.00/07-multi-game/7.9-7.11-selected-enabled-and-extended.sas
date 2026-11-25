@@ -7,7 +7,29 @@
 # answer alone.
 test "7.9 the selected game is the one the player chose" {
   tag @egm-test-scripts @chapter-7 @needs-stimulus
-  requires decoder.lp51, decoder.lp55, stimulus.select_game
+  machine games 1c 2c 5c 10c
+  requires decoder.lp51, decoder.lp55, stimulus.select_game, host.compare_replies
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  # The game menu stands for attract mode: nothing is selected.
+  egm select game 0
+  host send lp 55
+  host expect field selected_game of lp 55 == 0
+
+  host send lp 51
+  host remember field games of lp 51 as implemented
+
+  egm select game 1
+  host send lp 55
+  host expect field selected_game of lp 55 == 1
+
+  egm select game 4
+  host send lp 55
+  host expect field selected_game of lp 55 == 4
+  host expect field selected_game of lp 55 <= saved.implemented
 
   note "With nothing selected (the machine in attract mode), long poll 55 answers game zero."
   note "Select each enabled game in turn on the machine and read 55 after each: it answers that game's number, which lies between one and the count long poll 51 gives."

@@ -74,6 +74,7 @@ test "12.3 the extended information of each game gives no group and no levels" {
 # the progressive, so it is gated on a multi-denomination machine only.
 test "12.4 the extended information by denomination gives no group and no levels" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, decoder.lpB0, decoder.lpB2, decoder.lpB5, decoder.lp56
 
   host connect loopback address 01
@@ -81,8 +82,15 @@ test "12.4 the extended information by denomination gives no group and no levels
   host expect link up within 30s
 
   host send lp B2
+  host expect field count of lp B2 >= 2
   host send lp B0 data 0401B50000
+  host expect field base_command of lp B0 == 0xB5
+  host expect field denomination of lp B0 == 1
+  host expect field game_number of lp B0 == 0
+  host expect field progressive_group of lp B0 == 0
+  host expect field progressive_levels of lp B0 == 0
   host send lp 56
+  host expect field count of lp 56 >= 1
 
   note "Before the run, enable every player denomination. The steps ask for game zero at one cent; ask instead at the denomination currently in use."
   note "The answer wraps $B5 behind the preamble: the machine's address without the wakeup bit, $B0, a length equal to the reply's size less five, the denomination asked for, $B5, the inner length, game 0000, the maximum bet in game credits, group 00, levels 00000000, and the game name. For game zero the maximum bet is the largest wager any game allows."
