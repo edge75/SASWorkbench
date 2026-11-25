@@ -913,3 +913,27 @@ an honest skip (D46): it is the platform's behaviour, and only **which** games a
   reporting a selection.
 
 The design note is `docs/M7-software-machine-multiple-games.md`.
+
+---
+
+# Decision 55
+
+Taken on 2026-11-25 while building the host timing and line group of M8, without the user (the brief says to take
+the reasonable choice and list it). Open to review like any other.
+
+## D55 — The host does on the line only what it can honestly do there, and the machine's address is the operator's
+
+* **Three host capabilities are the build's**, in the baseline: `host.chirp` (listening to the quiet line of a
+  sequence), `host.poll_without_wakeup` (every transport carries the bit per symbol, so leaving it off is
+  deliberate, never a degradation under D2) and `host.timing` (how long until an exception comes again, read off
+  the host's own clock with a tolerance of a quarter period or two poll intervals).
+* **Two stay absent and their cases skip:** `host.collision`, because a transport hands a reply over whole, and the
+  new `host.byte_timing`, because no transport times each symbol; 3.12 names it rather than passing a gap check
+  that cannot fail.
+* **A chirp in a reply window is passed over, not read as the reply**, and recorded as a chirp.
+* **The poll address is a stimulus, `egm set address <aa>`**, as QSP's network menu has it: a changed address
+  restarts the link there and reports $3C, and address 00 starts no link at all. `host poll address <aa>` points
+  the host at the new address. A data poll to 00 is now silent on the software machine, as every library handler
+  but $7F, $80 and $86 makes it.
+
+The design note is `docs/M7-software-machine-host-timing.md`.
