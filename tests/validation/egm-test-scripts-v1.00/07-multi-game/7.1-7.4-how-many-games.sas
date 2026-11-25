@@ -67,6 +67,7 @@ test "7.2 a single game with several paytables reports what it implements" {
 # before the power cycle is remembered and every answer after it compared with that.
 test "7.3.1 every game configured: the count is what is implemented and survives a power cycle" {
   tag @egm-test-scripts @chapter-7 @needs-a-person @destructive
+  machine games 1c 2c 5c 10c
   requires decoder.lp51, machine.multiple_games, machine.enable_games, machine.power_cycle
   requires host.compare_replies
 
@@ -94,12 +95,17 @@ test "7.3.1 every game configured: the count is what is implemented and survives
 
 test "7.3.2 some games disabled: the count still names every game implemented" {
   tag @egm-test-scripts @chapter-7 @needs-a-person @destructive
+  machine games 1c 2c 5c 10c
   requires decoder.lp51, machine.multiple_games, machine.enable_games, machine.power_cycle
   requires host.compare_replies
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+
+  # The operator withdraws two of the four games before the count is read.
+  egm set game 2 off
+  egm set game 4 off
 
   host send lp 51
   host expect field games >= 1

@@ -47,8 +47,33 @@ test "15.33 machine-paid bonuses by game add up" {
 
 test "15.34 machine-paid bonuses by denomination add up" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.legacy_bonus, machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB2, decoder.lpB0, host.meter_arithmetic
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp B2
+  host expect field count of lp B2 >= 2
+
+  # One cent: the machine's 001E and the denomination's, then three bonuses on a game at one cent.
+  egm select denomination 1c
+  host send lp 6F data 0400001E00
+  host remember field meters[0].value as machine_before
+  host send lp B0 data 07016F0400001E00
+  host remember field meters[0].value as cent1_before
+  host send lp 8A data 0000000500
+  host send lp 8A data 0000000601
+  host send lp 8A data 0000000702
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
+  host send lp 6F data 0400001E00
+  host expect field meters[0].value == saved.machine_before + 18
+  host send lp B0 data 07016F0400001E00
+  host expect field meters[0].value == saved.cent1_before + 18
 
   note "Enable up to twenty player denominations, one per game on a multi-game machine, and read them back ($B2)."
   note "For each denomination, note 001E for the machine and for that denomination (through the $B0 preamble on $6F), select a game at that denomination, and send the three bonuses: acknowledged, $7C, eighteen credits. Both readings grow by the same amount."

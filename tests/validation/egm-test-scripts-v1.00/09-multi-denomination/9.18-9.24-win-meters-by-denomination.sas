@@ -7,9 +7,8 @@
 # total's gain, with the five-cent meter unchanged and the total moved. See 9.12 for why the set
 # is fixed at those two.
 #
-# None of these meters can be read by name in this build, so besides what 9.12 already needs, each
-# case requires its meter, and the attendant-paid and progressive ones need a hand pay or a
-# progressive this build cannot cause. A progressive win is a person's job, written as a note.
+# Each meter is read by code through $6F. 9.22 still needs an attendant-paid progressive, and 9.24
+# total won credits, which the software machine does not keep, so both skip on their meter.
 #
 # 9.20 and 9.23 are numbered in the document but carry no steps of their own: each refers to a
 # case in the bonusing chapter. They are kept here so the numbering has no holes and skip naming
@@ -17,9 +16,9 @@
 
 test "9.18 machine-paid paytable wins by denomination add up to the total" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
-  requires meter.machine_paid_paytable_win
   requires stimulus.bill, stimulus.play
 
   host connect loopback address 01
@@ -34,7 +33,7 @@ test "9.18 machine-paid paytable wins by denomination add up to the total" {
   host send lp B0 data 07026F0400001C00
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=1 bet=1 win=5
 
@@ -53,10 +52,11 @@ test "9.18 machine-paid paytable wins by denomination add up to the total" {
 
 test "9.19 machine-paid progressive wins by denomination add up to the total" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive non_sas levels 1
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
-  requires meter.machine_paid_progressive_win
-  requires stimulus.progressive
+  requires machine.progressives, stimulus.progressive, stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
@@ -70,8 +70,9 @@ test "9.19 machine-paid progressive wins by denomination add up to the total" {
   host send lp B0 data 07026F0400001D00
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
-  note "Play at one cent until a progressive the machine pays itself is won."
+  egm select denomination 1c
+  egm bill insert 2000
+  egm progressive win level=1
 
   host send lp B0 data 07016F0400001D00
   host remember field meters[0].value as cent1_after
@@ -95,9 +96,9 @@ test "9.20 machine-paid external bonus wins by denomination" {
 
 test "9.21 attendant-paid paytable wins by denomination add up to the total" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, decoder.lp1B, host.meter_arithmetic
-  requires meter.attendant_paid_paytable_win
   requires stimulus.settle, stimulus.handpay.jackpot, stimulus.handpay.reset
 
   host connect loopback address 01
@@ -112,7 +113,7 @@ test "9.21 attendant-paid paytable wins by denomination add up to the total" {
   host send lp B0 data 07026F0400001F00
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm settle
   host forget exceptions within 2s
   egm handpay jackpot 150000

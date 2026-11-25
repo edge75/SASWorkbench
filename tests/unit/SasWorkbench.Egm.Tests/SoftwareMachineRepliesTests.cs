@@ -114,7 +114,8 @@ public class SoftwareMachineRepliesTests
     {
         // Level zero is refused by the library's own handler (lp.cpp:7878); every other refusal is
         // reserved for this fixture's own gaps, and there are none among the commands it has layouts for.
-        byte[] refused = [0x80];
+        // Game zero is refused by $09 as well (lp.cpp:523).
+        byte[] refused = [0x80, 0x09];
         byte[] silent =
         [
             0x4C, 0x4D, 0xB2,
@@ -127,6 +128,9 @@ public class SoftwareMachineRepliesTests
 
             // Component authentication is off, as the platform starts the library (lp.cpp:3739).
             0x6E,
+
+            // A single-game machine leaves the multi-denomination extensions bit clear, so the preamble is silent (lp.cpp:9843).
+            0xB0,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -150,7 +154,7 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(90, SasLayouts.All.Count);
+        Assert.Equal(92, SasLayouts.All.Count);
         Assert.Equal(82, answered);
     }
 

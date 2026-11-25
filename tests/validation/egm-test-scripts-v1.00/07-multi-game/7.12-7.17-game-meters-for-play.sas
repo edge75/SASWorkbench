@@ -7,9 +7,7 @@
 # fails this sum. Each case then asks for that meter for a game number one past the last
 # implemented game, which the machine must not answer.
 #
-# None of it runs in this build, for three reasons that each stop it on their own:
-#   * the software machine holds one game, and a sum over one game proves nothing about sharing
-#     (machine.multiple_games);
+# None of it runs in this build, for two reasons that each stop it on their own:
 #   * the play stimulus cannot choose which game it plays (stimulus.play.game);
 #   * a per-game meter is a field of the 6F/AF reply, and fields are asserted by value only - the
 #     language has no "moved by" for a field and no way to add several replies together

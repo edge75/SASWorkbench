@@ -45,16 +45,36 @@ test "AD-34 the per-game reply answers the same as the machine reply" {
 
 test "AD-35 per-denomination data comes from the multi-denom preamble" {
   tag @accounting-denomination @needs-configuration
+  machine games 1c 5c
   requires decoder.lpB0
   requires machine.multiple_denominations
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  # Coin in at five cents, through the preamble: the answer wraps $6F and names the denomination.
+  host send lp B0 data 07026F0400000000
+  host expect field denomination of lp B0 == 2
+  host expect field base_command of lp B0 == 0x6F
+  host expect field meters[0].code of lp B0 == 0
 
   note "The preamble is how a host obtains data for one player denomination. This is the answer to send in place of the machine identification behaviour a host might have expected."
 }
 
 test "AD-36 the machine reports itself as multi-denomination" {
   tag @accounting-denomination @needs-configuration
+  machine games 1c 5c
   requires decoder.lpA0
   requires machine.multiple_denominations
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 5s
+
+  # Bit 7 of the second feature byte is the multi-denomination extensions bit.
+  host send lp A0 with game_number=0
+  host expect field feature_codes_2 of lp A0 >= 0x80
 
   note "The multi-denom extension bit is set on any machine whose accounting denomination is, or could be, different from a player denomination."
 }

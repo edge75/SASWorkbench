@@ -14,6 +14,8 @@
 
 test "13.15 the per-game configuration carries each game's group" {
   tag @egm-test-scripts @chapter-13 @wire-only @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_games, decoder.lp56, decoder.lp53
 
   host connect loopback address 01

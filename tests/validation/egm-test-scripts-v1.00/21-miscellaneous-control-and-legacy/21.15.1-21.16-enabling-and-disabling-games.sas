@@ -10,17 +10,22 @@
 # 21.16 sends the same command wrapped in the multi-denomination preamble ($B0), which names a
 # denomination as well and is answered with a status byte rather than a bare acknowledgement.
 #
-# This build has no layout for $09 or for $B0, so all three cases skip on the decoder.
+# @finding: 21.15.1 and 21.15.2 - the library refuses $09 for game zero and for a game past the last,
+# with the address and bit 7, rather than leaving it unanswered (lp.cpp:524).
 
 test "21.15.1 one game is disabled and enabled by long poll 09" {
-  tag @egm-test-scripts @chapter-21 @needs-stimulus
-  requires decoder.lp55, decoder.lp09, stimulus.select_game, stimulus.play
+  tag @egm-test-scripts @chapter-21 @needs-stimulus @finding
+  machine games 1c 2c 5c 10c
+  requires decoder.lp55, decoder.lp09, stimulus.select_game, stimulus.play, stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
 
-  # The game the player is in, by number.
+  # The game the player is in, by number, after a game of it.
+  egm select game 2
+  egm bill insert 1000
+  egm play games=1 bet=1 win=0
   host send lp 55
   host expect field selected_game >= 1
 
@@ -34,7 +39,8 @@ test "21.15.1 one game is disabled and enabled by long poll 09" {
 
 # Every game in turn, then every game back again, with the two ends of the range unanswered.
 test "21.15.2 every game is disabled and enabled by long poll 09" {
-  tag @egm-test-scripts @chapter-21 @needs-stimulus
+  tag @egm-test-scripts @chapter-21 @needs-stimulus @finding
+  machine games 1c 2c 5c 10c
   requires decoder.lp56, decoder.lp09, machine.multiple_games
 
   host connect loopback address 01
