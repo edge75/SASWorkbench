@@ -146,6 +146,13 @@ public static partial class CapabilityProbe
             ["host.compare_replies"] = "yes",
             ["host.meter_arithmetic"] = "yes",
 
+            // In a sequence the host can listen to a quiet line for the loop-break chirp, send a poll
+            // whose address byte carries no wakeup bit, and time how often an exception comes again.
+            // Every transport this build opens carries the bit per symbol, so each can leave it off.
+            ["host.chirp"] = "yes",
+            ["host.poll_without_wakeup"] = "yes",
+            ["host.timing"] = "yes",
+
             // The host can carry each validation exchange step by step, $4C, $4D, $57 and $58 included.
             ["host.validation_sequence"] = "yes",
 

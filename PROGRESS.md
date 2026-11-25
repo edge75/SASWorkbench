@@ -278,3 +278,4 @@ PHASE:M8 WAVE:software-machine-authentication STATUS:complete TS:2026-11-24T03:3
 PHASE:M8 WAVE:software-machine-mjt STATUS:complete TS:2026-11-24T15:32:31Z
 PHASE:M8 WAVE:software-machine-handpay-queue STATUS:complete TS:2026-11-24T22:05:36Z
 PHASE:M8 WAVE:software-machine-multi-game STATUS:complete TS:2026-11-25T01:47:32Z
+PHASE:M8 WAVE:software-machine-host-timing STATUS:complete TS:2026-11-25T07:52:03Z

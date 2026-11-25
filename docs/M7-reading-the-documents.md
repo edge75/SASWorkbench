@@ -276,7 +276,8 @@ state machine — is unreachable without it.
 only **two of them on its own**, 3.4 and 11.8. The other four also need `host.poll_sequence`, a
 power cycle, or a service button, so they stay skipped whatever is done about the chirp. After five
 seconds of silence the machine sends its own address with the wakeup bit every 200 ms, and nothing
-here watches the line when no poll is outstanding.
+here watches the line when no poll is outstanding. *Built since, in group 11 of M8: see
+`M7-software-machine-host-timing.md`.*
 
 ## 10. Two findings, one of them now fixed
 
@@ -295,7 +296,8 @@ command, and discards every action queued against the reply that was never ackno
 Our fixture has no such state and no such timer. It is a gap rather than a disagreement — nothing
 in the suite passes because of it, because the host cannot watch for a chirp either — so the honest
 form is the two capabilities above rather than a defect. Both halves are needed together: a machine
-that chirps and a host that can see one.
+that chirps and a host that can see one. *Both built since, in group 11 of M8: see
+`M7-software-machine-host-timing.md`.*
 
 ### A long poll answered with an event — the machine did not send one, and the host would have thrown it away
 

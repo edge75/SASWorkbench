@@ -7,8 +7,8 @@
 # real-time event reporting on, where the same exception arrives in the event format and answers
 # long polls as well as general ones.
 #
-# 16.52 and 16.55 run against the software machine (D45), and so do the notes of 16.51 and 16.54;
-# 16.53 and 16.56 still need the timing control that watches a fifteen-second reissue.
+# 16.51 to 16.53 and 16.55 run against the software machine (D45), and so do the notes of 16.54.
+# 16.56 waits: with reporting on, a long poll that meets a queued event fails its step (D43).
 
 test "16.51 a finished transfer raises its exception" {
   tag @egm-test-scripts @chapter-16
@@ -107,10 +107,29 @@ test "16.52 the transfer exception goes ahead of the queue" {
 test "16.53 the transfer exception repeats until it is read" {
   tag @egm-test-scripts @chapter-16
   requires decoder.lp72, machine.aft
-  requires host.timing
+  requires host.timing, stimulus.asset_number, stimulus.settle
 
-  note "Complete a full transfer and leave it unread for a couple of minutes: $69 comes back on a general poll about every fifteen seconds."
-  note "A peek at the current record does not count as reading it, so the repeats carry on. Only the status interrogation stops them."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host forget exceptions within 2s
+
+  # A full transfer left unread: $69, then again about every fifteen seconds.
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 15s
+  host expect exception aft_transfer_complete every 15s
+
+  # A peek at the current record does not count as reading it, so the repeats carry on.
+  host send lp 72 data 02FE00
+  host expect exception aft_transfer_complete every 15s
+
+  # Only the status interrogation stops them.
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect no exception aft_transfer_complete within 20s
 }
 
 test "16.54 the transfer exception as a real-time event" {

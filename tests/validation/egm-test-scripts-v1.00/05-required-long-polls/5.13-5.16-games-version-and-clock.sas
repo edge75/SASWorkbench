@@ -64,6 +64,14 @@ test "5.16 the host sets the date and time" {
   host poll every 200ms
   host expect link up within 30s
 
+  # Sent to 00, the clock change is answered by no machine and still taken: March 1 2030, 09:15:00.
+  host send lp 7F data 03012030091500 to 00
+  host send lp 7E
+  host expect field month of lp 7E == 3
+  host expect field day of lp 7E == 1
+  host expect field year of lp 7E == 2030
+  host expect field hour of lp 7E == 9
+
   # Addressed to the machine, the clock change is acknowledged; read back, it holds what was sent.
   # The date is June 15 2031 and the time 10:30:00.
   host send lp 7F data 06152031103000
@@ -74,6 +82,6 @@ test "5.16 the host sets the date and time" {
   host expect field hour of lp 7E == 10
   host expect field minute of lp 7E <= 31
 
-  note "The document first sends the same command as a broadcast to address 00, which the machine must not answer and must still obey; this build cannot broadcast that command. The machine's own configuration screen then shows the time sent plus the time since."
+  note "The machine's own configuration screen then shows the time sent plus the time since."
   note "A copy of the command with a broken check sequence is ignored or refused; this build cannot send one. Set the clock back to the right time when the case is done."
 }

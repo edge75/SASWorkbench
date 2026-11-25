@@ -95,6 +95,9 @@ public static partial class CapabilityProbe
                 ["machine.enable_games"] = "yes",
                 ["stimulus.select_game"] = "yes",
                 ["stimulus.select_denomination"] = "yes",
+
+                // The operator sets the poll address in the network menu, and saving it restarts the link there.
+                ["machine.address_configuration"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -156,6 +159,9 @@ public static partial class CapabilityProbe
                 ["stimulus.select_denomination"] = "yes",
                 ["stimulus.bet_button"] = "yes",
                 ["machine.player_input_state"] = "yes",
+
+                // A person sets the machine's poll address in its configuration screens.
+                ["machine.address_configuration"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

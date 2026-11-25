@@ -13,8 +13,10 @@
 # authentication already reported at $40, so a $C5 in the reply to the request itself, as 19.14
 # expects, is not something that library produces - also UNKNOWN until a machine is measured.
 
+# @finding: no $8F after the power cycle, and the result reads $FF. The library keeps its component state and the
+# $8F timer outside its non-volatile image (libsas_db.h:1121, the image is sNvramData at :855), so a restart forgets both.
 test "19.13 authentication complete is repeated until the result is read" {
-  tag @egm-test-scripts @chapter-19 @needs-a-person @destructive
+  tag @egm-test-scripts @chapter-19 @needs-a-person @destructive @finding
   machine component authentication on
   requires decoder.lp6E
   requires machine.power_cycle, host.timing, host.poll_sequence
@@ -29,8 +31,8 @@ test "19.13 authentication complete is repeated until the result is read" {
   host expect exception authentication_complete within 60s
 
   # Unread, it comes back every fifteen seconds.
-  host expect exception authentication_complete within 20s
-  host expect exception authentication_complete within 20s
+  host expect exception authentication_complete every 15s
+  host expect exception authentication_complete every 15s
 
   # And after a power cycle.
   egm power cycle
@@ -74,7 +76,7 @@ test "19.13 authentication complete is repeated until the result is read" {
   host poll every 200ms
 
   note "The document addresses the component by a name 19.2 reported; this case uses index 1 because a request cannot yet carry a name read from a reply (host.request_from_reply). It also waits a full minute before the power cycle; the two repeats above are the same check, shorter."
-  note "Check the repeats are fifteen seconds apart, not merely within twenty, and that each repeated answer to action $01 and $03 is byte for byte the first one. The power cycle is a person's to perform on a real machine."
+  note "Check that each repeated answer to action $01 and $03 is byte for byte the first one. The power cycle is a person's to perform on a real machine."
   note "The final $FF carries no method, authentication length or data."
 }
 

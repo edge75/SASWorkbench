@@ -23,7 +23,7 @@ namespace SasWorkbench.Core.Polling;
 /// courtesy.
 /// </para>
 /// </remarks>
-public sealed class PollEngine : IDisposable
+public sealed partial class PollEngine : IDisposable
 {
     /// <summary>Stands in for a command where a general poll is being answered. No command is negative.</summary>
     private const int GeneralPoll = -1;
@@ -32,7 +32,8 @@ public sealed class PollEngine : IDisposable
     private static readonly TimeSpan SchedulerMargin = TimeSpan.FromSeconds(5);
 
     private readonly SasLink _link;
-    private readonly PollEngineOptions _options;
+    // Replaced only when a host bound to one machine follows it to a new address.
+    private PollEngineOptions _options;
     private readonly Stopwatch _clock = new();
     private readonly SasSymbol[] _outbound = new SasSymbol[HostMessage.MaxSymbols];
     private readonly byte[] _inbound = new byte[HostMessage.MaxSymbols];
@@ -63,6 +64,7 @@ public sealed class PollEngine : IDisposable
     private SasAddress _pendingAddress;
     private string? _pendingPurpose;
     private bool _pendingCheckSequence;
+    private bool _pendingWithoutWakeup;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
     private long _pendingTicket;
@@ -376,7 +378,8 @@ public sealed class PollEngine : IDisposable
         TimeSpan? timeout = null,
         string? purpose = null,
         bool? checkSequence = null,
-        SasAddress? to = null)
+        SasAddress? to = null,
+        bool withoutWakeup = false)
     {
         if (data.Length > _pendingData.Length)
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
@@ -413,6 +416,7 @@ public sealed class PollEngine : IDisposable
                 _pendingPurpose = purpose;
                 _pendingCheckSequence = checkSequence
                     ?? SasCommandFraming.RequiresCheckSequence(command);
+                _pendingWithoutWakeup = withoutWakeup;
                 _pendingResult = null;
                 _pendingTicket++;
                 _pendingDone.Reset();
@@ -1011,6 +1015,7 @@ public sealed class PollEngine : IDisposable
         long ticket;
         string? purpose;
         bool checkSequence;
+        bool withoutWakeup;
         lock (_submitGate)
         {
             command = _pendingCommand;
@@ -1018,6 +1023,7 @@ public sealed class PollEngine : IDisposable
             ticket = _pendingTicket;
             purpose = _pendingPurpose;
             checkSequence = _pendingCheckSequence;
+            withoutWakeup = _pendingWithoutWakeup;
             _polling = _pendingAddress;
             _pendingReady = false;
         }
@@ -1037,6 +1043,8 @@ public sealed class PollEngine : IDisposable
 
         int length = HostMessage.WriteLongPoll(
             _outbound, _polling, command, _pendingData.AsSpan(0, dataLength), checkSequence);
+        if (withoutWakeup)
+            _outbound[0] = SasSymbol.Data8(_outbound[0].Data);
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();
@@ -1217,6 +1225,18 @@ public sealed class PollEngine : IDisposable
             int received = _link.Receive(_inbound, remaining, _options.QuietGap, out wakeup);
             if (received == 0)
                 return 0;
+
+            // A machine in a loop break chirps its address with the wakeup bit, and one chirp can
+            // land after the drain; it is no answer, so it is recorded and the wait goes on.
+            if (wakeup && received == 1 && IsChirp(_inbound.AsSpan(0, 1)))
+            {
+                Interlocked.Increment(ref _symbolsDiscarded);
+                RecordReceive(received, wakeup, "loop-break chirp - not an answer to this poll");
+                discardedMessages++;
+                if (_clock.Elapsed >= deadline)
+                    return 0;
+                continue;
+            }
 
             // A received wakeup bit is always a fault, and the caller reports it as one. Discarding
             // it here would hide the very thing worth knowing about that message.

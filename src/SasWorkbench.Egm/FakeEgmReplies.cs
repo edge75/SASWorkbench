@@ -934,9 +934,9 @@ public sealed partial class FakeEgm
         return new Dictionary<string, object> { [field] = value };
     }
 
-    private static Dictionary<string, object> DateAndTime()
+    private Dictionary<string, object> DateAndTime()
     {
-        DateTime now = DateTime.Now;
+        DateTime now = Now;
         return new Dictionary<string, object>
         {
             ["month"] = now.Month,

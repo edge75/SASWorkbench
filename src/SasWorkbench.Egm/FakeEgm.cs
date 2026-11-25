@@ -309,7 +309,7 @@ public sealed partial class FakeEgm : IDisposable
     }
 
     /// <summary>The address this machine answers to on its first channel.</summary>
-    public SasAddress Address => _options.Address;
+    public SasAddress Address => _links[0].Address;
 
     /// <summary>Which channels are open on this machine, in order.</summary>
     public IReadOnlyList<SasChannel> OpenChannels
@@ -926,7 +926,14 @@ public sealed partial class FakeEgm : IDisposable
 
         public SasChannel Channel { get; } = channel;
 
-        public SasAddress Address { get; } = address;
+        /// <summary>The address it answers at, which the operator can change (QSP SasNetwork.cpp:855).</summary>
+        public SasAddress Address { get; set; } = address;
+
+        /// <summary>When the link last started listening, as a stopwatch timestamp, which a chirp counts its silence from before anything is heard.</summary>
+        public long ListeningSince { get; set; } = Stopwatch.GetTimestamp();
+
+        /// <summary>When the next loop-break chirp is due, as a stopwatch timestamp; zero while the line is not broken.</summary>
+        public long NextChirp { get; set; }
 
         public ExceptionQueue Exceptions { get; } = new();
 
@@ -980,6 +987,7 @@ public sealed partial class FakeEgm : IDisposable
             if (read == 0)
             {
                 Dispatch(link);
+                TickChirp(link);
                 continue;
             }
 
@@ -1019,6 +1027,10 @@ public sealed partial class FakeEgm : IDisposable
         for (int i = 0; i < count; i++)
             link.Frame[i] = link.Message[i].Data;
         link.Message.Clear();
+
+        // QSP starts no library at address 0, so the machine hears nothing at all (SasNetwork.cpp:331).
+        if (link.Address.IsSync)
+            return;
 
         bool own = count == 1
             ? first == (link.Address.Value | HostMessage.GeneralPollFlag)
@@ -1066,6 +1078,7 @@ public sealed partial class FakeEgm : IDisposable
                     && link.LastHeard != 0
                     && Stopwatch.GetElapsedTime(link.LastHeard, now) > _options.LinkLossAfter;
         link.LastHeard = now;
+        link.NextChirp = 0;
 
         if (lost)
         {
@@ -1295,11 +1308,21 @@ public sealed partial class FakeEgm : IDisposable
             return;
         }
 
+        if (command == (byte)SasLongPollCode.LP_RECEIVEDATEANDTIME)
+        {
+            AnswerReceiveDateAndTime(link, frame);
+            return;
+        }
+
         if (command == SasLayouts.PreambleCommand)
         {
             AnswerPreamble(link, frame);
             return;
         }
+
+        // Every handler left tests the address and drops a poll to 00 (lp.cpp:1299); $7F, $80 and $86 took theirs above.
+        if (frame[0] != link.Address.Value)
+            return;
 
         SasMessageLayout? layout = SasLayouts.For(command);
         if (layout is null)

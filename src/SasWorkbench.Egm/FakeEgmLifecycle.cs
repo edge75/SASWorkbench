@@ -238,6 +238,8 @@ public sealed partial class FakeEgm
         link.AwaitingSync = true;
         link.LastWasOwnGeneralPoll = false;
         link.LastHeard = 0;
+        link.ListeningSince = Stopwatch.GetTimestamp();
+        link.NextChirp = 0;
         link.UnacknowledgedHandpayPoll = null;
         _unacknowledgedLegacyReads.Remove(link.Channel);
         _unacknowledgedValidationReads.Remove(link.Channel);

@@ -66,23 +66,32 @@ test "16.39 the reply to a refused code is two bytes" {
   note "The document writes this case identically to 16.38; it is kept as its own test so the numbering matches."
 }
 
+# @finding: the dollar's identifier sent again after the cent's is taken as a new transfer, not refused $81. The
+# library compares an identifier with the most recent transfer's only (lp.cpp:5426).
 test "16.40 every reason a transfer can be refused" {
-  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus
+  tag @egm-test-scripts @chapter-16 @needs-a-person @needs-stimulus @finding
   requires decoder.lp72, decoder.lp73, decoder.lp7F, decoder.lp7B, machine.aft
   requires machine.transfer_limit, machine.restricted_credits, machine.aft_receipts, machine.aft_bonus
   requires machine.configuration_options, stimulus.printer_fault, stimulus.door.main, stimulus.play
-  requires stimulus.button.collect
+  requires stimulus.button.collect, stimulus.asset_number
+  # A one-cent transfer goes through only at a one-cent unit; the $85 rows of the table need another.
+  machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  # The transfers below are addressed to asset 12345, as every other transfer case is.
+  egm set asset number 12345
   egm press collect
 
-  # One dollar in-house to the machine, id "20", then one cent, id "21": both go through.
+  # One dollar in-house to the machine, id "20", then one cent, id "21": both go through, each read
+  # once its $69 says it has finished.
   host send lp 72 data 3700000000000001000000000000000000000000393000000000000000000000000000000000000000000000023230000000000000000000
+  host expect exception aft_transfer_complete within 10s
   host send lp 72 data 02FF00
   host expect field transfer_status == $00
   host send lp 72 data 3700000000000000010000000000000000000000393000000000000000000000000000000000000000000000023231000000000000000000
+  host expect exception aft_transfer_complete within 10s
   host send lp 72 data 02FF00
   host expect field transfer_status == $00
 

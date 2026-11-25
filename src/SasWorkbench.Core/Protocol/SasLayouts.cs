@@ -890,6 +890,32 @@ public static partial class SasLayouts
                 DerivedFrom = "lp7E_SendCurrentDateAndTime",
                 Broadcast = true,
             },
+            // The host setting the machine's clock, in the same seven bytes $7E reads it back in.
+            // Sent to one machine it is acknowledged; sent to 00 every machine takes it and none
+            // answers (lp.cpp:7752, :7790).
+            new()
+            {
+                Command = 0x7F,
+                Name = "receive_date_and_time",
+                Description = "Sets the machine's own clock.",
+                Request =
+                [
+                    Bcd("month", 1, SasUnit.None, "Month, one to twelve.")
+                        with { Constraint = SasConstraint.Between(1, 12) },
+                    Bcd("day", 1, SasUnit.None, "Day of the month.")
+                        with { Constraint = SasConstraint.Between(1, 31) },
+                    Bcd("year", 2, SasUnit.None, "Four-digit year."),
+                    Bcd("hour", 1, SasUnit.None, "Hour, on a twenty-four hour clock.")
+                        with { Constraint = SasConstraint.Between(0, 23) },
+                    Bcd("minute", 1, SasUnit.None, "Minute.")
+                        with { Constraint = SasConstraint.Between(0, 59) },
+                    Bcd("second", 1, SasUnit.None, "Second.")
+                        with { Constraint = SasConstraint.Between(0, 59) },
+                ],
+                Shape = SasResponseShape.Acknowledgement,
+                DerivedFrom = "lp7F_ReceiveDateAndTime",
+                Broadcast = true,
+            },
             // The selected meters again, under an older command and in a shape no size byte
             // describes. Two things separate it from $6F: a meter code is one byte rather than
             // two, and a meter's value carries no width of its own - the library writes
