@@ -795,6 +795,8 @@ public static partial class SasLayouts
                 ConfirmedByCapture = true,
             },
             SendAuthenticationInfo(),
+            EnableDisableGame(),
+            MultiDenominationPreamble(),
             RegisterGamingMachine(),
             TransferFunds(),
             new()

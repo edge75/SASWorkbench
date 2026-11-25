@@ -36,7 +36,34 @@ public static class SasMessageDecoder
                 $"The reply echoes command ${frame[1]:X2}, not ${layout.Command:X2}.");
 
         // The payload is everything between the echoed command and the check sequence.
-        return Decode(layout, layout.Command, layout.Response, frame[2..^2], startOffset: 2);
+        SasDecoded decoded = Decode(layout, layout.Command, layout.Response, frame[2..^2], startOffset: 2);
+        return layout.Command == SasLayouts.PreambleCommand ? WithBaseReply(decoded, frame) : decoded;
+    }
+
+    /// <summary>
+    /// Adds the base long poll's reply, decoded against its own layout, to a decoded preamble reply.
+    /// </summary>
+    /// <remarks>
+    /// The base reply carries its length byte under the name <c>base_length</c>, so the preamble's own length stays
+    /// the one a case reads as <c>length</c>. A base command with no layout, or one answered with an acknowledgement,
+    /// is left as the raw bytes the preamble layout already holds.
+    /// </remarks>
+    private static SasDecoded WithBaseReply(SasDecoded preamble, ReadOnlySpan<byte> frame)
+    {
+        const int baseStart = 5;
+        if (!preamble.Succeeded
+            || preamble.Number("base_command") is not { } command
+            || command == 0
+            || SasLayouts.For((byte)command) is not { Shape: SasResponseShape.Data } inner
+            || frame.Length < baseStart + 2)
+        {
+            return preamble;
+        }
+
+        SasDecoded base_ = Decode(inner, inner.Command, inner.Response, frame[baseStart..^2], baseStart);
+        IEnumerable<SasValue> renamed = base_.Values.Select(value =>
+            value.Path == "length" ? value with { Path = "base_length" } : value);
+        return preamble with { Values = [.. preamble.Values, .. renamed], Failure = base_.Failure };
     }
 
     /// <summary>

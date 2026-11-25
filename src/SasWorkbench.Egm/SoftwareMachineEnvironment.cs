@@ -98,6 +98,18 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            case SelectGameStep select:
+                Unless(select, machine.SelectGame(select.Game));
+                return;
+
+            case SelectDenominationStep select:
+                Unless(select, machine.SelectDenomination(select.Cents));
+                return;
+
+            case SetGameEnabledStep game:
+                Unless(game, machine.SetGameEnabled(game.Game, game.Enabled));
+                return;
+
             case SetJackpotLimitStep jackpot:
                 machine.SetJackpotLimit(jackpot.Cents);
                 return;
@@ -218,6 +230,13 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
         }
     }
 
+    /// <summary>Reports a refusal the machine gave as a reason, when it gave one.</summary>
+    private static void Unless(StimulusStep step, string? refusal)
+    {
+        if (refusal is not null)
+            throw new StimulusUnavailableException($"the software machine cannot do '{step.Describe()}': {refusal}");
+    }
+
     /// <summary>Runs a stimulus the machine may refuse in its present state, reporting the refusal as one.</summary>
     private static void Refusable(StimulusStep step, Action act)
     {
@@ -314,11 +333,11 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay) =>
+        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
                 return DefaultEnvironment.Create(
-                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay);
+                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -389,6 +408,17 @@ public static class SoftwareMachineEnvironment
             // A case that says how the machine reports and validates hand pays gets one that does, as set at a memory reset.
             if (handpay is not null)
                 settings = settings with { LegacyHandpayReporting = handpay.Legacy, HandpayValidation = handpay.Validation };
+
+            // A case that says which games the machine holds gets them; its meters count in cents, as the platform's do,
+            // unless the case says otherwise (QSP SasNetwork.cpp:1258).
+            if (games is not null)
+            {
+                settings = settings with { GameDenominationsInCents = games.DenominationsInCents };
+                if (declared is null)
+                    settings = settings with { AccountingDenomination = 0x01 };
+                else if (declared.PlayerDenominationsInCents.Count == 0)
+                    settings = settings with { PlayerDenominationsInCents = games.DenominationsInCents };
+            }
 
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();

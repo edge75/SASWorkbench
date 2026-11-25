@@ -26,6 +26,9 @@ public sealed partial class FakeEgm
 {
     private Dictionary<string, object>? ValuesFor(SasMessageLayout layout, ReadOnlySpan<byte> request) => layout.Command switch
     {
+        // A machine built with several games answers its per-game polls from its game table.
+        _ when HasGameTable && GameTableValues(layout, request) is { } fromTable => fromTable,
+
         0x0F => new Dictionary<string, object>
         {
             ["total_cancelled_credits"] = Meters.Read(SasMeterCode.TotalCancelledCredits),
@@ -125,7 +128,7 @@ public sealed partial class FakeEgm
         0x4D => EnhancedValidationInformation(request),
         0x4F => HopperStatus(),
         0x50 => ValidationMeters(layout, request),
-        0x51 => new Dictionary<string, object> { ["games"] = Games },
+        0x51 => new Dictionary<string, object> { ["games"] = (long)GameCount },
         0x52 => GameMeters(layout, request),
         0x53 => GameConfiguration(layout, request),
 
@@ -374,13 +377,15 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>Which games are enabled: the one this machine has.</summary>
-    private static Dictionary<string, object> EnabledGames() => new()
-    {
-        ["length"] = 1 + (Games * 2),
-        ["count"] = Games,
-        ["games.count"] = Games,
-        ["games[0].game_number"] = 1L,
-    };
+    private Dictionary<string, object> EnabledGames() => _singleGameStatus
+        ? new()
+        {
+            ["length"] = 1 + (Games * 2),
+            ["count"] = Games,
+            ["games.count"] = Games,
+            ["games[0].game_number"] = 1L,
+        }
+        : new() { ["length"] = 1, ["count"] = 0L, ["games.count"] = 0L };
 
     /// <summary>
     /// Which denominations a player may choose, on a machine that was told.
@@ -564,10 +569,10 @@ public sealed partial class FakeEgm
     /// The library returns without answering when the game number is past the games the machine
     /// holds, so a caller turns a null here into silence rather than into a refusal.
     /// </remarks>
-    private static long? GameNumber(SasMessageLayout layout, ReadOnlySpan<byte> request)
+    private long? GameNumber(SasMessageLayout layout, ReadOnlySpan<byte> request)
     {
         SasDecoded asked = SasMessageDecoder.DecodeRequest(layout, request);
-        return asked.Number("game_number") is { } game && game >= 0 && game <= Games
+        return asked.Number("game_number") is { } game && game >= 0 && game <= GameCount
             ? game
             : null;
     }
@@ -620,7 +625,7 @@ public sealed partial class FakeEgm
     private Dictionary<string, object>? EnabledFeatures(ReadOnlySpan<byte> request)
     {
         SasDecoded asked = SasMessageDecoder.DecodeRequest(SasLayouts.For(0xA0)!, request);
-        if (asked.Number("game_number") is not { } game || game > 1)
+        if (asked.Number("game_number") is not { } game || game > GameCount)
             return null;
 
         SasCashoutValidation validation = _options.CashoutValidation;
@@ -637,7 +642,8 @@ public sealed partial class FakeEgm
             ["validation_extensions"] = (byte)(redemption ? 1 : 0),
             ["ticket_redemption"] = (byte)(redemption ? 1 : 0),
             // Bit 6 is AFT, set on a machine that performs transfers as the library tests it (lp.cpp:6430); bit 4 is component authentication.
-            ["feature_codes_2"] = (byte)((_aftOn ? 0x40 : 0x00) | ComponentAuthenticationFeatureBits()),
+            // Bit 7 is the multi-denomination extensions, which the platform sets (QSP SasNetwork.cpp:304) and this machine sets with a game table.
+            ["feature_codes_2"] = (byte)((_aftOn ? 0x40 : 0x00) | ComponentAuthenticationFeatureBits() | (HasGameTable ? 0x80 : 0x00)),
             // QSP reports multiple SAS progressive wins on every machine (SasNetwork.cpp:306).
             ["feature_codes_3"] = (byte)0x02,
             ["reserved"] = new byte[3],

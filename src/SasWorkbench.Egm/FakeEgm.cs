@@ -115,6 +115,7 @@ public sealed partial class FakeEgm : IDisposable
         _creditLimitCents = _options.CreditLimitCents;
         _legacyBonus = _options.LegacyBonus;
         RegisterComponentsLocked();
+        BuildGames();
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -714,6 +715,8 @@ public sealed partial class FakeEgm : IDisposable
         // The credit meter is read and written back under the gate, so a bonus paid meanwhile is not lost.
         using Lock.Scope creditsHeld = _gate.EnterScope();
         ThrowIfGameInProgress();
+        if (HasGameTable && _selectedGame == 0)
+            throw new InvalidOperationException("the game menu is open, so no game is selected to play");
         Wager(games, betCredits, winCredits);
 
         // A game start and a game end for each round, the way the platform above the machine
@@ -738,7 +741,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         // A wager and a win are both numbers of game credits; the meters they feed are in
         // accounting units, the same size only when a game credit is worth one accounting unit.
-        long wagered = games * betCredits * _options.CentsPerGameCredit / AccountingCents;
+        long wagered = games * betCredits * GameCreditCents / AccountingCents;
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
@@ -783,7 +786,7 @@ public sealed partial class FakeEgm : IDisposable
     }
 
     /// <summary>A win of game credits in accounting units.</summary>
-    private long WonUnits(long winCredits) => winCredits * _options.CentsPerGameCredit / AccountingCents;
+    private long WonUnits(long winCredits) => winCredits * GameCreditCents / AccountingCents;
 
     /// <summary>
     /// The end of the last round: the outcome meters, the win to the credit meter or to an attendant,
@@ -814,7 +817,7 @@ public sealed partial class FakeEgm : IDisposable
         Meters.SetCurrentCredits(credits + (handpaid ? 0 : won));
         PublishRestricted();
 
-        RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes((winCredits * _options.CentsPerGameCredit) + progressiveCents, 4));
+        RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes((winCredits * GameCreditCents) + progressiveCents, 4));
         _gameInProgress = false;
 
         if (handpaid)
@@ -827,18 +830,16 @@ public sealed partial class FakeEgm : IDisposable
     }
 
     /// <summary>
-    /// What kind of wager the game start event reports: the denomination a credit is worth, with
-    /// a bit for a multi-game machine and a bit for a bet at the machine's limit.
+    /// What kind of wager the game start event reports: the denomination a credit is worth, bit 6 on a machine of
+    /// several games, and bit 7 for a bet at the game's limit, which is the platform's own construction
+    /// (QSP SasNetwork_Conditions.hpp:635).
     /// </summary>
-    /// <remarks>
-    /// The two bits are the platform's own construction rather than the machine library's. This
-    /// fixture has one game, so the multi-game bit is always clear here, and that is a fact about
-    /// the fixture rather than about the protocol.
-    /// </remarks>
     private byte WagerType(long betCredits)
     {
-        byte code = SasDenomination.CodeFor(_options.CentsPerGameCredit) ?? 0;
-        return betCredits >= _options.MaxBet ? (byte)(code | 0x80) : code;
+        byte code = SasDenomination.CodeFor(GameCreditCents) ?? 0;
+        if (GameCount > 1)
+            code |= 0x40;
+        return betCredits >= PlayedMaxBet ? (byte)(code | 0x80) : code;
     }
 
     /// <summary>Opens the slot door, raising the exception a real machine raises.</summary>
@@ -1294,6 +1295,12 @@ public sealed partial class FakeEgm : IDisposable
             return;
         }
 
+        if (command == SasLayouts.PreambleCommand)
+        {
+            AnswerPreamble(link, frame);
+            return;
+        }
+
         SasMessageLayout? layout = SasLayouts.For(command);
         if (layout is null)
         {
@@ -1371,6 +1378,9 @@ public sealed partial class FakeEgm : IDisposable
                 }
 
                 return true;
+
+            case 0x09:
+                return ApplyEnableDisableGame(frame);
 
             case 0x0E:
                 // Real-time event reporting takes one data byte, which must be zero or one. A

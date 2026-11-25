@@ -129,6 +129,15 @@ public sealed record FakeEgmOptions
     public int CentsPerGameCredit { get; init; } = 100;
 
     /// <summary>
+    /// Each game's player denomination, game one first; empty for the single game the machine has always had.
+    /// </summary>
+    /// <remarks>
+    /// With games, a game credit is worth the selected game's denomination rather than <see cref="CentsPerGameCredit"/>,
+    /// and the machine sets the multi-denomination extensions bit, as the platform does.
+    /// </remarks>
+    public IReadOnlyList<int> GameDenominationsInCents { get; init; } = [];
+
+    /// <summary>
     /// Which validation style this machine performs when it cashes out.
     /// </summary>
     /// <remarks>

@@ -167,7 +167,7 @@ public class CommittedScriptTests
         //  A machine in force at five cents that ignores what the case declared, which is how
         //  every machine this build did not make behaves: the declaration configures nothing and
         //  is read back off the wire.
-        EnvironmentFactory unconfigurable = (step, options, _, channels, _, _, _, _, _) =>
+        EnvironmentFactory unconfigurable = (step, options, _, channels, _, _, _, _, _, _) =>
             SoftwareMachineEnvironment.For(
                 new FakeEgmOptions { AccountingDenomination = 0x02 })(step, options, null);
 

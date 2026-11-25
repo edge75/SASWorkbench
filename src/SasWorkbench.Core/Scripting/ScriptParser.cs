@@ -187,6 +187,12 @@ public static partial class ScriptParser
             return;
         }
 
+        if (words[1].Equals("games", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadMachineGames(test, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -293,7 +299,7 @@ public static partial class ScriptParser
         + "machine validation standard|secure_enhanced|system, "
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
-        + "machine handpay legacy|validation on, or "
+        + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1385,7 +1391,8 @@ public static partial class ScriptParser
                 $"long poll ${command:X2} is not one the gaming machine library implements");
         }
 
-        if (layout is not null && !HasField(layout.Response, fieldName))
+        if (layout is not null && !HasField(layout.Response, fieldName)
+            && !PreambleBaseHasField(test, command, fieldName))
         {
             throw new ScriptParseException(location,
                 $"long poll ${command:X2} has no field '{fieldName}'. Its fields are: "
@@ -1508,7 +1515,7 @@ public static partial class ScriptParser
     {
         if (words.Length < 2)
             throw new ScriptParseException(location,
-                "expected: egm bill|ticket|play|press|door|handpay|printer|note|set|aft|component|settle|expect ...");
+                "expected: egm bill|ticket|play|press|door|handpay|printer|note|set|select|aft|component|settle|expect ...");
 
         switch (words[1].ToLowerInvariant())
         {
@@ -1545,6 +1552,15 @@ public static partial class ScriptParser
 
             case "game":
                 test.Steps.Add(ReadGame(words, location));
+                return;
+
+            case "select":
+                test.Steps.Add(ReadSelect(words, location));
+                return;
+
+            case "set" when words.Length >= 3
+                             && words[2].Equals("game", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadSetGame(words, location));
                 return;
 
             case "component":
@@ -2045,10 +2061,13 @@ public static partial class ScriptParser
 
         public MachineHandpayDeclaration? Handpay { get; set; }
 
+        public MachineGamesDeclaration? Games { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
             || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null
-            || Authentication is not null || MultipliedJackpot is not null || Handpay is not null;
+            || Authentication is not null || MultipliedJackpot is not null || Handpay is not null
+            || Games is not null;
 
         public ScriptTest Build() => new()
         {
@@ -2061,6 +2080,7 @@ public static partial class ScriptParser
             Authentication = Authentication,
             MultipliedJackpot = MultipliedJackpot,
             Handpay = Handpay,
+            Games = Games,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

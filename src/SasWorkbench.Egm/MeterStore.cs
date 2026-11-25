@@ -16,6 +16,9 @@ public sealed class MeterStore
     private readonly Lock _gate = new();
     private readonly Dictionary<ushort, long> _values = new();
 
+    /// <summary>Told of every amount added to a meter, after the store has taken it; a multi-game machine charges its game here.</summary>
+    public Action<ushort, long>? Incremented { get; set; }
+
     /// <summary>Reads a meter. An unset meter reads as zero, the way a fresh machine does.</summary>
     public long Read(SasMeterCode meter) => Read((ushort)meter);
 
@@ -32,12 +35,15 @@ public sealed class MeterStore
     {
         ArgumentOutOfRangeException.ThrowIfNegative(amount);
 
+        long updated;
         lock (_gate)
         {
-            long updated = _values.GetValueOrDefault((ushort)meter) + amount;
+            updated = _values.GetValueOrDefault((ushort)meter) + amount;
             _values[(ushort)meter] = updated;
-            return updated;
         }
+
+        Incremented?.Invoke((ushort)meter, amount);
+        return updated;
     }
 
     /// <summary>
