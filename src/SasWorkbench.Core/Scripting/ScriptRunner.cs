@@ -620,6 +620,8 @@ public sealed partial class ScriptRunner
 
                         WarmUpStep warm => WarmUp(warm, connect, hosts, stopwatch.Elapsed),
 
+                        FollowAddressStep follow => Follow(follow, hosts, stopwatch.Elapsed),
+
                         BroadcastStep broadcast => StartBroadcast(broadcast, hosts.Engine, broadcasts, stopwatch.Elapsed),
 
                         StopBroadcastsStep stop => StopBroadcasts(stop, broadcasts, stopwatch.Elapsed),
@@ -800,6 +802,12 @@ public sealed partial class ScriptRunner
 
                 ExpectLinkStep expect => CheckLink(expect, engine, at),
 
+                ExpectChirpStep chirp => ExpectChirp(chirp, engine, machine, at),
+
+                SendWithoutWakeupStep bare => SendWithoutWakeup(bare, engine, at),
+
+                ExpectExceptionRepeatStep repeat => CheckRepeat(repeat, engine, machine, exceptions, at),
+
                 ExpectTicketStep expect => CheckTicketPrinted(expect, printed, at),
 
                 ExpectTicketFieldStep expect => CheckTicketField(expect, printed, at),
@@ -957,6 +965,23 @@ public sealed partial class ScriptRunner
         /// </remarks>
         private static bool Belongs(ExceptionReport report, SasChannel channel, SasAddress? machine) =>
             report.Channel == channel && (machine is null || report.Address == machine);
+
+        /// <summary>The last of that code this channel reported from that machine, read or not.</summary>
+        public ExceptionReport? Latest(SasChannel channel, SasAddress? machine, byte code)
+        {
+            lock (_gate)
+                return _all.LastOrDefault(report => Belongs(report, channel, machine) && report.Code == code);
+        }
+
+        /// <summary>The first of that code reported after the one given, read or not.</summary>
+        public ExceptionReport? After(SasChannel channel, SasAddress? machine, byte code, long sequence)
+        {
+            lock (_gate)
+            {
+                return _all.FirstOrDefault(report =>
+                    Belongs(report, channel, machine) && report.Code == code && report.Sequence > sequence);
+            }
+        }
 
         /// <summary>Marks one as read, so a second assertion for it needs a second exception.</summary>
         public void Consume(ExceptionReport report)

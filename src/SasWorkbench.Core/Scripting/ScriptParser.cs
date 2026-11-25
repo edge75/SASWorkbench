@@ -519,6 +519,10 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadConnect(words, location));
                 return;
 
+            case "poll" when words.Length >= 3 && words[2].Equals("address", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadFollowAddress(words, location));
+                return;
+
             case "poll":
                 if (words.Length == 3 && words[2].Equals("sequence", StringComparison.OrdinalIgnoreCase))
                 {
@@ -561,7 +565,7 @@ public static partial class ScriptParser
                     return;
                 }
 
-                test.Steps.Add(ReadSend(words, location));
+                test.Steps.Add(EndsWithoutWakeup(words) ? ReadSendWithoutWakeup(words, location) : ReadSend(words, location));
                 return;
 
             case "channel":
@@ -596,7 +600,7 @@ public static partial class ScriptParser
                 return;
 
             case "expect":
-                test.Steps.Add(ReadExpect(test, words, location));
+                test.Steps.Add(ReadExpectLine(words, location) ?? ReadExpect(test, words, location));
                 return;
 
             case "remember":
@@ -1556,6 +1560,11 @@ public static partial class ScriptParser
 
             case "select":
                 test.Steps.Add(ReadSelect(words, location));
+                return;
+
+            case "set" when words.Length >= 3
+                             && words[2].Equals("address", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadSetPollAddress(words, location));
                 return;
 
             case "set" when words.Length >= 3

@@ -89,6 +89,15 @@ public sealed class ChannelHosts : IDisposable
         return false;
     }
 
+    /// <summary>Points the current host, bound to one machine, at that machine's new address; null when done.</summary>
+    public string? Follow(SasAddress address)
+    {
+        string? refusal = Engine.Readdress(address);
+        if (refusal is null)
+            Machine = address;
+        return refusal;
+    }
+
     /// <summary>Takes a host that has already been built, and makes it the current one.</summary>
     public void Add(SasChannel channel, PollEngine engine, ClockBase clock)
     {
