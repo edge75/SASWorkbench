@@ -238,6 +238,8 @@ public sealed partial class FakeEgm
         link.AwaitingSync = true;
         link.LastWasOwnGeneralPoll = false;
         link.LastHeard = 0;
+        link.RomSignature = null;
+        link.RomSignatureSent = false;
         link.ListeningSince = Stopwatch.GetTimestamp();
         link.NextChirp = 0;
         link.UnacknowledgedHandpayPoll = null;
@@ -277,6 +279,7 @@ public sealed partial class FakeEgm
         _cashoutWallet = null;
         _roundProgressiveHandpay = null;
         ClearProgressivesLocked();
+        ClearMiscLocked();
     }
 
     /// <summary>The transfer half of the library's defaults (libsas_internal.cpp:773 to :821) and the platform's asset number 1.</summary>

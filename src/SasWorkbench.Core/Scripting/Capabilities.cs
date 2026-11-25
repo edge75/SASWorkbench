@@ -281,6 +281,9 @@ public static partial class CapabilityProbe
             // How many games and player denominations a machine offers is in its $51 and $B2 replies.
             MultipleGamesCapability,
             MultipleDenominationsCapability,
+
+            // A cash-out limit is reported by $A4 only on a machine that has one.
+            CashoutLimitCapability,
         };
 
     /// <summary>The capability a machine that performs funds transfers answers with.</summary>
@@ -391,6 +394,9 @@ public static partial class CapabilityProbe
 
         if (asked.Contains(MultipleDenominationsCapability))
             Note(MultipleDenominationsCapability, AskMultipleDenominations(engine, values));
+
+        if (asked.Contains(CashoutLimitCapability))
+            Note(CashoutLimitCapability, AskCashoutLimit(engine, values));
 
         return new MachineAnswers(values, whyNot, reasons);
     }

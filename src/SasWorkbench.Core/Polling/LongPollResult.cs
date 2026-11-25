@@ -40,6 +40,13 @@ public enum LongPollOutcome
     /// to reports by number, and a run recorded before this existed must still read back the same.
     /// </remarks>
     AnsweredWithEvent,
+
+    /// <summary>
+    /// The machine answered with the ROM signature a long poll $21 asked for instead of this poll's
+    /// reply, which it does while event reporting is on and an exception is queued. Not a success,
+    /// for the reason <see cref="AnsweredWithEvent"/> is not.
+    /// </summary>
+    AnsweredWithRomSignature,
 }
 
 /// <summary>

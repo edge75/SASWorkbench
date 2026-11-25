@@ -265,6 +265,9 @@ public sealed partial class FakeEgm
             AmountCents = cents,
             TicketNumber = ticketNumber,
             PrintedAt = DateTime.Now,
+            Location = TicketText().Location,
+            Address1 = TicketText().Address1,
+            Address2 = TicketText().Address2,
             Note = "printed by the software machine",
         };
 

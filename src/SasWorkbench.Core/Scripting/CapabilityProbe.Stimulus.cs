@@ -98,6 +98,10 @@ public static partial class CapabilityProbe
 
                 // The operator sets the poll address in the network menu, and saving it restarts the link there.
                 ["machine.address_configuration"] = "yes",
+
+                // Its attendant and operator menus can be entered and left, and it computes a ROM signature from a seed.
+                [MenuStep.Capability] = "yes",
+                ["machine.rom_signature"] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -162,6 +166,10 @@ public static partial class CapabilityProbe
 
                 // A person sets the machine's poll address in its configuration screens.
                 ["machine.address_configuration"] = "yes",
+
+                // A person works the machine's menus, and the manufacturer gives the signature for a seed.
+                [MenuStep.Capability] = "yes",
+                ["machine.rom_signature"] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which
