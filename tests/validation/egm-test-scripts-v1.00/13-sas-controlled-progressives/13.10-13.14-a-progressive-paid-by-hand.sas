@@ -60,15 +60,24 @@ test "13.10 the hit and the hand pay are reported and reissued" {
   host expect no exception handpay_is_pending within 30s
 
   # Fifteen seconds with no poll to the machine, then its own general poll three times. The level is
-  # still broadcast to address 00 meanwhile, or the machine would also report losing it ($53).
+  # still broadcast to address 00 every two seconds, well inside the five that would make the machine
+  # also report losing it ($53).
   host poll sequence
-  host wait 4s
+  host wait 2s
   host send lp 80 with progressive_group=1 level=1 amount=500 to 00
-  host wait 4s
+  host wait 2s
   host send lp 80 with progressive_group=1 level=1 amount=500 to 00
-  host wait 4s
+  host wait 2s
   host send lp 80 with progressive_group=1 level=1 amount=500 to 00
-  host wait 3s
+  host wait 2s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 2s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 2s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 2s
+  host send lp 80 with progressive_group=1 level=1 amount=500 to 00
+  host wait 1s
   host send sync
   host send gp draws sas_progressive_level_hit
   host send gp draws sas_progressive_level_hit
