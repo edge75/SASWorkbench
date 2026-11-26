@@ -667,7 +667,9 @@ It does **not** gain a coin acceptor, a hopper or reels, because the platform ha
 writes $21 to $25, $2D, $79, $80, $81 or $40 to $46, and its hopper meters are marked unsupported.
 `stimulus.coin`, `stimulus.hopper`, `stimulus.reel`, `machine.partial_pay` and
 `machine.external_coin_acceptor` therefore stay absent, and the cases needing them keep skipping on a
-software run; a person at a cabinet that has them can still run them. A note pulled back ($2A) and a
+software run; a person at a cabinet that has them can still run them.
+
+*Amended by D58 (2026-11-26): the coin acceptor, hopper, reels and partial pay are now built when a case declares them.* A note pulled back ($2A) and a
 worn ribbon ($77) have no platform report either, so each is a capability of its own
 (`stimulus.note_fault.reversed`, `stimulus.printer_fault.ribbon`) that only the manual backend offers.
 The design note is `docs/M7-software-machine-peripherals.md`.
@@ -993,3 +995,38 @@ the reasonable choice and list it). Open to review like any other.
   `machine.audit_screens`, which the manual backend offers because a person can read a menu page.
 
 The design note is `docs/M7-software-machine-case-bodies.md`.
+
+---
+
+# Decision 58
+
+Taken with the user on 2026-11-26, at the start of M9: every remaining skip is to be implemented. The application
+choices below were taken while building group 14 without the user, open to review like any other.
+
+## D58 — A case declares a coin acceptor, a hopper, reels or a partial pay, which the platform does not have
+
+**This amends D46.** D46 left the software machine without the devices the platform lacks, so their cases skipped
+honestly. The user now wants them run: a feature QSP lacks (coin acceptor, hopper, reels, partial pay, and later
+poker and tournaments) is built on the software machine **on only when the case declares it**, the D51 to D53
+pattern. On a real QSP machine the case still skips with its reason until the machine shows it has the device;
+when QSP implements one, the cases run unchanged.
+
+* **Four declarations** (D36): `machine coin acceptor on|external`, `machine hopper on`, `machine reels on` and
+  `machine partial pay on`, which brings the hopper that pays it. No poll can tell whether a cabinet has them - the
+  library answers $4F and $8F whatever is fitted - so `machine.coin_acceptor`, `machine.external_coin_acceptor`,
+  `machine.hopper`, `machine.physical_reels` and `machine.partial_pay` are claimed only by a software machine built
+  with them, and offered by the manual backend for a person at a cabinet that has them.
+* **The stimuli follow the declarations**: `egm coin insert <n>`, `egm coin|hopper|reel fault <kind>`,
+  `egm hopper level <coins>`, `egm set hopper limit <cents>`, `egm set win payout hopper|credits` and
+  `egm handpay cancel`, needing `stimulus.coin`, `stimulus.hopper`, `stimulus.hopper_fault`, `stimulus.reel` and
+  `stimulus.handpay.cancel`, which the software machine offers only when built with the device.
+* **The cashbox is the platform's**: QSP reports its note stacker removed and installed ($1B, $1C), so
+  `egm cashbox removed|installed` (`stimulus.cashbox`) is offered by the software and manual backends without a
+  declaration. So are the reel stops of a declared reel machine, which QSP reports for a game that gives them.
+* **The protocol half is the library's** (D44): the exception queue, $4F and $2C from the hopper status the
+  application registers, $8F from the reels it registers, the partial pay in $1B and $55 from the hand pay refusal.
+  **The application half follows the GSA document in its simplest form**, citing the case: a coin is one
+  accounting unit; a hopper machine pays cash outs in coins up to its hopper limit and by hand above it; an empty
+  hopper pays what it has and raises $23; a partial pay is ten coins.
+
+The design note is `docs/M9-software-machine-coin-hopper-reels.md`.

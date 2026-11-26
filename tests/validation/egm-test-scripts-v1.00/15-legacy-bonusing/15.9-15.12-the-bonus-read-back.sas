@@ -134,12 +134,42 @@ test "15.11 two bonuses above the limit are two hand pays" {
 }
 
 test "15.12 a bonus during a game's own hand pay is added to the next" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
+  tag @egm-test-scripts @chapter-15 @needs-stimulus
   requires machine.legacy_bonus, machine.jackpot_limit, machine.partial_pay
-  requires stimulus.hopper, stimulus.play, stimulus.handpay.reset
+  requires stimulus.hopper, stimulus.play, stimulus.handpay.reset, stimulus.bill, stimulus.settle
   requires decoder.lp1B
+  machine partial pay on
 
-  note "Enable legacy bonusing, set a low jackpot limit with a partial pay of ten credits, and disable progressives. Play to a jackpot: ten coins leave the hopper and $51 arrives."
-  note "Send a deductible bonus above the jackpot limit and then one of five credits; both are acknowledged. The hand pay information shows the game's jackpot less the ten-credit partial pay, and a partial pay of 10."
-  note "Reset it: $52, then $51 again. The hand pay information now shows the large bonus plus the five credits as one amount, with no partial pay. Reset it: $52, then $7C carrying that sum with tax status 00."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  egm set jackpot limit 400
+  host forget exceptions within 2s
+
+  # A jackpot: ten coins from the hopper, the rest by hand.
+  egm bill insert 2000
+  egm play games=1 bet=1 win=50
+  host expect exception handpay_is_pending within 10s
+
+  # A deductible bonus above the limit and one of five, both acknowledged and held.
+  host send lp 8A data 0000060000
+  host send lp 8A data 0000000500
+  host send lp 1B
+  host expect field amount == 990
+  host expect field partial_pay == 10
+
+  # The game's hand pay reset; the two bonuses become the next one, with no partial pay.
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect exception handpay_is_pending within 15s
+  host send lp 1B
+  host expect field amount == 605
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 15s
+
+  note "Enable legacy bonusing, set a low jackpot limit with a partial pay of ten credits, and disable progressives. With reporting on, $7C carries the sum with tax status 00."
 }

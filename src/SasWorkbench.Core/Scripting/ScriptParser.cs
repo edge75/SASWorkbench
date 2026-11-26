@@ -193,6 +193,12 @@ public static partial class ScriptParser
             return;
         }
 
+        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial")
+        {
+            test.Devices = ReadMachineDevices(test.Devices, words, location);
+            return;
+        }
+
         if (!accounting && !player)
             throw new ScriptParseException(location, MachineUsage);
 
@@ -299,7 +305,8 @@ public static partial class ScriptParser
         + "machine validation standard|secure_enhanced|system, "
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
-        + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], or "
+        + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], "
+        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1662,6 +1669,11 @@ public static partial class ScriptParser
                 test.Steps.Add(new SetLegacyBonusStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
                 return;
 
+            case "set" when words.Length >= 3
+                             && words[2].ToLowerInvariant() is "hopper" or "win":
+                test.Steps.Add(ReadDeviceSetter(words, location));
+                return;
+
             case "aft":
                 if (words.Length != 3 || !words[2].Equals("register", StringComparison.OrdinalIgnoreCase))
                     throw new ScriptParseException(location, "expected: egm aft register");
@@ -1722,10 +1734,14 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadPeripheralFault(PeripheralDevice.Note, words, location));
                 return;
 
+            case "coin" or "hopper" or "reel" or "cashbox":
+                test.Steps.Add(ReadDeviceStep(words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, nvram, printer, note, progressive, set or settle");
+                    + "press, door, handpay, power, memory, nvram, printer, note, coin, hopper, reel, cashbox, progressive, set or settle");
         }
     }
 
@@ -1765,10 +1781,13 @@ public static partial class ScriptParser
     /// <summary>Reads <c>egm handpay &lt;cents&gt;</c>,<c>egm handpay jackpot &lt;cents&gt;</c> or <c>egm handpay reset</c>.</summary>
     private static StimulusStep ReadHandpay(string[] words, SourceLocation location)
     {
-        const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents> or egm handpay reset";
+        const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents>, egm handpay reset or egm handpay cancel";
 
         if (words.Length == 3 && words[2].Equals("reset", StringComparison.OrdinalIgnoreCase))
             return new HandpayResetStep(location);
+
+        if (words.Length == 3 && words[2].Equals("cancel", StringComparison.OrdinalIgnoreCase))
+            return new HandpayCancelStep(location);
 
         bool jackpot = words.Length == 4 && words[2].Equals("jackpot", StringComparison.OrdinalIgnoreCase);
         if (!jackpot && words.Length != 3)
@@ -2088,11 +2107,13 @@ public static partial class ScriptParser
 
         public MachineGamesDeclaration? Games { get; set; }
 
+        public MachineDevicesDeclaration? Devices { get; set; }
+
         public bool HasContent =>
             Steps.Count > 0 || Requirements.Count > 0 || DeclaredAt is not null
             || ChannelsDeclaredAt is not null || Validation is not null || Progressive is not null
             || Authentication is not null || MultipliedJackpot is not null || Handpay is not null
-            || Games is not null;
+            || Games is not null || Devices is not null;
 
         public ScriptTest Build() => new()
         {
@@ -2106,6 +2127,7 @@ public static partial class ScriptParser
             MultipliedJackpot = MultipliedJackpot,
             Handpay = Handpay,
             Games = Games,
+            Devices = Devices,
             Channels = BuildChannels(),
             Tags = Tags,
             Steps = Steps,

@@ -53,6 +53,9 @@ public sealed record ScriptTest
     /// <summary>The games this case assumes the machine holds.</summary>
     public MachineGamesDeclaration? Games { get; init; }
 
+    /// <summary>The coin acceptor, hopper, reels and partial pay the case assumes (D58), or null for none.</summary>
+    public MachineDevicesDeclaration? Devices { get; init; }
+
     /// <summary>How this case says the machine is divided between hosts, when it says.</summary>
     public MachineChannelDeclaration? Channels { get; init; }
 

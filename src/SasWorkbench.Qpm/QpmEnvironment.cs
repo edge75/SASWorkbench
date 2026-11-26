@@ -36,7 +36,7 @@ public static class QpmEnvironment
         // real machine, its accounting denomination is established by a memory clear, and nothing
         // reachable from here can change it. The runner reads it off the wire and skips a case
         // that assumed another unit, which is the honest outcome.
-        return (step, runnerOptions, _, channels, _, _, _, _, _, _) =>
+        return (step, runnerOptions, _, channels, _, _, _, _, _, _, _) =>
         {
             //  The channel arrangement is dropped for the same reason the denomination is: a
             //  machine driven through its peripherals is a real machine, its channels are set in

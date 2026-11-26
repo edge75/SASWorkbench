@@ -165,6 +165,24 @@ public sealed record FakeEgmOptions
     /// </summary>
     public int HopperLevel { get; init; }
 
+    /// <summary>The coin acceptor a case declared; none, as the platform has none (D58).</summary>
+    public Core.Scripting.CoinAcceptorKind CoinAcceptor { get; init; }
+
+    /// <summary>Whether the machine has a hopper; off, as the platform has none (D58).</summary>
+    public bool Hopper { get; init; }
+
+    /// <summary>How many coins the hopper holds when full.</summary>
+    public int HopperCapacity { get; init; } = 1000;
+
+    /// <summary>The most a cash out pays from the hopper, in cents, before it becomes a hand pay.</summary>
+    public long HopperLimitCents { get; init; } = 10_000;
+
+    /// <summary>Whether the machine has five physical reels; off, as the platform has none (D58).</summary>
+    public bool Reels { get; init; }
+
+    /// <summary>How many coins the hopper pays towards a hand pay before the attendant pays the rest; zero offers no partial pay.</summary>
+    public int PartialPayCoins { get; init; }
+
     /// <summary>
     /// Which currency this machine's note acceptor reports, as the protocol's own country code.
     /// </summary>

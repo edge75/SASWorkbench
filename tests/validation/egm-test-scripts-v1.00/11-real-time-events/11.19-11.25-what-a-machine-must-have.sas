@@ -15,12 +15,37 @@ test "11.19 a player asks for draw cards" {
 }
 
 test "11.20 each reel comes to rest" {
-  tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires stimulus.reel
+  tag @egm-test-scripts @chapter-11 @needs-stimulus
+  requires stimulus.reel, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.event88, decoder.lp8F
+  machine reels on
 
-  note "Only for machines with physical reels. With reporting on, play several games: one $88 per reel, each carrying the reel's number and where it stopped. The number runs from 01 up and never exceeds the reels the machine has; the stop is 00 to FF and matches where the reel physically came to rest."
-  note "A machine with more than nine reels reports the first nine, left to right. A multi-line reel game reports the centre line where one credit enables more than one line, and otherwise the line one credit can win on."
-  note "Turn reporting off and play again: no $88 in answer to any poll."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  egm play games=1 bet=1
+  host expect field reel_number of event reel_n_stopped == 1 within 8s
+  host expect field physical_stop of event reel_n_stopped <= 255 within 1s
+
+  # Where each of the five came to rest, and no sixth, once the queue has drained.
+  host forget exceptions within 2s
+  host send lp 8F
+  host expect field reel_5 of lp 8F != $FF
+  host expect field reel_6 of lp 8F == $FF
+
+  # Off: the reel stops are reported in no other format.
+  host forget exceptions within 2s
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  egm play games=1 bet=1
+  host expect no exception reel_n_stopped within 5s
+
+  note "Each stop is 00 to FF and matches where the reel physically came to rest, which a person checks against the reels. A machine with more than nine reels reports the first nine; a multi-line game reports the centre line."
 }
 
 test "11.21 each credit committed as a wager" {

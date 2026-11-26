@@ -116,6 +116,7 @@ public sealed partial class FakeEgm : IDisposable
         _legacyBonus = _options.LegacyBonus;
         RegisterComponentsLocked();
         BuildGames();
+        StartDevices();
 
         //  The channel arrangement decides which host is answered what, so it is settled before
         //  any link opens. A configuration no host could serve is refused here rather than
@@ -578,6 +579,13 @@ public sealed partial class FakeEgm : IDisposable
     /// <summary>Pays every credit on the machine out as one printed ticket, the machine's usual means.</summary>
     private Ticket? PayOut(string walletDirectory)
     {
+        // A machine built with a hopper pays its cash outs from it, up to the hopper limit (D58).
+        if (HasHopper)
+        {
+            PayOutFromHopper();
+            return null;
+        }
+
         // The enhanced styles validate through the library's buffer, and the host may withdraw the printer (QSP SasNetwork_Ticket.hpp:756).
         if (CashoutValidation != SasCashoutValidation.Standard || !HostAllowsPrinter())
             return PayOutValidated(walletDirectory);
@@ -729,10 +737,12 @@ public sealed partial class FakeEgm : IDisposable
         for (int round = 0; round < games - 1; round++)
         {
             RaiseGameStarted(betCredits);
+            StopReelsLocked();
             RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes(0, 4));
         }
 
         RaiseGameStarted(betCredits);
+        StopReelsLocked();
 
         // A progressive won in the round is part of what its end reports (QSP ProgressiveWonInRound).
         long progressiveWon = progressive is not null ? progressive() : 0;
@@ -818,7 +828,8 @@ public sealed partial class FakeEgm : IDisposable
             Meters.Increment(SasMeterCode.GamesLost, games);
         }
 
-        Meters.SetCurrentCredits(credits + (handpaid ? 0 : won));
+        // A declared hopper may pay the win in coins, the operator's choice (D58).
+        Meters.SetCurrentCredits(credits + (handpaid ? 0 : PayWinFromHopperLocked(won)));
         PublishRestricted();
 
         RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes((winCredits * GameCreditCents) + progressiveCents, 4));
@@ -908,6 +919,7 @@ public sealed partial class FakeEgm : IDisposable
             SetDoor(door, open: false);
 
         ClearPeripheralFaults();
+        ClearDeviceFaults();
         return open;
     }
 
@@ -1306,7 +1318,7 @@ public sealed partial class FakeEgm : IDisposable
 
         //  A command this machine has been built without. Silence rather than a rejection, for the
         //  same reason as below: a rejection says the command was understood and declined.
-        if (_options.UnansweredCommands.Contains(command) || WithoutMachinery.Contains(command))
+        if (_options.UnansweredCommands.Contains(command) || (WithoutMachinery.Contains(command) && !(command == 0x8F && _options.Reels)))
         {
             Ignore(link, command);
             return;

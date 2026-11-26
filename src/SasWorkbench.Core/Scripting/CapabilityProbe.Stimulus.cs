@@ -54,9 +54,10 @@ public static partial class CapabilityProbe
                 ["stimulus.settle"] = "yes",
                 ["stimulus.button.collect"] = "yes",
 
-                // The platform's service button, and the note acceptor and printer faults it maps to exceptions;
-                // it has no coin acceptor, hopper or reels, no report for a note pulled back and no ribbon, so those stay absent (D46).
+                // The platform's service button, and the note acceptor and printer faults it maps to exceptions; it has no report
+                // for a note pulled back and no ribbon (D46), and a coin acceptor, hopper or reels only when a case declares them (D58).
                 ["stimulus.button.service"] = "yes",
+                [DeviceStimuli.Cashbox] = "yes",
                 ["stimulus.note_fault"] = "yes",
                 ["stimulus.printer_fault"] = "yes",
                 ["stimulus.door.slot"] = "yes",
@@ -121,6 +122,19 @@ public static partial class CapabilityProbe
                 ["stimulus.note_fault.reversed"] = "yes",
                 ["stimulus.printer_fault"] = "yes",
                 ["stimulus.printer_fault.ribbon"] = "yes",
+
+                // A person at a cabinet that has them works the coin acceptor, the hopper, the reels and the cashbox (D58).
+                [DeviceStimuli.Coin] = "yes",
+                [DeviceStimuli.Hopper] = "yes",
+                [DeviceStimuli.HopperFault] = "yes",
+                [DeviceStimuli.Reel] = "yes",
+                [DeviceStimuli.Cashbox] = "yes",
+                [DeviceStimuli.HandpayCancel] = "yes",
+                [MachineDevicesDeclaration.CoinAcceptorCapability] = "yes",
+                [MachineDevicesDeclaration.ExternalCoinAcceptorCapability] = "yes",
+                [MachineDevicesDeclaration.HopperCapability] = "yes",
+                [MachineDevicesDeclaration.ReelsCapability] = "yes",
+                [MachineDevicesDeclaration.PartialPayCapability] = "yes",
 
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",

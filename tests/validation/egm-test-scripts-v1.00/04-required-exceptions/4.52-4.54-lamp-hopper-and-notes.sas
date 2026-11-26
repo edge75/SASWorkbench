@@ -26,11 +26,26 @@ test "4.52 change lamp on and off" {
 }
 
 test "4.53 hopper full and hopper low" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.hopper
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.hopper, stimulus.settle
+  machine hopper on
 
-  note "Short the hopper-full mechanism, or jumper it to metal: one $80 on a general poll."
-  note "Set the hopper level low in the configuration screen, watch it on the meter display, and keep inserting notes and cashing out until the level is just above zero: one $81, if the machine senses a low level at all."
+  # At address 01 the hopper-low code $81 is the same byte as a refused general poll, which this host
+  # reads as one, so the case runs at address 02.
+  host connect loopback address 02
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm hopper fault full
+  host expect exception hopper_full within 8s
+  egm hopper fault low
+  host expect exception hopper_level_low within 8s
+  egm hopper fault cleared
+
+  note "At the cabinet: short the hopper-full mechanism, then set the low level in the configuration screen and cash out until the level is just above zero. A machine that senses no low level owes no $81."
 }
 
 # One code per denomination when reporting is off, and $4F for anything with no code of its own.
