@@ -967,3 +967,29 @@ library feature the platform merely leaves off (as D51 to D53 were):
 * **D48 stands for the memory faults** QSP never reports ($31, $33 to $35, $37 to $39): 4.15 to 4.19 skip.
 
 The design note is `docs/M7-software-machine-misc.md`.
+
+---
+
+# Decision 57
+
+Taken on 2026-11-25 while writing the notes-only cases, group 13 of M8, without the user (the brief says to take
+the reasonable choice and list it). Open to review like any other.
+
+## D57 — A real-time event waits for its acknowledgement, and a notes-only case names what it waits on
+
+* **The software machine holds a real-time event for the implied ACK**, as it already held a bare exception, and
+  treats an identical repeated long poll as an implied NACK, as the library does (`libsas_threads.cpp:964`,
+  `:3520`). Until now an event left the queue the moment it was sent, so chapter 11's acknowledgement cases
+  could not be presented at all. The final refusal keeps this machine's existing rule for the general poll.
+* **The host asserts what a poll in a sequence drew, and in which format**: `host send lp <code> draws event
+  <name>`, `host send gp draws event|bare <name>`, `draws any`, and `or silence` for a final refusal. The step
+  that sent a long poll answered with an event still fails everywhere else (D43).
+* **A jackpot or credit limit saved at the machine reports $3C**, as QSP reports every operator save outside
+  the network page (`SasNetwork.cpp:747`).
+* **`egm power cycle without sync`** leaves a sequenced case's machine as it booted, for 3.6.
+* **A case whose notes cannot become steps on any machine here names the capability it waits on** rather than
+  skipping as "no steps written": `machine.memory_fault.at_start_up`, `machine.restricted_tickets`,
+  `stimulus.period_meter_clear`, `stimulus.game_recall`, `machine.multiplied_progressive_win` (D52), and
+  `machine.audit_screens`, which the manual backend offers because a person can read a menu page.
+
+The design note is `docs/M7-software-machine-case-bodies.md`.

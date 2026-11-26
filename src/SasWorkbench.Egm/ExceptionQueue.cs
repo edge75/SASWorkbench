@@ -5,7 +5,7 @@ internal readonly record struct PendingEvent(byte Code, byte[] Data);
 
 /// <summary>
 /// One channel's exception queue: sixty-four deep, oldest lost on overflow, and the exception last
-/// sent on a general poll held until the host's next message acknowledges or refuses it.
+/// sent held until the host's next message acknowledges or refuses it.
 /// </summary>
 /// <remarks>
 /// Not thread-safe; the machine guards every call with its own lock.
@@ -136,9 +136,12 @@ internal sealed class ExceptionQueue
         return first.Value;
     }
 
+    /// <summary>True while an exception sent is awaiting the host's acknowledgement.</summary>
+    public bool AwaitingAcknowledgement => _unacknowledged is not null;
+
     /// <summary>
-    /// What a general poll addressed to this machine draws, given whether it repeats the one
-    /// before it with nothing in between.
+    /// What a general poll addressed to this machine draws, or a long poll it answers with an event,
+    /// given whether it repeats the one before it with nothing in between.
     /// </summary>
     /// <remarks>
     /// A repeat is a refusal and draws the same exception again; the third in a row is final, so

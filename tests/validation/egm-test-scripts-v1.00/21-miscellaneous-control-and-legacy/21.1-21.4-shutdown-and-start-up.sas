@@ -45,16 +45,64 @@ test "21.1 shutdown while idle" {
 }
 
 # Shutdown arriving in the middle of a game must wait for the game, and for everything the game
-# owes, to finish. Nothing in this build can hold a game open while a poll is sent.
+# owes, to finish. The software machine holds a game open while the polls are sent.
 test "21.2 shutdown during a game waits for the game to finish" {
   tag @egm-test-scripts @chapter-21 @needs-a-person @needs-stimulus
-  requires decoder.lp01, decoder.lp02
+  requires decoder.lp01, decoder.lp02, decoder.lp1B
   requires stimulus.game_in_progress, machine.audit_menu, stimulus.door.main
+  requires stimulus.bill, stimulus.jackpot_limit, stimulus.handpay.reset, stimulus.settle
 
-  note "Send shutdown twice while a game is running. The machine acknowledges both, finishes the game - including paying anything it won - and only then refuses play. Startup is acknowledged and play resumes."
-  note "Repeat for each way a game can end: no win; a win to the credit meter or hopper; inside a double-up, if the game has one; inside free games, if it has them; and a jackpot that locks up for a hand pay (set the jackpot limit low). Each time the machine is unplayable once the game and its payment are done."
-  note "Send shutdown twice from inside the attendant or audit screens, and again during a tilt (a door open): after leaving the screen or clearing the tilt the machine stays out of play. Startup brings it back each time."
-  note "If the machine has legacy bonusing, send a legacy bonus award ($8A) then shutdown during a game: shutdown is acknowledged, and if the award was acknowledged it is paid to the credit meter before play stops. If it has AFT bonusing, do the same with a bonus-to-machine transfer ($72) and again with a bonus-jackpot transfer: an interrogation that reports the transfer complete or pending means the first was paid to the credit meter and the second to a hand pay. This build decodes neither $8A nor $72."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Shutdown twice during a game with no win: both acknowledged, and the game still ends.
+  egm game start bet=1
+  host send lp 01
+  host send lp 01
+  egm game end
+  host expect exception game_ended within 8s
+  host send lp 02
+
+  # The same with a win paid to the credit meter.
+  host forget exceptions within 2s
+  egm game start bet=1
+  host send lp 01
+  host send lp 01
+  egm game end win=5
+  host expect exception game_ended within 8s
+  host send lp 02
+
+  # The same with a jackpot that locks up for a hand pay: the payment is done before play stops.
+  egm set jackpot limit 500
+  host forget exceptions within 2s
+  egm game start bet=1
+  host send lp 01
+  host send lp 01
+  egm game end win=2000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host send lp 02
+
+  # From inside the attendant screens, and during a tilt: acknowledged, and startup brings it back.
+  egm menu attendant enter
+  host send lp 01
+  host send lp 01
+  egm menu attendant leave
+  host send lp 02
+  egm door main open
+  host send lp 01
+  host send lp 01
+  egm door main close
+  host send lp 02
+
+  note "That the machine is unplayable once each game and its payment are done, and after leaving the screen or clearing the tilt, and playable again after startup, is read at the machine (D40). A double-up and free games, where a game has them, are checked there the same way."
+  note "If the machine has legacy bonusing, send a legacy bonus award ($8A) then shutdown during a game: shutdown is acknowledged, and if the award was acknowledged it is paid to the credit meter before play stops. If it has AFT bonusing, do the same with a bonus-to-machine transfer ($72) and again with a bonus-jackpot transfer: an interrogation that reports the transfer complete or pending means the first was paid to the credit meter and the second to a hand pay."
   note "Not run: startup with a broken check sequence must be ignored or refused (host.bad_crc)."
 }
 

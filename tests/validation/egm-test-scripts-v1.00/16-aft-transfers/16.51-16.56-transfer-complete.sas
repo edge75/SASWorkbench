@@ -174,6 +174,7 @@ test "16.55 the transfer event goes ahead of the queue" {
   tag @egm-test-scripts @chapter-16 @needs-stimulus
   requires decoder.lp72, machine.aft
   requires stimulus.real_time_events, decoder.lp0E, stimulus.door.main, host.poll_sequence
+  requires decoder.lp1F, decoder.lp7E
   requires stimulus.asset_number, stimulus.settle
 
   host connect loopback address 01
@@ -192,14 +193,12 @@ test "16.55 the transfer event goes ahead of the queue" {
   host expect field transfer_status == $40
   host wait 3s
 
-  # Reporting on: the completion is the first event, and the doors follow.
+  # Reporting on: the completion is the first event, and the doors follow. Each long poll differs from
+  # the one before it, so each acknowledges the event it follows; the same poll twice would be a refusal.
   host send lp 0E data 01
-  host send gp draws aft_transfer_complete
-  host send gp draws slot_door_opened
-  host send gp draws slot_door_closed
-
-  note "General polls carry the events here because a long poll answered with an event fails its step (D43)."
-  note "Queue ordinary exceptions with event reporting off, complete a transfer, then turn reporting on: the completion event is the first thing reported and the queue follows."
+  host send lp 1F draws event aft_transfer_complete
+  host send lp 7E draws event slot_door_opened
+  host send lp 1F draws event slot_door_closed
   note "Again with reporting off while the transfer completes; then turn it on and poll the machine alone three times. The first two carry the completion, the third may; when the long polls resume, the event comes once more ahead of the queue."
 }
 
@@ -207,6 +206,30 @@ test "16.56 the transfer event repeats until it is read" {
   tag @egm-test-scripts @chapter-16
   requires decoder.lp72, machine.aft
   requires stimulus.real_time_events, decoder.lp0E, host.timing
+  requires stimulus.asset_number, stimulus.settle
 
-  note "16.53 with event reporting on: the event comes back about every fifteen seconds on general and long polls, a peek does not stop it, and reading the status does."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  egm settle
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  # A full transfer left unread: the event, then again about every fifteen seconds.
+  host send lp 72 data 36000000000000050000000000000000000000003930000000000000000000000000000000000000000000000131000000000000000000
+  host expect field transfer_status == $40
+  host expect exception aft_transfer_complete within 15s
+  host expect exception aft_transfer_complete every 15s
+
+  # A peek at the current record does not count as reading it, so the repeats carry on.
+  host send lp 72 data 02FE00
+  host expect exception aft_transfer_complete every 15s
+
+  # Only the status interrogation stops them.
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  host expect no exception aft_transfer_complete within 20s
+
+  note "The repeats are drawn here by the round's general polls; that a long poll draws a queued event in their place is the rule 11.9 asserts."
 }

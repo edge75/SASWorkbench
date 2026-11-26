@@ -225,6 +225,7 @@ public sealed class FakeEgmMultipliedJackpotTests : IDisposable
     {
         Start();
         Machine.SetJackpotLimit(5000);
+        Assert.Contains(Drain(), e => e.Code == 0x3C);
         Enable("0000000099999999030000");
 
         Machine.PlayGames(1, betCredits: 1, winCredits: 2000);

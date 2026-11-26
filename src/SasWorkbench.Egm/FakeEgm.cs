@@ -950,6 +950,9 @@ public sealed partial class FakeEgm : IDisposable
         /// <summary>True when the last message this link acted on was a general poll to itself.</summary>
         public bool LastWasOwnGeneralPoll { get; set; }
 
+        /// <summary>The last message when it was a long poll to this machine, whose identical repeat is an implied NACK; else null.</summary>
+        public byte[]? LastOwnLongPoll { get; set; }
+
         /// <summary>The hand pay reading last sent on this link and not yet acknowledged, or null.</summary>
         public byte[]? UnacknowledgedHandpayPoll { get; set; }
 
@@ -1056,7 +1059,13 @@ public sealed partial class FakeEgm : IDisposable
         bool ownGeneralPoll = count == 1 && own;
         bool repeat = ownGeneralPoll && link.LastWasOwnGeneralPoll;
         link.LastWasOwnGeneralPoll = ownGeneralPoll;
-        if (!ownGeneralPoll)
+
+        // The same long poll again, command and check sequence alike, is an implied NACK too (libsas_threads.cpp:964, :1165).
+        bool ownLongPoll = count > 1 && own;
+        bool repeatedLongPoll = ownLongPoll && link.LastOwnLongPoll is { } last
+                                && link.Frame.AsSpan(0, count).SequenceEqual(last);
+        link.LastOwnLongPoll = ownLongPoll ? link.Frame.AsSpan(0, count).ToArray() : null;
+        if (!ownGeneralPoll && !repeatedLongPoll)
         {
             lock (_gate)
             {
@@ -1077,7 +1086,7 @@ public sealed partial class FakeEgm : IDisposable
         if (first != link.Address.Value && first != SasAddress.Sync.Value)
             return;
 
-        HandleLongPoll(link, link.Frame.AsSpan(0, count));
+        HandleLongPoll(link, link.Frame.AsSpan(0, count), repeatedLongPoll);
     }
 
     /// <summary>
@@ -1107,6 +1116,7 @@ public sealed partial class FakeEgm : IDisposable
 
             link.AwaitingSync = true;
             link.LastWasOwnGeneralPoll = false;
+            link.LastOwnLongPoll = null;
         }
 
         if (!link.AwaitingSync)
@@ -1138,7 +1148,8 @@ public sealed partial class FakeEgm : IDisposable
         lock (_gate)
         {
             realTime = _rteEnabled;
-            queued = realTime ? link.Exceptions.Take() : link.Exceptions.NextForGeneralPoll(repeat);
+            // Held for the implied ACK in either format, as the library dequeues only then (libsas_threads.cpp:3467, :3520).
+            queued = link.Exceptions.NextForGeneralPoll(repeat);
         }
 
         if (realTime)
@@ -1220,10 +1231,6 @@ public sealed partial class FakeEgm : IDisposable
         {
             foreach (byte value in event_.Data)
                 link.Frame[length++] = value;
-
-            // An event taken off the queue is not held for acknowledgement here, so the hand pay queue hears of it as it leaves.
-            lock (_gate)
-                NoteHandpayExceptionAcknowledgedLocked(link, event_.Code);
         }
 
         ushort crc = SasCrc.Compute(link.Frame.AsSpan(0, length));
@@ -1236,7 +1243,7 @@ public sealed partial class FakeEgm : IDisposable
         Send(link, link.Outbound.AsSpan(0, length));
     }
 
-    private void HandleLongPoll(MachineLink link, ReadOnlySpan<byte> frame)
+    private void HandleLongPoll(MachineLink link, ReadOnlySpan<byte> frame, bool repeated)
     {
         byte command = frame[1];
         Interlocked.Increment(ref _longPolls);
@@ -1274,10 +1281,12 @@ public sealed partial class FakeEgm : IDisposable
             if (signatureFirst && SendPendingRomSignature(link))
                 return;
 
+            // An event sent and refused by the same poll again is still due, so it answers the repeat (libsas_threads.cpp:3364).
             PendingEvent? preempting;
             lock (_gate)
             {
-                preempting = _rteEnabled ? link.Exceptions.Take() : null;
+                bool due = link.Exceptions.Count > 0 || (repeated && link.Exceptions.AwaitingAcknowledgement);
+                preempting = _rteEnabled && due ? link.Exceptions.NextForGeneralPoll(repeated) : null;
             }
 
             if (preempting is not null)

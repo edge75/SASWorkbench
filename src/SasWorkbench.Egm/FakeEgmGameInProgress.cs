@@ -61,6 +61,9 @@ public sealed partial class FakeEgm
         ArgumentOutOfRangeException.ThrowIfNegative(cents);
         lock (_gate)
             _jackpotLimitCents = cents;
+
+        // An operator's save on a page other than the network one reports $3C (QSP SasNetwork.cpp:747, SasRules.h:391).
+        QueueOrdinary((byte)SasExceptionCode.OperatorChangedOptions);
     }
 
     /// <summary>Whether an award of this many cents is above the jackpot limit; the market's test is strictly greater (QSP SasMarket.cpp:479).</summary>

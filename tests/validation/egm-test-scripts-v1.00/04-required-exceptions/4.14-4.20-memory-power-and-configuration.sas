@@ -191,10 +191,51 @@ test "4.19 memory error reset" {
 # has to follow to hear about it.
 test "4.20 operator changed options" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.configuration_options
+  requires machine.configuration_options, host.poll_sequence
+  requires stimulus.jackpot_limit, stimulus.credit_limit, machine.address_configuration
   requires decoder.lp1F
 
-  note "With the link up and no credits on the machine, enter its configuration, change the jackpot limit and leave: one $3C on a general poll. Change something else and leave: another $3C."
-  note "Now change the machine's address to 38 decimal and leave. It stops answering. Poll address 38 instead: a $3C arrives there, and the identification poll addressed to 38 is answered. Set the address back to 1 afterwards."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+  host poll sequence
+  host send sync
+  host send lp 1F
+
+  # The jackpot limit changed and saved: one $3C on a general poll, and then nothing.
+  egm set jackpot limit 100000
+  host send gp draws operator_changed_options
+  host send lp 1F
+  host send gp draws nothing
+  host send lp 1F
+
+  # Something else changed and saved, the credit limit: another $3C.
+  egm set credit limit 1000000
+  host send gp draws operator_changed_options
+  host send lp 1F
+  host send gp draws nothing
+  host send lp 1F
+
+  # The address changed to 38 decimal: silence at 1, and at 38 the $3C and the identification poll.
+  egm set address 26
+  host expect no reply to lp 1F
+  host poll address 26
+  host send sync
+  host send gp draws operator_changed_options
+  host send lp 1F
+
+  # Back to 1.
+  egm set address 01
+  host poll address 01
+  host send sync
+  host send gp draws operator_changed_options
+  host poll every 200ms
+
+  note "The steps change the jackpot limit and the credit limit; any other option the machine lists is checked the same way at the machine."
   note "What counts as an option is the machine's own list; $3C covers denomination, address, and anything that changes the answer to long polls $1F, $53, $54, $56, $A0, $B2, $B3, $B4 or $B5."
 }

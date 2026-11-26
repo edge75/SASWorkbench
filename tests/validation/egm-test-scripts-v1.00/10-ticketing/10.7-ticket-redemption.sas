@@ -136,12 +136,16 @@ test "10.7.5 the machine status codes cover every refusal" {
 test "10.7.6 a restricted ticket carries its own expiry in the redemption poll" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
   requires machine.restricted_credits, decoder.lp71
+  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
+  requires machine.restricted_tickets
   note "Redeem a restricted ticket whose expiry is a date rather than a number of days, and check the machine takes the date from the poll rather than from its own configuration."
 }
 
 test "10.7.7 restricted tickets credit the restricted meter" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
   requires machine.restricted_credits
+  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
+  requires machine.restricted_tickets
   note "Redeem a restricted ticket and confirm the credits land as restricted rather than cashable, which is what stops them being cashed out again as money."
 }
 

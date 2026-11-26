@@ -28,6 +28,8 @@ test "AD-05c an illegal configured value reads as invalid rather than pending" {
   requires machine.accounting_denomination
   requires machine.nvram_clear
   requires machine.audit_menu
+  # Reading what a page of the machine's own menu shows takes a person; the software machine's menus only report entering and leaving.
+  requires machine.audit_screens
 
   note "Configure an illegal value - 25 with the nine player denominations - clear NVRAM, boot, and open the SAS configuration audit page."
   note "The second row must read that the value is not valid for the denominations offered, not that it requires a memory clear. A clear would rewrite the same illegal value and change nothing, so telling the operator to clear would be telling them to do something useless."

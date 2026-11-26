@@ -776,6 +776,8 @@ public sealed partial class ScriptRunner
 
                 SendLongPollStep send => Send(send, engine, answered, at),
 
+                SendLongPollDrawsEventStep draws => SendForEvent(draws, engine, at),
+
                 PollInSequenceStep sequence => Sequence(sequence, engine, at),
 
                 SendGeneralPollStep poll => SendGeneralPoll(poll, engine, at),
@@ -1220,14 +1222,21 @@ public sealed partial class ScriptRunner
         (bool held, string expected) = step.Draws switch
         {
             DrawExpectation.Exception =>
-                (result.Outcome == GeneralPollOutcome.Exception && result.Code == step.Code,
-                    $"exception {step.CodeName}"),
+                (result.Outcome == GeneralPollOutcome.Exception && result.Code == step.Code && InFormat(step.Format, result),
+                    $"exception {step.CodeName}{FormatWords(step.Format)}"),
             DrawExpectation.NoActivity =>
-                (result.Outcome == GeneralPollOutcome.NoActivity, "no activity"),
+                (result.Outcome == GeneralPollOutcome.NoActivity && InFormat(step.Format, result),
+                    $"no activity{FormatWords(step.Format)}"),
             DrawExpectation.Silence =>
                 (result.Outcome == GeneralPollOutcome.Silent, "silence"),
+            DrawExpectation.AnyException =>
+                (result.Outcome == GeneralPollOutcome.Exception && InFormat(step.Format, result),
+                    $"an exception{FormatWords(step.Format)}"),
             _ => (result.Outcome != GeneralPollOutcome.NotSent, "the poll to reach the line"),
         };
+
+        if (step.OrSilence)
+            (held, expected) = (held || result.Outcome == GeneralPollOutcome.Silent, $"{expected}, or silence");
 
         return new StepResult(
             step.Location,
@@ -1365,7 +1374,7 @@ public sealed partial class ScriptRunner
                     environment.Stimulus.Apply(step, machine);
             }
 
-            MachineResynchronisation? resync = step is PowerCycleStep or MemoryFaultStep or NvramClearStep
+            MachineResynchronisation? resync = step is PowerCycleStep { Resynchronise: true } or MemoryFaultStep or NvramClearStep
                 ? MachineResynchronisation.Run(engine)
                 : null;
             if (resync is { Failed: true } stillChirping)

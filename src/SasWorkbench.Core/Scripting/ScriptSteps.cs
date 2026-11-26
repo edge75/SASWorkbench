@@ -268,6 +268,9 @@ public enum DrawExpectation
 
     /// <summary>No answer at all, which is what a poll to another machine must draw.</summary>
     Silence,
+
+    /// <summary>Some exception, whichever it is, rather than no activity or silence.</summary>
+    AnyException,
 }
 
 /// <summary>Sends one general poll by name, and says what it drew.</summary>
@@ -285,18 +288,31 @@ public sealed record SendGeneralPollStep(SourceLocation Location) : ScriptStep(L
     /// <summary>The name of that exception, for the report.</summary>
     public string? CodeName { get; init; }
 
+    /// <summary>Which format the answer must come in, when the case says.</summary>
+    public DrawFormat Format { get; init; } = DrawFormat.Any;
+
+    /// <summary>True when no answer at all is as good as the one named, as a third repeat may draw.</summary>
+    public bool OrSilence { get; init; }
+
     public override string Describe()
     {
         string target = To is { } address ? $" to {address}" : string.Empty;
+        string format = Format switch
+        {
+            DrawFormat.Event => "event ",
+            DrawFormat.Bare => "bare ",
+            _ => string.Empty,
+        };
         string draws = Draws switch
         {
-            DrawExpectation.Exception => $" draws {CodeName}",
-            DrawExpectation.NoActivity => " draws no activity",
+            DrawExpectation.Exception => $" draws {format}{CodeName}",
+            DrawExpectation.NoActivity => $" draws {format}no activity",
             DrawExpectation.Silence => " draws silence",
+            DrawExpectation.AnyException => $" draws {format}any exception",
             _ => string.Empty,
         };
 
-        return $"send gp{target}{draws}";
+        return $"send gp{target}{draws}{(OrSilence ? " or silence" : string.Empty)}";
     }
 }
 
@@ -582,8 +598,12 @@ public sealed record PowerCycleStep(SourceLocation Location) : StimulusStep(Loca
 {
     public override string RequiredCapability => "machine.power_cycle";
 
+    /// <summary>False when a sequenced case leaves the machine chirping, unsynchronised, to poll it as it is.</summary>
+    public bool Resynchronise { get; init; } = true;
+
     public override string Describe() =>
-        "power cycle (cut the machine's power, restore it, and wait until it has booted)";
+        "power cycle (cut the machine's power, restore it, and wait until it has booted)"
+        + (Resynchronise ? string.Empty : " without synchronising it");
 }
 
 /// <summary>Has the operator clear the machine's memory, which empties every meter and every record and restarts it.</summary>

@@ -69,6 +69,9 @@ public sealed partial class FakeEgm
         ArgumentOutOfRangeException.ThrowIfNegative(cents);
         lock (_gate)
             _creditLimitCents = cents;
+
+        // An operator's save on a page other than the network one reports $3C (QSP SasNetwork.cpp:747, SasRules.h:391).
+        QueueOrdinary((byte)SasExceptionCode.OperatorChangedOptions);
     }
 
     /// <summary>

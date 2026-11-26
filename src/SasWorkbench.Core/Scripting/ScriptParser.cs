@@ -565,6 +565,12 @@ public static partial class ScriptParser
                     return;
                 }
 
+                if (DrawsAt(words) > 0)
+                {
+                    test.Steps.Add(ReadSendDrawsEvent(words, location));
+                    return;
+                }
+
                 test.Steps.Add(EndsWithoutWakeup(words) ? ReadSendWithoutWakeup(words, location) : ReadSend(words, location));
                 return;
 
@@ -745,7 +751,7 @@ public static partial class ScriptParser
     }
 
     /// <summary>
-    /// Reads <c>host send gp [draws &lt;name&gt;|nothing|silence] [to &lt;address&gt;]</c>.
+    /// Reads <c>host send gp [draws [event|bare] &lt;name&gt;|nothing|silence [or silence]] [to &lt;address&gt;]</c>.
     /// </summary>
     /// <remarks>
     /// The expectation is part of the step rather than a separate assertion because what a general
@@ -761,28 +767,30 @@ public static partial class ScriptParser
         if (words.Length == 3)
             return step;
 
-        if (words.Length != 5 || !words[3].Equals("draws", StringComparison.OrdinalIgnoreCase))
+        if (words.Length < 5 || !words[3].Equals("draws", StringComparison.OrdinalIgnoreCase))
         {
             throw new ScriptParseException(location,
-                "expected: host send gp [draws <exception>|draws nothing|draws silence] "
-                + "[to <address>]");
+                "expected: host send gp [draws [event|bare] <exception>|any|nothing|draws silence] "
+                + "[or silence] [to <address>]");
         }
 
-        string what = words[4];
+        (DrawFormat format, string what, bool orSilence) = ReadDraws(words[4..], location);
+        step = step with { Format = format, OrSilence = orSilence };
+
         if (what.Equals("nothing", StringComparison.OrdinalIgnoreCase))
             return step with { Draws = DrawExpectation.NoActivity };
 
-        if (what.Equals("silence", StringComparison.OrdinalIgnoreCase))
-            return step with { Draws = DrawExpectation.Silence };
+        if (what.Equals("any", StringComparison.OrdinalIgnoreCase))
+            return step with { Draws = DrawExpectation.AnyException };
 
-        if (!SasNames.TryResolveException(what, out byte code))
+        if (what.Equals("silence", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ScriptParseException(location,
-                $"'{what}' is not an exception this build knows. Write its name, such as "
-                + "slot_door_opened, or its code, such as $11 - or 'nothing' for a machine "
-                + "reporting no activity, or 'silence' for no answer at all");
+            if (format != DrawFormat.Any || orSilence)
+                throw new ScriptParseException(location, "silence has no format, and is said once");
+            return step with { Draws = DrawExpectation.Silence };
         }
 
+        byte code = ResolveDrawnException(what, location);
         return step with
         {
             Draws = DrawExpectation.Exception,
@@ -1688,9 +1696,12 @@ public static partial class ScriptParser
                 return;
 
             case "power":
-                if (words.Length != 3 || !words[2].Equals("cycle", StringComparison.OrdinalIgnoreCase))
-                    throw new ScriptParseException(location, "expected: egm power cycle");
-                test.Steps.Add(new PowerCycleStep(location));
+                bool unsynchronised = words.Length == 5
+                    && words[3].Equals("without", StringComparison.OrdinalIgnoreCase)
+                    && words[4].Equals("sync", StringComparison.OrdinalIgnoreCase);
+                if ((words.Length != 3 && !unsynchronised) || !words[2].Equals("cycle", StringComparison.OrdinalIgnoreCase))
+                    throw new ScriptParseException(location, "expected: egm power cycle [without sync]");
+                test.Steps.Add(new PowerCycleStep(location) { Resynchronise = !unsynchronised });
                 return;
 
             case "memory":

@@ -51,24 +51,101 @@ test "22.24 attendant-paid external bonus by game adds up" {
 test "22.25 machine-paid external bonus by denomination adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
   machine multiplied jackpot on
+  machine games 1c 2c 5c 10c
   requires machine.legacy_bonus, machine.multiple_denominations
   requires stimulus.select_denomination, host.meter_arithmetic
-  requires decoder.lpB2, decoder.lpB0, decoder.lp6F, decoder.event7C
+  requires stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lpB2, decoder.lpB0, decoder.lp6F, decoder.lp0E, decoder.event7C
 
-  note "Enable up to twenty player denominations, one per game on a multi-game machine, and read them back ($B2)."
-  note "For each denomination, lowest first: note 001E for the machine and for that denomination (through the $B0 preamble on $6F). Select a game at that denomination and win once at three times deductible and once at four times non-deductible, as in 22.22. Both readings grow by the same amount."
-  note "Repeat with further sets of twenty until every denomination has been through. Run only on a multi-denomination machine (9.1). The document reads the denominations back with a key named for another poll; $B2 is meant."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  host send lp B2
+  host expect field count of lp B2 >= 2
+
+  # One cent: the machine's 001E and the denomination's, then a win at three times deductible and one
+  # at four times non-deductible, as in 22.22.
+  egm select denomination 1c
+  host send lp 6F data 0400001E00
+  host remember field meters[0].value as machine_before
+  host send lp B0 data 07016F0400001E00
+  host remember field meters[0].value as cent1_before
+
+  host send lp 8B data 0000000000000000010100
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000000000000010100
+  host send lp 8B data 0000000099999999840000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == $84 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 30 within 8s
+  host send lp 8B data 0000000000000000010100
+
+  # Both readings grow by the same amount.
+  host send lp 6F data 0400001E00
+  host expect field meters[0].value == saved.machine_before + 50
+  host send lp B0 data 07016F0400001E00
+  host expect field meters[0].value == saved.cent1_before + 50
+
+  note "Enable up to twenty player denominations, one per game on a multi-game machine; the steps take one cent. Repeat with every denomination, lowest first, and with further sets of twenty until every denomination has been through. Run only on a multi-denomination machine (9.1). The document reads the denominations back with a key named for another poll; $B2 is meant."
 }
-
 test "22.26 attendant-paid external bonus by denomination adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
   machine multiplied jackpot on
+  machine games 1c 2c 5c 10c
   requires machine.legacy_bonus, machine.multiple_denominations
   requires machine.jackpot_limit, stimulus.select_denomination, stimulus.handpay.reset
   requires host.meter_arithmetic, decoder.lpB2, decoder.lpB0, decoder.lp6F, decoder.lp1B
-  requires decoder.event7C
+  requires stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.event7C
 
-  note "Enable up to twenty player denominations, set the jackpot limit low with partial pay off, and read the denominations back ($B2)."
-  note "For each denomination, lowest first: note 0021 for the machine and for that denomination (through $B0 on $6F). Enable three times deductible, select a game at that denomination and play until a win goes to a hand pay, as in 22.24. Both readings grow by the same amount."
-  note "Repeat until every denomination has been through, and disable at the end. Run only on a multi-denomination machine (9.1). As in 22.24, the document labels the multiplier non-deductible against a deductible enable."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  egm set jackpot limit 1000
+  host forget exceptions within 2s
+
+  host send lp B2
+  host expect field count of lp B2 >= 2
+
+  # One cent: the machine's 0021 and the denomination's, then a three times deductible win paid by hand, as in 22.24.
+  egm select denomination 1c
+  host send lp 6F data 0400002100
+  host remember field meters[0].value as machine_before
+  host send lp B0 data 07016F0400002100
+  host remember field meters[0].value as cent1_before
+
+  host send lp 8B data 0000000000000000010100
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=2000
+  host expect exception handpay_is_pending within 10s
+  host expect field win_amount of event game_ended != 0 within 8s
+  host send lp 1B
+  host expect field amount != 0
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 15s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 4000 within 15s
+  host send lp 8B data 0000000000000000010100
+
+  # Both readings grow by the same amount.
+  host send lp 6F data 0400002100
+  host expect field meters[0].value == saved.machine_before + 4000
+  host send lp B0 data 07016F0400002100
+  host expect field meters[0].value == saved.cent1_before + 4000
+
+  note "Enable up to twenty player denominations with the jackpot limit low and partial pay off; the steps take one cent. Repeat until every denomination has been through, lowest first. Run only on a multi-denomination machine (9.1). As in 22.24, the document labels the multiplier non-deductible against a deductible enable; this case expects deductible, plain 3."
 }
+

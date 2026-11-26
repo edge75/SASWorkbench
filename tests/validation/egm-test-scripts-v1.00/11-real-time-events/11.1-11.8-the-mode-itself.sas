@@ -120,10 +120,69 @@ test "11.4 no activity, and waiting for the player" {
 # every event that was queued while it was on comes back as a bare byte.
 test "11.5 a power cycle turns reporting off" {
   tag @egm-test-scripts @chapter-11 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires machine.power_cycle, host.poll_sequence, stimulus.real_time_events
+  requires stimulus.door.main, stimulus.bill, stimulus.play, stimulus.settle
+  requires decoder.lp0E, decoder.lp1F
 
-  note "Turn reporting off, then stop polling and create door events, play a game, power cycle the machine, and play another game. Poll again: no exception answers a long poll, and the general polls carry the queued and the new exceptions as one byte each."
-  note "Turn reporting on and do the same - door events, a game, a power cycle, another game. Poll again: still no exception on a long poll, and still one byte each on the general polls. The mode did not survive."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Reporting off; polling stops; door events, a game, a power cycle and another game.
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm play games=1 bet=1 win=0
+  egm power cycle
+  egm play games=1 bet=1 win=0
+
+  # Polling again: no exception answers a long poll, and the general polls carry single bytes.
+  host send sync
+  host send sync
+  host send lp 1F
+  host send gp draws bare slot_door_opened
+  host send lp 1F
+  host send gp draws bare slot_door_closed
+  host send lp 1F
+  host send gp draws bare game_started
+  host send lp 1F
+  host send gp draws bare game_ended
+  host poll every 200ms
+  host forget exceptions within 2s
+
+  # Reporting on, and the same again: the power cycle turned it off, so still single bytes.
+  host send lp 0E data 01
+  host forget exceptions within 2s
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  egm play games=1 bet=1 win=0
+  egm power cycle
+  egm play games=1 bet=1 win=0
+
+  host send sync
+  host send sync
+  host send lp 1F
+  host send gp draws bare slot_door_opened
+  host send lp 1F
+  host send gp draws bare slot_door_closed
+  host send lp 1F
+  host send gp draws bare game_started
+  host send lp 1F
+  host send gp draws bare game_ended
+  host poll every 200ms
+
+  note "What the power cycle itself raises, and the second game's events, follow these in the queue and are left to the round."
 }
 
 # What decides the format is the mode at the moment the event leaves, not the mode when it
@@ -131,6 +190,9 @@ test "11.5 a power cycle turns reporting off" {
 test "11.6 the format follows the mode, not the event" {
   tag @egm-test-scripts @chapter-11 @needs-a-person @destructive
   requires machine.power_cycle
+
+  # Entering the game recall screen is part of every round and no stimulus here can do it.
+  requires stimulus.game_recall
 
   note "With reporting off, stop polling and play a game, insert a note between $1 and $100, open and close the door, and enter the game recall screen. Start polling and turn reporting on: the queue then comes out in the event format - $7E, $7F, the note, $8A, $11 and $12 - on long polls."
   note "Do the same again and power cycle before polling. Reporting is off again, so nothing answers a long poll; switch to a loop with general polls and the same queue comes out as bare bytes, with the note as its own denomination code or $4F."
@@ -176,9 +238,72 @@ test "11.7 the machine answers at 40 ms" {
 # What the mode does across a loop break, which needs somebody watching for the chirp.
 test "11.8 reporting survives the link going down" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires host.chirp, stimulus.real_time_events
+  requires host.chirp, stimulus.real_time_events, host.poll_sequence
+  requires stimulus.door.main, stimulus.settle
+  requires decoder.lp0E, decoder.lp1F
 
-  note "With reporting on, open and close the door: both come back in the event format on general and long polls. Stop polling for at least thirty seconds - the machine chirps its own address with the wakeup bit set."
-  note "Start polling again and open and close the door: still the event format. Switch to a loop addressed only to another machine for thirty seconds - it ignores all of it - then switch back and open and close the door: still the event format."
-  note "Switch to a loop that polls another machine as well as this one for thirty seconds, then back, and open and close the door once more: still the event format. Neither the loop break nor the foreign polling turned reporting off."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  # Reporting on: the door comes back in the event format on a long poll and a general poll.
+  host poll sequence
+  host send sync
+  egm door main open
+  egm door main close
+  host send sync
+  host send lp 1F draws event slot_door_opened
+  host send gp draws event slot_door_closed
+  host send lp 1F
+
+  # Thirty seconds without a poll: the machine chirps.
+  host expect no chirp for 2s
+  host expect chirp within 5s
+  host wait 25s
+
+  # Polling again, the door is still reported in the event format. The first poll to 00 may read
+  # the chirps heard while waiting as its reply; the second is answered on a quiet line.
+  host send sync
+  host send sync
+  egm door main open
+  egm door main close
+  host send lp 1F draws event slot_door_opened
+  host send gp draws event slot_door_closed
+  host send lp 1F
+
+  # Thirty seconds of a loop addressed only to another machine, then back: still the event format.
+  host poll address 7F
+  host poll every 200ms
+  host wait 30s
+  host poll sequence
+  host poll address 01
+  host send sync
+  egm door main open
+  egm door main close
+  host send lp 1F draws event slot_door_opened
+  host send gp draws event slot_door_closed
+  host send lp 1F
+
+  # A loop that polls another machine as well as this one, then back: still the event format.
+  host send gp draws silence to 7F
+  host send gp draws event nothing
+  host send gp draws silence to 7F
+  host send gp draws event nothing
+  host send gp draws silence to 7F
+  host send gp draws event nothing
+  egm door main open
+  egm door main close
+  host send lp 1F draws event slot_door_opened
+  host send gp draws event slot_door_closed
+  host send lp 1F
+  host poll every 200ms
+
+  note "The document runs the mixed loop for thirty seconds; the case alternates the two addresses three times, since only what comes after it is asserted. The same holds for this machine's own events whether they are fetched by general or long polls."
 }

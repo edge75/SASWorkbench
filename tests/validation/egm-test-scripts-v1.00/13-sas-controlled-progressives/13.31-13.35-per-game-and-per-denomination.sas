@@ -105,16 +105,19 @@ test "13.32 machine-paid progressive wins add up across games" {
 
 test "13.33 attendant-paid progressive wins add up across games" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_games, stimulus.progressive
   requires host.progressive_broadcast, host.meter_arithmetic, machine.jackpot_limit
-  requires stimulus.handpay.reset
+  requires stimulus.handpay.reset, stimulus.select_game, stimulus.bill
   requires decoder.lp51, decoder.lp56, decoder.lp80, decoder.lp6F, decoder.lpAF, decoder.lp1B, decoder.lp85
   machine accounting denomination 1c
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
-  host send lp 80 with progressive_group=1 level=1 amount=500
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
   host forget exceptions within 2s
 
   host send lp 51
@@ -127,7 +130,11 @@ test "13.33 attendant-paid progressive wins add up across games" {
   host send lp 6F data 0400012000
   host remember field meters[0].value as game_before
 
-  # A person wins level 1 on game 1 here, as a hand pay.
+  # Level 1 is won on game 1, above the jackpot limit, so it is paid by hand.
+  egm bill insert 1000
+  egm select game 1
+  egm progressive win level=1
+  host expect exception sas_progressive_level_hit within 10s
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset
@@ -151,33 +158,100 @@ test "13.33 attendant-paid progressive wins add up across games" {
 
 test "13.34 machine-paid progressive wins add up across denominations" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_denominations, stimulus.progressive
   requires stimulus.select_denomination, host.progressive_broadcast, decoder.lpB0, decoder.lpB2
+  requires host.meter_arithmetic, stimulus.bill, decoder.lp6F, decoder.lp80, decoder.lp85
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  host forget exceptions within 2s
 
   host send lp B2
   host expect field count of lp B2 >= 2
 
-  note "Only for a multi-denomination machine. Enrol it in group 1 with level 1, enable up to twenty player denominations - a different one for each game on a multi-game machine - and set the jackpot limit high enough that nothing becomes a hand pay."
-  note "Read 001D for each denomination $B2 lists, game 0, with $6F and $AF through the $B0 preamble, and 001D for the machine. Win level 1 at every denomination, reading $85 each time until $56 stops. Read them all again: the sum of the denominations' gains equals the machine's gain. Repeat with further sets of denominations until all are covered."
+  # 1D for the machine and for one cent and five cents, game 0, through the $B0 preamble.
+  host send lp 6F data 0400001D00
+  host remember field meters[0].value as total_before
+  host send lp B0 data 07016F0400001D00
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400001D00
+  host remember field meters[0].value as cent5_before
+
+  # Level 1 is won at one cent; $85 is read until $56 stops.
+  egm select denomination 1c
+  egm bill insert 1000
+  egm progressive win level=1
+  host expect exception sas_progressive_level_hit within 10s
+  host send lp 85
+  host forget exceptions within 2s
+  host expect no exception sas_progressive_level_hit within 20s
+
+  # The denominations' gains add up to the machine's gain.
+  host send lp B0 data 07016F0400001D00
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400001D00
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400001D00
+  host expect field meters[0].value == saved.total_before + 500
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
+
+  note "Only for a multi-denomination machine. Enrol it in group 1 with level 1, enable up to twenty player denominations - a different one for each game on a multi-game machine - and set the jackpot limit high enough that nothing becomes a hand pay. The steps fix the set at one cent and five cents; win at every denomination and repeat with further sets until all are covered."
 }
 
 test "13.35 attendant-paid progressive wins add up across denominations" {
   tag @egm-test-scripts @chapter-13 @needs-stimulus @needs-a-person
+  machine games 1c 2c 5c 10c
+  machine progressive sas group 1 levels 1
   requires machine.sas_progressives, machine.multiple_denominations, stimulus.progressive
-  requires stimulus.select_denomination, host.progressive_broadcast, machine.jackpot_limit
-  requires stimulus.handpay.reset, decoder.lpB0, decoder.lpB2
+  requires stimulus.select_denomination, host.progressive_broadcast, decoder.lpB0, decoder.lpB2
+  requires host.meter_arithmetic, stimulus.bill, decoder.lp6F, decoder.lp80, decoder.lp85, machine.jackpot_limit
+  requires stimulus.handpay.reset, decoder.lp1B
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s
+  egm set jackpot limit 400
+  host forget exceptions within 2s
 
   host send lp B2
   host expect field count of lp B2 >= 2
 
-  note "Only for a multi-denomination machine. Enrol it in group 1 with level 1 and enable up to twenty player denominations. The document sets the jackpot limit high here, as in 13.34, yet needs every win to be a hand pay; set it low."
-  note "Read 0020 for each denomination $B2 lists, game 0, with $6F and $AF through the $B0 preamble, and 0020 for the machine. Win a progressive hand pay at every denomination: $51, then $52 once $1B is read and the hand pay keyed off, and $56 until $85 is read. Read them all again: the sum of the denominations' gains equals the machine's gain. Repeat with further sets of denominations until all are covered."
+  # 20 for the machine and for one cent and five cents, game 0, through the $B0 preamble.
+  host send lp 6F data 0400002000
+  host remember field meters[0].value as total_before
+  host send lp B0 data 07016F0400002000
+  host remember field meters[0].value as cent1_before
+  host send lp B0 data 07026F0400002000
+  host remember field meters[0].value as cent5_before
+
+  # Level 1 is won at one cent, above the jackpot limit, so it is paid by hand; $85 is read until $56 stops.
+  egm select denomination 1c
+  egm bill insert 1000
+  egm progressive win level=1
+  host expect exception sas_progressive_level_hit within 10s
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host send lp 85
+  host forget exceptions within 2s
+  host expect no exception sas_progressive_level_hit within 20s
+
+  # The denominations' gains add up to the machine's gain.
+  host send lp B0 data 07016F0400002000
+  host remember field meters[0].value as cent1_after
+  host send lp B0 data 07026F0400002000
+  host expect field meters[0].value == saved.cent5_before
+  host remember field meters[0].value as cent5_after
+  host send lp 6F data 0400002000
+  host expect field meters[0].value == saved.total_before + 500
+  host expect field meters[0].value == saved.total_before + saved.cent1_after - saved.cent1_before + saved.cent5_after - saved.cent5_before
+
+  note "Only for a multi-denomination machine. Enrol it in group 1 with level 1 and enable up to twenty player denominations. The document sets the jackpot limit high here, as in 13.34, yet needs every win to be a hand pay; set it low. The steps fix the set at one cent and five cents; win at every denomination and repeat with further sets until all are covered."
 }

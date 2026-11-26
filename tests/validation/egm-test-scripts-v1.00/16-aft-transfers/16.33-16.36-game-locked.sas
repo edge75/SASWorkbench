@@ -114,6 +114,7 @@ test "16.36 game locked ahead of the queue as a real-time event" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
   requires decoder.lp74, decoder.lp0E, machine.aft, host.poll_sequence
   requires stimulus.real_time_events, stimulus.door.main, stimulus.settle
+  requires decoder.lp1F, decoder.lp7E
 
   host connect loopback address 01
   host poll every 200ms
@@ -129,12 +130,11 @@ test "16.36 game locked ahead of the queue as a real-time event" {
   host send lp 74 data 000F9999
   host expect field game_lock_status != $FF
 
-  # Reporting on: $6F comes first, in the event format, and the doors follow.
+  # Reporting on: $6F comes first, in the event format, and the doors follow. Each long poll differs from
+  # the one before it, so each acknowledges the event it follows; the same poll twice would be a refusal.
   host send lp 0E data 01
-  host send gp draws game_locked
-  host send gp draws slot_door_opened
-  host send gp draws slot_door_closed
-
-  note "The document draws these with long polls; a long poll answered with an event fails its step (D43), so general polls carry the same order here."
+  host send lp 1F draws event game_locked
+  host send lp 7E draws event slot_door_opened
+  host send lp 1F draws event slot_door_closed
   note "Keep polling: $6F recurs about every five seconds among the queued events, and the machine is unplayable at the cabinet while locked."
 }

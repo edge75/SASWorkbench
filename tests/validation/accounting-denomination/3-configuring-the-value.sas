@@ -131,6 +131,8 @@ test "AD-14 a malformed value is refused at start-up" {
 test "AD-15 the value is not operator-editable" {
   tag @accounting-denomination @needs-configuration
   requires machine.audit_menu
+  # Reading what a page of the machine's own menu shows takes a person; the software machine's menus only report entering and leaving.
+  requires machine.audit_screens
 
   note "On a machine in force at ten centavos, the audit page's accounting denomination row is displayed only, with no edit control. Section 16 requires the unit not to change dynamically."
 }

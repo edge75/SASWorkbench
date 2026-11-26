@@ -167,8 +167,9 @@ public static partial class CapabilityProbe
                 // A person sets the machine's poll address in its configuration screens.
                 ["machine.address_configuration"] = "yes",
 
-                // A person works the machine's menus, and the manufacturer gives the signature for a seed.
+                // A person works the machine's menus and reads its pages, and the manufacturer gives the signature for a seed.
                 [MenuStep.Capability] = "yes",
+                ["machine.audit_screens"] = "yes",
                 ["machine.rom_signature"] = "yes",
             },
 
