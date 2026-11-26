@@ -20,6 +20,9 @@ internal sealed record HandpayOwed(HandpayKind Kind, long AmountCents, byte Leve
     /// <summary>The extra part of a multiplied win, which the attendant-paid external bonus meter takes.</summary>
     public long MultipliedCents { get; init; }
 
+    /// <summary>What the hopper paid towards it before the attendant, in accounting units (D58).</summary>
+    public long PartialPayUnits { get; init; }
+
     /// <summary>A progressive level is reported in cents, every other level in accounting units (libsas_internal.cpp:4899).</summary>
     public bool InCents => Level is >= 0x01 and <= 0x20;
 }
@@ -35,6 +38,7 @@ public sealed partial class FakeEgm
 
     private const byte PendingCode = (byte)SasExceptionCode.HandpayIsPending;
     private const byte WasResetCode = (byte)SasExceptionCode.HandpayWasReset;
+    private const byte CancelledCode = (byte)SasExceptionCode.PlayerCancelledHandpayRequest;
 
     /// <summary>Thirty ticks of the library's half-second hand pay timer (libsas_threads.cpp:3055).</summary>
     private static readonly TimeSpan HandpayReissue = TimeSpan.FromSeconds(15);
@@ -95,7 +99,11 @@ public sealed partial class FakeEgm
 
         byte level = kind == HandpayKind.CancelledCredit ? CancelledCreditLevel : (byte)0x00;
         lock (_gate)
-            StartHandpayLocked(new HandpayOwed(kind, owed, level));
+        {
+            // A declared partial pay comes out of the hopper before the attendant pays the rest (D58).
+            long partial = kind == HandpayKind.Jackpot ? PayJackpotPartialLocked(owed / AccountingCents) : 0;
+            StartHandpayLocked(new HandpayOwed(kind, owed - (partial * AccountingCents), level) { PartialPayUnits = partial });
+        }
 
         WithdrawLockIfUnplayable();
     }
@@ -145,7 +153,10 @@ public sealed partial class FakeEgm
 
     /// <summary>The entry the library stores, its amount in accounting units unless a progressive contributed (libsas_internal.cpp:4895).</summary>
     private HandpayItem HandpayItemFor(HandpayOwed owed) =>
-        new(owed.Group, owed.Level, owed.InCents ? owed.AmountCents : owed.AmountCents / AccountingCents, HandpayItemState.Registered);
+        new(owed.Group, owed.Level, owed.InCents ? owed.AmountCents : owed.AmountCents / AccountingCents, HandpayItemState.Registered)
+        {
+            PartialPay = owed.PartialPayUnits,
+        };
 
     /// <summary>The attendant pays the hand pay and turns the reset key.</summary>
     /// <remarks>$52 is the library's to send: at once in legacy reporting, and in the queue once the reading is acknowledged (SAS 6.02 7.8).</remarks>
@@ -234,6 +245,8 @@ public sealed partial class FakeEgm
             WriteHandpayExceptionLocked(link, PendingCode);
         if ((write & HandpayWrite.WasReset) != 0)
             WriteHandpayExceptionLocked(link, WasResetCode);
+        if ((write & HandpayWrite.Cancelled) != 0)
+            WriteHandpayExceptionLocked(link, CancelledCode);
     }
 
     /// <summary>
@@ -262,7 +275,7 @@ public sealed partial class FakeEgm
             if (link.Handpays.PendingAcknowledged(synced))
                 ArmHandpayTimerLocked();
         }
-        else if (code == WasResetCode)
+        else if (code is WasResetCode or CancelledCode)
         {
             ApplyHandpayWriteLocked(link, link.Handpays.ResetAcknowledged(synced));
         }

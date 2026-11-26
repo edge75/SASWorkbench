@@ -71,7 +71,7 @@ public sealed partial class FakeEgm
         {
             ["total_bill_value"] = Interlocked.Read(ref _billValueInDollars),
         },
-        0x2C => new Dictionary<string, object> { ["hopper_level"] = (long)_options.HopperLevel },
+        0x2C => HasHopper ? DeclaredHopperLevel() : new Dictionary<string, object> { ["hopper_level"] = (long)_options.HopperLevel },
         0x54 => new Dictionary<string, object>
         {
             ["length"] = _options.SasVersion.Length + _options.SerialNumber.Length,
@@ -129,7 +129,8 @@ public sealed partial class FakeEgm
         0x4A => Single("stacker_credits", SasMeterCode.TotalValueOfBillsCurrentlyInTheStacker_Crd),
         0x4C => SecureEnhancedValidationId(layout, request),
         0x4D => EnhancedValidationInformation(request),
-        0x4F => HopperStatus(),
+        0x4F => HasHopper ? DeclaredHopperStatus() : HopperStatus(),
+        0x8F => ReelStopInformation(),
         0x50 => ValidationMeters(layout, request),
         0x51 => new Dictionary<string, object> { ["games"] = (long)GameCount },
         0x52 => GameMeters(layout, request),

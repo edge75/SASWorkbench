@@ -224,7 +224,7 @@ public sealed partial class ScriptRunner
         {
             environment = _options.Environment(
                 connect, _options, test.Machine, test.Channels, test.Validation, test.Progressive, test.Authentication,
-                test.MultipliedJackpot, test.Handpay, test.Games);
+                test.MultipliedJackpot, test.Handpay, test.Games, test.Devices);
         }
         catch (TransportRefusedException refused)
         {
@@ -355,6 +355,8 @@ public sealed partial class ScriptRunner
             all = all.Concat(handpay.AsRequirements());
         if (test.Games is { } games)
             all = all.Concat(games.AsRequirements());
+        if (test.Devices is { } devices)
+            all = all.Concat(devices.AsRequirements());
 
         //  The channel arrangement is deliberately not a requirement. No long poll reports how a
         //  machine divides itself, so nothing can answer it before the link opens; opening the

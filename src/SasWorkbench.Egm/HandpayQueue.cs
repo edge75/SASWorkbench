@@ -15,7 +15,7 @@ internal enum HandpayItemState
 /// <summary>One queued hand pay as long poll 1B reports it (sHandpayItem), its amount already in the unit it is reported in.</summary>
 internal sealed record HandpayItem(byte Group, byte Level, long Amount, HandpayItemState State)
 {
-    /// <summary>The partial pay, in accounting units; this machine has no hopper, so always zero.</summary>
+    /// <summary>The partial pay, in accounting units; zero unless a case declares one (D58).</summary>
     public long PartialPay { get; init; }
 
     /// <summary>The reset methods reported; QSP reports the standard hand pay (QSP SasNetwork_Conditions.hpp:770).</summary>
@@ -36,6 +36,9 @@ internal enum HandpayWrite
 
     /// <summary>Every queued $51 taken back out (internalDequeueSpecificException).</summary>
     WithdrawPending = 4,
+
+    /// <summary>The player cancelled the hand pay request, $55.</summary>
+    Cancelled = 8,
 }
 
 /// <summary>
@@ -233,6 +236,39 @@ internal sealed class HandpayQueue
         {
             SetFront(HandpayItemState.Reset);
             write = HandpayWrite.WasReset;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// internalHandpayRefuse for this channel: behind another entry the newest is dropped silently; otherwise the
+    /// cancellation is counted like a reset and $55 is written while the front entry is not yet reset
+    /// (libsas_internal.cpp:5401, :5448, :5477).
+    /// </summary>
+    /// <param name="linkUp">The channel's link is neither down nor broken.</param>
+    /// <returns>False when the cancellation matches no registered entry, which the library refuses.</returns>
+    public bool Refuse(bool linkUp, out HandpayWrite write)
+    {
+        write = HandpayWrite.None;
+        if (_items.Count > 1 && Front >= HandpayItemState.Registered)
+        {
+            _items.RemoveAt(_items.Count - 1);
+            return true;
+        }
+
+        if (ResetQueued >= _items.Count)
+            return false;
+
+        if (linkUp)
+            ResetQueued++;
+        else
+            _items.RemoveAt(_items.Count - 1);
+
+        if (_items.Count > 0 && Front <= HandpayItemState.InfoAck)
+        {
+            SetFront(HandpayItemState.Reset);
+            write = HandpayWrite.Cancelled;
         }
 
         return true;

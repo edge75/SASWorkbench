@@ -135,6 +135,40 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            case CoinInsertStep coins:
+                Unless(coins, machine.InsertCoins(coins.Coins));
+                return;
+
+            case DeviceFaultStep device:
+                Unless(device, device.Device switch
+                {
+                    CoinDevice.Coin => machine.CoinFault(device.Fault),
+                    CoinDevice.Hopper => machine.HopperFault(device.Fault),
+                    _ => machine.ReelFault(device.Fault),
+                });
+                return;
+
+            case HopperLevelStep level:
+                Unless(level, machine.SetHopperLevel(level.Coins));
+                return;
+
+            case SetHopperLimitStep limit:
+                Unless(limit, machine.SetHopperLimit(limit.Cents));
+                return;
+
+            case SetWinPayoutStep payout:
+                Unless(payout, machine.SetWinPayout(payout.Hopper));
+                return;
+
+            case CashboxStep cashbox:
+                machine.SetCashbox(cashbox.Removed);
+                return;
+
+            // A cancel with nothing to cancel does nothing, as at the player screen (GSA 4.25).
+            case HandpayCancelStep:
+                machine.CancelHandpay();
+                return;
+
             case HandpayStep handpay:
                 try
                 {
@@ -341,11 +375,11 @@ public static class SoftwareMachineEnvironment
 {
     /// <summary>An environment factory that answers loopback links with the software machine.</summary>
     public static EnvironmentFactory For(FakeEgmOptions? machineOptions = null) =>
-        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games) =>
+        (step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games, devices) =>
         {
             if (step.Transport != ScriptTransport.Loopback)
                 return DefaultEnvironment.Create(
-                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games);
+                    step, options, declared, channels, validation, progressive, authentication, multipliedJackpot, handpay, games, devices);
 
             //  A case that names a round gets a floor of machines on one line rather than one
             //  machine. It is the other axis, so what it can do is different and is not smoothed
@@ -428,6 +462,19 @@ public static class SoftwareMachineEnvironment
                     settings = settings with { PlayerDenominationsInCents = games.DenominationsInCents };
             }
 
+            // A case that says the machine has a coin acceptor, a hopper or reels gets them, which the platform has not (D58).
+            if (devices is not null)
+            {
+                settings = settings with
+                {
+                    CoinAcceptor = devices.CoinAcceptor,
+                    Hopper = devices.Hopper,
+                    HopperLevel = devices.Hopper ? settings.HopperCapacity / 2 : settings.HopperLevel,
+                    Reels = devices.Reels,
+                    PartialPayCoins = devices.PartialPay ? 10 : 0,
+                };
+            }
+
             var machine = new FakeEgm(bus.Egm, settings);
             machine.Start();
 
@@ -461,6 +508,7 @@ public static class SoftwareMachineEnvironment
                             MachineChannelDeclaration.CapabilityFor(channel), "yes")))
                     .Concat(NonSasProgressives(progressive))
                     .Concat(Handpays(settings))
+                    .Concat(devices?.Claims() ?? [])
                     .ToDictionary(pair => pair.Key, pair => pair.Value),
                 OpenChannel = another =>
                 {
