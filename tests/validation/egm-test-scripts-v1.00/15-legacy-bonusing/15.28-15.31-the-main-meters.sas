@@ -46,6 +46,7 @@ test "15.29 a bonus reaches coin out by the machine's meter model" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
   requires machine.legacy_bonus, machine.jackpot_limit, stimulus.play, stimulus.hopper
   requires stimulus.handpay.reset, decoder.lp1B, host.meter_arithmetic
+  machine hopper on
 
   host connect loopback address 01
   host poll every 200ms

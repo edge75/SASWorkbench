@@ -12,8 +12,8 @@
 # asserted as "at least one" and the exact figure is left in a note; a note's value never moves
 # such a meter by a guessed amount.
 #
-# This build has no coin stimulus. The cases whose subject is a coin skip naming stimulus.coin; the
-# coin steps of the others are notes.
+# The platform has no coin acceptor or hopper, so the cases whose subject is a coin declare them and
+# run on a software machine built with them (D58); a coin is one accounting unit there.
 
 test "6.7 total coin in counts what is wagered and nothing else" {
   tag @egm-test-scripts @chapter-6 @needs-stimulus @needs-a-person
@@ -114,37 +114,43 @@ test "6.8 total coin out counts wins paid by the machine and nothing paid by han
 }
 
 test "6.9 credits from the coin acceptor count coins and nothing else" {
-  tag @egm-test-scripts @chapter-6 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-6 @needs-stimulus
   requires decoder.lp6F, decoder.lpAF, stimulus.bill, stimulus.coin, host.compare_replies
+  machine coin acceptor on
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
 
   host send lp 6F data 0400000800
-  host expect field meters[0].code == 8
-  host remember field meters[0].value as coins_before
+  host expect field meters[0].code == $08
+  host remember field meters[0].value as coins
   host send lp AF data 0400000800
-  host expect field meters[0].code == 8
-  host expect field meters[0].value == saved.coins_before
+  host expect field meters[0].code == $08
+  host expect field meters[0].value == saved.coins
 
+  # A note is not a coin.
   egm bill insert 2000
   host expect meter true_coin_in unchanged within 3s
 
-  # Both polls agree at the end, still on the starting value.
+  # Five coins, with no hopper to take them, so all to the drop: counted all the same.
+  egm coin insert 5
+  host expect meter true_coin_in += 5 within 3s
   host send lp 6F data 0400000800
-  host expect field meters[0].value == saved.coins_before
+  host expect field meters[0].value == saved.coins + 5
+  host remember field meters[0].value as coins
   host send lp AF data 0400000800
-  host expect field meters[0].value == saved.coins_before
+  host expect field meters[0].value == saved.coins
 
-  note "Five coins move 0008 by their value; four more with coins diverted to the drop move it by theirs too; a rejected coin moves neither 0008 nor 0000. This language has no statement for a coin yet."
+  note "A rejected coin moves neither 0008 nor 0000; this machine's acceptor rejects none."
   note "The replies match the machine's audit screen in accounting units at the start and the end."
 }
 
 test "6.10 credits from an external coin acceptor" {
-  tag @egm-test-scripts @chapter-6 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-6 @needs-stimulus
   requires decoder.lp6F, decoder.lpAF, stimulus.coin, machine.external_coin_acceptor
   requires host.compare_replies
+  machine coin acceptor external
 
   host connect loopback address 01
   host poll every 200ms
@@ -152,40 +158,98 @@ test "6.10 credits from an external coin acceptor" {
 
   host send lp 6F data 0400002700
   host expect field meters[0].code == $27
-  host expect field meters[0].size >= 1
   host remember field meters[0].value as external_coins
   host send lp AF data 0400002700
   host expect field meters[0].code == $27
   host expect field meters[0].value == saved.external_coins
+  host send lp 6F data 0400002400
+  host remember field meters[0].value as drop
 
-  note "Five coins at the external acceptor move 0027 by their value, and move total drop 0024 by the same, because those coins never reach a hopper."
-  note "At the end, after the coins, both replies agree again and match the machine's audit screen in accounting units."
+  # Five coins at the external acceptor move its meter and the drop, as they never reach a hopper.
+  egm coin insert 5
+  host send lp 6F data 0400002700
+  host expect field meters[0].value == saved.external_coins + 5
+  host remember field meters[0].value as external_coins
+  host send lp AF data 0400002700
+  host expect field meters[0].value == saved.external_coins
+  host send lp 6F data 0400002400
+  host expect field meters[0].value == saved.drop + 5
+
+  note "At the end both replies match the machine's audit screen in accounting units."
 }
 
 test "6.11 credits paid from the hopper" {
-  tag @egm-test-scripts @chapter-6 @needs-stimulus @needs-a-person
+  tag @egm-test-scripts @chapter-6 @needs-stimulus
   requires decoder.lp6F, decoder.lpAF, stimulus.coin, stimulus.hopper, stimulus.handpay, stimulus.button.collect
+  requires stimulus.bill, stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
   requires host.compare_replies
+  machine accounting denomination 5c
+  machine coin acceptor on
+  machine partial pay on
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
 
   host send lp 6F data 0400000900
-  host expect field meters[0].code == 9
+  host expect field meters[0].code == $09
   host remember field meters[0].value as hopper_paid
   host send lp AF data 0400000900
-  host expect field meters[0].code == 9
+  host expect field meters[0].code == $09
   host expect field meters[0].value == saved.hopper_paid
 
-  note "Start with no credits and no hand pay pending. One coin and a cash out moves 0009 by the coins the hopper paid; so does a note and a cash out."
-  note "With a partial pay of ten coins and a low jackpot limit, a jackpot moves 0009 by the coins the hopper paid towards it."
-  note "A cash out large enough to become a cancelled-credit hand pay leaves 0009 alone. After each step both replies agree again and end matching the audit screen."
+  # One coin and a cash out: the hopper pays it back.
+  egm coin insert 1
+  egm press collect
+  host send lp 6F data 0400000900
+  host expect field meters[0].value == saved.hopper_paid + 1
+  host remember field meters[0].value as hopper_paid
+  host send lp AF data 0400000900
+  host expect field meters[0].value == saved.hopper_paid
+
+  # A note and a cash out: twenty coins.
+  egm bill insert 100
+  egm press collect
+  host send lp 6F data 0400000900
+  host expect field meters[0].value == saved.hopper_paid + 20
+  host remember field meters[0].value as hopper_paid
+  host send lp AF data 0400000900
+  host expect field meters[0].value == saved.hopper_paid
+
+  # A jackpot over the limit: the hopper pays the ten-coin partial pay towards it.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  egm handpay reset
+  host send lp 6F data 0400000900
+  host expect field meters[0].value == saved.hopper_paid + 10
+  host remember field meters[0].value as hopper_paid
+  host send lp AF data 0400000900
+  host expect field meters[0].value == saved.hopper_paid
+
+  # A cash out over the hopper limit: the hopper pays its partial pay and nothing more.
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  egm handpay reset
+  host send lp 6F data 0400000900
+  host expect field meters[0].value == saved.hopper_paid + 10
+  host remember field meters[0].value as hopper_paid
+  host send lp AF data 0400000900
+  host expect field meters[0].value == saved.hopper_paid
+
+  note "The document has the cancelled-credit hand pay leave 0009 alone; on a machine whose partial pay applies to cash outs as well (5.4.2) the hopper pays the partial pay and no more, which is what is asserted."
+  note "After each step both replies end matching the audit screen."
 }
 
 test "6.12 credits from coins sent to the drop" {
-  tag @egm-test-scripts @chapter-6 @needs-stimulus @needs-a-person
-  requires decoder.lp6F, decoder.lpAF, stimulus.coin, host.compare_replies
+  tag @egm-test-scripts @chapter-6 @needs-stimulus
+  requires decoder.lp6F, decoder.lpAF, stimulus.coin, stimulus.hopper, host.compare_replies
+  machine coin acceptor on
+  machine hopper on
 
   host connect loopback address 01
   host poll every 200ms
@@ -198,6 +262,24 @@ test "6.12 credits from coins sent to the drop" {
   host expect field meters[0].code == $0A
   host expect field meters[0].value == saved.coins_to_drop
 
-  note "Five coins that go to the hopper leave 000A alone. Five that go to the drop move it by their value, and so do five more wagered directly as they go to the drop."
-  note "After each step both replies agree again and end matching the audit screen in accounting units."
+  # Coins the hopper has room for leave 000A alone.
+  egm hopper level 500
+  egm coin insert 5
+  host send lp 6F data 0400000A00
+  host expect field meters[0].value == saved.coins_to_drop + 0
+  host remember field meters[0].value as coins_to_drop
+  host send lp AF data 0400000A00
+  host expect field meters[0].value == saved.coins_to_drop
+
+  # A full hopper sends them to the drop.
+  egm hopper level 1000
+  egm coin insert 5
+  host send lp 6F data 0400000A00
+  host expect field meters[0].value == saved.coins_to_drop + 5
+  host remember field meters[0].value as coins_to_drop
+  host send lp AF data 0400000A00
+  host expect field meters[0].value == saved.coins_to_drop
+
+  note "Five more wagered directly as they go to the drop move it by their value as well; this machine takes coins onto the credit meter only."
+  note "After each step both replies end matching the audit screen in accounting units."
 }

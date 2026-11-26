@@ -53,15 +53,82 @@ test "11.1 reporting is enabled and disabled by long poll 0E" {
 # Every exception in the document's Table 11.1, in the event format. Producing them all means
 # producing the whole of chapter 4, faults included.
 test "11.2 every exception follows the mode" {
-  tag @egm-test-scripts @chapter-11 @needs-a-person
+  tag @egm-test-scripts @chapter-11 @needs-stimulus @destructive
   requires machine.memory_fault, machine.power_cycle, machine.audit_menu
   requires stimulus.handpay, stimulus.coin, stimulus.hopper
   requires stimulus.note_fault, stimulus.printer_fault, stimulus.reel
   requires stimulus.button.service
+  requires stimulus.real_time_events, stimulus.settle, stimulus.bill, stimulus.handpay.jackpot
+  requires stimulus.handpay.reset, decoder.lp0E
+  machine handpay legacy
+  machine coin acceptor on
+  machine hopper on
+  machine reels on
 
-  note "With reporting on, create each exception the document's Table 11.1 lists, by the means its own column gives, and check the message against the format that column specifies - address, marker $FF, code, payload, check sequence."
-  note "Then stop polling, create the same exception again, and send a poll to 00, a general poll and the identification poll: the general poll carries it in the event format."
-  note "The table runs the length of chapter 4 - memory and EPROM faults, hand pay, coin and hopper tilts, note faults, printer faults, reel tilts, the change lamp, the audit menus and the notes accepted - which is why this one case needs all of it."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # Reporting on: every exception below arrives in the event format, address, marker, code, payload.
+  host send lp 0E data 01
+
+  # Hand pay, in legacy reporting so the reset is reported without a long poll on a busy queue.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 8s
+  egm handpay reset
+  host expect exception handpay_was_reset within 8s
+
+  # Coin and hopper tilts.
+  egm coin fault tilt
+  host expect exception coin_in_tilt within 8s
+  egm coin fault cleared
+  egm hopper fault jam
+  host expect exception coin_out_tilt within 8s
+  egm hopper fault cleared
+  egm hopper fault empty
+  host expect exception hopper_empty within 8s
+  egm hopper fault cleared
+  egm hopper fault runaway
+  host expect exception extra_coin_paid within 8s
+  egm hopper fault cleared
+  egm coin fault diverter
+  host expect exception diverter_malfunction within 8s
+  egm coin fault cleared
+
+  # Note, printer and reel faults.
+  egm note fault jam
+  host expect exception bill_jam within 8s
+  egm note fault cleared
+  egm printer fault paper_out
+  host expect exception printer_paper_out_error within 8s
+  egm printer fault cleared
+  egm reel fault tilt
+  host expect exception reel_tilt within 8s
+  egm reel fault cleared
+
+  # The change lamp, the audit menu and a note accepted.
+  egm press service
+  host expect exception change_lamp_on within 8s
+  egm press service
+  host expect exception change_lamp_off within 8s
+  egm menu attendant enter
+  host expect exception display_meters_or_attendant_menu_entered within 8s
+  egm menu attendant leave
+  host expect exception display_meters_or_attendant_menu_exited within 8s
+  egm bill insert 2000
+  host expect exception bill_accepted within 8s
+
+  # A memory fault last, since the memory clear that follows starts the library again with reporting off.
+  host forget exceptions within 2s
+  egm memory fault cmos-lost
+  host expect exception cmosram_error_no_data_recovered within 8s
+  egm nvram clear
+  host expect link up within 30s
+
+  note "With reporting on this host reads each exception in the event format the document's Table 11.1 gives it; a bare code would not match. Power and EPROM faults are produced in chapter 4."
+  note "Then stop polling, create the same exception again, and send a poll to 00, a general poll and the identification poll: the general poll carries it in the event format. This host cannot stop its general polls (D40), so that half stays with a person."
 }
 
 # The queue drains in the event format, oldest first, however many are waiting.

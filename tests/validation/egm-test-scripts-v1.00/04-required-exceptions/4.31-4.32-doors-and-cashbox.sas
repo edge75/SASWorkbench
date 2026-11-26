@@ -49,9 +49,30 @@ test "4.31 every door reports its own pair" {
 # The cashbox is not a door: it is the box, and removing it has its own pair. Nothing here can lift
 # one out.
 test "4.32 the cashbox reports being removed and installed" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.cashbox
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.cashbox, stimulus.settle, stimulus.door.slot, stimulus.door.cashbox
 
-  note "Open whatever doors the cashbox is behind - usually the slot door and a cashbox door - and each reports its own opened exception, as in 4.31."
-  note "Remove the cashbox: one $1B on a general poll, if the machine has a cashbox sensor. Replace it: one $1C. Then close the doors that were opened, each reporting its own closed exception."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm door slot open
+  host expect exception slot_door_opened within 8s
+  egm door cashbox open
+  host expect exception cashbox_door_opened within 8s
+
+  egm cashbox removed
+  host expect exception cashbox_removed within 8s
+  egm cashbox installed
+  host expect exception cashbox_installed within 8s
+
+  egm door cashbox close
+  host expect exception cashbox_door_closed within 8s
+  egm door slot close
+  host expect exception slot_door_closed within 8s
+
+  note "At the cabinet the cashbox is usually behind the slot door and a cashbox door. A machine without a cashbox sensor owes no $1B or $1C."
 }

@@ -29,6 +29,7 @@ test "15.13 the hand on a card game" {
 test "15.14 the physical reel stops" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
   requires machine.physical_reels, stimulus.bill, stimulus.play, decoder.lp8F
+  machine reels on
 
   host connect loopback address 01
   host poll every 200ms
@@ -39,6 +40,10 @@ test "15.14 the physical reel stops" {
 
   egm play games=1 bet=1
   host send lp 8F
+  host expect field reel_1 of lp 8F != $FF
+  host expect field reel_5 of lp 8F != $FF
+  host expect field reel_6 of lp 8F == $FF
+  host expect field reel_9 of lp 8F == $FF
 
   note "Each position must be where that reel physically stopped, leftmost reel first, read on the centre line of a multi-line game. A machine with fewer than nine reels pads the rest with $FF; one with more reports the first nine. Which bytes are reels and which are padding depends on the machine, so the frames are a person's to read."
 }

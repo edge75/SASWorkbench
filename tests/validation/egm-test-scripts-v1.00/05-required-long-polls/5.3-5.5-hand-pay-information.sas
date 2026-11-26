@@ -40,13 +40,32 @@ test "5.3.1 a jackpot hand pay with no partial pay" {
 }
 
 test "5.3.2 a jackpot hand pay with a partial pay" {
-  tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.partial_pay, stimulus.hopper, stimulus.handpay.jackpot
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-5 @needs-stimulus
+  requires machine.partial_pay, stimulus.hopper, stimulus.handpay.jackpot, stimulus.handpay.reset
+  requires stimulus.settle, decoder.lp1B
+  machine accounting denomination 5c
+  machine partial pay on
 
-  note "Configure the machine for a hand pay queue, a low jackpot limit and a partial pay of ten coins. Play until a jackpot hand pay: $51 on a general poll, and ten coins leave the hopper."
-  note "Read the hand pay information: as in 5.3.1, except that the amount is the jackpot less the partial pay, and the partial pay field is what the hopper paid, both in accounting units. Reset the hand pay: $52."
-  note "A machine that does not offer partial pays passes by saying so; this build has no way to configure one or to watch a hopper pay."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Ten coins leave the hopper towards the jackpot; the attendant owes the rest.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field progressive_group of lp 1B == 0
+  host expect field level of lp 1B == 0
+  host expect field amount of lp 1B == 29990
+  host expect field partial_pay of lp 1B == 10
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "Configure the machine for a hand pay queue, a low jackpot limit and a partial pay of ten coins, a coin being one accounting unit. A machine that does not offer partial pays passes by saying so."
 }
 
 test "5.4.1 a cancelled-credit hand pay with no partial pay" {
@@ -79,13 +98,34 @@ test "5.4.1 a cancelled-credit hand pay with no partial pay" {
 }
 
 test "5.4.2 a cancelled-credit hand pay with a partial pay" {
-  tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.partial_pay, stimulus.hopper, stimulus.handpay
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-5 @needs-stimulus
+  requires machine.partial_pay, stimulus.hopper, stimulus.handpay, stimulus.bill, stimulus.button.collect
+  requires stimulus.handpay.reset, stimulus.settle, decoder.lp1B
+  machine accounting denomination 5c
+  machine handpay legacy
+  machine partial pay on
 
-  note "Configure the machine for legacy hand pay, a low hopper limit and a partial pay of ten coins. Put credits above the limit on it and cash out: $51."
-  note "Read the hand pay information: as in 5.4.1, except that the amount is the cash out less what the hopper paid, and the partial pay field is that payment, both in accounting units. Reset the hand pay: $52."
-  note "Some machines do not offer partial pays, and some count the coins as an ordinary machine pay before the hand pay; either is a pass when the reply says so consistently."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Over the hopper limit: ten coins from the hopper, the rest by hand.
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field level of lp 1B == $80
+  host expect field amount of lp 1B == 390
+  host expect field partial_pay of lp 1B == 10
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "Configure the machine for legacy hand pay, a low hopper limit and a partial pay of ten coins. Some machines count the coins as an ordinary machine pay before the hand pay; either is a pass when the reply says so consistently."
 }
 
 # The legacy form keeps one hand pay and forgets it on the reset, whether or not it was ever read.

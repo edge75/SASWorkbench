@@ -6,8 +6,8 @@
 # sends $52 when the attendant resets it whether or not the host ever asked. Both are conforming
 # and the cases are written to tell them apart rather than to prefer one.
 #
-# Nothing here can create a hand pay. It needs a jackpot win over the machine's limit, or credits
-# over its hopper limit and a cash out, and this build has no stimulus for either.
+# A hand pay is a jackpot win over the machine's limit, or credits over its hopper limit and a cash
+# out. The platform has no hopper, so the cash-out cases declare one (D58).
 
 test "4.21.1 a jackpot win raises hand pay pending" {
   tag @egm-test-scripts @chapter-4 @needs-stimulus
@@ -33,24 +33,70 @@ test "4.21.1 a jackpot win raises hand pay pending" {
 }
 
 test "4.21.2 a cash out over the hopper limit raises hand pay pending" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay, stimulus.hopper
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay, stimulus.hopper, stimulus.bill, stimulus.button.collect
+  requires stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
+  machine hopper on
 
-  note "Insert money until the credit meter is above the machine's hopper payout limit, then bring the link up and press cash out: one hand pay pending $51 on a general poll."
-  note "Read the hand pay information and reset the hand pay when the case is done."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field level of lp 1B == $80
+  host expect field amount of lp 1B != 0
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "At the cabinet: insert money until the credit meter is above the hopper payout limit, then press cash out."
 }
 
 # The queue form, in full: reissued every fifteen seconds, surviving a power cycle, and closed by
 # $52 only after the host has read it.
 test "4.22 a queued hand pay is reissued every fifteen seconds" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires stimulus.handpay, stimulus.hopper, machine.power_cycle
+  tag @egm-test-scripts @chapter-4 @needs-stimulus @destructive
+  requires stimulus.handpay, stimulus.hopper, machine.power_cycle, stimulus.bill, stimulus.button.collect
+  requires stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
+  machine hopper on
 
-  note "Configure the machine for a hand pay queue and a small hopper payout limit. Put credits above that limit on it, bring the link up and press cash out: $51 on the next general poll, and again every fifteen seconds for two minutes."
-  note "Power cycle the machine. Once it answers polls again, $51 on the next general poll and every fifteen seconds after - the hand pay is in non-volatile memory."
-  note "Read the hand pay information and reset the hand pay: one $52 on the next general poll, and no more $51 for the next two minutes."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Over the hopper limit: $51, and again fifteen seconds later.
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  host expect exception handpay_is_pending within 20s
+
+  # The hand pay is in non-volatile memory, so a power cycle does not end it.
+  egm power cycle
+  host expect link up within 120s
+  host expect exception handpay_is_pending within 20s
+
+  # Read and reset: one $52, and no more $51.
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host forget exceptions within 2s
+  host expect no exception handpay_is_pending within 20s
+
+  note "Configure the machine for a hand pay queue and a small hopper payout limit. The document watches for two minutes at each stage; this case watches for twenty seconds, more than one reissue period."
 }
 
 test "4.23.1 one hand pay, read once" {
@@ -144,21 +190,83 @@ test "4.23.2 two hand pays, in turn" {
 # The legacy form, which is the opposite shape: $51 once, $52 on the reset, and the host's reading
 # has nothing to do with either.
 test "4.24 a legacy hand pay is sent once and reset by the attendant" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires stimulus.handpay, stimulus.hopper, machine.power_cycle
+  tag @egm-test-scripts @chapter-4 @needs-stimulus @destructive @finding
+  requires stimulus.handpay, stimulus.hopper, machine.power_cycle, stimulus.bill, stimulus.button.collect
+  requires stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
+  machine handpay legacy
+  machine hopper on
 
-  note "Configure the machine for legacy hand pay if it offers it, with small hopper and jackpot limits. Put credits above the hopper limit on it and press cash out: one $51, and no more for a minute. Power cycle: still no more."
-  note "Reset the hand pay at the machine: one $52 on a general poll."
-  note "Then play until a jackpot win occurs: one $51, no repeats for a minute, and one $52 when it is reset."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # A cash out over the hopper limit: one $51, and no more.
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  host expect no exception handpay_is_pending within 20s
+
+  # @finding: at power-up the library writes $51 again for a hand pay awaiting its reading, in legacy
+  # reporting too (libsas_internal.cpp:887).
+  egm power cycle
+  host expect link up within 120s
+  host expect no exception handpay_is_pending within 20s
+
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host forget exceptions within 2s
+
+  # A jackpot: one $51, no repeats, and one $52 on the reset.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host expect no exception handpay_is_pending within 20s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  note "Configure the machine for legacy hand pay with small hopper and jackpot limits. The document watches for a minute at each stage; this case watches for twenty seconds."
 }
 
 # A player who changes their mind. $55 follows $51 and is not sent when there was no cash out
 # request to cancel.
 test "4.25 a cancelled cash out" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay, stimulus.hopper
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay, stimulus.hopper, stimulus.handpay.cancel, stimulus.bill, stimulus.button.collect
+  requires stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp1B
+  machine hopper on
 
-  note "Only for machines where the player can cancel a cash out. With a small hopper payout limit and credits above it, press cash out: one $51. Cancel the request: one $55."
-  note "Press cash out again: one $51. Reset the hand pay at the machine: one $52. Try to cancel now: no $55 - there is nothing left to cancel."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Cancelled before the attendant came: $55 follows $51.
+  egm set hopper limit 1000
+  egm bill insert 2000
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  egm handpay cancel
+  host expect exception player_cancelled_handpay_request within 10s
+  host forget exceptions within 2s
+
+  # The credits are back, so a second cash out is a second hand pay, and this one is paid.
+  egm press collect
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  # Nothing is left to cancel.
+  egm handpay cancel
+  host expect no exception player_cancelled_handpay_request within 5s
+
+  note "Only for machines where the player can cancel a cash out. In a hand pay queue the reset is reported once the host has read the hand pay, so the case reads it first."
 }
