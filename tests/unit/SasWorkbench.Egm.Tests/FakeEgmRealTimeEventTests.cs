@@ -252,24 +252,23 @@ public class FakeEgmRealTimeEventTests
     }
 
     /// <summary>
-    /// The library's own behaviour, modelled rather than smoothed over: with reporting off it
-    /// dequeues one of the four event-only exceptions and then sends nothing at all, so that
-    /// general poll goes unanswered. A host that reads silence as "nothing queued" is being told
-    /// something false, and a test should be able to see it.
+    /// With reporting off the library does not queue the four event-only exceptions at all
+    /// (libsas_internal.cpp:3962), so no general poll goes unanswered and none of them arrives.
     /// </summary>
     [Fact]
-    public void An_event_only_exception_costs_a_general_poll_its_answer_when_reporting_is_off()
+    public void An_event_only_exception_is_not_queued_while_reporting_is_off()
     {
-        // A short timeout, because this is the one test that measures silence: on the usual one a
-        // single unanswered poll takes five seconds to be counted as one.
+        // A short timeout, so a silence would be counted quickly if one happened.
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(200));
 
         Assert.True(Wait(() => rig.Host.Statistics.GeneralPolls >= 3));
         long silencesBefore = rig.Host.Statistics.Silences;
+        long pollsBefore = rig.Host.Statistics.GeneralPolls;
 
         rig.Machine.RaiseEvent((byte)SasExceptionCode.ReelNStopped, 0x01, 0x0A);
 
-        Assert.True(Wait(() => rig.Host.Statistics.Silences > silencesBefore));
+        Assert.True(Wait(() => rig.Host.Statistics.GeneralPolls >= pollsBefore + 10));
+        Assert.Equal(silencesBefore, rig.Host.Statistics.Silences);
         Assert.DoesNotContain(rig.Reports, r => r.Code == (byte)SasExceptionCode.ReelNStopped);
     }
 

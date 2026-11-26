@@ -97,6 +97,13 @@ public static partial class CapabilityProbe
                 ["stimulus.select_game"] = "yes",
                 ["stimulus.select_denomination"] = "yes",
 
+                // It plays the game the player chose, recalls a past game as the platform's audit replay does, and
+                // answers busy where the platform tells the library it is (D59).
+                [PlayedGameCapabilities.PlayGame] = "yes",
+                [PlayedGameCapabilities.GameRecall] = "yes",
+                [PlayedGameCapabilities.GameRecallStimulus] = "yes",
+                [PlayedGameCapabilities.GameBusy] = "yes",
+
                 // The operator sets the poll address in the network menu, and saving it restarts the link there.
                 ["machine.address_configuration"] = "yes",
 
@@ -135,6 +142,7 @@ public static partial class CapabilityProbe
                 [MachineDevicesDeclaration.HopperCapability] = "yes",
                 [MachineDevicesDeclaration.ReelsCapability] = "yes",
                 [MachineDevicesDeclaration.PartialPayCapability] = "yes",
+                [MachineDevicesDeclaration.BetButtonCapability] = "yes",
 
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",
@@ -177,6 +185,12 @@ public static partial class CapabilityProbe
                 ["stimulus.select_denomination"] = "yes",
                 ["stimulus.bet_button"] = "yes",
                 ["machine.player_input_state"] = "yes",
+
+                // A person plays the game chosen, opens the recall screen, and keeps the machine busy where it can be (D59).
+                [PlayedGameCapabilities.PlayGame] = "yes",
+                [PlayedGameCapabilities.GameRecall] = "yes",
+                [PlayedGameCapabilities.GameRecallStimulus] = "yes",
+                [PlayedGameCapabilities.GameBusy] = "yes",
 
                 // A person sets the machine's poll address in its configuration screens.
                 ["machine.address_configuration"] = "yes",

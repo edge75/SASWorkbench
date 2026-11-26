@@ -1030,3 +1030,35 @@ when QSP implements one, the cases run unchanged.
   hopper pays what it has and raises $23; a partial pay is ten coins.
 
 The design note is `docs/M9-software-machine-coin-hopper-reels.md`.
+
+---
+
+# Decision 59
+
+Taken while building group 15 of M9 on 2026-11-26, without the user, under D58; open to review like any other.
+
+## D59 — The player chooses the game played, a case adds up each game's meters, and a bet button is declared
+
+* **A play names its game by selecting it first** (`egm select game`, D54), so `stimulus.play.game` is offered by
+  the software and manual backends; no new play step.
+* **The host adds up games itself.** Remembered values and their sums already exist (`host.meter_arithmetic`), so
+  `host.game_meter_delta` is the host's own, as is `host.length_prefixed_silence`: silence on $6F, $AF or any poll
+  whose length is in the message is asserted once its length byte matches its data, since the library frames it from
+  that byte. A per-game case declares exactly two games and says in a note that a real machine is enabled with two
+  and the case repeated per pair, because the language has no loops.
+* **`host expect busy reply to lp <hh>`** asserts the address followed by 00 (`host.busy_reply`), and
+  `machine.game_busy` is claimed by the software and manual backends: the platform answers $8A busy while a door is
+  open, a tilt is active or the host has shut the machine down.
+* **The recall screen is the platform's**: `egm game recall <index>` reports $8A with the replayed game's number and
+  the index, as its audit replay does.
+* **The bet-one button is declared** (`machine bet button on`), the D58 pattern: each press commits a credit up to a
+  maximum bet of five and raises $89, and the machine answers $1F on an idle general poll while that wager waits.
+  Only a machine built with it claims `stimulus.bet_button` and `machine.player_input_state`.
+* **The software machine follows the platform's meter table** for total won (coin out and jackpot) and for each kind
+  of ticket, and the library's per-game reads for $83 and $9A. The platform writes only the machine's legacy bonus
+  meters, so $9A for a game reads zero (finding 15.27); a declared multiplied jackpot, which the platform lacks,
+  writes the game's meter as well.
+* **Event-only exceptions are not queued while reporting is off**, as the library has it (`libsas_internal.cpp:3962`),
+  where the machine had queued them and then left a general poll unanswered.
+
+The design note is `docs/M9-software-machine-played-game.md`.

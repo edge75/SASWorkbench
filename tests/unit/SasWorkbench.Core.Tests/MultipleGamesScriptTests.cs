@@ -62,7 +62,7 @@ public sealed class MultipleGamesScriptTests
     }
 
     [Fact]
-    public void A_bet_button_and_a_machine_waiting_for_the_player_are_offered_only_by_a_person()
+    public void A_bet_button_and_a_machine_waiting_for_the_player_are_offered_by_a_person_and_otherwise_only_when_declared()
     {
         IReadOnlyDictionary<string, string?> software = CapabilityProbe.ForStimulus(StimulusBackend.Software);
         IReadOnlyDictionary<string, string?> manual = CapabilityProbe.ForStimulus(StimulusBackend.Manual);

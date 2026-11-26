@@ -183,6 +183,9 @@ public sealed record FakeEgmOptions
     /// <summary>How many coins the hopper pays towards a hand pay before the attendant pays the rest; zero offers no partial pay.</summary>
     public int PartialPayCoins { get; init; }
 
+    /// <summary>Whether the player has a bet-one button; off, as the platform has none (D59).</summary>
+    public bool BetButton { get; init; }
+
     /// <summary>
     /// Which currency this machine's note acceptor reports, as the protocol's own country code.
     /// </summary>

@@ -164,7 +164,7 @@ test "15.8 a bonus sent with a door open is turned away" {
   host forget exceptions within 2s
   host send lp 6F data 0400000C00
   host remember field meters[0].value as credits
-  host send lp 8A data 0000000500
+  host expect busy reply to lp 8A data 0000000500
   host send lp 6F data 0400000C00
   host expect field meters[0].value == saved.credits
 
@@ -178,6 +178,6 @@ test "15.8 a bonus sent with a door open is turned away" {
   host expect field meters[0].value == saved.credits + 5
 
   note "Before the run, enable legacy bonusing and leave the machine idle."
-  note "With the door open the answer to the bonus is the machine's address followed by 00 - busy - rather than an acknowledgement. This build cannot assert a busy answer as such (host.busy_reply), so it is read in the frames."
+  note "With the door open the answer to the bonus is the machine's address followed by 00 - busy - rather than an acknowledgement."
   note "Repeat for every other state that stops play and that the machine has: maintenance, game recall."
 }

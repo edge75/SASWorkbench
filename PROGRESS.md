@@ -283,3 +283,4 @@ PHASE:M8 WAVE:software-machine-misc STATUS:complete TS:2026-11-25T11:38:58Z
 PHASE:M8 WAVE:software-machine-case-bodies STATUS:complete TS:2026-11-25T16:32:29Z
 PHASE:M8 WAVE:guide-1.4 STATUS:complete TS:2026-11-26T06:00:41Z
 PHASE:M9 WAVE:software-machine-coin-hopper-reels STATUS:complete TS:2026-11-26T14:00:07Z
+PHASE:M9 WAVE:software-machine-played-game STATUS:complete TS:2026-11-26T17:36:36Z

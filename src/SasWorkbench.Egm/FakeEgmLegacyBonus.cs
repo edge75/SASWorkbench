@@ -277,7 +277,8 @@ public sealed partial class FakeEgm
             Meters.Increment(SasMeterCode.TotalMachinePaidExternalBonusWin_Crd, credits);
         }
 
-        // A bonus from $8A has no multiplier and no multiplied win (SasNetwork_AftTransfer.hpp:1738).
+        // A bonus from $8A has no multiplier and no multiplied win (SasNetwork_AftTransfer.hpp:1738); the platform writes the machine's
+        // legacy meter alone (:1745) and the library in full manual moves no game's (libsas.cpp:2617), so no game's moves here.
         _legacyMeters[taxStatus] += credits;
         RaiseLegacyBonusAwardLocked(new LegacyBonusAward(0x00, 0, taxStatus, credits));
     }
@@ -298,7 +299,7 @@ public sealed partial class FakeEgm
         };
     }
 
-    /// <summary>What long poll $9A answers: the three legacy meters, which on a machine with one game are its own.</summary>
+    /// <summary>What long poll $9A answers: the machine's three legacy meters for game zero or a single game, otherwise the game's.</summary>
     private Dictionary<string, object>? LegacyBonusMeters(SasMessageLayout layout, ReadOnlySpan<byte> request)
     {
         // A game past the last is silence (lp.cpp:9330).
@@ -307,12 +308,14 @@ public sealed partial class FakeEgm
 
         lock (_gate)
         {
+            // A game of a multi-game machine answers its own meters, which the platform never writes (D59).
+            long[] meters = HasGameTable && game > 0 ? GameLocked(game)?.LegacyMeters ?? new long[LegacyTaxStatuses] : _legacyMeters;
             return new Dictionary<string, object>
             {
                 ["game_number"] = game,
-                ["deductible"] = _legacyMeters[0],
-                ["non_deductible"] = _legacyMeters[1],
-                ["wager_match"] = _legacyMeters[2],
+                ["deductible"] = meters[0],
+                ["non_deductible"] = meters[1],
+                ["wager_match"] = meters[2],
             };
         }
     }

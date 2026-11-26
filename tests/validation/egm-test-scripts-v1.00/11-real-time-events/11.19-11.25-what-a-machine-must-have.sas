@@ -50,20 +50,87 @@ test "11.20 each reel comes to rest" {
 
 test "11.21 each credit committed as a wager" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires stimulus.bet_button
+  machine bet button on
+  requires stimulus.bet_button, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Five presses on a machine whose largest bet is five: one $89 for each, and none for a sixth.
+  egm press bet
+  egm press bet
+  egm press bet
+  egm press bet
+  egm press bet
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  egm press bet
+  host expect no exception coin_or_credit_wagered within 3s
+
+  egm play games=1 bet=5 win=0
+  host expect exception game_ended within 8s
+
+  # Off: the event is sent in no other format.
+  host forget exceptions within 2s
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  egm press bet
+  host expect no exception coin_or_credit_wagered within 5s
 
   note "Only for machines whose maximum bet is ten credits or fewer. With reporting on and credits on the machine, press bet-one up to the maximum: one $89 for each credit committed, in the event format with no payload."
-  note "Play the game, turn reporting off, and press bet-one again: no $89 in answer to any poll."
+  note "Before the run, set the maximum bet to five credits, or change the number of presses to the machine's maximum."
 }
 
 test "11.22 a past game put back on screen" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires machine.game_recall
-  requires decoder.lp55
+  machine games 1c 2c
+  requires machine.game_recall, stimulus.game_recall, machine.multiple_games, stimulus.select_game
+  requires stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.lp55, decoder.event8A
 
-  note "With reporting on, select a game and play it, then read the selected game number: the machine answers with that number as two BCD digits."
-  note "Enter the game recall screen: one $8A carrying the same game number and a recall index of zero. Move to the game before it: the index reads one. On a machine with one game the number reads zero."
-  note "Leave the screen, turn reporting off, and enter it again: $8A comes back as one bare byte on a general poll rather than as an event."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  egm select game 1
+  egm play games=1 bet=1 win=0
+  egm select game 2
+  egm play games=1 bet=1 win=0
+  host forget exceptions within 2s
+  host send lp 55
+  host expect field selected_game of lp 55 == 2
+
+  # The last game played, then the one before it.
+  egm game recall 0
+  host expect field game_number of event game_recall_entry_displayed == 2 within 8s
+  host expect field recall_index of event game_recall_entry_displayed == 0 within 1s
+  host forget exceptions within 2s
+  egm game recall 1
+  host expect field game_number of event game_recall_entry_displayed == 1 within 8s
+  host expect field recall_index of event game_recall_entry_displayed == 1 within 1s
+
+  # Off: the same entry comes back as a bare code on a general poll.
+  host forget exceptions within 2s
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  egm game recall 0
+  host expect exception game_recall_entry_displayed within 8s
+
+  note "The machine is declared with two games, so the number is the game's own; on a machine with one game the document has it read zero, which a single-game machine is left to show."
+  note "Before the run, enable two games and play each once, the second last."
 }
 
 test "11.23 which cards were held" {

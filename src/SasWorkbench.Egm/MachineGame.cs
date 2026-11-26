@@ -52,4 +52,7 @@ internal sealed class MachineGame(int number, int cents, int maxBet, int payback
 
     /// <summary>The game's own meters.</summary>
     public MeterStore Meters { get; } = new();
+
+    /// <summary>The game's own deductible, non-deductible and wager match legacy bonus meters, as $9A reads them.</summary>
+    public long[] LegacyMeters { get; } = new long[3];
 }

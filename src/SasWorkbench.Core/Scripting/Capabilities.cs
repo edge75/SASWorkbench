@@ -146,6 +146,13 @@ public static partial class CapabilityProbe
             ["host.compare_replies"] = "yes",
             ["host.meter_arithmetic"] = "yes",
 
+            // With those two a case adds up each game's movement and compares it with the machine's; it asserts
+            // silence on a poll that carries its own length once that length matches its data; and it tells the
+            // busy reply from an answer (D59).
+            [PlayedGameCapabilities.GameMeterDelta] = "yes",
+            [PlayedGameCapabilities.LengthPrefixedSilence] = "yes",
+            [PlayedGameCapabilities.BusyReply] = "yes",
+
             // In a sequence the host can listen to a quiet line for the loop-break chirp, send a poll
             // whose address byte carries no wakeup bit, and time how often an exception comes again.
             // Every transport this build opens carries the bit per symbol, so each can leave it off.

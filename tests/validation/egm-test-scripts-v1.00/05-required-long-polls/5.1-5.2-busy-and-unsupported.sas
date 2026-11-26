@@ -4,13 +4,31 @@
 # and not a silence. A poll it does not implement, or one that is not defined at all, gets nothing
 # back - a refusal with the wakeup bit would claim the poll was understood.
 
-# Busy is something the machine decides for itself, and nothing here can make it happen on demand.
+# Busy is something the machine decides for itself; the case opens a door, which the platform counts as busy.
 test "5.1 a busy machine answers a long poll with zero" {
   tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.game_busy
+  requires machine.game_busy, machine.legacy_bonus, stimulus.door.main, host.busy_reply
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # With the door open the machine cannot pay a bonus, and says so with the busy reply rather than an acknowledgement.
+  egm door main open
+  host forget exceptions within 2s
+  host expect busy reply to lp 8A data 0000000500
+
+  # Shut again, the same poll is served.
+  egm door main close
+  host forget exceptions within 2s
+  host send lp 8A data 0000000500
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
 
   note "Keep the machine busy - play as fast as it allows, print a ticket, or pay from the hopper - while the host polls. Any long poll it cannot serve in that moment is answered with its address followed by the single byte 00."
-  note "A general poll during the same moment may draw exception $01 instead. Ask the manufacturer how to make the machine busy; some cannot be made busy at all, which is not a failure."
+  note "Which polls a machine answers busy, and when, is its own: this one answers the legacy bonus poll busy while a door is open. Ask the manufacturer how to make the machine busy; some cannot be made busy at all, which is not a failure."
+  note "A general poll during the same moment may draw exception $01 instead."
 }
 
 # The undefined half runs. The defined-but-unsupported half needs the manufacturer to name one.

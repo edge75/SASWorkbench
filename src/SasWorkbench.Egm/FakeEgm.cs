@@ -454,6 +454,10 @@ public sealed partial class FakeEgm : IDisposable
         //  told about a printed ticket, and neither consumes the other's copy.
         lock (_gate)
         {
+            // An event-only exception is not queued while reporting is off (libsas_internal.cpp:3962).
+            if (SasEventLayouts.RealTimeOnly.Contains(code) && !_rteEnabled)
+                return;
+
             foreach (MachineLink link in _links)
             {
                 if (!Channels.Hears(link.Channel, code))
@@ -645,6 +649,10 @@ public sealed partial class FakeEgm : IDisposable
         // makes the accounting denomination visible at all: the cents meter reads the same at
         // every denomination while this one moves with the unit.
         Meters.Increment(SasMeterCode.TotalTicketOut_Crd, credits);
+
+        // And the cashable ticket out totals the platform keeps beside them (QSP SasNetwork_Meters.hpp:683, :758).
+        Meters.Increment(SasMeterCode.TotalCashableTicketOut_Crd, credits);
+        Meters.Increment(SasMeterCode.TotalCashableTicketOut_Qty, 1);
     }
 
     /// <summary>Files a printed ticket in the wallet and records it as the last one printed.</summary>
@@ -789,6 +797,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         // A new round has won nothing on its progressive levels yet (QSP ProgressiveWonInRound.RoundStarted).
         _roundProgressiveCents = 0;
+        NoteGameStartedLocked();
         CaptureRoundMultiplierLocked(betCredits);
         RaiseEvent((byte)SasExceptionCode.GameStarted,
         [
@@ -1172,7 +1181,7 @@ public sealed partial class FakeEgm : IDisposable
 
         if (queued is not { } event_)
         {
-            Send(link, [SasSymbol.Data8(0x00)]);
+            Send(link, [SasSymbol.Data8(IdleCode())]);
             return;
         }
 
@@ -1236,7 +1245,7 @@ public sealed partial class FakeEgm : IDisposable
     {
         link.Frame[0] = link.Address.Value;
         link.Frame[1] = SasEventLayouts.Marker;
-        link.Frame[2] = queued?.Code ?? 0x00;
+        link.Frame[2] = queued?.Code ?? IdleCode();
 
         int length = SasEventLayouts.HeaderLength;
         if (queued is { } event_)

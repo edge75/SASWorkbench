@@ -15,7 +15,8 @@ public enum CoinAcceptorKind
 
 /// <summary>
 /// The coin-handling devices and reels a case assumes the machine has, written <c>machine coin acceptor on|external</c>,
-/// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58).
+/// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58), and the bet-one button,
+/// <c>machine bet button on</c> (D59).
 /// </summary>
 /// <remarks>
 /// A declaration in the sense of <see cref="MachineDeclaration"/>: whether a cabinet has a hopper or reels is its
@@ -28,9 +29,16 @@ public enum CoinAcceptorKind
 /// <param name="Hopper">The machine pays coins from a hopper.</param>
 /// <param name="Reels">The machine has physical reels.</param>
 /// <param name="PartialPay">The hopper pays part of a hand pay before the attendant pays the rest.</param>
+/// <param name="BetButton">
+/// The player commits credits one at a time with a bet-one button, at a maximum bet of five, and the machine reports a
+/// wager placed and not yet played as waiting for the player.
+/// </param>
 public sealed record MachineDevicesDeclaration(
-    SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay)
+    SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay, bool BetButton = false)
 {
+    /// <summary>The capability a machine with a bet-one button carries.</summary>
+    public const string BetButtonCapability = "machine.bet_button";
+
     /// <summary>The capability a machine with a coin acceptor carries.</summary>
     public const string CoinAcceptorCapability = "machine.coin_acceptor";
 
@@ -59,6 +67,8 @@ public sealed record MachineDevicesDeclaration(
             yield return new Requirement(Location, ReelsCapability);
         if (PartialPay)
             yield return new Requirement(Location, PartialPayCapability);
+        if (BetButton)
+            yield return new Requirement(Location, BetButtonCapability);
     }
 
     /// <summary>The capabilities a software machine built this way claims, its stimuli included.</summary>
@@ -77,6 +87,11 @@ public sealed record MachineDevicesDeclaration(
 
         if (Reels)
             yield return new(DeviceStimuli.Reel, "yes");
+        if (BetButton)
+        {
+            yield return new(PlayedGameCapabilities.BetButton, "yes");
+            yield return new(PlayedGameCapabilities.PlayerInputState, "yes");
+        }
     }
 
     public override string ToString() =>
@@ -91,5 +106,6 @@ public sealed record MachineDevicesDeclaration(
             Hopper ? "hopper on" : null,
             Reels ? "reels on" : null,
             PartialPay ? "partial pay on" : null,
+            BetButton ? "bet button on" : null,
         }.OfType<string>());
 }
