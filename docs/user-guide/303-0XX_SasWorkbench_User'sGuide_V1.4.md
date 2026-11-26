@@ -2,7 +2,7 @@
 
 **User Guide**
 
-Document 303-0XX, version 1.3
+Document 303-0XX, version 1.4
 
 **Document revision history**
 
@@ -12,12 +12,13 @@ Document 303-0XX, version 1.3
 | 1.1 | 31/10/2026 | Describes SasWorkbench 0.2.2: the `when` condition of `host send lp` and `sasctl nvram denomination`; the release state is corrected. | Alessio Brizi |
 | 1.2 | 09/11/2026 | Describes SasWorkbench 0.2.3: the `host warm up`, hand pay, power cycle and memory fault steps, more manual stimuli, and `sasctl nvram games`. | Alessio Brizi |
 | 1.3 | 11/11/2026 | Describes SasWorkbench 0.2.4: says how to cause `$32` with nvman, and how sequenced cases keep the link alive and resynchronise the machine around manual steps. | Alessio Brizi |
+| 1.4 | 26/11/2026 | Describes SasWorkbench 0.3.0: the serial link on Linux and `sasctl probe --serial`, the new script steps and machine declarations, and what the software machine and the `manual` stimulus now offer. | Alessio Brizi |
 
 # About this document
 
 ## Purpose
 
-This guide explains how to use SasWorkbench 0.2.4 to test a gaming machine over the SAS protocol.
+This guide explains how to use SasWorkbench 0.3.0 to test a gaming machine over the SAS protocol.
 It covers installation, the serial and TCP links, running the suites, the reports, the window and
 reading a recorded run, byte by byte.
 
@@ -109,11 +110,13 @@ the fix.
 These have not been measured yet:
 
 - a USB-serial adapter;
-- other types of serial port, for example a UART dedicated to SAS.
+- other types of serial port, for example a UART dedicated to SAS;
+- the serial link on Linux, which 0.3.0 introduces.
 
-The reports and the window of 0.2.4 still mark the serial link as UNVERIFIED. Their caveat sentence
-says that only the on-board UART of the IQ-2 has been measured, and SasWorkbench cannot tell that
-port from a USB adapter. The test of 29/10 concerns one board, one port and one configuration.
+The reports and the window of 0.3.0 still mark the serial link as UNVERIFIED. On Windows their
+caveat sentence says that only the on-board UART of the IQ-2 has been measured, and SasWorkbench
+cannot tell that port from a USB adapter. On Linux it says that the link has not yet been measured
+on a board. The test of 29/10 concerns one board, one port and one configuration.
 
 %%PAGEBREAK
 
@@ -174,9 +177,11 @@ PROVEN does not say what the run proves about the machine. The caveat sentence t
 value says that. For loopback it is "In-process link: proves our own framing, not a gaming
 machine's.": the link is faithful, but the other end is the software machine. For serial it is
 "Measured only on a Quixant IQ-2's on-board UART (serial.sys, 19200 baud); USB adapters are
-unmeasured, so treat a pass over one as untested."
+unmeasured, so treat a pass over one as untested." On Linux it is "Linux stick parity, checked on
+each port when it opens and refused if the driver drops it; not yet measured on a board, and USB
+adapters are unmeasured."
 
-In 0.2.4 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
+In 0.3.0 serial still carries the UNVERIFIED label, even after the test of 29/10/2026 on an
 on-board UART. The section "What is verified" explains why.
 
 The provenance line appears in the console at the end of a run, in every report and in the window.
@@ -203,18 +208,105 @@ They are divided into three trees.
 | --- | --- | --- |
 | `tests/regression/` | the behaviour of SasWorkbench itself: link, channels, meters, tickets, polling | 50 in 21 files |
 | `tests/conformance/` | cases from the GSA conformance toolkit corpus, revision 1.2 | 3 in 3 files |
-| `tests/validation/` | cases written from the EGM test documents, revision 1.00, and two targeted topics | 229 in 36 files |
+| `tests/validation/` | cases written from the EGM test documents, revision 1.00, and two targeted topics | 680 in 144 files |
 
-Inside `tests/validation/`, the folder `egm-test-scripts-v1.00/` contains 181 tests in 28 files.
+Inside `tests/validation/`, the folder `egm-test-scripts-v1.00/` contains 632 tests in 136 files.
 
-The numbers in the table come from `sasctl run <tree> --list` on version 0.2.4.
+The numbers in the table come from `sasctl run <tree> --list` on version 0.3.0.
 
 The folder `tests/regression/wire/` contains a single test: the link comes up and the machine
 identifies itself. It is the first test to run on a new link.
 
-## Version 0.2.4 and its status
+## Version 0.3.0 and its status
 
-This guide describes SasWorkbench 0.2.4. Compared with 0.2.3, these things change in 0.2.4:
+This guide describes SasWorkbench 0.3.0. Compared with 0.2.4, these things change in 0.3.0.
+
+The serial link:
+
+- the serial link also works on Linux, on x64 and ARM64: the wakeup bit travels as Mark and Space
+  parity, as on Windows (section "Windows and Linux" in the chapter "The serial link");
+- on Linux a port whose driver does not keep Mark and Space parity is refused when it opens, with
+  the name of the driver and the setting it changed: the link never runs without the wakeup bit;
+- `sasctl probe --serial <port>` checks whether one port can carry the wakeup bit, then puts the
+  port's settings back; it exits with code 1 when the port cannot;
+- the serial link on Linux has not been measured on a board yet, and it is marked UNVERIFIED like
+  every serial link.
+
+The script language (Appendix B):
+
+- a case can declare the machine it assumes: `machine validation standard|secure_enhanced|system`,
+  `machine games <cents>c ...`, `machine progressive sas group <g> levels <list>`,
+  `machine progressive non_sas levels <list>`, `machine component authentication on`,
+  `machine multiplied jackpot on`, `machine handpay legacy` and `machine handpay validation on`;
+  the software machine is built that way, any other machine is asked over the link, and the case is
+  skipped when the machine is different;
+- new stimulus steps: note acceptor and printer faults, `egm nvram clear`,
+  `egm power cycle without sync`, `egm game start` and `egm game end`,
+  `egm press collect lasting <duration>`, `egm progressive win level=<n>`, `egm select game`,
+  `egm select denomination`, `egm set game <n> on|off`, the jackpot limit, the credit limit, the
+  asset number and the poll address set at the machine, AFT and legacy bonusing switched on and off,
+  `egm aft register`, `egm component change` and the attendant and operator menus;
+- `host remember field ... as <name>` keeps a value of a reply, and `host expect field` can compare a
+  later reply with it as `saved.<name>`, also with a sum or a difference;
+- `host broadcast lp 80|86 ... every <duration>` keeps a progressive broadcast going until
+  `host broadcast stop`, and `host poll address <hh>` follows a machine moved to another address;
+- in a sequence, `host send lp ... draws event <exception>` and
+  `host send gp draws event|bare <exception>` assert which exception a poll drew and in which
+  format;
+- `host send lp ... without wakeup` sends a long poll without the wakeup bit;
+- new assertions: `host expect answer to lp <hh>`, `host expect exception <name> every <duration>`,
+  `host expect chirp within <duration>`, `host expect no chirp for <duration>` and
+  `host expect [no] rom signature within <duration>`.
+
+The software machine, used with `--loopback --stimulus software`:
+
+- it performs AFT: locks, in-house transfers, registration, bonus awards, restricted and
+  non-restricted credit, transaction receipts, a credit limit and transfers turned off at the
+  machine;
+- it performs secure enhanced and system validation, legacy bonuses and game delay, SAS and non-SAS
+  progressives, several games and denominations, a jackpot limit with hand pays above it, a queue
+  of hand pays, and, when the case declares them, legacy hand pay reporting, hand pay validation,
+  component authentication and multiplied jackpots;
+- it can be power cycled, memory faulted and cleared, and keeps what its platform keeps; it chirps
+  after a loop break, takes the host's date and time, moves to the address the operator sets, has
+  an attendant and an operator menu, answers long poll `$21` with a ROM signature, and switches its
+  note acceptor on and off;
+- it has a service button and note acceptor and printer faults, but no coin acceptor, hopper or
+  reels, because the platform it mirrors has none: the cases that need them are still skipped;
+- it holds a real-time event until the host acknowledges it, and takes a repeated identical long
+  poll as an implied NACK;
+- a hand pay or legacy bonus poll repeated with its CRC is answered again, not taken as
+  acknowledged.
+
+The `manual` stimulus:
+
+- door and button actions that follow one another are asked with one prompt, which numbers every
+  action in order, and one confirmation;
+- it also offers note acceptor and printer faults, the menus, a game held open, the limits, AFT
+  registration and settings, the choice of game and denomination, a component change, the memory
+  faults that the software machine never raises, and reading a page of the machine's menu;
+- the host no longer sends synchronisation polls while a person power cycles the machine or causes
+  a memory fault, because such a poll would acknowledge the exception that the case checks after
+  the restart.
+
+Capabilities, outcomes and the test trees:
+
+- every environment now offers `host.chirp`, `host.timing`, `host.poll_without_wakeup`,
+  `host.progressive_broadcast`, `host.validation_sequence`, `host.compare_replies` and
+  `host.meter_arithmetic`; `host.collision` and `host.byte_timing` are still not offered
+  (Appendix C);
+- more capabilities are asked of the machine after the link comes up, such as `machine.aft`,
+  `machine.legacy_bonus`, `machine.sas_progressives` and `machine.multiple_games` (Appendix C);
+- a long poll answered with the ROM signature instead of its reply ends `AnsweredWithRomSignature`
+  and fails; a general poll answered with it is `RomSignature` (Appendix D);
+- `tests/validation/egm-test-scripts-v1.00` now covers 21 chapters of the EGM test documents, 632
+  tests; a case that no machine available here can run names the capability it waits on, instead
+  of the reason `no steps are written yet`;
+- a run of that folder with `--loopback --stimulus software` gives 432 passed, 46 failed and 154
+  skipped; every failure carries the `@finding` tag, because it is a difference between the
+  machine's library and the test document, not a defect of SasWorkbench.
+
+0.2.4 changed these things, compared with 0.2.3:
 
 - on a serial link, the host discards whatever is waiting on the line before every poll; in 0.2.3
   this did not happen on serial, so a late byte could be read as the reply to the next poll;
@@ -300,7 +392,7 @@ corrections. The serial transport has not changed since then, except for its cav
 
 SasWorkbench is published as a release on GitHub, each release with the Windows and Linux packages
 and a `SHA256SUMS` file. Release 0.1.0 does not contain many of the functions
-described here. To use the functions of 0.2.4, take release 0.2.4 or build it from source, as the
+described here. To use the functions of 0.3.0, take release 0.3.0 or build it from source, as the
 chapter "Installation" explains.
 
 %%PAGEBREAK
@@ -311,7 +403,7 @@ chapter "Installation" explains.
 
 | Requirement | Detail |
 | --- | --- |
-| Operating system | Windows for the serial link. On Linux x64, loopback and TCP work. |
+| Operating system | Windows, or Linux on x64 or ARM64. Loopback, TCP and serial work on both; serial on Linux has not been measured on a board. |
 | .NET | .NET 10. To build you need the SDK; to run a package you need the runtime. |
 | Repository | a copy of the SasWorkbench repository, with the `tests/` folder |
 
@@ -355,8 +447,8 @@ or add the folder to the `PATH`.
 
 Every release carries two packages: `SasWorkbench-<version>-win-x64.zip` for Windows and
 `SasWorkbench-<version>-linux-x64.tar.gz` for Linux x64. Each package contains the window and
-`sasctl` in the same folder and requires the .NET 10 runtime. On Linux the serial link is refused;
-loopback and TCP work.
+`sasctl` in the same folder and requires the .NET 10 runtime. On Linux the serial link opens only on
+a port whose driver keeps Mark and Space parity (chapter "The serial link").
 
 Each release also carries a `SHA256SUMS` file. Do not use release 0.1.0 for the tests described in
 this guide.
@@ -384,7 +476,7 @@ sasctl --version
 The reply is the version number alone:
 
 ```
-0.2.4
+0.3.0
 ```
 
 Then ask `sasctl` what it can do in this environment:
@@ -398,16 +490,17 @@ sasctl probe
 | Section | Content |
 | --- | --- |
 | `Protocol this build knows` | how many long polls, exceptions and meters the build knows, and how many it decodes |
-| `Links` | the three links; for `serial`, the list of COM ports that Windows reports |
+| `Links` | the three links; for `serial`, the list of serial ports that the system reports |
 | `What a test may require` | the capabilities a test can require in this environment |
 | `Not available yet, and why` | what `probe` cannot know, with the reason |
 
-If `no ports on this machine` appears in the `serial` row, Windows sees no serial ports.
+If `no ports on this machine` appears in the `serial` row, the system sees no serial ports.
 
-`probe` accepts only the stimulus options: `--stimulus`, `--egm-resources` and `--qpm-shm`. It does
-not accept link options such as `--serial` or `--loopback`. If you write one, the program prints the
-report anyway, then the warning `warning: '--serial' is not an option of 'sasctl probe'` and exits
-with code 2.
+`probe` accepts the stimulus options, `--stimulus`, `--egm-resources` and `--qpm-shm`, and
+`--serial <port>`, which checks one port (section "Windows and Linux" in the chapter "The serial
+link"). It does not accept the other link options, such as `--loopback` or `--tcp`. If you write
+one, the program prints the report anyway, then the warning
+`warning: '--loopback' is not an option of 'sasctl probe'` and exits with code 2.
 
 %%PAGEBREAK
 
@@ -452,27 +545,56 @@ This scheme works only if every byte leaves the port with the parity it should h
 collects the writes and sends them together breaks the scheme. The fault shows up as a machine that
 never replies.
 
-## Windows only
+## Windows and Linux
 
-The serial link works only on Windows. On other systems the .NET serial library discards Mark and
-Space parity without reporting errors. The wakeup bit would never reach the machine.
-
-For this reason SasWorkbench refuses serial outside Windows, with this message:
+The serial link works on Windows and, from 0.3.0, on Linux on x64 and ARM64. On any other system
+SasWorkbench refuses serial, with this message:
 
 ```
 Serial SAS is refused on this platform: mark and space parity are discarded without
 error here, so the wakeup bit would never reach the gaming machine. Use the TCP transport,
-or run the serial link on Windows.
+or run the serial link on Windows or Linux.
 ```
 
-Outside Windows, use the TCP link.
+On Linux the .NET serial library would discard Mark and Space parity without reporting an error, so
+SasWorkbench does not use it: it sets the port itself, with the parity that Linux calls stick
+parity. The line parameters are the same as on Windows, the port does not check the parity of what
+it receives, and the parity changes only where it must, after the byte before has left the port.
+
+When it opens a port on Linux, SasWorkbench sets Mark parity and reads the setting back, then does
+the same with Space. If the driver has changed any part of the setting, the port is refused with
+the name of the driver and what it changed, and the test is skipped with that reason. A driver that
+dropped stick parity would send ordinary odd or even parity, and the machine would see the wakeup
+bit only by chance.
+
+The read-back proves that the driver accepted the setting, not that the hardware puts it on the
+wire. For this reason a serial link on Linux is UNVERIFIED too, and no Linux port has been measured
+on a board yet.
+
+To check one port before a run, use `sasctl probe --serial <port>`:
+
+```
+sasctl probe --serial /dev/ttyS4
+```
+
+`probe` opens that port, checks Mark and Space parity in the same way and puts the port's settings
+back. In the `Links` section it adds a line with the port, `carries the wakeup bit` or `refused`,
+and the reason; on Linux the reason names the driver. It exits with code 1 when the port cannot
+carry the wakeup bit. Do not name a port that another program is using: its settings change for a
+moment. On Windows the check only opens the port, because Windows keeps Mark and Space parity.
+
+The driver name tells an on-board UART, such as `serial8250`, from a USB adapter, such as
+`ftdi_sio`, `pl2303` or `cp210x`. No USB adapter has been measured on Linux either.
 
 ## The ports
 
-`sasctl probe` lists the COM ports that Windows reports. Run `probe` before and after you connect
-an adapter: the new port is the adapter's.
+`sasctl probe` lists the serial ports that the system reports. Run `probe` before and after you
+connect an adapter: the new port is the adapter's.
 
-Names from COM10 upwards work, for example `--serial COM12`.
+On Windows, names from COM10 upwards work, for example `--serial COM12`. On Linux a port is named by
+its device path, such as `--serial /dev/ttyS4`, or by its short name, `ttyS4`, which is looked up
+under `/dev`. The user who runs SasWorkbench must be allowed to open the device, usually by
+belonging to the `dialout` group.
 
 A port can be opened by only one program at a time. If the port is already open, the test is
 skipped with a reason such as `Cannot open COM6: Access to the path 'COM6' is denied.`
@@ -575,7 +697,7 @@ For comparison, the demo over TCP on 17/10 had given 77 / 8 / 0 in the same swee
 The test on the board confirms the cause of the `3F` replies. For the long polls it confirms that the
 two fixes work together, not which of the two was needed: 0.2.1 introduced them together.
 
-0.2.4 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
+0.3.0 still marks the serial link as UNVERIFIED. The caveat sentence names the one port measured,
 the on-board UART of the IQ-2, and says that USB adapters have not been measured.
 
 ## Settings on the machine
@@ -611,7 +733,7 @@ poll `$A0`, which describes the enabled functions.
 The silence of a long poll can therefore be a machine setting, not a fault. Before you look for a
 link problem, check which channel the command's category belongs to.
 
-The following table gives the output of `sasctl catalogue channels` in 0.2.4. The data are read
+The following table gives the output of `sasctl catalogue channels` in 0.3.0. The data are read
 from the machine's library.
 
 | Category | Gated long polls | Filtered exceptions | `$A0` bits cleared |
@@ -869,14 +991,23 @@ Only an answer typed after the question appears counts: lines typed before it ar
 The `manual` stimulus offers these actions: banknote, ticket, game, closing all the doors (settle),
 the slot door (`door.slot`, also called the main door, `door.main`), the cashout and service buttons
 (`button.collect`, `button.service`), a hand pay, a jackpot hand pay and its reset, a power cycle and
-a memory fault. For a power cycle the console asks the person to cut the machine's power, restore it
+a memory fault. In 0.3.0 it also offers note acceptor and printer faults, the attendant and
+operator menus, a game held open and a cash out held open, the jackpot and credit limits, AFT
+registration and settings, legacy bonusing, the choice of game and denomination, switching a game
+on or off, the poll address, a component change, a progressive win, the bet button, and reading a
+page of the machine's menu. Appendix C lists the capabilities. For a power cycle the console asks the person to cut the machine's power, restore it
 and wait until it has booted: confirm only then. A memory fault prompt adds a line that starts with
 `How:`: it says how to cause the fault and, for the faults a QSP machine never raises, to answer `N`.
 On a QSP machine, `cmos-lost` ($32) is caused by dumping the NVRAM with nvman,
 changing one byte of the dump by hand and writing it back with nvman before the game starts; this loses the meters.
 
+Door and button actions that follow one another in a script are asked together: one prompt lists
+every action, numbered in order, and one confirmation covers them all.
+
 In a case that sends its own polls (`host poll sequence`), the host sends a synchronisation poll
-every second while it waits for the person, so the machine never declares a loop break. After a
+every second while it waits for the person, so the machine never declares a loop break. It does not
+do so during a power cycle or a memory fault: a synchronisation poll would acknowledge the exception
+that the case checks after the restart. After a
 power cycle or a memory fault it keeps sending synchronisation polls until the machine stops
 sending its own address, and only then goes on with the case; the step fails if the machine is
 still doing so after 15 seconds. A machine sending its own address after a synchronisation poll is
@@ -884,9 +1015,15 @@ reported as a loop-break chirp, not as a machine answering the broadcast.
 
 ### software
 
-With `software` the software machine acts: banknotes, tickets, games, the cashout button, eight
-doors, hand pays, a change of the accounting denomination and real-time events. It is used only in
-loopback.
+With `software` the software machine acts: banknotes, tickets, games, the cashout and service
+buttons, eight doors, hand pays, a change of the accounting denomination, real-time events, note
+acceptor and printer faults, power cycles, memory faults and memory clears, the menus, games and
+cash outs held open, the limits, AFT and legacy bonusing settings, progressive wins, the choice of
+game and denomination, the poll address and a component change. It is used only in loopback.
+
+The software machine has only what the platform it mirrors has: no coin acceptor, hopper or reels,
+and only the memory faults that the platform reports. The cases that need anything
+else are skipped on a software run.
 
 ### qpm
 
@@ -927,28 +1064,28 @@ Every test can carry tags, written in the script with `tag`. Two options use the
 
 The name is written with or without `@`. Each option accepts only one tag.
 
-These are the most used tags in the test trees of 0.2.4:
+These are the most used tags in the test trees of 0.3.0:
 
 | Tag | Tests that carry it |
 | --- | --- |
-| `@egm-test-scripts` | 181 |
-| `@needs-stimulus` | 115 |
-| `@needs-a-person` | 99 |
-| `@chapter-10`, `@chapter-4`, `@chapter-11`, `@chapter-3` | 72, 60, 25, 24 |
+| `@egm-test-scripts` | 632 |
+| `@needs-a-person` | 335 |
+| `@needs-stimulus` | 292 |
+| `@wire-only` | 124 |
+| `@chapter-16`, `@chapter-6`, `@chapter-10`, `@chapter-4` | 90, 72, 72, 60 |
+| `@destructive` | 58 |
+| `@finding` | 48 |
 | `@accounting-denomination` | 44 |
-| `@destructive` | 25 |
-| `@needs-configuration` | 18 |
-| `@wire-only` | 17 |
+| `@needs-configuration` | 21 |
 | `@channel2` | 8 |
-| `@finding` | 2 |
 
 For example, `--tag wire-only` runs only the tests tagged `@wire-only`, such as the link check.
 
 ### On a board
 
-The `@destructive` tag marks the 25 tests that change the machine heavily: memory or meter resets,
+The `@destructive` tag marks the 58 tests that change the machine heavily: memory or meter resets,
 power cycles, hand pays. They are all in `tests/validation`. Almost all of them require a person at
-the machine, with `--stimulus manual`, or a capability that no environment offers, so with
+the machine, with `--stimulus manual`, or a capability that `none` does not offer, so with
 `--stimulus none` they are skipped. On a board, exclude them anyway:
 
 ```
@@ -1085,9 +1222,9 @@ A `when` condition of `host send lp` reports another value in the same words aft
 such as `not sent: 'egm.validation' is 'standard', not 'secure_enhanced'`, and it does not skip the
 test: see "Sending messages" in Appendix B.
 
-Two capabilities are asked of the machine after the link has come up: `egm.validation` and
-`egm.accounting_denomination`. If the machine does not reply, the reason says so with a sentence
-like this:
+Some capabilities are asked of the machine after the link has come up, such as `egm.validation`,
+`egm.accounting_denomination` and `machine.aft`; Appendix C lists them. If the machine does not
+reply, the reason says so with a sentence like this:
 
 ```
 egm.validation: the machine did not answer the enabled-features poll (Silent), so what it
@@ -1103,7 +1240,9 @@ Other reasons come from the link:
 | `Cannot listen on ...` | the TCP address cannot be opened for listening |
 
 A test written only as notes, still to be written, is skipped with the reason
-`no steps are written yet; the case holds only its notes`.
+`no steps are written yet; the case holds only its notes`. A test whose notes cannot become steps
+on any machine available here requires instead the capability it waits on, such as
+`machine.restricted_tickets`, and is skipped with that name.
 
 In the run of `tests/regression` on the board on 29/10, with `--stimulus none`, the most frequent
 skips were these three, with 17, 5 and 4 tests, the same with 0.2.0 and with 0.2.1:
@@ -1114,8 +1253,8 @@ stimulus.ticket: this environment provides no 'stimulus.ticket'
 stimulus.real_time_events: this environment provides no 'stimulus.real_time_events'
 ```
 
-Some capabilities are not offered by any environment in 0.2.4, for example `stimulus.note_fault`
-and `host.chirp`. The tests that require them are always skipped. Others, such as
+Some capabilities are not offered by any environment in 0.3.0, for example `stimulus.hopper` and
+`host.collision`. The tests that require them are always skipped. Others, such as
 `stimulus.handpay` and `machine.power_cycle`, are offered only by some stimuli: with
 `--stimulus none` the tests that require them are skipped. Appendix C lists them.
 
@@ -1183,7 +1322,7 @@ letting the general polls read the exceptions.
 
 ## The fixed times
 
-Some times are fixed in 0.2.4. Only three can be changed from the command line.
+Some times are fixed in 0.3.0. Only three can be changed from the command line.
 
 | Time | Value | Changed with |
 | --- | --- | --- |
@@ -1229,7 +1368,7 @@ when to use it and what it does on a board. Appendix A lists all the options.
 back. It makes no assertions: it is used to obtain real bytes for every reply, and to check a layout
 against those bytes.
 
-A command that changes the machine is not sent. 0.2.4 asks 85 of the 124 commands in the catalogue
+A command that changes the machine is not sent. 0.3.0 asks 85 of the 124 commands in the catalogue
 and withholds 39. Among those withheld are `$01` (stop play), `$02` (start play), `$0E` (real-time
 events), `$21` (ROM signature) and the commands that move money.
 
@@ -1602,7 +1741,8 @@ The UNVERIFIED seal is in italics, on an amber hatched background. Its caveat se
 Without a link the band has a neutral background and shows no seal: only the text `no link` and the
 state `down`.
 
-Outside Windows, `Connect` refuses serial with the message given in the chapter "The serial link".
+On Linux the caveat sentence of serial is the Linux one given in "What a link is worth". On other
+systems `Connect` refuses serial with the message given in the chapter "The serial link".
 
 ## The rail tools
 
@@ -2212,7 +2352,8 @@ from 0.2.1 on.
 | Only some long polls are `Silent`, always the same ones | the command's category is not assigned to the channel | check `sasctl catalogue channels` and assign the category in the audit menu |
 | Skip `Cannot open COM6: Access to the path 'COM6' is denied.` | another program holds the port open | close the other program |
 | Skip `channels 1 and 2 would both open serial port COM6, ...` | a test with two hosts, one per channel, run with `--serial` on one port | tests with two hosts need two ports |
-| `Serial SAS is refused on this platform: ...` | the system is not Windows | use Windows, or the TCP link |
+| `Serial SAS is refused on this platform: ...` | the system is neither Windows nor Linux on x64 or ARM64 | use Windows or Linux, or the TCP link |
+| Skip `... cannot carry the wakeup bit: asked for mark stick parity, ...` | on Linux, the port's driver does not keep Mark or Space parity | use another port; check a port first with `sasctl probe --serial <port>` |
 
 ## TCP link
 
@@ -2232,7 +2373,7 @@ from 0.2.1 on.
 | Code 2 with all tests passed | an option that the command does not read | read the warning `warning: '--...' is not an option of ...` |
 | Code 2 and no test run | error in the command line or in a script | read the `error:` message, which gives the file and line |
 | `error: --out says where reports go, but no --report says which to write.` | `--out` without `--report` | add `--report`, for example `--report html,jsonl` |
-| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.2.4 (Appendix C) |
+| Skip `<capability>: this environment provides no '<capability>'` | a stimulus or a function is missing | choose the right stimulus; some capabilities do not exist in 0.3.0 (Appendix C) |
 | Outcome `AnsweredWithEvent` | an exception queued, with real-time reporting active | empty the queue with `host forget exceptions` before the long poll; do not leave reporting on |
 
 ## Test failures
@@ -2411,7 +2552,7 @@ frequent case is an expectation written for another machine.
 
 %%APPENDIX Appendix A - sasctl command reference
 
-This appendix lists every command and every option of `sasctl` 0.2.4. The descriptions come from
+This appendix lists every command and every option of `sasctl` 0.3.0. The descriptions come from
 the text of `sasctl --help`, and for `nvram` also from `sasctl nvram --help`. A duration is written
 as `200ms`, `5s` or `2m`.
 
@@ -2456,13 +2597,15 @@ folder.
 
 **probe command**
 
-`sasctl probe [options]` says what the environment can and cannot do. It opens no links.
+`sasctl probe [options]` says what the environment can and cannot do. It opens no links; with
+`--serial` it opens only the port named, to check it.
 
 | Option | Effect |
 | --- | --- |
 | `--stimulus <name>` | adds the capabilities of this stimulus |
 | `--egm-resources <dir>` | with `--stimulus qpm`, the demo's resources folder |
 | `--qpm-shm <file>` | with `--stimulus qpm`, the shared region of the peripherals |
+| `--serial <port>` | opens one port, checks that it keeps Mark and Space parity, the wakeup bit, and puts its settings back; exits with 1 when the port cannot carry the wakeup bit |
 
 **catalogue command**
 
@@ -2692,7 +2835,7 @@ polling round costs.
 
 %%APPENDIX Appendix B - The script language
 
-This appendix describes the script language of SasWorkbench 0.2.4. The examples come from the
+This appendix describes the script language of SasWorkbench 0.3.0. The examples come from the
 scripts in the `tests/` folder of the repository, except where stated otherwise.
 
 **Structure of a file**
@@ -2769,10 +2912,14 @@ and address `00` are refused. A `host connect` on a new channel opens a second h
 | `host poll sequence` | stops the timer and the synchronisation polls: the line belongs to the script | `host poll sequence` |
 | `host wait <d>` | waits | `host wait 2s` |
 | `host warm up <d>` | lets the general polls run for `<d>`, once per machine in a run | `host warm up 20s` |
+| `host poll address <hh>` | the host follows the machine it polls to a new poll address | `host poll address 26` |
 
 Only the first `host poll every` of a test sets the interval. A `host poll every` after
 `host poll sequence` gives the line back to the round. `host poll sequence` waits for the poll
 already on the line to end, so the next message on the line is the script's.
+
+`host poll address` goes with `egm set address`, which sets the machine's poll address at the
+machine (see "Stimuli").
 
 `host warm up` lets a machine that has just started report its start-up exceptions before a case
 that needs an empty queue. The time counts from the first warm-up of that machine in the run, so
@@ -2787,8 +2934,14 @@ before `host forget exceptions`: if the link is not up, the step fails with
 | `host send lp <hh> [data <hex>] [to <hh>] [when <capability> == <value>]` | `host send lp 0E data 01` |
 | `host send lp <hh> with <field>=<value> ... [to <hh>] [when <capability> == <value>]` | `host send lp A0 with game_number=0` |
 | `host send gp [draws <exception>\|nothing\|silence] [to <hh>]` | `host send gp draws slot_door_opened` |
+| `host send gp draws [event\|bare] <exception>\|any [or silence]` | `host send gp draws bare slot_door_opened` |
+| `host send lp <hh> [data <hex>] draws event <exception> [or silence]` | `host send lp 1F draws event slot_door_opened` |
+| `host send lp <hh> [data <hex>] without wakeup` | `host send lp 1F without wakeup` |
 | `host send sync` | `host send sync` |
 | `host expect no reply to lp <hh> [data <hex>]` | `host expect no reply to lp 74 data FF000000` |
+| `host expect answer to lp <hh> [data <hex>]` | `host expect answer to lp 80 data 00010000010000` |
+| `host broadcast lp 80\|86 data <hex>\|with <field>=<value> ... every <d>` | `host broadcast lp 80 with progressive_group=1 level=1 amount=500 every 1s` |
+| `host broadcast stop` | `host broadcast stop` |
 
 `data` is the bytes that follow the command byte. If the command has a length byte, you write it
 yourself. Do not write the address, the command or the CRC: the CRC is added by SasWorkbench.
@@ -2806,6 +2959,23 @@ discards any bytes that a late reply left on the line, and the log records them 
 `left on the line by an answer that came too late`.
 
 `to <hh>` sends the message to another machine of the round, as in `host send lp 1F to 04`.
+
+`draws` placed after a poll, in a sequence, asserts which exception that poll drew. `event` requires
+the real-time event format, `bare` the single byte of a general poll with real-time reporting off;
+without either word only the code is checked. `any` passes on any exception, and `or silence` also
+accepts no answer. A long poll draws an exception only as a real-time event, so
+`host send lp ... draws` always takes `event`. Outside a sequence these steps fail.
+
+`without wakeup` sends the long poll with no wakeup bit on its address byte, which the machine must
+ignore. Its capability is `host.poll_without_wakeup`, which every environment offers.
+
+`host expect answer to lp` passes on a reply, an acknowledgement or a refusal, and fails only on
+silence.
+
+`host broadcast` sends a long poll that may be broadcast, `$80` or `$86`, to address `00` in the
+background, every `<d>`, until `host broadcast stop` or the end of the test. The interval is at
+least 200 ms, and it pauses while the test holds the line with `host poll sequence`. Its capability
+is `host.progressive_broadcast`, which every environment offers.
 
 After `host poll sequence`, `to` can also name an address that the host does not poll, or `00` for a
 long poll that may be broadcast, such as `$7E`, `$80` or `$86`. The step then passes only if no
@@ -2875,10 +3045,26 @@ byte after the length.
 | `host expect exception <name\|code> [within <d>]` | `host expect exception bill_accepted_20 within 5s` |
 | `host expect no exception <name\|code> [within <d>]` | `host expect no exception slot_door_opened within 2s` |
 | `host forget exceptions [within <d>]` | `host forget exceptions within 2s` |
+| `host expect exception <name\|code> every <d>` | `host expect exception handpay_is_pending every 15s` |
+| `host expect chirp within <d>` | `host expect chirp within 5s` |
+| `host expect no chirp for <d>` | `host expect no chirp for 2s` |
+| `host expect [no] rom signature within <d>` | `host expect rom signature within 120s` |
 
 `host expect exception` looks for an exception not yet used, received since the start of the test
 on the current channel and machine, and consumes it. `host expect no exception` waits for the whole
 window.
+
+`host expect exception ... every` expects the exception to come again `<d>` after it last came, as a
+machine that repeats an exception until it is read does. The times are those at which the host read
+the exception, so the tolerance is a quarter of the period or two poll intervals, whichever is
+larger. Its capability is `host.timing`, which every environment offers.
+
+`host expect chirp` listens, in a sequence, for the machine's loop-break chirp: its own address,
+sent while nobody polls it. `host expect no chirp` passes if none is heard for the whole time. Their
+capability is `host.chirp`, which every environment offers.
+
+`host expect rom signature` waits for the ROM signature asked with long poll `$21`, on whichever
+poll it arrives.
 
 `host forget exceptions` waits for three poll intervals to pass without new exceptions, but no
 longer than the `within` window. Then it forgets the exceptions received, only for the current
@@ -2918,9 +3104,17 @@ test, before every stimulus step and at every change of channel or machine.
 | `host expect field <field> [of lp <hh>] <op> <value>` | `host expect field base_percentage of lp 1F >= 7500` |
 | `host expect field <field> of lp <hh> == ticket.<field>` | `host expect field validation_number of lp 3D == ticket.validation_number` |
 | `host expect field <field> of event <exception> <op> <value> [within <d>]` | `host expect field country_code of event bill_accepted == 37 within 5s` |
+| `host remember field <field> [of lp <hh>] as <name>` | `host remember field meters[0].value as played_before` |
+| `host expect field <field> [of lp <hh>] <op> saved.<name> [+\|- <n>]` | `host expect field meters[0].value == saved.played_before + 4` |
 
 The operators are `==`, `!=`, `>=`, `<=`, `>` and `<`. A value is a number, `$hex`, a library name,
-`ticket.<field>` or a text; a text is compared only with `==` and `!=`.
+`ticket.<field>`, `saved.<name>` or a text; a text is compared only with `==` and `!=`.
+
+`host remember field` keeps the value of a reply field under a name, for the rest of the test. A
+later `host expect field` reads it as `saved.<name>`, and can add or subtract numbers or other
+remembered values. A name that was not remembered earlier in the test is a loading error. The
+capabilities `host.compare_replies` and `host.meter_arithmetic`, which every environment offers,
+name these comparisons in `requires`.
 
 Without `of lp`, the assertion binds to the nearest `host send lp` that precedes it in the test. If
 the test does not yet have a reply to that long poll, the assertion sends it.
@@ -2953,6 +3147,26 @@ next assertion fails: always write the corresponding `requires`.
 | `egm power cycle` | `machine.power_cycle` | `egm power cycle` |
 | `egm memory fault <kind>` | `machine.memory_fault` | `egm memory fault cmos-lost` |
 | `egm set accounting denomination <N>c\|code <hh>` | `stimulus.accounting_denomination` | |
+| `egm power cycle without sync` | `machine.power_cycle` | `egm power cycle without sync` |
+| `egm nvram clear` | `machine.nvram_clear` | `egm nvram clear` |
+| `egm note fault <kind>` | `stimulus.note_fault` | `egm note fault jam` |
+| `egm printer fault <kind>` | `stimulus.printer_fault` | `egm printer fault paper_out` |
+| `egm press collect lasting <d>` | `stimulus.cashout_in_progress` | `egm press collect lasting 2s` |
+| `egm game start [bet=<credits>]`, `egm game end [win=<credits>]` | `stimulus.game_in_progress` | `egm game start bet=2` |
+| `egm progressive win level=<n>[,<n>...] [bet=<credits>] [win=<credits>]` | `stimulus.progressive` | `egm progressive win level=1,2` |
+| `egm select game <n>` | `stimulus.select_game` | `egm select game 2` |
+| `egm select denomination <N>c` | `stimulus.select_denomination` | `egm select denomination 5c` |
+| `egm set game <n> on\|off` | `machine.enable_games` | `egm set game 2 off` |
+| `egm set jackpot limit <cents>` | `stimulus.jackpot_limit` | `egm set jackpot limit 120000` |
+| `egm set credit limit <cents>` | `stimulus.credit_limit` | `egm set credit limit 100000` |
+| `egm set asset number <decimal>` | `stimulus.asset_number` | `egm set asset number 12` |
+| `egm set address <hh>` | `machine.address_configuration` | `egm set address 26` |
+| `egm set aft on\|off` | `stimulus.aft_configuration` | `egm set aft on` |
+| `egm set aft bonus on\|off` | `stimulus.aft_bonus` | `egm set aft bonus off` |
+| `egm set legacy bonus on\|off` | `stimulus.legacy_bonus` | `egm set legacy bonus on` |
+| `egm aft register` | `stimulus.aft_registration` | `egm aft register` |
+| `egm component change` | `stimulus.component_change` | `egm component change` |
+| `egm menu attendant\|operator enter\|leave` | `machine.audit_menu` | `egm menu attendant enter` |
 
 The path of `egm ticket insert <file>` is relative to the current folder, not to the script's
 folder.
@@ -2960,8 +3174,24 @@ folder.
 The kind of `egm memory fault` names the exception the fault should raise: `cmos-recovered` ($31),
 `cmos-lost` ($32), `cmos-bad-device` ($33), `eeprom-data` ($34), `eeprom-bad-device` ($35),
 `eprom-changed` ($36), `eprom-bad-checksum` ($37), `partitioned-eprom-changed` ($38),
-`partitioned-eprom-bad-checksum` ($39). `clear` asks the operator to clear the fault ($3A). Only the
-`manual` stimulus offers a power cycle or a memory fault.
+`partitioned-eprom-bad-checksum` ($39). `clear` asks the operator to clear the fault ($3A). The `manual` stimulus
+offers every kind. The `software` stimulus offers a power cycle and the kinds that its
+platform reports: `cmos-lost`, `eprom-changed` and `clear`. The other kinds each have a capability of
+their own, such as `machine.memory_fault.eeprom`, that only `manual` offers.
+
+`egm nvram clear` clears the machine's memory, as `egm memory fault clear` does, and the attendant
+sets the poll address again. `egm power cycle without sync` leaves a machine in a sequence as it
+started: the host does not send the synchronisation polls it otherwise sends after a power cycle.
+
+The kinds of `egm note fault` are `cashbox_full`, `jam`, `failure`, `reversed`, `rejected` and
+`counterfeit`; those of `egm printer fault` are `disconnected`, `jam`, `failure`, `paper_out`,
+`paper_low` and `ribbon`. `cleared` clears every fault on the device. `reversed` and `ribbon`
+require their own capabilities, `stimulus.note_fault.reversed` and `stimulus.printer_fault.ribbon`,
+which only `manual` offers.
+
+`egm game start` opens a game and `egm game end` closes it; `egm press collect lasting` holds a cash
+out open for that time. `egm set address 00` leaves the machine without a link. After
+`egm set address`, use `host poll address` with the same address.
 
 `egm handpay <cents>` puts a note of that value on the machine and cashes out with no device able to
 pay, so the machine owes a cancelled-credit hand pay. With `--stimulus qpm` the host first sends
@@ -2993,17 +3223,37 @@ These statements describe the machine that the test assumes. They do not act on 
 | `machine accounting denomination <N>c\|code <hh>` | `machine accounting denomination 10c` |
 | `machine player denominations <N>c ...` | |
 | `machine channel <1-4> address <hh>\|addresses <round> [owns <category> ...]` | `machine channel 2 address 02 owns validation` |
+| `machine validation standard\|secure_enhanced\|system` | `machine validation secure_enhanced` |
+| `machine games <N>c [<N>c ...]` | `machine games 1c 5c` |
+| `machine progressive sas group <1-255> levels <list>` | `machine progressive sas group 1 levels 1,2` |
+| `machine progressive non_sas levels <list>` | `machine progressive non_sas levels 1` |
+| `machine component authentication on` | `machine component authentication on` |
+| `machine multiplied jackpot on` | `machine multiplied jackpot on` |
+| `machine handpay legacy` | `machine handpay legacy` |
+| `machine handpay validation on` | `machine handpay validation on` |
 
 `machine accounting denomination` adds the requirement `egm.accounting_denomination == <N>c`. On
 the software machine it builds the machine in that unit. `machine player denominations` requires
 the accounting denomination declaration.
+
+The declarations added in 0.3.0 work in the same way: the software machine is built as declared,
+and any other machine is asked over the link, so the test is skipped when the machine is different.
+`machine validation` requires `egm.validation`; `machine games` declares one denomination per game;
+`machine progressive` requires `machine.sas_progressives` with the group, or `machine.progressives`,
+which only a software machine built that way offers. `machine component authentication on` and
+`machine multiplied jackpot on` require `machine.component_authentication` and
+`machine.multiplied_jackpot`. `machine handpay legacy` and `machine handpay validation on` require
+`machine.legacy_handpay` and `machine.handpay_validation`, which no poll can report, so only the
+software machine offers them. There is no `off` form: a machine without these functions is the
+default.
 
 The categories of `owns` are `general_control`, `aft`, `progressive`, `legacy_bonus`, `validation`,
 `component_authentication` and `information`. `address 00` indicates a channel with no address.
 
 **What the language does not have**
 
-The language has no loops or variables. It has no statement for a manual step: an action done by a
+The language has no loops or variables; the only values a test keeps are those taken with
+`host remember field`. It has no statement for a manual step: an action done by a
 person is a stimulus, carried out with `--stimulus manual`.
 
 **Scripts in YAML**
@@ -3065,9 +3315,15 @@ capability, with a reason in one of the forms described in "Skips and their reas
 | --- | --- |
 | `transport.loopback` | the loopback link |
 | `transport.tcp` | the TCP link |
-| `transport.serial` | the serial link; only on Windows and only if ports exist; the value is the list of ports |
+| `transport.serial` | the serial link; only on Windows or on Linux on x64 or ARM64, and only if ports exist; the value is the list of ports |
 | `channel.1` | channel 1; the other channels are not offered by the basic environment |
 | `host.poll_sequence` | the host can put an exact sequence of polls on the line |
+| `host.validation_sequence` | the host can carry a system validation exchange |
+| `host.chirp` | the host can listen for the loop-break chirp in a sequence |
+| `host.timing` | the host can time the repeat of an exception |
+| `host.poll_without_wakeup` | the host can send a long poll without the wakeup bit |
+| `host.progressive_broadcast` | the host can keep a progressive broadcast going |
+| `host.compare_replies`, `host.meter_arithmetic` | the host can remember reply values and compare later replies with them, with sums and differences |
 | `decoder.lp<hh>` | the build decodes the reply to long poll `<hh>`, for example `decoder.lpA0` |
 | `decoder.event<hh>` | the build decodes the content of exception `<hh>`, for example `decoder.event4F` |
 
@@ -3085,8 +3341,8 @@ capability, with a reason in one of the forms described in "Skips and their reas
 | Stimulus | Capabilities |
 | --- | --- |
 | `none` | `stimulus` = `none` |
-| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `.main`, `stimulus.button.collect`, `.service`, `stimulus.handpay`, `.jackpot`, `.reset`, `machine.power_cycle`, `machine.memory_fault` |
-| `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.handpay`, `.jackpot`, `.reset`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `machine.accounting_denomination` |
+| `manual` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.door.slot`, `.main`, `stimulus.button.collect`, `.service`, `stimulus.handpay`, `.jackpot`, `.reset`, `stimulus.note_fault`, `.reversed`, `stimulus.printer_fault`, `.ribbon`, `stimulus.game_in_progress`, `stimulus.cashout_in_progress`, `stimulus.jackpot_limit`, `stimulus.credit_limit`, `stimulus.progressive`, `stimulus.legacy_bonus`, `stimulus.aft_registration`, `stimulus.aft_bonus`, `stimulus.aft_configuration`, `stimulus.select_game`, `stimulus.select_denomination`, `stimulus.component_change`, `stimulus.bet_button`, `machine.power_cycle`, `machine.memory_fault` and each of its kinds (`.cmos_recovered`, `.cmos_bad_device`, `.eeprom`, `.eprom_checksum`, `.partitioned_eprom`), `machine.nvram_clear`, `machine.address_configuration`, `machine.enable_games`, `machine.audit_menu`, `machine.audit_screens`, `machine.rom_signature`, `machine.player_input_state` |
+| `software` | `stimulus.bill`, `stimulus.ticket`, `stimulus.play`, `stimulus.settle`, `stimulus.button.collect`, `.service`, `stimulus.door.slot`, `.main`, `.card_cage`, `.logic`, `.cashbox`, `.stacker`, `.drop`, `.belly`, `stimulus.handpay`, `.jackpot`, `.reset`, `stimulus.real_time_events`, `stimulus.accounting_denomination`, `stimulus.note_fault`, `stimulus.printer_fault`, `stimulus.game_in_progress`, `stimulus.cashout_in_progress`, `stimulus.jackpot_limit`, `stimulus.credit_limit`, `stimulus.progressive`, `stimulus.legacy_bonus`, `stimulus.aft_registration`, `stimulus.aft_bonus`, `stimulus.aft_configuration`, `stimulus.asset_number`, `stimulus.select_game`, `stimulus.select_denomination`, `stimulus.component_change`, `machine.accounting_denomination`, `machine.power_cycle`, `machine.memory_fault`, `machine.nvram_clear`, `machine.address_configuration`, `machine.enable_games`, `machine.audit_menu`, `machine.rom_signature`, `machine.aft_operator_registration`, `machine.buffer_depth` (31), `machine.configuration_options`, `machine.credit_limit`, `machine.jackpot_limit`, `machine.restricted_credits`; and, when the test declares them, `machine.progressives`, `machine.legacy_handpay`, `machine.handpay_queue` and `machine.handpay_validation` |
 | `qpm` | always `stimulus.settle`, `stimulus.bill` and `stimulus.bill.<cents>`; `stimulus.ticket` if the ticket reader folder can be created; the doors and buttons that the demo declares in its resources; `stimulus.handpay` if it declares a cashout button and `stimulus.handpay.reset` if it declares a reset keyswitch, both with the value `printer_withdrawn`; never `stimulus.play` or `stimulus.handpay.jackpot` |
 
 The value of the `stimulus` capability is the name of the stimulus in use, so a test can write
@@ -3094,36 +3350,44 @@ The value of the `stimulus` capability is the name of the stimulus in use, so a 
 
 **Asked of the machine**
 
-Two capabilities are asked of the machine after the link has come up, and only if a test requires
-them or a `when` names them. If the machine does not reply, a test that requires them is skipped
-with a sentence such as `egm.validation: the machine did not answer the enabled-features poll (...)`,
-while a send whose `when` names them fails.
+These capabilities are asked of the machine after the link has come up, and only if a test
+requires them or a `when` names them. If the machine does not reply, a test that requires them is
+skipped with a sentence such as
+`egm.validation: the machine did not answer the enabled-features poll (...)`, while a send whose
+`when` names them fails.
 
 | Capability | Where it comes from | Values |
 | --- | --- | --- |
 | `egm.validation` | long poll `$A0` | `standard`, `system`, `secure_enhanced` |
 | `egm.accounting_denomination` | long poll `$1F` | `<cents>c`, for example `5c` |
+| `machine.aft`, `machine.aft_bonus`, `machine.legacy_bonus`, `machine.multiplied_jackpot`, `machine.component_authentication` | long poll `$A0` | present when the machine reports the function |
+| `machine.aft_receipts`, `machine.transfer_limit` | long poll `$74` | for `machine.transfer_limit`, the limit in cents |
+| `machine.sas_progressives` | long poll `$1F` | the progressive group |
+| `machine.multiple_components` | long poll `$6E` | present when the machine lists more than one component |
+| `machine.multiple_games` | long poll `$51` | present when the machine has more than one game |
+| `machine.multiple_denominations` | long poll `$B2` | present when the machine offers more than one denomination |
+| `machine.cashout_limit` | long poll `$A4` | present when the machine reports a cash-out limit |
 
-**Capabilities skipped on 29/10, and in 0.2.4**
+**Capabilities skipped on 29/10, and in 0.3.0**
 
 Any other key can be written, but no environment offers it, and the tests that require it are always
 skipped. These keys were among the most frequent skips in the tests of 29/10; the last column says
-which of them 0.2.4 offers:
+which of them 0.3.0 offers:
 
-| Capability | Tests skipped in the validation suite on 29/10 | In 0.2.4 |
+| Capability | Tests skipped in the validation suite on 29/10 | In 0.3.0 |
 | --- | --- | --- |
 | `stimulus.handpay` | 21 | offered by `manual`, `software` and, with a cashout button, `qpm` |
-| `host.validation_sequence` | 10 | not offered |
-| `machine.power_cycle` | 9 | offered by `manual` |
-| `machine.memory_fault` | 7 | offered by `manual` |
-| `stimulus.service_button` | 6 | the tests now require `stimulus.button.service`, offered by `manual`, and by `qpm` if the demo declares a service button |
-| `stimulus.note_fault` | 6 | not offered |
-| `host.chirp` | 5 | not offered |
-| `stimulus.printer_fault` | 5 | not offered |
-| `machine.restricted_credits` | 5 | not offered |
+| `host.validation_sequence` | 10 | offered by every environment |
+| `machine.power_cycle` | 9 | offered by `manual` and `software` |
+| `machine.memory_fault` | 7 | offered by `manual` and `software` |
+| `stimulus.service_button` | 6 | the tests now require `stimulus.button.service`, offered by `manual`, `software`, and by `qpm` if the demo declares a service button |
+| `stimulus.note_fault` | 6 | offered by `manual` and `software` |
+| `host.chirp` | 5 | offered by every environment |
+| `stimulus.printer_fault` | 5 | offered by `manual` and `software` |
+| `machine.restricted_credits` | 5 | offered by `software` |
 
 The counts come from the run of the `egm-test-scripts-v1.00` suite with 0.2.0 and
-`--stimulus none`. They have not been measured again with 0.2.4.
+`--stimulus none`. They have not been measured again with 0.3.0.
 
 %%PAGEBREAK
 
@@ -3202,6 +3466,7 @@ tags.
 | `WrongAddress` | the reply carries a different address | no |
 | `NotSent` | the message was not sent | no |
 | `AnsweredWithEvent` | with real-time reporting active and an exception queued, the machine replied with the event instead of with the reply | no |
+| `AnsweredWithRomSignature` | with real-time reporting active and an exception queued, the machine replied with the ROM signature asked by long poll `$21` instead of with the reply | no |
 
 **Outcomes of a general poll**
 
@@ -3214,6 +3479,7 @@ tags.
 | `Rejected` | the machine replied with its own address with bit 7 set |
 | `Broadcast` | the poll was for address `00`, to which no machine replies: the silence is correct |
 | `NotSent` | the poll was not sent |
+| `RomSignature` | the machine replied with the ROM signature asked by long poll `$21` |
 
 %%PAGEBREAK
 
