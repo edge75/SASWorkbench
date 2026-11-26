@@ -363,3 +363,18 @@ None.
 
 - **Version 0.2.4** (user, 11/11): the body describes 0.2.4, with a list "Compared with 0.2.3"; the 0.2.3 list stays as history.
 - "Take release 0.2.4" holds only once the merge publishes v0.2.4.
+
+# Guide 1.4 (26/11/2026)
+
+## Decisions
+
+- **Version 1.4**: files renamed `_V1.4` with `git mv`; one new history row, earlier rows unchanged.
+- **The body describes 0.3.0**, with a list "Compared with 0.2.4"; the 0.2.4 list stays as history.
+- **Linux serial**: "Windows only" becomes "Windows and Linux"; the probe output is described, not quoted, because no Linux port has been measured on a board.
+- **Appendices B, C and D** gain the 0.3.0 steps, declarations, capabilities and outcomes; every new step form was loaded with `sasctl run <file> --list`, and the capability lists come from `sasctl probe` with each stimulus.
+- **Counts** from the 0.3.0 Release build: trees and tags with `sasctl run <tree> --list`; the egm-test-scripts folder with `--loopback --stimulus software`.
+
+## Open threads
+
+- Word and PDF V1.4 are not rebuilt yet.
+- "Take release 0.3.0" holds only once the merge publishes v0.3.0.
