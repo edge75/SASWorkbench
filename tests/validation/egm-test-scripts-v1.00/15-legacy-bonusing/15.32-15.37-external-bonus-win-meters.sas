@@ -37,12 +37,71 @@ test "15.32 a bonus paid by the machine is an external bonus win" {
 
 test "15.33 machine-paid bonuses by game add up" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
+  machine games 1c 1c
   requires machine.legacy_bonus, machine.multiple_games, stimulus.select_game
-  requires decoder.lp51, decoder.lp56, host.game_meter_delta
+  requires decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF, host.game_meter_delta
 
-  note "Turn progressives off, enable up to twenty games at the same player denomination, and read the number of games ($51) and the enabled game numbers ($56)."
-  note "Sum 001E across all enabled games with $6F and $AF, and note the machine total. For each enabled game, select it and send the three bonuses: each is acknowledged, $7C arrives, and the credit meter and 001E grow by 18."
-  note "Afterwards the growth of the machine total less the growth of the per-game sum is zero. Repeat with the next twenty games if there are more. $6F and $AF for a game number one past the last are ignored."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400001E00
+  host remember field meters[0].value as meter_total_before
+  host send lp AF data 0400001E00
+  host expect field meters[0].value == saved.meter_total_before
+  host send lp 6F data 0400011E00
+  host remember field meters[0].value as meter_game1_before
+  host send lp AF data 0400011E00
+  host expect field meters[0].value == saved.meter_game1_before
+  host send lp 6F data 0400021E00
+  host remember field meters[0].value as meter_game2_before
+  host send lp AF data 0400021E00
+  host expect field meters[0].value == saved.meter_game2_before
+
+  host forget exceptions within 2s
+  egm select game 1
+  host send lp 8A data 0000000500
+  host send lp 8A data 0000000601
+  host send lp 8A data 0000000702
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
+
+  host forget exceptions within 2s
+  egm select game 2
+  host send lp 8A data 0000000500
+  host send lp 8A data 0000000601
+  host send lp 8A data 0000000702
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 8s
+
+  host send lp 6F data 0400011E00
+  host remember field meters[0].value as meter_game1_after
+  host send lp AF data 0400011E00
+  host expect field meters[0].value == saved.meter_game1_after
+  host send lp 6F data 0400021E00
+  host remember field meters[0].value as meter_game2_after
+  host send lp AF data 0400021E00
+  host expect field meters[0].value == saved.meter_game2_after
+  host send lp 6F data 0400001E00
+  host expect field meters[0].value >= saved.meter_total_before + 36
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+  host send lp AF data 0400001E00
+  host expect field meters[0].value >= saved.meter_total_before + 36
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400031E00
+  host expect no reply to lp AF data 0400031E00
+
+  note "Before the run, turn progressives off and enable exactly two games at the same player denomination; with more, repeat the case for each further pair. Set the jackpot limit high."
+  note "In each game the three bonuses are acknowledged, $7C arrives and 001E grows by 18; the growth of the machine's total less the growth of the per-game sum is zero."
 }
 
 test "15.34 machine-paid bonuses by denomination add up" {
@@ -112,11 +171,80 @@ test "15.35 a bonus paid by an attendant is an attendant external bonus" {
 
 test "15.36 attendant-paid bonuses by game add up" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
+  machine games 1c 1c
   requires machine.legacy_bonus, machine.multiple_games, machine.jackpot_limit, stimulus.select_game
-  requires stimulus.handpay.reset, decoder.lp51, decoder.lp56, host.game_meter_delta
+  requires stimulus.handpay.reset, decoder.lp1B, decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF, host.game_meter_delta
 
-  note "As 15.33, with meter 0021 and one wager-match bonus above the jackpot limit per game: each locks the machine up, the hand pay information matches 15.10, and the reset brings $52 and $7C."
-  note "Afterwards the growth of the machine total less the growth of the per-game sum is zero, and $6F and $AF for a game number one past the last are ignored."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  egm set jackpot limit 400
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400002100
+  host remember field meters[0].value as meter_total_before
+  host send lp AF data 0400002100
+  host expect field meters[0].value == saved.meter_total_before
+  host send lp 6F data 0400012100
+  host remember field meters[0].value as meter_game1_before
+  host send lp AF data 0400012100
+  host expect field meters[0].value == saved.meter_game1_before
+  host send lp 6F data 0400022100
+  host remember field meters[0].value as meter_game2_before
+  host send lp AF data 0400022100
+  host expect field meters[0].value == saved.meter_game2_before
+
+  host forget exceptions within 2s
+  egm select game 1
+  host send lp 8A data 0000050002
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount == 500
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 15s
+
+  host forget exceptions within 2s
+  egm select game 2
+  host send lp 8A data 0000050002
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount == 500
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect exception legacy_bonus_pay_or_jackpot_awarded within 15s
+
+  host send lp 6F data 0400012100
+  host remember field meters[0].value as meter_game1_after
+  host send lp AF data 0400012100
+  host expect field meters[0].value == saved.meter_game1_after
+  host send lp 6F data 0400022100
+  host remember field meters[0].value as meter_game2_after
+  host send lp AF data 0400022100
+  host expect field meters[0].value == saved.meter_game2_after
+  host send lp 6F data 0400002100
+  host expect field meters[0].value >= saved.meter_total_before + 1000
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+  host send lp AF data 0400002100
+  host expect field meters[0].value >= saved.meter_total_before + 1000
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400032100
+  host expect no reply to lp AF data 0400032100
+
+  note "Before the run, turn progressives off and enable exactly two games at the same player denomination; with more, repeat the case for each further pair. Set the jackpot limit below 500 credits and disable partial pay."
+  note "In each game one wager-match bonus of 500 locks the machine up as in 15.35, and the reset brings $52 and $7C; the growth of 0021 for the machine less the growth of the per-game sum is zero."
 }
 
 test "15.37 attendant-paid bonuses by denomination add up" {

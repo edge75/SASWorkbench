@@ -6,9 +6,8 @@
 # cashable, restricted, debit - so a machine that added every ticket to every meter would pass any
 # one of them alone.
 #
-# Most of these meters cannot be read by name in this build. A meter this host cannot name is a
-# skip and never a pass: reading the wrong meter and finding it moved would be worse than not
-# reading it.
+# The meters are read by code with $6F and $AF. A case that needs a restricted or a debit ticket
+# skips naming it: the platform prints neither (machine.restricted_tickets, machine.debit_credits).
 
 test "10.4.1 the total ticket out meter counts every kind of ticket" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
@@ -20,31 +19,80 @@ test "10.4.1 the total ticket out meter counts every kind of ticket" {
 
 test "10.4.2 the cashable ticket out meter counts cashable and debit tickets" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires meter.total_cashable_ticket_out
-  note "Read meter 002C, print a cashable ticket and a debit ticket, and read it again: both moved it. A restricted ticket must not. This build cannot read that meter by name."
+  requires machine.debit_credits, machine.restricted_tickets
+  note "Read meter 002C, print a cashable ticket and a debit ticket, and read it again: both moved it. A restricted ticket must not."
 }
 
 test "10.4.3 the restricted ticket out meter counts only restricted tickets" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires meter.total_restricted_ticket_out, machine.restricted_credits
+  requires machine.restricted_credits, machine.restricted_tickets
   note "Read meter 002D, print a restricted ticket, read it again. A cashable ticket must leave it alone."
 }
 
 test "10.4.4 cashable tickets are counted in cents and in quantity" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires meter.cashable_ticket_out_cents, meter.cashable_ticket_out_quantity
+  tag @egm-test-scripts @chapter-10 @needs-stimulus @needs-a-person
+  machine validation system
+  requires stimulus.bill, stimulus.button.collect, stimulus.settle, printer.wallet
+  requires decoder.lp6F, decoder.lpAF, decoder.lp4D, decoder.lp57, decoder.lp58
+  requires host.compare_replies, host.meter_arithmetic, host.validation_sequence
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 6F data 06000086008700
+  host expect field meters[0].code == $86
+  host remember field meters[0].value as m86_before
+  host expect field meters[1].code == $87
+  host remember field meters[1].value as m87_before
+  host send lp AF data 06000086008700
+  host expect field meters[0].value == saved.m86_before
+  host expect field meters[1].value == saved.m87_before
+
+  egm bill insert 2000
+  egm press collect
+  host expect exception system_validation_request within 5s
+  host send lp 57
+  host send lp 58 with validation_system_id=1 validation_number=104401
+  host expect field status of lp 58 == 0
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field amount of lp 4D == ticket.amount_cents
+  host remember field amount of lp 4D as ticket1
+  host forget exceptions within 2s
+  egm bill insert 500
+  egm press collect
+  host expect exception system_validation_request within 5s
+  host send lp 57
+  host send lp 58 with validation_system_id=1 validation_number=104402
+  host expect field status of lp 58 == 0
+  egm expect ticket printed within 20s
+  host send lp 4D data 00
+  host expect field amount of lp 4D == ticket.amount_cents
+  host remember field amount of lp 4D as ticket2
+  host forget exceptions within 2s
+
+  host send lp 6F data 06000086008700
+  host expect field meters[0].value == saved.m86_before + saved.ticket1 + saved.ticket2
+  host expect field meters[1].value == saved.m87_before + 2
+  host send lp AF data 06000086008700
+  host expect field meters[0].value == saved.m86_before + saved.ticket1 + saved.ticket2
+  host expect field meters[1].value == saved.m87_before + 2
+
   note "Meters 0086 and 0087 move together: the cents by the value of the ticket and the quantity by one. Two tickets of different values prove the pair are not the same number twice."
 }
 
 test "10.4.5 restricted tickets are counted in cents and in quantity" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires meter.restricted_ticket_out_cents, meter.restricted_ticket_out_quantity, machine.restricted_credits
+  requires machine.restricted_credits, machine.restricted_tickets
   note "Meters 0088 and 0089, the same shape as the pair above and counting only restricted tickets."
 }
 
 test "10.4.6 debit tickets are counted in cents and in quantity" {
   tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires meter.debit_ticket_out_cents, meter.debit_ticket_out_quantity, machine.debit_credits
+  requires machine.debit_credits
   note "Meters 008A and 008B. A debit ticket needs debit credits on the machine, which needs a transfer this build cannot make."
 }
 

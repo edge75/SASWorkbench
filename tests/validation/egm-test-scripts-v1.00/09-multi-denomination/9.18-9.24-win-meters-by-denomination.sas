@@ -7,8 +7,8 @@
 # total's gain, with the five-cent meter unchanged and the total moved. See 9.12 for why the set
 # is fixed at those two.
 #
-# Each meter is read by code through $6F. 9.22 still needs an attendant-paid progressive, and 9.24
-# total won credits, which the software machine does not keep, so both skip on their meter.
+# Each meter is read by code through $6F. 9.22 still needs an attendant-paid progressive, so it
+# skips on its meter.
 #
 # 9.20 and 9.23 are numbered in the document but carry no steps of their own: each refers to a
 # case in the bonusing chapter. They are kept here so the numbering has no holes and skip naming
@@ -178,9 +178,9 @@ test "9.23 attendant-paid external bonus wins by denomination" {
 
 test "9.24 total won credits by denomination add up to the total" {
   tag @egm-test-scripts @chapter-9 @needs-a-person
+  machine games 1c 2c 5c 10c
   requires machine.multiple_denominations, stimulus.select_denomination
   requires decoder.lpB0, decoder.lpB2, host.meter_arithmetic
-  requires meter.total_won_credits
   requires stimulus.bill, stimulus.play
 
   host connect loopback address 01
@@ -195,7 +195,7 @@ test "9.24 total won credits by denomination add up to the total" {
   host send lp B0 data 07026F0400002200
   host remember field meters[0].value as cent5_before
 
-  note "Choose one cent on the machine."
+  egm select denomination 1c
   egm bill insert 2000
   egm play games=1 bet=1 win=5
 

@@ -7,44 +7,278 @@
 # of the machine's own total. A per-game poll for a game number past the last implemented one is
 # ignored.
 #
-# The software machine is neither multi-game nor multi-denomination, and this build cannot choose
-# which game or denomination is played; all five skip.
+# The per-game cases declare two games and add each game's movement with remembered values
+# (host.game_meter_delta); the per-denomination cases declare four games at four denominations.
 
 test "22.22 legacy bonus meters by game add up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
   machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  machine games 100c 100c
   requires machine.legacy_bonus, machine.multiple_games
-  requires stimulus.select_game, host.game_meter_delta
-  requires decoder.lp9A, decoder.lp51, decoder.lp56, decoder.event7C
+  requires stimulus.select_game, host.game_meter_delta, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.lp9A, decoder.lp51, decoder.lp56, decoder.event7C
 
-  note "Turn progressives off and enable every game, twenty at a time if there are more. Read the number of games ($51) and the enabled game numbers ($56)."
-  note "Sum 00D7 and 00D8 across every enabled game with $9A, and note the machine totals. For each enabled game, select it, enable three times deductible and play until a win: the credit meter grows by three times the win, $7C carries multiplier 3 and twice the win, and 00D7 grows by twice the win. Then enable four times non-deductible ($84) and win again: four times on the credit meter, $7C with $84 and three times the win, and 00D8 grows by three times the win."
-  note "Afterwards, for each meter, the growth of the machine total less the growth of the per-game sum is zero. $9A for a game number one past the last implemented game is ignored."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 9A data 0000
+  host remember field deductible as deductible_total_before
+  host remember field non_deductible as non_deductible_total_before
+  host send lp 9A data 0001
+  host remember field deductible as deductible_game1_before
+  host remember field non_deductible as non_deductible_game1_before
+  host send lp 9A data 0002
+  host remember field deductible as deductible_game2_before
+  host remember field non_deductible as non_deductible_game2_before
+
+  host forget exceptions within 2s
+  egm select game 1
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999840000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == $84 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 30 within 8s
+  host send lp 8B data 0000000000000000010100
+
+  host forget exceptions within 2s
+  egm select game 2
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999840000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == $84 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 30 within 8s
+  host send lp 8B data 0000000000000000010100
+
+  host send lp 9A data 0001
+  host remember field deductible as deductible_game1_after
+  host remember field non_deductible as non_deductible_game1_after
+  host send lp 9A data 0002
+  host remember field deductible as deductible_game2_after
+  host remember field non_deductible as non_deductible_game2_after
+  host send lp 9A data 0000
+  host expect field deductible >= saved.deductible_total_before + 40
+  host expect field deductible == saved.deductible_total_before + saved.deductible_game1_after - saved.deductible_game1_before + saved.deductible_game2_after - saved.deductible_game2_before
+  host expect field non_deductible >= saved.non_deductible_total_before + 40
+  host expect field non_deductible == saved.non_deductible_total_before + saved.non_deductible_game1_after - saved.non_deductible_game1_before + saved.non_deductible_game2_after - saved.non_deductible_game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 9A data 0003
+
+  note "Before the run, turn progressives off, enable legacy bonusing and multiplied jackpots, and enable exactly two games at the same player denomination; with more, repeat the case for each further pair."
+  note "In each game a win at three times deductible puts twice the win on 00D7, and a win at four times non-deductible ($84) three times the win on 00D8; for each meter the growth of the machine's total less the growth of the per-game sum is zero."
 }
 
 test "22.23 machine-paid external bonus by game adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
   machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  machine games 100c 100c
   requires machine.legacy_bonus, machine.multiple_games
-  requires stimulus.select_game, host.game_meter_delta
-  requires decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56, decoder.event7C
+  requires stimulus.select_game, host.game_meter_delta, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56, decoder.event7C
 
-  note "Turn progressives off and enable up to twenty games at the same player denomination. Read the number of games ($51) and the enabled game numbers ($56)."
-  note "Sum 001E across every enabled game with $6F and $AF, and note the machine total. For each enabled game, select it and win once at three times deductible and once at four times non-deductible, with the credit meter and $7C as in 22.22."
-  note "Afterwards the growth of the machine total less the growth of the per-game sum is zero. $6F and $AF for a game number one past the last implemented game are ignored."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400001E00
+  host remember field meters[0].value as meter_total_before
+  host send lp AF data 0400001E00
+  host expect field meters[0].value == saved.meter_total_before
+  host send lp 6F data 0400011E00
+  host remember field meters[0].value as meter_game1_before
+  host send lp AF data 0400011E00
+  host expect field meters[0].value == saved.meter_game1_before
+  host send lp 6F data 0400021E00
+  host remember field meters[0].value as meter_game2_before
+  host send lp AF data 0400021E00
+  host expect field meters[0].value == saved.meter_game2_before
+
+  host forget exceptions within 2s
+  egm select game 1
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999840000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == $84 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 30 within 8s
+  host send lp 8B data 0000000000000000010100
+
+  host forget exceptions within 2s
+  egm select game 2
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 20 within 8s
+  host expect field tax_status of event legacy_bonus_pay_or_jackpot_awarded == 0 within 8s
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999840000
+  egm play games=1 bet=1 win=10
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == $84 within 8s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 30 within 8s
+  host send lp 8B data 0000000000000000010100
+
+  host send lp 6F data 0400011E00
+  host remember field meters[0].value as meter_game1_after
+  host send lp AF data 0400011E00
+  host expect field meters[0].value == saved.meter_game1_after
+  host send lp 6F data 0400021E00
+  host remember field meters[0].value as meter_game2_after
+  host send lp AF data 0400021E00
+  host expect field meters[0].value == saved.meter_game2_after
+  host send lp 6F data 0400001E00
+  host expect field meters[0].value >= saved.meter_total_before + 100
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+  host send lp AF data 0400001E00
+  host expect field meters[0].value >= saved.meter_total_before + 100
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400031E00
+  host expect no reply to lp AF data 0400031E00
+
+  note "Before the run, turn progressives off, enable legacy bonusing and multiplied jackpots, and enable exactly two games at the same player denomination; with more, repeat the case for each further pair."
+  note "In each game one win at three times deductible and one at four times non-deductible, as in 22.22; the growth of 001E for the machine less the growth of the per-game sum is zero."
 }
 
 test "22.24 attendant-paid external bonus by game adds up" {
   tag @egm-test-scripts @chapter-22 @needs-a-person
   machine multiplied jackpot on
+  # A game credit of one dollar is one accounting credit only at this unit, which every figure here assumes.
+  machine accounting denomination 100c
+  machine games 100c 100c
   requires machine.legacy_bonus, machine.multiple_games
   requires machine.jackpot_limit, stimulus.select_game, stimulus.handpay.reset
-  requires host.game_meter_delta, decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56
-  requires decoder.lp1B, decoder.event7C
+  requires host.game_meter_delta, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.lp6F, decoder.lpAF, decoder.lp51, decoder.lp56
+  requires decoder.lp1B, decoder.event7C, decoder.event7F
 
-  note "Turn progressives off, enable up to twenty games at the same player denomination, set the jackpot limit low with partial pay off, and read the games ($51, $56)."
-  note "Sum 0021 across every enabled game with $6F and $AF, and note the machine total. For each enabled game, enable three times deductible, select it and play until a win goes to a hand pay: $51 and $7F with the game's win; the hand pay information ($1B) shows the jackpot with no partial pay; the attendant's reset brings $52 and $7C with multiplier 3 and twice the win. Disable at the end."
-  note "Afterwards the growth of the machine total less the growth of the per-game sum is zero. $6F and $AF for a game number one past the last implemented game are ignored."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  egm set jackpot limit 100000
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400002100
+  host remember field meters[0].value as meter_total_before
+  host send lp AF data 0400002100
+  host expect field meters[0].value == saved.meter_total_before
+  host send lp 6F data 0400012100
+  host remember field meters[0].value as meter_game1_before
+  host send lp AF data 0400012100
+  host expect field meters[0].value == saved.meter_game1_before
+  host send lp 6F data 0400022100
+  host remember field meters[0].value as meter_game2_before
+  host send lp AF data 0400022100
+  host expect field meters[0].value == saved.meter_game2_before
+
+  host forget exceptions within 2s
+  egm select game 1
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=2000
+  host expect exception handpay_is_pending within 10s
+  host expect field win_amount of event game_ended != 0 within 8s
+  host send lp 1B
+  host expect field amount != 0
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 15s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 4000 within 15s
+  host send lp 8B data 0000000000000000010100
+
+  host forget exceptions within 2s
+  egm select game 2
+  host forget exceptions within 2s
+  host send lp 8B data 0000000099999999030000
+  egm play games=1 bet=1 win=2000
+  host expect exception handpay_is_pending within 10s
+  host expect field win_amount of event game_ended != 0 within 8s
+  host send lp 1B
+  host expect field amount != 0
+  host expect field partial_pay == 0
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  host expect field multiplier of event legacy_bonus_pay_or_jackpot_awarded == 3 within 15s
+  host expect field multiplied_win of event legacy_bonus_pay_or_jackpot_awarded == 4000 within 15s
+  host send lp 8B data 0000000000000000010100
+
+  host send lp 6F data 0400012100
+  host remember field meters[0].value as meter_game1_after
+  host send lp AF data 0400012100
+  host expect field meters[0].value == saved.meter_game1_after
+  host send lp 6F data 0400022100
+  host remember field meters[0].value as meter_game2_after
+  host send lp AF data 0400022100
+  host expect field meters[0].value == saved.meter_game2_after
+  host send lp 6F data 0400002100
+  host expect field meters[0].value >= saved.meter_total_before + 8000
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+  host send lp AF data 0400002100
+  host expect field meters[0].value >= saved.meter_total_before + 8000
+  host expect field meters[0].value == saved.meter_total_before + saved.meter_game1_after - saved.meter_game1_before + saved.meter_game2_after - saved.meter_game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400032100
+  host expect no reply to lp AF data 0400032100
+
+  note "Before the run, turn progressives off, enable legacy bonusing and multiplied jackpots, and enable exactly two games at the same player denomination; with more, repeat the case for each further pair. Switch partial pay off. The steps set the jackpot limit to $1,000, below the 2000-credit win."
+  note "In each game a win at three times deductible goes to a hand pay; the reset brings $52 and $7C with multiplier 3 and twice the win. The growth of 0021 for the machine less the growth of the per-game sum is zero."
   note "The document labels the multiplier non-deductible here, though the enable it sends is deductible; this case expects deductible, plain 3."
 }
 

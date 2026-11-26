@@ -35,9 +35,54 @@ test "15.15 reporting is switched on and off" {
 
 test "15.16 the idle answers in the event format" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.player_input_state
+  machine bet button on
+  requires machine.player_input_state, stimulus.bet_button, stimulus.real_time_events, stimulus.door.main
+  requires stimulus.bill, stimulus.play, decoder.lp0E, decoder.lp1A
 
-  note "The full case is 11.4: with reporting on, an idle machine answers $00 in the event format and one waiting for the player $1F."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+  host poll sequence
+
+  # Idle with the door open: once the door is reported, nothing - in the event format - and a long poll gets its own reply.
+  # A synchronisation poll between two general polls of the case's own acknowledges what the first drew.
+  egm door main open
+  host send gp draws event slot_door_opened
+  host send sync
+  host send gp draws event nothing
+  host send sync
+  host send gp draws event nothing
+  host send sync
+  host send lp 1A
+  egm door main close
+  host send gp draws event slot_door_closed
+  host send sync
+  host send gp draws event nothing
+  host send sync
+
+  # A wager placed and no start pressed: the machine waits for the player.
+  egm press bet
+  host send gp draws event coin_or_credit_wagered
+  host send sync
+  host send gp draws event waiting_for_player_input
+  host send sync
+  host send gp draws event waiting_for_player_input
+  host send sync
+
+  # Played: the game start and end, then nothing again.
+  egm play games=1 bet=1 win=0
+  host send gp draws event game_started
+  host send sync
+  host send gp draws event game_ended
+  host send sync
+  host send gp draws event nothing
+  host poll every 200ms
+
+  note "The full case is 11.4."
 }
 
 test "15.17 the bonus event carries its payload" {
@@ -171,14 +216,83 @@ test "15.22 a reel stopping" {
 
 test "15.23 a credit wagered" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires stimulus.bet_button
+  machine bet button on
+  requires stimulus.bet_button, stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  # Five presses on a machine whose largest bet is five: one $89 for each, and none for a sixth.
+  egm press bet
+  egm press bet
+  egm press bet
+  egm press bet
+  egm press bet
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  host expect exception coin_or_credit_wagered within 8s
+  egm press bet
+  host expect no exception coin_or_credit_wagered within 3s
+
+  egm play games=1 bet=5 win=0
+  host expect exception game_ended within 8s
+
+  # Off: the event is sent in no other format.
+  host forget exceptions within 2s
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  egm press bet
+  host expect no exception coin_or_credit_wagered within 5s
 
   note "The full case is 11.21."
 }
 
 test "15.24 a game recalled" {
   tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.game_recall
+  machine games 1c 2c
+  requires machine.game_recall, stimulus.game_recall, machine.multiple_games, stimulus.select_game
+  requires stimulus.real_time_events, stimulus.bill, stimulus.play
+  requires decoder.lp0E, decoder.lp55, decoder.event8A
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+
+  egm select game 1
+  egm play games=1 bet=1 win=0
+  egm select game 2
+  egm play games=1 bet=1 win=0
+  host forget exceptions within 2s
+  host send lp 55
+  host expect field selected_game of lp 55 == 2
+
+  # The last game played, then the one before it.
+  egm game recall 0
+  host expect field game_number of event game_recall_entry_displayed == 2 within 8s
+  host expect field recall_index of event game_recall_entry_displayed == 0 within 1s
+  host forget exceptions within 2s
+  egm game recall 1
+  host expect field game_number of event game_recall_entry_displayed == 1 within 8s
+  host expect field recall_index of event game_recall_entry_displayed == 1 within 1s
+
+  # Off: the same entry comes back as a bare code on a general poll.
+  host forget exceptions within 2s
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  egm game recall 0
+  host expect exception game_recall_entry_displayed within 8s
 
   note "The full case is 11.22."
 }

@@ -599,7 +599,7 @@ public class ScriptRunnerTests
 
         Assert.Equal(Verdict.Skip, result.Verdict);
         StepResult skipped = result.Steps.Single(s => s.Verdict == Verdict.Skip);
-        Assert.Contains("stimulus.button.bet", skipped.Reason!);
+        Assert.Contains("press bet", skipped.Reason!);
     }
 
     /// <summary>

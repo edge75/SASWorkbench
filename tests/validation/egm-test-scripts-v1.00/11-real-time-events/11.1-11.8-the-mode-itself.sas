@@ -176,11 +176,55 @@ test "11.3 a backlog comes out in the event format" {
 # No activity has a format too, and so does the machine waiting for a player to press something.
 test "11.4 no activity, and waiting for the player" {
   tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires machine.player_input_state
+  machine bet button on
+  requires machine.player_input_state, stimulus.bet_button, stimulus.real_time_events, stimulus.door.main
+  requires stimulus.bill, stimulus.play, decoder.lp0E, decoder.lp1A
 
-  note "With reporting on and the machine idle, open its door and poll for thirty seconds: no exception answers any long poll, and the general polls are answered in the event format with code $00 - the marker and a zero rather than a bare byte."
-  note "Now leave the machine waiting for the player - holding cards, or with a wager placed and no start pressed - and poll for another thirty seconds: the general polls carry $1F in the same format."
-  note "Then play several games: $7E and $7F arrive in the event format on both general and long polls. The machine is configured with AFT bonusing enabled throughout."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host send lp 0E data 01
+  egm bill insert 2000
+  host forget exceptions within 2s
+  host poll sequence
+
+  # Idle with the door open: once the door is reported, nothing - in the event format - and a long poll gets its own reply.
+  # A synchronisation poll between two general polls of the case's own acknowledges what the first drew.
+  egm door main open
+  host send gp draws event slot_door_opened
+  host send sync
+  host send gp draws event nothing
+  host send sync
+  host send gp draws event nothing
+  host send sync
+  host send lp 1A
+  egm door main close
+  host send gp draws event slot_door_closed
+  host send sync
+  host send gp draws event nothing
+  host send sync
+
+  # A wager placed and no start pressed: the machine waits for the player.
+  egm press bet
+  host send gp draws event coin_or_credit_wagered
+  host send sync
+  host send gp draws event waiting_for_player_input
+  host send sync
+  host send gp draws event waiting_for_player_input
+  host send sync
+
+  # Played: the game start and end, then nothing again.
+  egm play games=1 bet=1 win=0
+  host send gp draws event game_started
+  host send sync
+  host send gp draws event game_ended
+  host send sync
+  host send gp draws event nothing
+  host poll every 200ms
+
+  note "The document polls for thirty seconds in each state and keeps AFT bonusing enabled throughout; each state is sampled here with a few general polls of the case's own."
+  note "Its polling loop carries no general polls, so it expects $7E and $7F on long polls as well; this host always sends general polls, so they are read on those (D40)."
 }
 
 # The mode is not remembered across a power cycle: a machine comes back with reporting off, and
@@ -256,14 +300,104 @@ test "11.5 a power cycle turns reporting off" {
 # happened - which is why the same queue can come out both ways.
 test "11.6 the format follows the mode, not the event" {
   tag @egm-test-scripts @chapter-11 @needs-a-person @destructive
-  requires machine.power_cycle
+  requires machine.power_cycle, host.poll_sequence, stimulus.real_time_events, stimulus.game_recall
+  requires stimulus.door.main, stimulus.bill, stimulus.play, stimulus.settle
+  requires decoder.lp0E, decoder.lp1F, decoder.event8A
 
-  # Entering the game recall screen is part of every round and no stimulus here can do it.
-  requires stimulus.game_recall
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  egm bill insert 2000
+  host forget exceptions within 2s
 
-  note "With reporting off, stop polling and play a game, insert a note between $1 and $100, open and close the door, and enter the game recall screen. Start polling and turn reporting on: the queue then comes out in the event format - $7E, $7F, the note, $8A, $11 and $12 - on long polls."
-  note "Do the same again and power cycle before polling. Reporting is off again, so nothing answers a long poll; switch to a loop with general polls and the same queue comes out as bare bytes, with the note as its own denomination code or $4F."
-  note "Turn reporting on once more and repeat: the events come back in the event format on long polls."
+  # Off while the events happen, on before they leave: they leave in the event format.
+  host send lp 0E data 00
+  host forget exceptions within 2s
+  host poll sequence
+  host send sync
+  egm play games=1 bet=1 win=0
+  egm bill insert 500
+  egm door main open
+  egm door main close
+  egm game recall 0
+  host send sync
+  host send lp 0E data 01
+  host send sync
+  host send sync
+  host send gp draws event game_started
+  host send sync
+  host send gp draws event game_ended
+  host send sync
+  host send gp draws event bill_accepted
+  host send sync
+  host send gp draws event slot_door_opened
+  host send sync
+  host send gp draws event slot_door_closed
+  host send sync
+  host send gp draws event game_recall_entry_displayed
+  host poll every 200ms
+  host forget exceptions within 2s
+
+  # On while they happen, then a power cycle, which turns reporting off: they leave as bare codes, the note as its own.
+  host poll sequence
+  host send sync
+  egm play games=1 bet=1 win=0
+  egm bill insert 500
+  egm door main open
+  egm door main close
+  egm game recall 0
+  egm power cycle
+  host send sync
+  host send sync
+  host send lp 1F
+  host send gp draws bare game_started
+  host send lp 1F
+  host send gp draws bare game_ended
+  host send lp 1F
+  host send gp draws bare usd_5_bill_accepted
+  host send lp 1F
+  host send gp draws bare slot_door_opened
+  host send lp 1F
+  host send gp draws bare slot_door_closed
+  host send lp 1F
+  host send gp draws bare game_recall_entry_displayed
+  host poll every 200ms
+  host forget exceptions within 2s
+
+  # On once more and no power cycle: the event format again.
+  host send lp 0E data 01
+  host forget exceptions within 2s
+  host poll sequence
+  host send sync
+  egm play games=1 bet=1 win=0
+  egm bill insert 500
+  egm door main open
+  egm door main close
+  egm game recall 0
+  host send sync
+  host send sync
+  host send sync
+  host send gp draws event game_started
+  host send sync
+  host send gp draws event game_ended
+  host send sync
+  host send gp draws event bill_accepted
+  host send sync
+  host send gp draws event slot_door_opened
+  host send sync
+  host send gp draws event slot_door_closed
+  host send sync
+  host send gp draws event game_recall_entry_displayed
+  host poll every 200ms
+  host forget exceptions within 2s
+
+  note "The document lists the first queue as $7E, $7F, the note, $8A, $11 and $12, though its own steps open the door before they enter the recall screen; the steps' order is asserted here."
+  note "Its polling loop carries no general polls, so it expects these on long polls; this host reads them on general polls of the case's own, and asserts that a long poll gets its own reply where reporting is off (D40)."
+  note "What the power cycle itself raises follows these in the queue and is left to the round."
 }
 
 # The floor of the poll rate. Chapter 3 put it at 200 ms; reporting on takes it to 40.

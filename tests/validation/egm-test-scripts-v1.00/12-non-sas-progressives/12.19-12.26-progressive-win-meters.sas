@@ -10,8 +10,9 @@
 # (machine.progressives) and winning it with 'egm progressive win' (stimulus.progressive), paid to
 # its credit meter or, below a jackpot limit the case sets, by hand; the rest need several games or
 # several denominations.
-# The per-game sums need every game's meter read and added (host.game_meter_delta), as 7.19
-# and 7.22 already state. Every meter must also match the machine's own display, which is a person's to compare (D40).
+# The per-game cases declare two games and add each game's movement with remembered values
+# (host.game_meter_delta). Every meter must also match the machine's own display, which is a
+# person's to compare (D40).
 
 test "12.19 cumulative progressive wins are the two progressive meters together" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
@@ -117,13 +118,16 @@ test "12.22 each game's cumulative progressive wins" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
   requires machine.progressives, machine.multiple_games, stimulus.play.game, stimulus.progressive
   requires stimulus.handpay.reset, decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF, decoder.lp83, decoder.lp1B
-  requires host.meter_arithmetic
+  requires host.meter_arithmetic, stimulus.select_game, stimulus.bill
+  machine games 1c 1c
+  machine progressive non_sas levels 1
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  egm bill insert 1000
   host forget exceptions within 2s
 
   host send lp 51
@@ -142,7 +146,9 @@ test "12.22 each game's cumulative progressive wins" {
   host expect field cumulative_progressive_win of lp 83 == saved.machine_paid + saved.attendant_paid
   host remember field cumulative_progressive_win as cumulative
 
-  note "Play game 1 until level 1 is won, note the win in accounting credits, and if it locked the machine up read the hand pay information and reset it."
+  egm select game 1
+  egm progressive win level=1
+  host expect exception progressive_win within 30s
   host send lp 83 with game_number=1
   host expect field game_number of lp 83 == 1
   host expect field cumulative_progressive_win of lp 83 > saved.cumulative
@@ -153,24 +159,139 @@ test "12.22 each game's cumulative progressive wins" {
 
 test "12.23 each game's machine-paid progressive wins add up to the machine's" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, machine.multiple_games, stimulus.play.game, stimulus.progressive
+  machine games 1c 1c
+  machine progressive non_sas levels 1
+  requires machine.progressives, machine.multiple_games, stimulus.play.game, stimulus.select_game, stimulus.progressive, stimulus.bill
   requires decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF
   requires host.game_meter_delta, host.length_prefixed_silence
 
-  note "Configure the machine for a non-SAS progressive at level 1, enable up to twenty games at one player denomination, and select a progressive game."
-  note "Read meter 001D for game zero and every enabled game. Win a progressive the machine pays itself in each progressive game, and read again: the per-game movements sum to game zero's movement exactly. Repeat with further sets of up to twenty games until every implemented game has been tested."
-  note "$6F and $AF go unanswered for the game number one past the implemented count. This is the same experiment as 7.19."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  egm bill insert 1000
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400001D00
+  host remember field meters[0].value as total_before
+  host send lp AF data 0400001D00
+  host expect field meters[0].value == saved.total_before
+  host send lp 6F data 0400011D00
+  host remember field meters[0].value as game1_before
+  host send lp AF data 0400011D00
+  host expect field meters[0].value == saved.game1_before
+  host send lp 6F data 0400021D00
+  host remember field meters[0].value as game2_before
+  host send lp AF data 0400021D00
+  host expect field meters[0].value == saved.game2_before
+
+  egm select game 1
+  egm progressive win level=1
+  host expect exception progressive_win within 30s
+  egm select game 2
+  egm progressive win level=1
+  host expect exception progressive_win within 30s
+
+  host send lp 6F data 0400011D00
+  host remember field meters[0].value as game1_after
+  host send lp AF data 0400011D00
+  host expect field meters[0].value == saved.game1_after
+  host send lp 6F data 0400021D00
+  host remember field meters[0].value as game2_after
+  host send lp AF data 0400021D00
+  host expect field meters[0].value == saved.game2_after
+  host send lp 6F data 0400001D00
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.game1_after - saved.game1_before + saved.game2_after - saved.game2_before
+  host send lp AF data 0400001D00
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.game1_after - saved.game1_before + saved.game2_after - saved.game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400031D00
+  host expect no reply to lp AF data 0400031D00
+
+  note "Before the run, configure the machine for a non-SAS progressive at level 1 and enable exactly two progressive games at one player denomination; with more, repeat for each further pair until every implemented game has been tested."
+  note "Meter 001D, moved by a progressive the machine pays itself in each game. This is the same experiment as 7.19."
 }
 
 test "12.24 each game's attendant-paid progressive wins add up to the machine's" {
   tag @egm-test-scripts @chapter-12 @needs-a-person
-  requires machine.progressives, machine.multiple_games, stimulus.play.game, stimulus.progressive
+  machine games 1c 1c
+  machine progressive non_sas levels 1
+  requires machine.progressives, machine.multiple_games, machine.jackpot_limit, stimulus.play.game, stimulus.select_game, stimulus.progressive, stimulus.bill
   requires stimulus.handpay.reset, decoder.lp51, decoder.lp56, decoder.lp6F, decoder.lpAF, decoder.lp1B
   requires host.game_meter_delta, host.length_prefixed_silence
 
-  note "Configure the machine for a non-SAS progressive at level 1, enable up to twenty games at one player denomination, set a jackpot limit below the level's value, and select a progressive game."
-  note "Read meter 0020 for game zero and every enabled game. In each progressive game win the level as a hand pay, read the hand pay information and reset it, then read again: the per-game movements sum to game zero's movement exactly. Repeat with further sets of up to twenty games until every implemented game has been tested."
-  note "$6F and $AF go unanswered for the game number one past the implemented count. This is the same experiment as 7.22."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  egm set jackpot limit 500
+  egm bill insert 1000
+  host forget exceptions within 2s
+
+  # Two games enabled, so the sum below covers every one of them.
+  host send lp 51
+  host expect field games of lp 51 == 2
+  host send lp 56
+  host expect field count == 2
+
+  host send lp 6F data 0400002000
+  host remember field meters[0].value as total_before
+  host send lp AF data 0400002000
+  host expect field meters[0].value == saved.total_before
+  host send lp 6F data 0400012000
+  host remember field meters[0].value as game1_before
+  host send lp AF data 0400012000
+  host expect field meters[0].value == saved.game1_before
+  host send lp 6F data 0400022000
+  host remember field meters[0].value as game2_before
+  host send lp AF data 0400022000
+  host expect field meters[0].value == saved.game2_before
+
+  egm select game 1
+  egm progressive win level=1
+  host expect exception handpay_is_pending within 20s
+  host send lp 1B
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+  egm select game 2
+  egm progressive win level=1
+  host expect exception handpay_is_pending within 20s
+  host send lp 1B
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
+
+  host send lp 6F data 0400012000
+  host remember field meters[0].value as game1_after
+  host send lp AF data 0400012000
+  host expect field meters[0].value == saved.game1_after
+  host send lp 6F data 0400022000
+  host remember field meters[0].value as game2_after
+  host send lp AF data 0400022000
+  host expect field meters[0].value == saved.game2_after
+  host send lp 6F data 0400002000
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.game1_after - saved.game1_before + saved.game2_after - saved.game2_before
+  host send lp AF data 0400002000
+  host expect field meters[0].value >= saved.total_before + 1
+  host expect field meters[0].value == saved.total_before + saved.game1_after - saved.game1_before + saved.game2_after - saved.game2_before
+
+  # The game number one past the implemented count.
+  host expect no reply to lp 6F data 0400032000
+  host expect no reply to lp AF data 0400032000
+
+  note "Before the run, configure the machine for a non-SAS progressive at level 1, a jackpot limit below the level's value, and exactly two progressive games at one player denomination; with more, repeat for each further pair."
+  note "Meter 0020, moved by the level won as a hand pay in each game, read with long poll 1B and reset. This is the same experiment as 7.22."
 }
 
 test "12.25 each denomination's machine-paid progressive wins add up to the machine's" {
