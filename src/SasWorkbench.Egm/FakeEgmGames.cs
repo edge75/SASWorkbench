@@ -189,7 +189,10 @@ public sealed partial class FakeEgm
         lock (_gate)
         {
             foreach (MachineGame game in _games)
+            {
                 game.Meters.ClearAll();
+                Array.Clear(game.LegacyMeters);
+            }
         }
     }
 

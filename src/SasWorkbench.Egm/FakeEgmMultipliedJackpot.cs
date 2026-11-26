@@ -126,7 +126,7 @@ public sealed partial class FakeEgm
         Meters.SetCurrentCredits(Meters.Read(SasMeterCode.CurrentCredits) + paid);
         Meters.Increment(SasMeterCode.TotalCoinOutCredits, paid);
         Meters.Increment(SasMeterCode.TotalMachinePaidExternalBonusWin_Crd, paid);
-        _legacyMeters[taxStatus] += bonus;
+        AddLegacyMeterLocked(taxStatus, bonus);
         AwardMultipliedLocked(new LegacyBonusAward(setting.Multiplier, extra, taxStatus, bonus));
     }
 
@@ -155,7 +155,7 @@ public sealed partial class FakeEgm
     /// <summary>Meters the extra part on the legacy meter bit 7 chooses, stores the award for $90 and reports it with $7C.</summary>
     private void AwardMultipliedLocked(LegacyBonusAward award)
     {
-        _legacyMeters[(award.Multiplier & 0x80) != 0 ? 1 : 0] += award.MultipliedWin;
+        AddLegacyMeterLocked((award.Multiplier & 0x80) != 0 ? 1 : 0, award.MultipliedWin);
         RaiseLegacyBonusAwardLocked(award);
     }
 
@@ -201,5 +201,16 @@ public sealed partial class FakeEgm
     {
         _multipliedJackpot = null;
         _roundMultipliedJackpot = null;
+    }
+
+    /// <summary>
+    /// Meters a multiplied award on the machine's legacy meter and the selected game's: the platform has no multiplied
+    /// jackpots, so this follows the GSA document and writes the game's meter as well (D59).
+    /// </summary>
+    private void AddLegacyMeterLocked(int taxStatus, long credits)
+    {
+        _legacyMeters[taxStatus] += credits;
+        if (GameLocked(_selectedGame) is { } game)
+            game.LegacyMeters[taxStatus] += credits;
     }
 }

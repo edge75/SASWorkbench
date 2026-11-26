@@ -801,6 +801,8 @@ public sealed partial class FakeEgm
     /// </remarks>
     private void TakeTicket(long cents, SasTicketTransferCode code)
     {
+        // Each kind moves its own family, as the platform's meter table reads them (QSP SasNetwork_Meters.hpp:483 to :499, :658 to :682, :740 to :757, :879 to :914).
+        long credits = cents / AccountingCents;
         switch (code)
         {
             case SasTicketTransferCode.TTC_VALID_RESTRICTED_PROMOTIONAL_TICKET:
@@ -808,13 +810,17 @@ public sealed partial class FakeEgm
                 Meters.Increment(SasMeterCode.TotalSASRestrictedTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.RestrictedTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.RestrictedTicketIn_Cents, cents);
+                Meters.Increment(SasMeterCode.TotalRestrictedPromotionalTicketIn_Crd, credits);
+                Meters.Increment(SasMeterCode.TotalRestrictedPromotionalTicketIn_Qty, 1);
                 break;
 
-            // Counted in credits rather than cents, because that is the only meter the protocol
-            // keeps for it. There is no quantity meter for this kind, so none is moved.
+            // A non-restricted promotional ticket is cashable to the platform: it joins the cashable totals but not the regular ones.
             case SasTicketTransferCode.TTC_VALID_NONRESTRICTED_PROMOTIONAL_TICKET:
-                Meters.Increment(SasMeterCode.TotalNonrestrictedPromotionalTicketIn_Crd,
-                    cents / AccountingCents);
+                Meters.Increment(SasMeterCode.TotalCashableTicketIn_Cents, cents);
+                Meters.Increment(SasMeterCode.TotalSASCashableTicketIn_Qty, 1);
+                Meters.Increment(SasMeterCode.TotalCashableTicketIn_Crd, credits);
+                Meters.Increment(SasMeterCode.TotalNonrestrictedPromotionalTicketIn_Crd, credits);
+                Meters.Increment(SasMeterCode.TotalNonrestrictedPromotionalTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.NonRestrictedTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.NonRestrictedTicketIn_Cents, cents);
                 break;
@@ -822,6 +828,9 @@ public sealed partial class FakeEgm
             default:
                 Meters.Increment(SasMeterCode.TotalCashableTicketIn_Cents, cents);
                 Meters.Increment(SasMeterCode.TotalSASCashableTicketIn_Qty, 1);
+                Meters.Increment(SasMeterCode.TotalCashableTicketIn_Crd, credits);
+                Meters.Increment(SasMeterCode.TotalRegularCashableTicketIn_Crd, credits);
+                Meters.Increment(SasMeterCode.TotalRegularCashableTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.RegularCashableTicketIn_Qty, 1);
                 Meters.Increment(SasMeterCode.RegularCashableTicketIn_Cents, cents);
                 break;
@@ -831,7 +840,7 @@ public sealed partial class FakeEgm
         // ticket carrying an amount the unit does not divide leaves a remainder here. That is
         // inherent rather than a defect: a ticket carries any number of cents, and section 16's
         // divisibility rule constrains only the denominations a player may choose.
-        Meters.Increment(SasMeterCode.TotalTicketIn_Crd, cents / AccountingCents);
+        Meters.Increment(SasMeterCode.TotalTicketIn_Crd, credits);
 
         Meters.SetCurrentCredits(
             Meters.Read(SasMeterCode.CurrentCredits) + (cents / AccountingCents));

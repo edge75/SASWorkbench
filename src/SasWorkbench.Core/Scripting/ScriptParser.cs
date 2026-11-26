@@ -193,7 +193,7 @@ public static partial class ScriptParser
             return;
         }
 
-        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial")
+        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet")
         {
             test.Devices = ReadMachineDevices(test.Devices, words, location);
             return;
@@ -306,7 +306,7 @@ public static partial class ScriptParser
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
         + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], "
-        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, or "
+        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -985,12 +985,13 @@ public static partial class ScriptParser
         {
             "exception" => ReadExpectException(words, location, negated: false),
             "no" => ReadExpectNo(words, location),
+            "busy" => ReadExpectBusyReply(words, location),
             "answer" => ReadExpectAnswer(words, location),
             "meter" => ReadExpectMeter(words, location),
             "field" => ReadExpectField(test, words, location),
             "link" => ReadExpectLink(words, location),
             _ => throw new ScriptParseException(location,
-                $"'{words[2]}' cannot be expected. Expected exception, no exception, no reply, "
+                $"'{words[2]}' cannot be expected. Expected exception, no exception, no reply, busy reply, "
                 + "meter, field or link"),
         };
     }
@@ -1570,6 +1571,10 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadProgressiveWin(words, location));
                 return;
 
+            case "game" when words.Length >= 3 && words[2].Equals("recall", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(ReadGameRecall(words, location));
+                return;
+
             case "game":
                 test.Steps.Add(ReadGame(words, location));
                 return;
@@ -1600,6 +1605,10 @@ public static partial class ScriptParser
 
             case "press" when words.Length == 5 && words[3].Equals("lasting", StringComparison.OrdinalIgnoreCase):
                 test.Steps.Add(ReadSlowCashout(words, location));
+                return;
+
+            case "press" when words.Length == 3 && words[2].Equals("bet", StringComparison.OrdinalIgnoreCase):
+                test.Steps.Add(new BetButtonStep(location));
                 return;
 
             case "press":

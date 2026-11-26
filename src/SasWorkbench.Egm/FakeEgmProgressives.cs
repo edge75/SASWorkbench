@@ -307,8 +307,9 @@ public sealed partial class FakeEgm
         return new Dictionary<string, object>
         {
             ["game_number"] = game,
-            ["cumulative_progressive_win"] = Meters.Read(SasMeterCode.TotalMachinePaidProgressiveWin_Crd)
-                                             + Meters.Read(SasMeterCode.TotalAttendantPaidProgressiveWin_Crd),
+            // Each read for the game asked about, the platform's per-game block for a game (lp.cpp:8033, :8041).
+            ["cumulative_progressive_win"] = ReadGameMeter(game, 0, (ushort)SasMeterCode.TotalMachinePaidProgressiveWin_Crd)
+                                             + ReadGameMeter(game, 0, (ushort)SasMeterCode.TotalAttendantPaidProgressiveWin_Crd),
         };
     }
 

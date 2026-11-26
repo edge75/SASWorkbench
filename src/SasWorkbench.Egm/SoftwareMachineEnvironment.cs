@@ -135,6 +135,14 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
 
                 return;
 
+            case BetButtonStep bet:
+                Unless(bet, machine.PressBet());
+                return;
+
+            case GameRecallStep recall:
+                Unless(recall, machine.RecallGame(recall.Index));
+                return;
+
             case CoinInsertStep coins:
                 Unless(coins, machine.InsertCoins(coins.Coins));
                 return;
@@ -472,6 +480,8 @@ public static class SoftwareMachineEnvironment
                     HopperLevel = devices.Hopper ? settings.HopperCapacity / 2 : settings.HopperLevel,
                     Reels = devices.Reels,
                     PartialPayCoins = devices.PartialPay ? 10 : 0,
+                    BetButton = devices.BetButton,
+                    MaxBet = devices.BetButton ? (byte)FakeEgm.BetButtonMaxBet : settings.MaxBet,
                 };
             }
 

@@ -788,6 +788,8 @@ public sealed partial class ScriptRunner
 
                 ExpectNoReplyStep silence => ExpectSilence(silence, engine, machine, at),
 
+                ExpectBusyReplyStep busy => ExpectBusy(busy, engine, machine, at),
+
                 ForgetExceptionsStep forget => Forget(forget, engine, machine, exceptions, at),
 
                 StimulusStep stimulus => ApplyStimulus(
@@ -1291,12 +1293,12 @@ public sealed partial class ScriptRunner
         //  this build had two such cases before the guard was written.
         if (SasCatalogue.LongPolls.TryGetValue(step.Command, out SasLongPollInfo? info)
             && info.HostMessageLength is { } framed
-            && (framed < 0 || framed > 2 + step.Data.Length + (info.RequiresCheckSequence == true ? 2 : 0)))
+            && (framed < 0 ? !CarriesItsLength(step.Data) : framed > 2 + step.Data.Length + (info.RequiresCheckSequence == true ? 2 : 0)))
         {
             return new StepResult(step.Location, step.Describe(), Verdict.Fail,
                 Expected: "silence that means something",
                 Actual: $"a {2 + step.Data.Length}-byte poll of a command the machine frames at "
-                        + (framed < 0 ? "a length it reads out of the message" : $"{framed} bytes"),
+                        + (framed < 0 ? "the length its first data byte gives, which this poll does not match" : $"{framed} bytes"),
                 Reason: $"the machine's receiver drops a short ${step.Command:X2} as incomplete "
                         + "before any handler sees it, so this silence would be the framing and "
                         + "not what the case is about. Give the command its data.",

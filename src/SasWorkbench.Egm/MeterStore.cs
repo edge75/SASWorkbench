@@ -40,6 +40,10 @@ public sealed class MeterStore
         {
             updated = _values.GetValueOrDefault((ushort)meter) + amount;
             _values[(ushort)meter] = updated;
+
+            // Total won is coin out and jackpot together, worked out rather than kept (QSP SasNetwork_Meters.hpp:617).
+            if (meter is SasMeterCode.TotalCoinOutCredits or SasMeterCode.TotalJackpotCredits)
+                _values[(ushort)SasMeterCode.TotalWonCredits] = _values.GetValueOrDefault((ushort)SasMeterCode.TotalWonCredits) + amount;
         }
 
         Incremented?.Invoke((ushort)meter, amount);
