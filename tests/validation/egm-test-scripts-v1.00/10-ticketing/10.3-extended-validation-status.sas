@@ -80,6 +80,7 @@ test "10.3.3 the printer is declared a cashout device" {
 test "10.3.4 the printer is declared a handpay receipt device" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   machine validation secure_enhanced
+  machine handpay receipts on
   requires decoder.lp7B, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, printer.wallet, decoder.lp1B
   requires machine.handpay_receipts
 
@@ -110,7 +111,7 @@ test "10.3.4 the printer is declared a handpay receipt device" {
   host expect field current_validation_status of lp 7B == 32801
 
   note "Run on the secure enhanced configuration, where the status word without this bit reads 32801; the values asserted assume it."
-  note "A machine keeps only the long poll 7B bits it declares it supports. The demo declares neither handpay receipts nor handpay validation, so on 2026-11-03 bits 1 and 2 stayed clear and this case needs a machine that offers them."
+  note "A machine keeps only the long poll 7B bits it declares it supports. The platform offers neither hand pay receipts nor hand pay validation (on 2026-11-03 bits 1 and 2 stayed clear on the demo), so the case declares receipts (D61)."
 }
 
 test "10.3.5 hand pays and their receipts are validated" {

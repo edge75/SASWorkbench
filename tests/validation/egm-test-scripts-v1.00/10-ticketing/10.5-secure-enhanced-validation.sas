@@ -266,6 +266,8 @@ test "10.5.8 the enhanced validation information poll reads the buffer back" {
 test "10.5.9 the validation type field says what kind of transaction it was" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
   machine validation secure_enhanced
+  machine handpay validation on
+  machine handpay receipts on
   requires decoder.lp7B, decoder.lp4D, stimulus.handpay, stimulus.handpay.reset, stimulus.settle, decoder.lp1B
   requires stimulus.bill, stimulus.button.collect, printer.wallet
   requires machine.handpay_validation, machine.handpay_receipts
@@ -295,8 +297,10 @@ test "10.5.9 the validation type field says what kind of transaction it was" {
   host send lp 1B
   host expect field amount of lp 1B != 0
   host wait 1s
+  # A validated hand pay that printed a receipt is announced as a printed ticket, $3D (GSA 10.3.4).
   egm handpay reset
-  host expect exception handpay_validated within 20s
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 20s
   host wait 1s
   host send lp 4D data 00
   host expect field validation_type of lp 4D == 16

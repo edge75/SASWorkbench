@@ -127,8 +127,8 @@ public sealed class ExtendedLogTests
                     Tx(1, 20, 0x81),
                     Rx(2, 45, 0x00),
 
-                    // $03 is named in the catalogue and has no layout in this build; $1A has one.
-                    Command(3, 0x01, 0x03),
+                    // $0A is named in the catalogue and has no layout in this build; $1A has one.
+                    Command(3, 0x01, 0x0A),
                     Rx(4, 70, 0x81),
                     Command(5, 0x01, 0x1A),
                     Reply(6, 0x01, 0x1A, 0x00, 0x00, 0x12, 0x34),
@@ -284,12 +284,12 @@ public sealed class ExtendedLogTests
     [Fact]
     public void ACommandWithNoEstablishedLayoutIsNamedAndSaysItIsNotDecoded()
     {
-        PacketExplanation packet = PacketExplainer.ExplainAll([Command(0, 0x01, 0x03)])[0];
+        PacketExplanation packet = PacketExplainer.ExplainAll([Command(0, 0x01, 0x0A)])[0];
 
         Assert.Equal(PacketMeaning.NamedOnly, packet.Meaning);
         Assert.Equal("known but not decoded", packet.MeaningLabel);
-        Assert.Equal<byte?>(0x03, packet.Command);
-        Assert.Contains("$03", packet.Headline, StringComparison.Ordinal);
+        Assert.Equal<byte?>(0x0A, packet.Command);
+        Assert.Contains("$0A", packet.Headline, StringComparison.Ordinal);
         Assert.Contains("has not established", packet.Limit!, StringComparison.Ordinal);
 
         // Named, and no fields invented for it.
@@ -637,7 +637,7 @@ public sealed class ExtendedLogTests
         // Two distinct commands crossed the wire; one of them is a layout this build has not
         // established, and it is named so that breadth work knows where to go.
         Assert.Equal(2, coverage.Commands);
-        Assert.Equal([0x03], coverage.CommandsNamedOnly);
+        Assert.Equal([0x0A], coverage.CommandsNamedOnly);
         Assert.Equal([0x1A], coverage.CommandsExplained);
     }
 
@@ -669,7 +669,7 @@ public sealed class ExtendedLogTests
 
         Assert.Contains("explained in full", log, StringComparison.Ordinal);
         Assert.Contains("known but not decoded", log, StringComparison.Ordinal);
-        Assert.Contains("$03", log, StringComparison.Ordinal);
+        Assert.Contains("$0A", log, StringComparison.Ordinal);
         Assert.Contains("where breadth work is worth most", Flat(log), StringComparison.Ordinal);
     }
 
