@@ -52,7 +52,7 @@ failures together):
 | 21 | Miscellaneous control and legacy | 17 | 12 | 5 | notes only (3), a decoder for the command itself (2); 3 of the 12 fail, all of them findings |
 | 22 | MJT | 28 | 24 | 4 | a multiplied progressive win (1), a non-SAS progressive (1), a wide area progressive (1), the maximum bet (1) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **590** | **42** | |
+| | **total** | **632** | **588** | **44** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
