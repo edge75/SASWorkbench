@@ -84,9 +84,13 @@ internal static class RunCommand
             return 0;
         }
 
+        // The software machine gets a wallet of its own, deleted when the run ends; real machines keep the shared one.
+        using RunWallet wallet = RunWallet.For(options.Stimulus);
+
         var runner = new ScriptRunner(options with
         {
             OnTestFinished = quiet ? null : Print,
+            WalletDirectory = wallet.Directory,
         });
 
         RunReport report = runner.RunAll(documents);
