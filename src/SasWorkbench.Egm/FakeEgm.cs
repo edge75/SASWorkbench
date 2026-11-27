@@ -1458,6 +1458,8 @@ public sealed partial class FakeEgm : IDisposable
                     RememberLegacyBonusReading(link, request);
                 else if (command == (byte)SasLongPollCode.LP_SENDENHANCEDVALIDATIONINFO)
                     RememberValidationRead(link, request);
+                else if (command == (byte)SasLongPollCode.LP_RECEIVEVALIDATION)
+                    FinishValidationNumber();
                 return;
 
             default:
