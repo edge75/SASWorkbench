@@ -1084,3 +1084,28 @@ Taken while building group 16 of M9 on 2026-11-26, without the user, under D58; 
 * **Game zero counts every game**, any other game number only that game's rounds; credits are accounting units.
 
 The design note is `docs/M9-software-machine-tournaments.md`.
+
+---
+
+# Decision 61
+
+Taken while building group 17 of M9 on 2026-11-27, without the user, under D58; open to review like any other.
+
+## D61 — The host clears hand pays as the platform lets it, and poker, a hopper's limit and receipts are declared
+
+* **Remote hand pay reset and reset to the credit meter are the platform's**, so the software machine does both
+  without a declaration: the library leaves $94 on and QSP never turns it off, and QSP pays a jackpot onto the credit
+  meter when the host asked with $A8 and the win fits under the credit limit and the market's upper limit. So every
+  such jackpot reports reset ID 01, which makes 15.10 a finding: the platform cannot be set up without it. `machine.remote_handpay_reset` and `machine.handpay_reset_to_credits` are
+  offered by the software and manual backends, because no poll can ask without clearing a hand pay.
+* **A declared hopper reports its hopper limit as every game's cash-out limit** on $A4, in accounting units capped
+  at 9999, which group 14 left open.
+* **Poker is declared** (`machine poker on`), the D58 pattern: every game deals the same five cards, and
+  `egm poker hold|release <n>` and `egm poker draw` raise $8B and $87. The draw goes out through the library's plain
+  exception write, since neither the library nor QSP's game interface has a call for it; this is recorded as a
+  platform gap rather than failing 11.19 on a machine that has no poker game at all.
+* **Hand pay receipts are declared** (`machine handpay receipts on`), beside D53's validation: bit 1 of $7B is
+  offered, a reset files a receipt in the wallet, and a validated one is announced with $3D.
+* **Restricted and debit tickets and custom transfer ticket data are left out** of this group.
+
+The design note is `docs/M9-software-machine-tickets-poker-handpay.md`.
