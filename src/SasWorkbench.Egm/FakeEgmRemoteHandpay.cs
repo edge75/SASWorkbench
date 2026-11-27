@@ -11,8 +11,7 @@ namespace SasWorkbench.Egm;
 /// <remarks>
 /// Both are the platform's: the library has remote reset on unless the application turns it off, which QSP never does
 /// (libsas_internal.cpp:329), and QSP pays a jackpot onto the credit meter when the host asked for it and the win fits
-/// under the credit limit (QSP HandpayResetRules.h). The machine has no upper limit for that reset, as the operator
-/// cannot set one on the platform.
+/// under the credit limit and below the market's upper limit (QSP HandpayResetRules.h), which the operator cannot set.
 /// </remarks>
 public sealed partial class FakeEgm
 {
@@ -23,6 +22,9 @@ public sealed partial class FakeEgm
     private const byte ResetCodeDone = 0x00;
     private const byte ResetCodeUnable = 0x01;
     private const byte ResetCodeNoHandpay = 0x02;
+
+    /// <summary>The platform's default upper limit for reset to the credit meter, its large win limit (QSP JsonHandler.cpp:35, SasMarket.cpp:141).</summary>
+    private const long UpperResetToCreditsCents = 100_000_00;
 
     // QSP's fHandpayResetMethod: how the next $94 pays, standard unless $A8 asked and the machine agreed.
     private byte _hostResetMethod = ResetMethodStandard;
@@ -133,12 +135,15 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>
-    /// Whether a jackpot may be paid onto the credit meter: it must fit under the credit limit, which zero leaves
-    /// unset (QSP ResetToCreditMeterAllowed). A cancelled-credit hand pay never may. Called under the gate.
+    /// Whether a jackpot may be paid onto the credit meter: below the platform's default upper limit unless it is a
+    /// host's bonus, and fitting under the credit limit, which zero leaves unset (QSP ResetToCreditMeterAllowed). A
+    /// cancelled-credit hand pay never may. Called under the gate.
     /// </summary>
     private bool MayResetToCreditMeterLocked(HandpayOwed owed)
     {
         if (owed.Kind != HandpayKind.Jackpot)
+            return false;
+        if (!owed.Bonus && owed.AmountCents >= UpperResetToCreditsCents)
             return false;
         if (_creditLimitCents == 0)
             return true;
