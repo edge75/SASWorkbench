@@ -660,17 +660,9 @@ public sealed partial class FakeEgm : IDisposable
     {
         uint number = ticket.TicketNumber;
         Directory.CreateDirectory(walletDirectory);
+        // Numbers repeat across machines, so a unique part keeps every name free without probing the folder.
         string path = Path.Combine(walletDirectory,
-            $"{number:D6}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
-
-        // Two tickets can carry the same number - this machine is rebuilt for every test - so a
-        // name already taken gets a suffix rather than overwriting what is there.
-        int suffix = 1;
-        while (File.Exists(path))
-        {
-            path = Path.Combine(walletDirectory,
-                $"{number:D6}-{suffix++}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
-        }
+            $"{number:D6}-{Guid.NewGuid():N}{TicketFile.ExtensionFor(TicketEncoding.Json)}");
 
         TicketFile.Write(path, ticket, TicketEncoding.Json);
 
