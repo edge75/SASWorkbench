@@ -1,3 +1,4 @@
+using System.Globalization;
 using SasWorkbench.Core.Reporting;
 using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
@@ -208,13 +209,33 @@ internal static class RunCommand
 
         // Read whether or not the peripheral driver was asked for, so that naming one of these
         // with the wrong backend is reported as the mistake it is rather than silently ignored.
+        long? betCredits = null;
+        if (line.Value("egm-bet-credits") is { } bet)
+        {
+            if (!long.TryParse(bet, NumberStyles.None, CultureInfo.InvariantCulture, out long credits) || credits <= 0)
+            {
+                error = $"--egm-bet-credits takes a whole number of credits above zero, not '{bet}'.";
+                return false;
+            }
+
+            betCredits = credits;
+        }
+
         var peripherals = new QpmOptions(
-            line.Value("qpm-shm"), line.Value("egm-resources"));
+            line.Value("qpm-shm"), line.Value("egm-resources"),
+            ExecutablePath: line.Value("egm-exe"), BetCredits: betCredits);
 
         if (backend != StimulusBackend.Qpm
-            && (peripherals.RegionPath is not null || peripherals.ResourcesDirectory is not null))
+            && (peripherals.RegionPath is not null || peripherals.ResourcesDirectory is not null
+                || peripherals.ExecutablePath is not null || betCredits is not null))
         {
-            error = "--qpm-shm and --egm-resources only mean something with --stimulus qpm.";
+            error = "--qpm-shm, --egm-resources, --egm-exe and --egm-bet-credits only mean something with --stimulus qpm.";
+            return false;
+        }
+
+        if (peripherals.ExecutablePath is { } exe && !File.Exists(exe))
+        {
+            error = $"--egm-exe names '{exe}', which does not exist.";
             return false;
         }
 

@@ -16,6 +16,9 @@ public sealed record EndGameStep(SourceLocation Location, long WinCredits) : Sti
 {
     public override string RequiredCapability => "stimulus.game_in_progress";
 
+    /// <summary>True when the script wrote a win, zero included, so a machine that decides its own outcome must refuse it.</summary>
+    public bool WinStated { get; init; }
+
     public override string Describe() => $"game end win={WinCredits}";
 
     public override string? Guidance =>

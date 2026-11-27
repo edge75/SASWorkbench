@@ -1973,6 +1973,7 @@ public static partial class ScriptParser
         int games = 0;
         long bet = 0;
         long win = 0;
+        bool winStated = false;
 
         foreach (string word in words[2..])
         {
@@ -1991,6 +1992,7 @@ public static partial class ScriptParser
                     break;
                 case "win":
                     win = value;
+                    winStated = true;
                     break;
                 default:
                     throw new ScriptParseException(location,
@@ -2001,7 +2003,7 @@ public static partial class ScriptParser
         if (games <= 0)
             throw new ScriptParseException(location, "egm play needs games=<n> with n at least one");
 
-        return new PlayGamesStep(location, games, bet, win);
+        return new PlayGamesStep(location, games, bet, win) { WinStated = winStated };
     }
 
     private static TimeSpan ReadWithin(string[] words, int cursor, SourceLocation location)

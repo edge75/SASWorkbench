@@ -118,6 +118,9 @@ public sealed partial class ScriptRunner
     /// <summary>Steps a person did from one grouped prompt, with the skip reason when they did not.</summary>
     private readonly Dictionary<StimulusStep, string?> _doneInGroup = new(ReferenceEqualityComparer.Instance);
 
+    // A refusal that ends the case, handed from the step to the loop that blocks what follows.
+    private string? _endedByRefusal;
+
     public ScriptRunner(ScriptRunnerOptions? options = null)
     {
         _options = options ?? new ScriptRunnerOptions();
@@ -281,6 +284,15 @@ public sealed partial class ScriptRunner
             if (unmet is { } gap)
             {
                 return Skipped(test, stopwatch, startedAt, $"{gap.Requirement.Key}: {gap.Reason}",
+                    connect.Channel, testBase, provenance);
+            }
+
+            if (environment.Stimulus is IStimulusPreflight preflight
+                && test.Steps.OfType<StimulusStep>()
+                    .Select(step => (Step: step, Refusal: preflight.Refusal(step)))
+                    .FirstOrDefault(found => found.Refusal is not null) is { Refusal: { } refusal } refused)
+            {
+                return Skipped(test, stopwatch, startedAt, $"'{refused.Step.Describe()}': {refusal}",
                     connect.Channel, testBase, provenance);
             }
 
@@ -688,6 +700,12 @@ public sealed partial class ScriptRunner
                 steps.Add(result);
                 Log.Step(result, hosts.Current, testBase, machine: hosts.Machine);
 
+                if (_endedByRefusal is { } refused)
+                {
+                    hosts.Block(refused);
+                    _endedByRefusal = null;
+                }
+
                 if (result.Verdict == Verdict.Error)
                     break;
             }
@@ -793,7 +811,7 @@ public sealed partial class ScriptRunner
                 ForgetExceptionsStep forget => Forget(forget, engine, machine, exceptions, at),
 
                 StimulusStep stimulus => ApplyStimulus(
-                    stimulus, engine, machine, environment, test, baselines, window, answered, at),
+                    stimulus, engine, machine, environment, exceptions, test, baselines, window, answered, at),
 
                 ExpectExceptionStep expect => CheckException(
                     expect, engine, machine, exceptions, window, at),
@@ -984,6 +1002,13 @@ public sealed partial class ScriptRunner
         {
             lock (_gate)
                 return _all.LastOrDefault(report => Belongs(report, channel, machine) && report.Code == code);
+        }
+
+        /// <summary>The sequence of the last exception this channel reported from that machine, or -1.</summary>
+        public long LastSequence(SasChannel channel, SasAddress? machine)
+        {
+            lock (_gate)
+                return _all.Where(report => Belongs(report, channel, machine)).Select(r => r.Sequence).DefaultIfEmpty(-1).Max();
         }
 
         /// <summary>The first of that code reported after the one given, read or not.</summary>
@@ -1327,6 +1352,7 @@ public sealed partial class ScriptRunner
         PollEngine engine,
         SasAddress? machine,
         ScriptEnvironment environment,
+        ReportedExceptions exceptions,
         ScriptTest test,
         Baselines baselines,
         LastStimulus window,
@@ -1375,6 +1401,8 @@ public sealed partial class ScriptRunner
                 if (environment.Stimulus is ManualStimulusBackend manual
                     && GroupStartingAt(test, step) is { Count: > 1 } group)
                     ApplyGroup(manual, group, machine);
+                else if (environment.Stimulus is IHostAwareStimulusBackend aware)
+                    aware.Apply(step, machine, new RunnerHostView(engine, machine, exceptions));
                 else
                     environment.Stimulus.Apply(step, machine);
             }
@@ -1412,6 +1440,9 @@ public sealed partial class ScriptRunner
         }
         catch (StimulusUnavailableException unavailable)
         {
+            if (unavailable.EndsTheCase)
+                _endedByRefusal = unavailable.Reason;
+
             return new StepResult(step.Location, step.Describe(), Verdict.Skip,
                 Reason: unavailable.Reason, At: at);
         }

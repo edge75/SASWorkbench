@@ -13,8 +13,16 @@ namespace SasWorkbench.Qpm;
 /// stimulus and the tests that need one are skipped by name. Nothing is offered on the strength
 /// of the peripheral simulator's labels, which describe a different machine.
 /// </remarks>
-public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirectory = null)
-    : IStimulusBackend, IDisposable
+/// <param name="machine">The machine's shared region and profile.</param>
+/// <param name="acceptorDirectory">Where tickets are offered, or null for the usual place.</param>
+/// <param name="demo">The executable the run declared, which power cycles and window keys need; null when none was.</param>
+/// <param name="betCredits">The credits one bet multiplier wagers, which plays need; null when the run did not say.</param>
+public sealed partial class QpmStimulusBackend(
+    QpmMachine machine,
+    string? acceptorDirectory = null,
+    DemoProcess? demo = null,
+    long? betCredits = null)
+    : IHostAwareStimulusBackend, IDisposable
 {
     private readonly TicketAcceptor _acceptor =
         new(acceptorDirectory ?? TicketAcceptor.DefaultDirectory);
@@ -29,17 +37,28 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
     //  The named machine is ignored: the peripheral simulator drives the one cabinet it is
     //  attached to, and a host bound to it polls one address, so every address a case can name
     //  here is that machine's own.
-    public void Apply(StimulusStep step, SasAddress? named = null)
+    public void Apply(StimulusStep step, SasAddress? named = null) => Apply(step, named, host: null);
+
+    //  Every refusal ends the case: the steps after it would assert on a machine nobody drove.
+    public void Apply(StimulusStep step, SasAddress? named, IHostView? host)
     {
         ArgumentNullException.ThrowIfNull(step);
 
         try
         {
-            Carry(step);
+            if (Refusal(step) is { } refused)
+                throw new StimulusUnavailableException(refused);
+
+            if (!CarryOnTheDemo(step, host))
+                Carry(step);
         }
         catch (QpmUnavailableException unavailable)
         {
-            throw new StimulusUnavailableException(unavailable.Reason);
+            throw new StimulusUnavailableException(unavailable.Reason) { EndsTheCase = true };
+        }
+        catch (StimulusUnavailableException refused) when (!refused.EndsTheCase)
+        {
+            throw new StimulusUnavailableException(refused.Reason) { EndsTheCase = true };
         }
     }
 
@@ -117,17 +136,6 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
                 Machine.PressButton(key);
                 return;
 
-            // Playing a game through the button deck would need the machine to have credit, a bet
-            // selected and no condition inhibiting play, and its outcome is decided by a
-            // free-running generator, so a step asking for two games and a win of fifty cannot be
-            // honoured by pressing anything. The host's own auto-rebet long poll is the lever that
-            // makes a machine play by itself.
-            case PlayGamesStep play:
-                throw new StimulusUnavailableException(
-                    $"'{play.Describe()}' cannot be driven through the peripherals: the machine "
-                    + "decides its own outcomes, so a bet and a win cannot be asked for from "
-                    + "outside");
-
             default:
                 throw new StimulusUnavailableException(
                     $"the peripheral driver cannot do '{step.Describe()}' "
@@ -153,7 +161,7 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
             + string.Join(", ", Machine.Profile.ButtonNames);
     }
 
-    private Dictionary<string, string?> Describe() => Offer(Machine.Profile, _acceptor.Directory);
+    private Dictionary<string, string?> Describe() => Offer(Machine.Profile, _acceptor.Directory, demo, betCredits);
 
     /// <summary>
     /// What this backend offers a machine with this profile, without attaching to it.
@@ -162,7 +170,8 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
     /// A case that opens no link is judged against this, so it names what the machine actually
     /// lacks rather than everything a backend nobody has attached cannot vouch for.
     /// </remarks>
-    public static Dictionary<string, string?> Offer(EgmHardwareProfile profile, string acceptorDirectory)
+    public static Dictionary<string, string?> Offer(
+        EgmHardwareProfile profile, string acceptorDirectory, DemoProcess? demo = null, long? betCredits = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -201,6 +210,7 @@ public sealed class QpmStimulusBackend(QpmMachine machine, string? acceptorDirec
         if (ResetKey(profile) is not null)
             values["stimulus.handpay.reset"] = HandpayByWithdrawnPrinter;
 
+        OfferOnTheDemo(values, profile, demo, betCredits);
         return values;
     }
 

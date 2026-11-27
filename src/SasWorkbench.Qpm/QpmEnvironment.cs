@@ -11,10 +11,18 @@ namespace SasWorkbench.Qpm;
 /// The machine's own resource directory, which is where its door and button indices are declared.
 /// </param>
 /// <param name="Timings">How long to wait for the machine, or null for the usual timings.</param>
+/// <param name="ExecutablePath">The machine's executable, for power cycles and window keys; null when not declared.</param>
+/// <param name="BetCredits">The credits one bet multiplier wagers, for plays; null when not declared.</param>
 public sealed record QpmOptions(
     string? RegionPath = null,
     string? ResourcesDirectory = null,
-    QpmTimings? Timings = null);
+    QpmTimings? Timings = null,
+    string? ExecutablePath = null,
+    long? BetCredits = null)
+{
+    /// <summary>The declared executable, or null.</summary>
+    public DemoProcess? Demo => ExecutablePath is null ? null : new DemoProcess(ExecutablePath);
+}
 
 /// <summary>
 /// Builds an environment whose stimulus comes from the peripheral shared region.
@@ -69,7 +77,9 @@ public static class QpmEnvironment
         QpmOptions settings = options ?? new QpmOptions();
         return QpmStimulusBackend.Offer(
             EgmHardwareProfile.ReadFrom(settings.ResourcesDirectory),
-            acceptorDirectory ?? TicketAcceptor.DefaultDirectory).AsReadOnly();
+            acceptorDirectory ?? TicketAcceptor.DefaultDirectory,
+            settings.Demo,
+            settings.BetCredits).AsReadOnly();
     }
 
     /// <summary>
@@ -83,7 +93,9 @@ public static class QpmEnvironment
         {
             return new QpmStimulusBackend(
                 QpmMachine.Attach(settings.RegionPath, settings.ResourcesDirectory, settings.Timings),
-                acceptorDirectory);
+                acceptorDirectory,
+                settings.Demo,
+                settings.BetCredits);
         }
         catch (QpmUnavailableException unavailable)
         {

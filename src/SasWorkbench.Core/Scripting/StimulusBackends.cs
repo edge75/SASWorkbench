@@ -34,6 +34,9 @@ public sealed class StimulusUnavailableException(string reason) : Exception(reas
 {
     /// <summary>Why it could not be done, for the skip line in the report.</summary>
     public string Reason => Message;
+
+    /// <summary>True when every later step of the case is skipped as well, because they would measure a machine nobody drove.</summary>
+    public bool EndsTheCase { get; init; }
 }
 
 /// <summary>A backend that does nothing and admits it.</summary>

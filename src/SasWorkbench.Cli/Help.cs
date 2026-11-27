@@ -60,6 +60,12 @@ internal static class Help
                                       declares its doors and buttons  (--stimulus qpm)
               --qpm-shm <file>        the peripheral shared region, if it is not in the usual
                                       place for this platform  (--stimulus qpm)
+              --egm-exe <file>        the machine's executable: lets a case power cycle it and
+                                      post its registration key; only a process running from
+                                      exactly this file is touched  (--stimulus qpm)
+              --egm-bet-credits <n>   credits one bet multiplier wagers on the machine's first
+                                      enabled game; lets a case play, hold a game and choose
+                                      that game, never with a stated win  (--stimulus qpm)
               --report <formats>      {Reports.Names}  (comma-separated)
               --out <directory>       where to write the reports --report asks for  (default:
                                       runs/<timestamp>)
