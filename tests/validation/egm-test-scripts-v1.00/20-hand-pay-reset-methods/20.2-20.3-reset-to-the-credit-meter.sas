@@ -8,8 +8,8 @@
 # it is the jackpot meter.
 #
 # 20.2 clears the hand pay with the machine's own credit-meter key; 20.3 clears it from the host
-# with $94. This build decodes neither $A8 nor $94, and has no step for the credit-meter key. The
-# field names used below for the $A8 and $94 replies are provisional, chosen ahead of the decoders.
+# with $94. This build decodes $94 but not $A8, and has no step for the credit-meter key. The field
+# names used below for the $A8 reply are provisional, chosen ahead of its decoder.
 
 # The credit-meter key works only when the host has allowed it for this hand pay, so every step that
 # matters is the key, which nothing here can turn.

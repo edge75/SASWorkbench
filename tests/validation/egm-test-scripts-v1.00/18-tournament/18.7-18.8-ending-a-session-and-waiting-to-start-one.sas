@@ -12,12 +12,13 @@
 #
 # A machine told to start a session while a game, a tilt, a hand pay or an operator menu is in
 # progress acknowledges at once but waits until that is over before it enters the session. The
-# software machine plays no tournaments and this build decodes none of the meter replies, so both
-# cases skip; the field names are provisional and the amounts assume one game credit per
-# accounting unit.
+# platform has no tournaments, so both cases declare them (D60); the amounts assume one game credit
+# per accounting unit, which each case declares.
 
 test "18.7 the host ends a session, whatever limits it" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus
+  machine tournament on
+  machine accounting denomination 100c
   requires machine.tournament, stimulus.play, stimulus.bill, host.meter_arithmetic
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98
 
@@ -55,19 +56,24 @@ test "18.7 the host ends a session, whatever limits it" {
   egm play games=1 bet=2 win=4
   host send lp 95 data 0000
   host expect field games_played == 6
-  host remember field games_played as played
   host send lp 96 data 0000
   host expect field games_won == 1
-  host remember field games_won as won
   host send lp 97 data 0000
   host expect field credits_wagered == 60
-  host remember field credits_wagered as wagered
   host send lp 98 data 0000
   host expect field credits_won == 10
-  host remember field credits_won as credits_won
 
   # Time only: five minutes and no credits. Two games well inside the time count, then the end.
   host send lp 8C data 000005000000000000
+  # Read from where the new session starts: whether it zeroes its meters is 18.8's question, not this one.
+  host send lp 95 data 0000
+  host remember field games_played as played
+  host send lp 96 data 0000
+  host remember field games_won as won
+  host send lp 97 data 0000
+  host remember field credits_wagered as wagered
+  host send lp 98 data 0000
+  host remember field credits_won as credits_won
   egm play games=1 bet=2 win=0
   egm play games=1 bet=2 win=4
   host send lp 95 data 0000
@@ -83,19 +89,23 @@ test "18.7 the host ends a session, whatever limits it" {
   egm play games=1 bet=2 win=4
   host send lp 95 data 0000
   host expect field games_played == saved.played + 2
-  host remember field games_played as played_2
   host send lp 96 data 0000
   host expect field games_won == saved.won + 1
-  host remember field games_won as won_2
   host send lp 97 data 0000
   host expect field credits_wagered == saved.wagered + 4
-  host remember field credits_wagered as wagered_2
   host send lp 98 data 0000
   host expect field credits_won == saved.credits_won + 4
-  host remember field credits_won as credits_won_2
 
   # Credits only: a hundred and no time limit, stopped well short of the hundred, then the end.
   host send lp 8C data 000000000000010000
+  host send lp 95 data 0000
+  host remember field games_played as played_2
+  host send lp 96 data 0000
+  host remember field games_won as won_2
+  host send lp 97 data 0000
+  host remember field credits_wagered as wagered_2
+  host send lp 98 data 0000
+  host remember field credits_won as credits_won_2
   egm play games=1 bet=5 win=0
   egm play games=1 bet=5 win=10
   host send lp 95 data 0000
@@ -123,7 +133,10 @@ test "18.7 the host ends a session, whatever limits it" {
 
 test "18.8 a session asked for while the machine is busy starts once it is free" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus @needs-a-person
-  requires machine.tournament, stimulus.game_in_progress, stimulus.door.main, stimulus.hopper
+  machine tournament on
+  machine accounting denomination 100c
+  machine hopper on
+  requires machine.tournament, stimulus.game_in_progress, stimulus.door.main, stimulus.hopper, stimulus.hopper_fault
   requires machine.audit_menu, machine.jackpot_limit, stimulus.handpay.jackpot
   requires stimulus.handpay.reset, stimulus.play, stimulus.bill
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98
@@ -169,8 +182,52 @@ test "18.8 a session asked for while the machine is busy starts once it is free"
   host expect field games_played == 1
   host send lp 8C data 000000000000000000
 
+  # During a game: acknowledged, and once the game is over the meters read zero - it was not counted.
+  egm game start bet=1
+  host send lp 8C data 000005000000000000
+  host send lp 95 data 0000
+  host expect field games_played == 0
+  egm game end
+  host send lp 95 data 0000
+  host expect field games_played == 0
+  host send lp 96 data 0000
+  host expect field games_won == 0
+  host send lp 97 data 0000
+  host expect field credits_wagered == 0
+  host send lp 98 data 0000
+  host expect field credits_won == 0
+  egm play games=1 bet=1 win=0
+  host send lp 95 data 0000
+  host expect field games_played == 1
+  host send lp 8C data 000000000000000000
+
+  # During a tilt, an empty hopper: acknowledged, and the session starts once it is cleared.
+  egm hopper fault empty
+  host send lp 8C data 000005000000000000
+  host send lp 95 data 0000
+  host expect field games_played == 0
+  egm hopper fault cleared
+  egm play games=1 bet=1 win=0
+  host send lp 95 data 0000
+  host expect field games_played == 1
+  host send lp 8C data 000000000000000000
+
+  # With the operator menu open: acknowledged, and the four meters read zero.
+  egm menu operator enter
+  host send lp 8C data 000005000000000000
+  host send lp 95 data 0000
+  host expect field games_played == 0
+  host send lp 96 data 0000
+  host expect field games_won == 0
+  host send lp 97 data 0000
+  host expect field credits_wagered == 0
+  host send lp 98 data 0000
+  host expect field credits_won == 0
+  egm menu operator leave
+  egm play games=1 bet=1 win=0
+  host send lp 95 data 0000
+  host expect field games_played == 1
+  host send lp 8C data 000000000000000000
+
   note "Before the run, turn tournaments on, set a low jackpot limit at the machine, and leave it idle."
-  note "By hand, during a game: start a game, and before it finishes send the poll starting a five-minute time-only session, and $95 for game 0. The poll is acknowledged. Once the game is over the four meters read zero - the game in progress was not counted. Play one game: games played reads 1. End the session."
-  note "By hand, during a tilt such as an empty hopper: send the poll starting the session, and it is acknowledged. Clear the tilt and play one game: games played reads 1. End the session."
-  note "By hand, with the operator menu open: send the poll and the four meter polls. It is acknowledged and the meters read zero. Leave the menu and play one game: games played reads 1. End the session."
 }

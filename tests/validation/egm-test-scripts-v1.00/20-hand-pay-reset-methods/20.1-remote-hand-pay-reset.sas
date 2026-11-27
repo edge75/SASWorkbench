@@ -6,9 +6,8 @@
 # lands on the jackpot meter, cancelled credits on the hand-paid cancelled credits meter, and coin
 # out moves for neither.
 #
-# This build has no decoder for the $94 or $A8 replies, and the software machine does not answer
-# either command, so the case skips on that before anything else. The field name used for the $94
-# reply code below is provisional, chosen ahead of the decoder that will define it.
+# This build decodes the $94 reply, whose single code is reset_code, but the software machine does
+# not answer $94 yet, so the case skips on the remote hand pay reset.
 
 test "20.1 a remote hand pay reset" {
   tag @egm-test-scripts @chapter-20 @needs-stimulus @needs-configuration @destructive
