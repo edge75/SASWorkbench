@@ -181,10 +181,25 @@ test "15.20 a bonus is not part of the game's win" {
 }
 
 test "15.21 a draw request" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.poker
+  tag @egm-test-scripts @chapter-15 @needs-stimulus
+  machine poker on
+  requires machine.poker, stimulus.poker, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
+  requires decoder.lp0E
 
-  note "The full case is 11.19."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  egm bill insert 2000
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  egm game start bet=1
+  egm poker draw
+  host expect exception player_requested_draw_cards within 8s
+  egm game end win=0
+
+  note "The full case, with reporting off as well, is 11.19."
 }
 
 test "15.22 a reel stopping" {
@@ -298,8 +313,27 @@ test "15.24 a game recalled" {
 }
 
 test "15.25 cards held" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.poker
+  tag @egm-test-scripts @chapter-15 @needs-stimulus
+  machine poker on
+  requires machine.poker, stimulus.poker, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
+  requires decoder.lp0E
 
-  note "The full case is 11.23."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  egm bill insert 2000
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  egm game start bet=1
+  egm poker hold 5
+  host expect field card of event card_held_or_not_held == $84 within 8s
+  host forget exceptions within 2s
+  egm poker release 5
+  host expect field card of event card_held_or_not_held == $04 within 8s
+  host forget exceptions within 2s
+  egm game end win=0
+
+  note "The full case, every card and reporting off as well, is 11.23."
 }

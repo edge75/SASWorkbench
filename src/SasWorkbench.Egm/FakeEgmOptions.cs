@@ -189,6 +189,9 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine plays the host's tournament sessions; off, as the platform has none (D60).</summary>
     public bool Tournament { get; init; }
 
+    /// <summary>Whether the machine's game is draw poker; off, as the platform has none (D61).</summary>
+    public bool Poker { get; init; }
+
     /// <summary>
     /// Which currency this machine's note acceptor reports, as the protocol's own country code.
     /// </summary>
@@ -224,6 +227,9 @@ public sealed record FakeEgmOptions
 
     /// <summary>Whether the machine validates hand pays when the host asks with long poll 7B bit 2; QSP does not (SasNetwork.cpp:617).</summary>
     public bool HandpayValidation { get; init; }
+
+    /// <summary>Whether the machine prints a hand pay receipt when the host asks with long poll 7B bit 1; QSP does not (SasNetwork.cpp:617).</summary>
+    public bool HandpayReceipts { get; init; }
 
     /// <summary>Whether the machine multiplies jackpots; off, as QSP starts the library (SasNetwork.cpp:286).</summary>
     public bool MultipliedJackpot { get; init; }

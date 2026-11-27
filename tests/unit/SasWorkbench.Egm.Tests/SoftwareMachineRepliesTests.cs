@@ -135,8 +135,8 @@ public class SoftwareMachineRepliesTests
             // No cash-out limit is set, as the platform has no hopper (lp.cpp:9546).
             0xA4,
 
-            // The remote hand pay reset is not modelled yet, and tournaments are off unless a case declares them (lp.cpp:251, :9245).
-            0x94, 0x95, 0x96, 0x97, 0x98, 0x99,
+            // Tournaments are off unless a case declares them (lp.cpp:251, :9245).
+            0x95, 0x96, 0x97, 0x98, 0x99,
         ];
 
         using var rig = new Rig(responseTimeout: TimeSpan.FromMilliseconds(400));
@@ -160,8 +160,8 @@ public class SoftwareMachineRepliesTests
         }
 
         Assert.Empty(wrong);
-        Assert.Equal(106, SasLayouts.All.Count);
-        Assert.Equal(89, answered);
+        Assert.Equal(110, SasLayouts.All.Count);
+        Assert.Equal(94, answered);
     }
 
     /// <summary>

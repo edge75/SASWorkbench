@@ -1,17 +1,44 @@
 # Chapter 11, sections 11.19 to 11.25 - the events only some machines owe, and the signature.
 #
-# Six of these need something this machine is not - a poker game, physical reels, more than one
-# game, a bet button that commits credits one at a time, a game recall screen - and the seventh
-# needs a number only the manufacturer has. All seven share one rule worth reading first: these
+# Six of these need something the platform is not - a poker game, physical reels, more than one
+# game, a bet button that commits credits one at a time, a game recall screen - so each declares
+# it, and the seventh needs a number only the manufacturer has. All seven share one rule worth reading first: these
 # events exist only while reporting is on, and a machine that sends one with reporting off has
 # failed, which is the second half of every case here.
 
 test "11.19 a player asks for draw cards" {
-  tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires machine.poker
+  tag @egm-test-scripts @chapter-11 @needs-stimulus
+  machine poker on
+  requires machine.poker, stimulus.poker, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
+  requires decoder.lp0E
 
-  note "Only for poker machines. With reporting on, deal, hold a card and ask to draw: one $87 in the event format - the machine's address, the marker, the code and a check sequence, with nothing between."
-  note "Turn reporting off and do it again: no $87 in answer to any poll, ever."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  egm bill insert 2000
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  # Deal, hold a card and draw: one $87.
+  egm game start bet=1
+  egm poker hold 1
+  host expect exception card_held_or_not_held within 8s
+  egm poker draw
+  host expect exception player_requested_draw_cards within 8s
+  host expect no exception player_requested_draw_cards within 3s
+  egm game end win=0
+  host forget exceptions within 3s
+
+  # Reporting off: the draw is never reported, in any format.
+  host send lp 0E data 00
+  egm game start bet=1
+  egm poker hold 1
+  egm poker draw
+  host expect no exception player_requested_draw_cards within 3s
+  egm game end win=0
+
+  note "Only for poker machines. The $87 is the event format with nothing between the code and the check sequence."
 }
 
 test "11.20 each reel comes to rest" {
@@ -134,12 +161,64 @@ test "11.22 a past game put back on screen" {
 }
 
 test "11.23 which cards were held" {
-  tag @egm-test-scripts @chapter-11 @needs-a-person
-  requires machine.poker
+  tag @egm-test-scripts @chapter-11 @needs-stimulus
+  machine poker on
+  requires machine.poker, stimulus.poker, stimulus.game_in_progress, stimulus.real_time_events, stimulus.bill
+  requires decoder.lp0E
 
-  note "Only for poker machines. With reporting on, bet and deal, then hold the rightmost card: one $8B carrying $84 - the high bit says held and the low bits number the card. Release it: $04. Hold the leftmost: $80. Release: $00. The middle: $82 then $02. Second from the left: $81 then $01. Second from the right: $83 then $03."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  egm bill insert 2000
+  host send lp 0E data 01
+  host forget exceptions within 2s
+
+  # The high bit says held and the low bits number the card from 0 on the left.
+  egm game start bet=1
+  egm poker hold 5
+  host expect field card of event card_held_or_not_held == $84 within 8s
+  host forget exceptions within 2s
+  egm poker release 5
+  host expect field card of event card_held_or_not_held == $04 within 8s
+  host forget exceptions within 2s
+  egm poker hold 1
+  host expect field card of event card_held_or_not_held == $80 within 8s
+  host forget exceptions within 2s
+  egm poker release 1
+  host expect field card of event card_held_or_not_held == $00 within 8s
+  host forget exceptions within 2s
+  egm poker hold 3
+  host expect field card of event card_held_or_not_held == $82 within 8s
+  host forget exceptions within 2s
+  egm poker release 3
+  host expect field card of event card_held_or_not_held == $02 within 8s
+  host forget exceptions within 2s
+  egm poker hold 2
+  host expect field card of event card_held_or_not_held == $81 within 8s
+  host forget exceptions within 2s
+  egm poker release 2
+  host expect field card of event card_held_or_not_held == $01 within 8s
+  host forget exceptions within 2s
+  egm poker hold 4
+  host expect field card of event card_held_or_not_held == $83 within 8s
+  host forget exceptions within 2s
+  egm poker release 4
+  host expect field card of event card_held_or_not_held == $03 within 8s
+  host forget exceptions within 2s
+  egm game end win=0
+  host forget exceptions within 3s
+
+  # Reporting off: no $8B, however the cards are held.
+  host send lp 0E data 00
+  egm game start bet=1
+  egm poker hold 2
+  egm poker release 2
+  egm poker hold 4
+  egm game end win=0
+  host expect no exception card_held_or_not_held within 3s
+
   note "A machine with more than five cards reports the first five, left to right."
-  note "Turn reporting off, hold and release several cards and finish the game: no $8B in answer to any poll."
 }
 
 test "11.24 the player chooses a different game" {

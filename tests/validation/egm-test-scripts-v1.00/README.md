@@ -38,21 +38,21 @@ failures together):
 | 7 | Multi-game | 23 | 22 | 1 | a machine without multi-game support (1) |
 | 8 | Weighted average theoretical payback | 1 | 1 | 0 | the comparison with the operator screen is a note (D40) |
 | 9 | Multi-denomination | 24 | 20 | 4 | an attendant-paid progressive meter (1), cases that point to the bonusing chapter (2), the token denomination setting (1) |
-| 10 | Tickets | 72 | 51 | 21 | restricted tickets (7), hand pay receipt meters (4), debit credits (2), notes only (2), hand pay receipts and validation (2), others (4) |
-| 11 | Real-time events | 25 | 23 | 2 | a card game (2); 1 of the 23 fails, a finding |
+| 10 | Tickets | 72 | 53 | 19 | restricted tickets (7), hand pay receipt meters (4), debit credits (2), notes only (2), others (4) |
+| 11 | Real-time events | 25 | 25 | 0 | a card game declared by the case (D61); 1 of the 25 fails, a finding |
 | 12 | Non-SAS progressives | 30 | 29 | 1 | a hopper paying a progressive (1); 1 of the 29 fails, a finding |
 | 13 | SAS-controlled progressives | 40 | 40 | 0 | 1 of the 40 fails, a finding |
 | 14 | AFT bonusing | 11 | 11 | 0 | 2 of the 11 fail, both findings |
-| 15 | Legacy bonusing | 37 | 33 | 4 | a card game (3), a player screen (1); 3 of the 33 fail, all of them findings |
+| 15 | Legacy bonusing | 37 | 36 | 1 | a player screen (1); 4 of the 36 fail, all of them findings |
 | 16 | AFT transfers | 90 | 85 | 5 | notes only (2), reading a field's bits (1), a wallet (1), the $75 decoder (1); 23 of the 85 fail, all of them findings |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | transfer tickets carrying custom data, which the platform does not print (4) |
 | 18 | Tournament | 10 | 10 | 0 | tournaments declared by the case (D60) |
 | 19 | Authentication | 16 | 13 | 3 | cutting a component's link (2), a component that cannot be authenticated now (1); 6 of the 13 fail, all of them findings |
-| 20 | Hand pay reset methods | 3 | 0 | 3 | a remote hand pay reset (2), the credit-meter reset key (1) |
-| 21 | Miscellaneous control and legacy | 17 | 10 | 7 | a decoder for the command itself (4), a cash-out limit (2), notes only (1); 3 of the 10 fail, all of them findings |
+| 20 | Hand pay reset methods | 3 | 2 | 1 | the credit-meter reset key (1); 1 of the 2 fails, a finding |
+| 21 | Miscellaneous control and legacy | 17 | 12 | 5 | notes only (3), a decoder for the command itself (2); 3 of the 12 fail, all of them findings |
 | 22 | MJT | 28 | 24 | 4 | a multiplied progressive win (1), a non-SAS progressive (1), a wide area progressive (1), the maximum bet (1) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **553** | **79** | |
+| | **total** | **632** | **564** | **68** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been

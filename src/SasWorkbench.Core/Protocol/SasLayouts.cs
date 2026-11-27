@@ -801,6 +801,7 @@ public static partial class SasLayouts
             TransferFunds(),
             .. Miscellaneous(),
             .. Tournament(),
+            .. HandpayResetAndSound(),
             new()
             {
                 Command = 0x7B,

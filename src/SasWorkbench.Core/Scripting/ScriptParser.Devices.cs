@@ -6,7 +6,7 @@ namespace SasWorkbench.Core.Scripting;
 public static partial class ScriptParser
 {
     private const string DevicesUsage =
-        "expected: machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, or machine tournament on. "
+        "expected: machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, or machine poker on. "
         + "A machine without them is the default, so none has an 'off'";
 
     /// <summary>Reads one device declaration, each at most once; a partial pay brings the hopper that pays it.</summary>
@@ -36,17 +36,39 @@ public static partial class ScriptParser
             case ["tournament", "on"] when !current.Tournament:
                 return current with { Tournament = true };
 
+            case ["poker", "on"] when !current.Poker:
+                return current with { Poker = true };
+
             case ["coin", "acceptor", "on" or "external"]:
             case ["hopper", "on"]:
             case ["reels", "on"]:
             case ["partial", "pay", "on"]:
             case ["bet", "button", "on"]:
             case ["tournament", "on"]:
+            case ["poker", "on"]:
                 throw new ScriptParseException(location, "this case already declares that");
 
             default:
                 throw new ScriptParseException(location, DevicesUsage);
         }
+    }
+
+    /// <summary>Reads <c>egm poker hold|release &lt;1-5&gt;</c> or <c>egm poker draw</c>.</summary>
+    private static PokerStep ReadPokerStep(string[] words, SourceLocation location)
+    {
+        string action = words.Length > 2 ? words[2].ToLowerInvariant() : string.Empty;
+
+        if (action == "draw" && words.Length == 3)
+            return new PokerStep(location, PokerAction.Draw, 0);
+
+        if (action is "hold" or "release" && words.Length == 4
+            && int.TryParse(words[3], NumberStyles.None, CultureInfo.InvariantCulture, out int position)
+            && position is >= 1 and <= 5)
+        {
+            return new PokerStep(location, action == "hold" ? PokerAction.Hold : PokerAction.Release, position);
+        }
+
+        throw new ScriptParseException(location, "expected: egm poker hold <1-5>, egm poker release <1-5>, or egm poker draw");
     }
 
     /// <summary>
