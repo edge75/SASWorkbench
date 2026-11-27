@@ -1062,3 +1062,25 @@ Taken while building group 15 of M9 on 2026-11-26, without the user, under D58; 
   where the machine had queued them and then left a general poll unanswered.
 
 The design note is `docs/M9-software-machine-played-game.md`.
+
+---
+
+# Decision 60
+
+Taken while building group 16 of M9 on 2026-11-26, without the user, under D58; open to review like any other.
+
+## D60 — A case declares tournaments, and a session's credits are not the player's money
+
+* **Tournaments are declared** (`machine tournament on`), the D58 pattern: QSP never sets the tournament bit, so only
+  a software machine built with them claims `machine.tournament`, and the manual backend offers it for a cabinet that
+  has them. The library's half - the bit, the silent tests, the acknowledgement and the four stored counts - is
+  mirrored check for check.
+* **A session asked for zeroes its game's meters at once and is entered at the next game started while the machine
+  is free** (no game, door, tilt, hand pay, cash out or menu), so a game in progress when it is asked for is never
+  counted (GSA 18.8).
+* **A session with credits plays on its own credits**: the player's credit meter and the accounting meters stay still,
+  and the session ends when they are spent or a bet is more than what is left. A session with time only plays on the
+  player's credits and moves every meter as usual. The time runs from the session's first game.
+* **Game zero counts every game**, any other game number only that game's rounds; credits are accounting units.
+
+The design note is `docs/M9-software-machine-tournaments.md`.

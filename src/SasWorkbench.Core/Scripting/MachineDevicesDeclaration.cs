@@ -15,8 +15,8 @@ public enum CoinAcceptorKind
 
 /// <summary>
 /// The coin-handling devices and reels a case assumes the machine has, written <c>machine coin acceptor on|external</c>,
-/// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58), and the bet-one button,
-/// <c>machine bet button on</c> (D59).
+/// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58), the bet-one button,
+/// <c>machine bet button on</c> (D59), and host-controlled tournaments, <c>machine tournament on</c> (D60).
 /// </summary>
 /// <remarks>
 /// A declaration in the sense of <see cref="MachineDeclaration"/>: whether a cabinet has a hopper or reels is its
@@ -33,9 +33,14 @@ public enum CoinAcceptorKind
 /// The player commits credits one at a time with a bet-one button, at a maximum bet of five, and the machine reports a
 /// wager placed and not yet played as waiting for the player.
 /// </param>
+/// <param name="Tournament">The machine plays the host's tournament sessions and keeps their four meters.</param>
 public sealed record MachineDevicesDeclaration(
-    SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay, bool BetButton = false)
+    SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay, bool BetButton = false,
+    bool Tournament = false)
 {
+    /// <summary>The capability a machine that plays tournaments carries.</summary>
+    public const string TournamentCapability = "machine.tournament";
+
     /// <summary>The capability a machine with a bet-one button carries.</summary>
     public const string BetButtonCapability = "machine.bet_button";
 
@@ -69,6 +74,8 @@ public sealed record MachineDevicesDeclaration(
             yield return new Requirement(Location, PartialPayCapability);
         if (BetButton)
             yield return new Requirement(Location, BetButtonCapability);
+        if (Tournament)
+            yield return new Requirement(Location, TournamentCapability);
     }
 
     /// <summary>The capabilities a software machine built this way claims, its stimuli included.</summary>
@@ -107,5 +114,6 @@ public sealed record MachineDevicesDeclaration(
             Reels ? "reels on" : null,
             PartialPay ? "partial pay on" : null,
             BetButton ? "bet button on" : null,
+            Tournament ? "tournament on" : null,
         }.OfType<string>());
 }

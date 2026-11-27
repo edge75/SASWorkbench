@@ -9,12 +9,13 @@
 #   game 1, the same                   8C 0001 1000 00000100 00
 #   all four meters of game 0          99 0000
 #
-# The software machine plays no tournaments and this build decodes none of the meter replies, so
-# both cases skip; the field names are provisional and the amounts assume one game credit per
-# accounting unit.
+# The platform has no tournaments, so both cases declare them (D60); the amounts assume one game
+# credit per accounting unit, which each case declares.
 
 test "18.9 the meter group agrees with the four separate meters" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus
+  machine tournament on
+  machine accounting denomination 100c
   requires machine.tournament, stimulus.play
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98, decoder.lp99
 
@@ -63,6 +64,8 @@ test "18.9 the meter group agrees with the four separate meters" {
 
 test "18.10 a session on each game of a multi-game machine" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus @needs-a-person
+  machine tournament on
+  machine games 1c 1c
   requires machine.tournament, machine.multiple_games, stimulus.select_game
   requires stimulus.play, stimulus.bill
   requires decoder.lp51, decoder.lp56
@@ -103,7 +106,8 @@ test "18.10 a session on each game of a multi-game machine" {
   host expect field games_played == 11
   host expect field credits_wagered == 110
 
-  # Game one on its own.
+  # Game one on its own, selected before its session starts.
+  egm select game 1
   host send lp 8C data 000110000000010000
   host send lp 95 data 0001
   host expect field game_number == 1
@@ -129,7 +133,7 @@ test "18.10 a session on each game of a multi-game machine" {
   host expect field games_played == 11
   host expect field credits_wagered == 110
 
-  note "Before the run, turn progressives off, give every game the same player denomination, turn tournaments on, and select game one at the machine before its session starts."
+  note "Before the run, turn progressives off, enable exactly two games at the same player denomination, and turn tournaments on."
   note "By hand, for every other game in the enabled list: change the game number in the session poll and in the five meter polls, select that game, and repeat the game-one block. Stop once as many games as the machine implements have been through it."
   note "The separate meter polls ($95 to $98) answer with the same counts as $99 at each read; compare them in the trace."
 }

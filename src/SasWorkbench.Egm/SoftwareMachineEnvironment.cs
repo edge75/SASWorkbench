@@ -470,7 +470,7 @@ public static class SoftwareMachineEnvironment
                     settings = settings with { PlayerDenominationsInCents = games.DenominationsInCents };
             }
 
-            // A case that says the machine has a coin acceptor, a hopper or reels gets them, which the platform has not (D58).
+            // A case that says the machine has a coin acceptor, a hopper, reels or tournaments gets them, which the platform has not (D58, D60).
             if (devices is not null)
             {
                 settings = settings with
@@ -482,6 +482,7 @@ public static class SoftwareMachineEnvironment
                     PartialPayCoins = devices.PartialPay ? 10 : 0,
                     BetButton = devices.BetButton,
                     MaxBet = devices.BetButton ? (byte)FakeEgm.BetButtonMaxBet : settings.MaxBet,
+                    Tournament = devices.Tournament,
                 };
             }
 

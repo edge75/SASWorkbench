@@ -6,7 +6,7 @@ namespace SasWorkbench.Core.Scripting;
 public static partial class ScriptParser
 {
     private const string DevicesUsage =
-        "expected: machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, or machine bet button on. "
+        "expected: machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, or machine tournament on. "
         + "A machine without them is the default, so none has an 'off'";
 
     /// <summary>Reads one device declaration, each at most once; a partial pay brings the hopper that pays it.</summary>
@@ -33,11 +33,15 @@ public static partial class ScriptParser
             case ["bet", "button", "on"] when !current.BetButton:
                 return current with { BetButton = true };
 
+            case ["tournament", "on"] when !current.Tournament:
+                return current with { Tournament = true };
+
             case ["coin", "acceptor", "on" or "external"]:
             case ["hopper", "on"]:
             case ["reels", "on"]:
             case ["partial", "pay", "on"]:
             case ["bet", "button", "on"]:
+            case ["tournament", "on"]:
                 throw new ScriptParseException(location, "this case already declares that");
 
             default:

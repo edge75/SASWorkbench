@@ -12,12 +12,14 @@
 #   game 0, 5 minutes, 100 credits     8C 0000 0500 00000100 00     pulses on: last byte 01
 #   any tournament meter of game 0     95|96|97|98 0000
 #
-# The software machine plays no tournaments, and this build decodes none of the four replies, so
-# every case skips; the reply field names are provisional. The amounts below assume one game
-# credit is one accounting unit; on another machine scale them.
+# The platform has no tournaments, so each case declares them (D60) and skips on a machine that does
+# not show it has them. The amounts below assume one game credit is one accounting unit, so each
+# case that plays declares a one-dollar unit for its one-dollar credit; on another machine scale them.
 
 test "18.3 a timed session counts until its time runs out" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus
+  machine tournament on
+  machine accounting denomination 100c
   requires machine.tournament, stimulus.play, stimulus.bill
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98
 
@@ -73,6 +75,8 @@ test "18.3 a timed session counts until its time runs out" {
 
 test "18.4 a session limited by credits ends when they are spent" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus
+  machine tournament on
+  machine accounting denomination 100c
   requires machine.tournament, stimulus.play, stimulus.bill
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98
 
@@ -121,6 +125,8 @@ test "18.4 a session limited by credits ends when they are spent" {
 
 test "18.5 a session limited by time and credits, then a second one" {
   tag @egm-test-scripts @chapter-18 @needs-stimulus
+  machine tournament on
+  machine accounting denomination 100c
   requires machine.tournament, stimulus.play, stimulus.bill, host.meter_arithmetic
   requires decoder.lp95, decoder.lp96, decoder.lp97, decoder.lp98
 
@@ -200,6 +206,7 @@ test "18.5 a session limited by time and credits, then a second one" {
 
 test "18.6 a session with tournament pulses on" {
   tag @egm-test-scripts @chapter-18 @wire-only
+  machine tournament on
   requires machine.tournament
 
   host connect loopback address 01

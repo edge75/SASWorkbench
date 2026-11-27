@@ -186,6 +186,9 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the player has a bet-one button; off, as the platform has none (D59).</summary>
     public bool BetButton { get; init; }
 
+    /// <summary>Whether the machine plays the host's tournament sessions; off, as the platform has none (D60).</summary>
+    public bool Tournament { get; init; }
+
     /// <summary>
     /// Which currency this machine's note acceptor reports, as the protocol's own country code.
     /// </summary>
