@@ -192,6 +192,15 @@ public sealed record FakeEgmOptions
     /// <summary>Whether the machine's game is draw poker; off, as the platform has none (D61).</summary>
     public bool Poker { get; init; }
 
+    /// <summary>Whether the memory devices report the faults the platform never raises; off, as the platform has none (D62).</summary>
+    public bool MemoryFaults { get; init; }
+
+    /// <summary>Whether the machine keeps period meters an attendant can clear on their own; off, as the platform has none (D62).</summary>
+    public bool PeriodMeters { get; init; }
+
+    /// <summary>Whether the machine has a key that clears a jackpot hand pay onto the credit meter; off, as the platform has none (D62).</summary>
+    public bool CreditKey { get; init; }
+
     /// <summary>
     /// Which currency this machine's note acceptor reports, as the protocol's own country code.
     /// </summary>

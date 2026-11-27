@@ -160,6 +160,9 @@ public static partial class CapabilityProbe
             ["host.poll_without_wakeup"] = "yes",
             ["host.timing"] = "yes",
 
+            // It can break a long poll's check sequence on purpose, which every transport carries as it is written.
+            [SendBadCrcStep.Capability] = "yes",
+
             // The host can carry each validation exchange step by step, $4C, $4D, $57 and $58 included.
             ["host.validation_sequence"] = "yes",
 

@@ -1109,3 +1109,29 @@ Taken while building group 17 of M9 on 2026-11-27, without the user, under D58; 
 * **Restricted and debit tickets and custom transfer ticket data are left out** of this group.
 
 The design note is `docs/M9-software-machine-tickets-poker-handpay.md`.
+
+---
+
+# Decision 62
+
+Taken while building group 18 of M9 on 2026-11-27, without the user, under D58; open to review like any other.
+
+## D62 — The machine's own conditions are the platform's; memory devices, period meters and a credit key are declared
+
+* **The host breaks a check sequence on purpose** (`host send lp <hh> ... with bad crc`, `host.bad_crc`): the last
+  byte of the right sequence inverted, passing on silence or a refusal, for every transport.
+* **The general tilt, out of service, a low battery and memory found invalid at start-up are the platform's**, so the
+  software machine does them without a declaration (`egm tilt on|off`, `egm out of service on|off`,
+  `egm battery low|replaced`, `egm memory fault at-start-up`); the battery is read as the machine starts, so its step
+  restarts the machine.
+* **Restricted tickets are the platform's**, behind its operator's option (`egm set restricted tickets on|off`): the
+  $7B bits follow the option, cashable credit is paid first and restricted credit leaves on a ticket of its own on
+  secure enhanced validation, and a redeemed restricted ticket lands as restricted credit with the poll's terms. The
+  platform's refusal of a ticket from another pool is not modelled.
+* **Memory devices reporting every fault, period meters and a credit-meter key are declared** (`machine memory faults
+  on`, `machine period meters on`, `machine credit key on`), the D58 pattern; a declared machine's memory clear reports
+  $7B too.
+* **Debit tickets, custom transfer ticket data and timing on the wire stay out**: the platform performs no debit
+  transfer and prints no transfer ticket, and no transport here times a byte or interrupts a reply.
+
+The design note is `docs/M9-software-machine-faults-and-rest.md`.

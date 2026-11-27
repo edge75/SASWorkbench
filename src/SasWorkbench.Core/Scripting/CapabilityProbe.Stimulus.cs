@@ -114,6 +114,21 @@ public static partial class CapabilityProbe
                 // Its attendant and operator menus can be entered and left, and it computes a ROM signature from a seed.
                 [MenuStep.Capability] = "yes",
                 ["machine.rom_signature"] = "yes",
+
+                // The platform raises the general tilt for a hardware error, $86 when an attendant takes it out of service and $3B
+                // for a low battery found at start-up, and starts at address 0 on memory found invalid then (D62).
+                [MachineConditionCapabilities.GeneralTilt] = "yes",
+                [MachineConditionCapabilities.Tilt] = "yes",
+                [MachineConditionCapabilities.OutOfService] = "yes",
+                [MachineConditionCapabilities.Battery] = "yes",
+                ["machine.memory_fault.at_start_up"] = "yes",
+
+                // The library's queue holds sixty-four ordinary exceptions (libsas_db.h:148); no poll reports it.
+                [MachineConditionCapabilities.ExceptionQueueDepth] = "64",
+
+                // The operator's restricted ticket option, off until set (QSP SasNetwork.cpp:624).
+                [MachineConditionCapabilities.RestrictedTickets] = "yes",
+                [MachineConditionCapabilities.RestrictedTicketsOption] = "yes",
             },
 
             StimulusBackend.Manual => new Dictionary<string, string?>
@@ -214,6 +229,22 @@ public static partial class CapabilityProbe
                 [MenuStep.Capability] = "yes",
                 ["machine.audit_screens"] = "yes",
                 ["machine.rom_signature"] = "yes",
+
+                // A person makes a fault, takes the machine out of service, fits a battery, clears period meters and turns a
+                // credit-meter key, where the cabinet has them (D62).
+                [MachineConditionCapabilities.GeneralTilt] = "yes",
+                [MachineConditionCapabilities.Tilt] = "yes",
+                [MachineConditionCapabilities.OutOfService] = "yes",
+                [MachineConditionCapabilities.Battery] = "yes",
+                ["machine.memory_fault.at_start_up"] = "yes",
+                [MachineConditionCapabilities.PeriodMeters] = "yes",
+                [MachineConditionCapabilities.PeriodMeterClear] = "yes",
+                [MachineConditionCapabilities.CreditKey] = "yes",
+                [MachineConditionCapabilities.CreditReset] = "yes",
+
+                // The operator's restricted ticket option, off until set (QSP SasNetwork.cpp:624).
+                [MachineConditionCapabilities.RestrictedTickets] = "yes",
+                [MachineConditionCapabilities.RestrictedTicketsOption] = "yes",
             },
 
             // What the peripheral driver can do is decided by the machine on the other end, which

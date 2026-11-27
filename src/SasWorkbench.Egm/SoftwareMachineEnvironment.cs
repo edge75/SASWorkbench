@@ -212,6 +212,22 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 machine.ClearMemory();
                 return;
 
+            case MachineConditionStep condition:
+                machine.SetCondition(condition.Condition, condition.On);
+                return;
+
+            case SetRestrictedTicketsStep restricted:
+                machine.SetRestrictedTickets(restricted.On);
+                return;
+
+            case ClearPeriodMetersStep:
+                machine.ClearPeriodMeters();
+                return;
+
+            case HandpayCreditResetStep:
+                machine.ResetHandpayToCredits();
+                return;
+
             case ProgressiveWinStep win:
                 try
                 {
@@ -495,6 +511,9 @@ public static class SoftwareMachineEnvironment
                     MaxBet = devices.BetButton ? (byte)FakeEgm.BetButtonMaxBet : settings.MaxBet,
                     Tournament = devices.Tournament,
                     Poker = devices.Poker,
+                    MemoryFaults = devices.MemoryFaults,
+                    PeriodMeters = devices.PeriodMeters,
+                    CreditKey = devices.CreditKey,
                 };
             }
 

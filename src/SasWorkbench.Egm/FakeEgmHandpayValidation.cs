@@ -29,7 +29,8 @@ public sealed partial class FakeEgm
     private ushort GameValidationStatusNow =>
         (ushort)(GameValidationStatus
                  | (_options.HandpayValidation ? ValidateHandpays : 0)
-                 | (_options.HandpayReceipts ? HandpayReceipts : 0));
+                 | (_options.HandpayReceipts ? HandpayReceipts : 0)
+                 | RestrictedTicketStatus);
 
     /// <summary>
     /// Validates a hand pay as it is reset, while the host has bit 2 on: sasStartCashout with the receipt or no-receipt

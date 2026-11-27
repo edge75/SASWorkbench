@@ -76,6 +76,18 @@ public sealed partial class ScriptRunner
             At: at) { IsAssertion = true };
     }
 
+    /// <summary>Sends a long poll with a broken check sequence: silence or a refusal passes, a reply fails.</summary>
+    private static StepResult SendBadCrc(SendBadCrcStep step, PollEngine engine, TimeSpan at)
+    {
+        LongPollResult result = engine.Execute(step.Poll.Command, step.Poll.Data, checkSequence: true, badCheckSequence: true);
+        bool held = result.Outcome is LongPollOutcome.Silent or LongPollOutcome.Rejected;
+        return new StepResult(step.Location, step.Describe(), held ? Verdict.Pass : Verdict.Fail,
+            Expected: "the poll ignored or refused, since its check sequence is wrong",
+            Actual: result.ToString(),
+            Reason: held ? null : result.Detail,
+            At: at) { IsAssertion = true };
+    }
+
     /// <summary>Points the host at the machine's new address.</summary>
     private static StepResult Follow(FollowAddressStep step, ChannelHosts hosts, TimeSpan at)
     {

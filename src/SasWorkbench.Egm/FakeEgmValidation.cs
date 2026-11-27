@@ -71,7 +71,7 @@ public sealed partial class FakeEgm
     // The library's two status words: what the host asked for and what the machine can do (libsas_internal.cpp:783).
     private ushort _hostValidationStatus = 0x803F;
 
-    // QSP clears handpay receipts and handpay validation, and restricted tickets stay off on this machine (QSP SasNetwork.cpp:617).
+    // QSP clears handpay receipts and handpay validation, and restricted tickets follow the operator's option (QSP SasNetwork.cpp:617).
     private const ushort GameValidationStatus = 0x8021;
 
     // What QSP last heard from long poll $7B, its default until then (QSP CashoutPrinterRules.h:142).
@@ -137,8 +137,10 @@ public sealed partial class FakeEgm
 
         long restrictedCredits = CurrentRestrictedCents() / AccountingCents;
         long credits = Meters.Read(SasMeterCode.CurrentCredits) - restrictedCredits;
+
+        // Cashable credit goes first; restricted credit leaves on a ticket of its own only where allowed (D62).
         if (credits <= 0)
-            return null;
+            return PayOutRestricted(walletDirectory);
 
         long cents = credits * AccountingCents;
         if (!MayPrintValidated())

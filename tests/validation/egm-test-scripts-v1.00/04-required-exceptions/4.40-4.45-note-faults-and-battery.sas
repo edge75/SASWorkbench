@@ -127,7 +127,24 @@ test "4.44.2 a counterfeit note" {
 
 test "4.45 a low backup battery" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.battery
+  requires stimulus.battery, stimulus.settle
 
-  note "Fit a battery low enough on charge for the machine to notice: one $3B on a general poll."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # A battery low enough on charge for the machine to notice: one $3B on a general poll.
+  egm battery low
+  # The person confirms once the machine has booted, so only the link is awaited here.
+  host expect link up within 120s
+  host expect exception low_backup_battery within 30s
+  host expect no exception low_backup_battery within 10s
+
+  egm battery replaced
+  host expect link up within 120s
+
+  note "A QSP machine reads its backup batteries while it starts, so it reports a low one then and not while running."
 }

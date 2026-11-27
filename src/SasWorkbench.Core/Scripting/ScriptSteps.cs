@@ -651,6 +651,9 @@ public enum MemoryFaultKind
 
     /// <summary>The operator clears the memory fault at the machine, $3A.</summary>
     Clear,
+
+    /// <summary>Memory found invalid while the machine starts, which leaves it at address 0 until one is set.</summary>
+    AtStartUp,
 }
 
 /// <summary>Has a person induce a memory fault, or clear one, at the machine.</summary>
@@ -676,6 +679,7 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
             ["partitioned-eprom-changed"] = MemoryFaultKind.PartitionedEpromChanged,
             ["partitioned-eprom-bad-checksum"] = MemoryFaultKind.PartitionedEpromBadChecksum,
             ["clear"] = MemoryFaultKind.Clear,
+            ["at-start-up"] = MemoryFaultKind.AtStartUp,
         };
 
     /// <summary>
@@ -690,6 +694,7 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
         MemoryFaultKind.EpromBadChecksum => "machine.memory_fault.eprom_checksum",
         MemoryFaultKind.PartitionedEpromChanged or MemoryFaultKind.PartitionedEpromBadChecksum =>
             "machine.memory_fault.partitioned_eprom",
+        MemoryFaultKind.AtStartUp => "machine.memory_fault.at_start_up",
         _ => "machine.memory_fault",
     };
 
@@ -707,6 +712,7 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
         MemoryFaultKind.PartitionedEpromChanged =>
             "memory fault: fit a different partitioned program version and power up",
         MemoryFaultKind.PartitionedEpromBadChecksum => "memory fault: a bad partitioned program checksum",
+        MemoryFaultKind.AtStartUp => "memory fault: memory found invalid while the machine starts",
         _ => "memory fault: clear it at the machine, as the operator does",
     };
 
@@ -733,6 +739,9 @@ public sealed record MemoryFaultStep(SourceLocation Location, MemoryFaultKind Ki
             "How: a different version of one program partition. A QSP machine never raises $38: answer N.",
         MemoryFaultKind.PartitionedEpromBadChecksum =>
             "How: a program partition whose checksum fails. A QSP machine never raises $39: answer N.",
+        MemoryFaultKind.AtStartUp =>
+            "How: with the game closed, corrupt the NVRAM as for a lost-meters fault, then start the game and confirm once "
+            + "it has booted. Do not set the address again until the case asks for it.",
         _ => "How: on a QSP machine, the NVRAM reset in the audit menu, which clears the meters; "
              + "set the SAS address again if it was lost, then confirm.",
     };

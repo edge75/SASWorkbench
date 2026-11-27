@@ -30,13 +30,13 @@ public sealed partial class FakeEgm
     private bool _memoryError;
     private bool _programChanged;
 
-    /// <summary>True while a memory error or a changed program has the machine out of play until its memory is cleared.</summary>
+    /// <summary>True while a memory error, a changed program or a declared device fault has the machine out of play until its memory is cleared.</summary>
     public bool MemoryTiltActive
     {
         get
         {
             lock (_gate)
-                return _memoryError || _programChanged;
+                return MemoryTilt();
         }
     }
 
@@ -69,6 +69,14 @@ public sealed partial class FakeEgm
             case MemoryFaultKind.Clear:
                 ClearMemory();
                 return null;
+
+            case MemoryFaultKind.AtStartUp:
+                MemoryInvalidAtStartUp();
+                return null;
+
+            // A declared machine's memory devices report what the platform's never do (D62).
+            case var _ when _options.MemoryFaults:
+                return DeclaredMemoryFault(kind);
 
             // QSP BankCache.hpp:231 recovers a bank from its mirror and raises nothing.
             case MemoryFaultKind.CmosRecovered:
@@ -137,6 +145,10 @@ public sealed partial class FakeEgm
         // What was owed before is dropped, and the reset is reported, then the configuration completing (SasNetwork.cpp:1219, SasNetwork_Conditions.hpp:63).
         QueueOrdinary((byte)SasExceptionCode.MemoryErrorReset);
         QueueOrdinary((byte)SasExceptionCode.GamingMachineSoftMetersResetToZero);
+
+        // A declared machine with period meters reports its bill totals zeroed too, as the GSA document asks (4.27, D62).
+        if (_options.PeriodMeters)
+            QueueOrdinary((byte)SasExceptionCode.BillValidatorTotalsResetByAttendant);
         QueueOrdinary((byte)SasExceptionCode.OperatorChangedOptions);
 
         StartValidationIdReporting();
@@ -232,6 +244,8 @@ public sealed partial class FakeEgm
 
         foreach (SasExceptionCode code in rederived)
             QueueOrdinary((byte)code);
+        foreach (SasExceptionCode code in StartUpConditionCodes())
+            QueueOrdinary((byte)code);
     }
 
     /// <summary>Everything a link knew about the host is gone: it waits for a synchronisation poll, with reporting off (libsas_internal.cpp:305, :313).</summary>
@@ -257,6 +271,9 @@ public sealed partial class FakeEgm
     {
         _memoryError = false;
         _programChanged = false;
+        _deviceFaults.Clear();
+        _startUpFault = null;
+        _restrictedTicketsOption = false;
 
         // Every SAS condition is removed, the host's shutdown among them (QSP SasNetwork.cpp:1208).
         _enabled = true;
@@ -356,5 +373,5 @@ public sealed partial class FakeEgm
     }
 
     /// <summary>A memory error or a changed program takes the machine out of play (QSP ConditionDefaults.h:56, :59).</summary>
-    private bool MemoryTilt() => _memoryError || _programChanged;
+    private bool MemoryTilt() => _memoryError || _programChanged || DeviceFaultTilt();
 }

@@ -17,7 +17,8 @@ public enum CoinAcceptorKind
 /// The coin-handling devices and reels a case assumes the machine has, written <c>machine coin acceptor on|external</c>,
 /// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58), the bet-one button,
 /// <c>machine bet button on</c> (D59), host-controlled tournaments, <c>machine tournament on</c> (D60), and a draw poker
-/// game, <c>machine poker on</c> (D61).
+/// game, <c>machine poker on</c> (D61), and memory devices reporting every fault, period meters and a credit-meter key,
+/// <c>machine memory faults on</c>, <c>machine period meters on</c> and <c>machine credit key on</c> (D62).
 /// </summary>
 /// <remarks>
 /// A declaration in the sense of <see cref="MachineDeclaration"/>: whether a cabinet has a hopper or reels is its
@@ -36,10 +37,20 @@ public enum CoinAcceptorKind
 /// </param>
 /// <param name="Tournament">The machine plays the host's tournament sessions and keeps their four meters.</param>
 /// <param name="Poker">The machine's game is draw poker, reporting its hand, the cards held and the draw.</param>
+/// <param name="MemoryFaults">The machine's memory devices report every memory fault the document names.</param>
+/// <param name="PeriodMeters">The machine keeps period meters an attendant can clear on their own.</param>
+/// <param name="CreditKey">The machine has a key that clears a jackpot hand pay onto the credit meter.</param>
 public sealed record MachineDevicesDeclaration(
     SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay, bool BetButton = false,
-    bool Tournament = false, bool Poker = false)
+    bool Tournament = false, bool Poker = false, bool MemoryFaults = false, bool PeriodMeters = false, bool CreditKey = false)
 {
+    /// <summary>The capabilities of a machine whose memory devices report every fault the document names (D62).</summary>
+    public static readonly string[] MemoryFaultCapabilities =
+    [
+        "machine.memory_fault.cmos_recovered", "machine.memory_fault.cmos_bad_device", "machine.memory_fault.eeprom",
+        "machine.memory_fault.eprom_checksum", "machine.memory_fault.partitioned_eprom",
+    ];
+
     /// <summary>The capability a machine whose game is poker carries.</summary>
     public const string PokerCapability = "machine.poker";
 
@@ -83,6 +94,10 @@ public sealed record MachineDevicesDeclaration(
             yield return new Requirement(Location, TournamentCapability);
         if (Poker)
             yield return new Requirement(Location, PokerCapability);
+        if (PeriodMeters)
+            yield return new Requirement(Location, MachineConditionCapabilities.PeriodMeters);
+        if (CreditKey)
+            yield return new Requirement(Location, MachineConditionCapabilities.CreditKey);
     }
 
     /// <summary>The capabilities a software machine built this way claims, its stimuli included.</summary>
@@ -109,6 +124,16 @@ public sealed record MachineDevicesDeclaration(
 
         if (Poker)
             yield return new(PokerStep.Capability, "yes");
+        if (MemoryFaults)
+        {
+            foreach (string capability in MemoryFaultCapabilities)
+                yield return new(capability, "yes");
+        }
+
+        if (PeriodMeters)
+            yield return new(MachineConditionCapabilities.PeriodMeterClear, "yes");
+        if (CreditKey)
+            yield return new(MachineConditionCapabilities.CreditReset, "yes");
     }
 
     public override string ToString() =>
@@ -126,5 +151,8 @@ public sealed record MachineDevicesDeclaration(
             BetButton ? "bet button on" : null,
             Tournament ? "tournament on" : null,
             Poker ? "poker on" : null,
+            MemoryFaults ? "memory faults on" : null,
+            PeriodMeters ? "period meters on" : null,
+            CreditKey ? "credit key on" : null,
         }.OfType<string>());
 }

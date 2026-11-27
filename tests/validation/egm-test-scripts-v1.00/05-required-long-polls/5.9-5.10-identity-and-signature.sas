@@ -81,11 +81,35 @@ test "5.9.2 the identification reply follows the accounting denomination" {
 
 test "5.10 the ROM signature" {
   tag @egm-test-scripts @chapter-5 @needs-a-person
-  requires machine.rom_signature, host.poll_sequence, host.bad_crc
-  requires decoder.lp21
+  requires machine.rom_signature, host.poll_sequence, host.bad_crc, stimulus.settle
+  requires decoder.lp21, decoder.lp1F
 
-  note "Ask the manufacturer for the signature of the machine's code for two seeds. Send the signature poll with the first seed: the machine acknowledges with its address, stays playable and idle, and a later general poll carries $21, the two-byte signature and the check sequence. It matches the manufacturer's value. Do the same with the second seed."
-  note "Send a broadcast and the first seed again, then the second seed straight after: both acknowledged, and the signature that eventually arrives is the second one's. Note how long it took."
-  note "Stop the round and ask again, then wait that long without polling: nothing is sent. Poll the identification poll until it is answered, then general polls: the first two carry the signature, the third repeats it or is unanswered, and a fourth after an identification poll carries it too. After that, a general poll is answered with a one-byte exception."
-  note "A signature poll with a broken check sequence is ignored or refused, and the machine keeps answering the host throughout. This build cannot send a broken check sequence (host.bad_crc)."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # The first seed: acknowledged, the machine answers on while it calculates, and the signature
+  # comes on a later general poll. There is no time limit, so the wait is long.
+  host send lp 21 data 1234
+  host send lp 1F
+  host expect rom signature within 120s
+
+  # The second seed, the same way.
+  host send lp 21 data ABCD
+  host send lp 1F
+  host expect rom signature within 120s
+
+  # A signature poll with a broken check sequence is ignored or refused, and the machine goes on
+  # answering the host.
+  host poll sequence
+  host send sync
+  host send lp 21 data 1234 with bad crc
+  host send lp 1F
+  host send gp draws nothing
+  host poll every 200ms
+
+  note "Each signature must match the manufacturer's value for its seed; the run's record shows both."
+  note "Not done here: a broadcast with the first seed followed at once by the second, where the signature that arrives is the second one's; and the round stopped while it calculates, where nothing is sent until the identification poll is answered, the next two general polls carry the signature, a third repeats it or goes unanswered, a fourth after an identification poll carries it, and the general poll after that a one-byte exception. The language cannot yet compare one signature with another or hold the round through the calculation."
 }

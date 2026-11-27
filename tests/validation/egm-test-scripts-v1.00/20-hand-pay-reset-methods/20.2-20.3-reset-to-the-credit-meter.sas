@@ -8,21 +8,73 @@
 # it is the jackpot meter.
 #
 # 20.2 clears the hand pay with the machine's own credit-meter key; 20.3 clears it from the host
-# with $94. The platform has no credit-meter key, so 20.2 waits on a machine that has one.
+# with $94. The platform has no credit-meter key, so 20.2 declares one.
 
-# The credit-meter key works only when the host has allowed it for this hand pay, so every step that
-# matters is the key, which nothing here can turn.
+# The credit-meter key works only when the host has allowed it for this hand pay. The platform has no
+# such key, so the software machine is built with one (D62).
+#
+# @finding (20.2): after $A8 asks for a standard reset the hand pay information must say reset_id 00.
+# The library records the method and leaves the reset ID the platform gave the hand pay when it was
+# registered, 01 for any jackpot that fits (libsas lp.cpp:9681, QSP SasNetwork_Conditions.hpp:784).
 test "20.2 the credit-meter key follows the host's choice of reset method" {
-  tag @egm-test-scripts @chapter-20 @needs-a-person @needs-configuration @destructive
+  tag @egm-test-scripts @chapter-20 @needs-a-person @needs-configuration @destructive @finding
   requires stimulus.handpay.credit_reset
   requires decoder.lpA8, decoder.lp1B
   requires machine.handpay_reset_to_credits, stimulus.handpay.jackpot, stimulus.handpay.reset
+  requires stimulus.settle
+  machine credit key on
+  machine accounting denomination 5c
 
-  note "Configure the machine for remote hand pay reset and host-controlled reset to the credit meter, a low jackpot limit and a high credit limit."
-  note "Win a jackpot hand pay and note the credit meter. Send $A8 asking for the credit meter: acknowledged with code 00. The hand pay information says reset_id 01. Turn the credit-meter key: the hand pay clears onto the credit meter, coin out and current credits rise by the amount in accounting units, and the jackpot meter does not move."
-  note "Win another. Send $A8 asking for a standard reset: code 00, and reset_id now 00. Turn the credit-meter key: nothing happens and the hand pay stays. Clear it with the standard key: the credit meter stays, the jackpot meter rises by the amount."
-  note "Win another. Send $A8 for standard and then for the credit meter: the second one wins, reset_id is 01, and the credit-meter key clears it onto the credit meter as in the first round."
-  note "Turn off both remote reset and host-controlled credit reset at the machine. $A8 is now ignored, with or without a hand pay; the hand pay information says reset_id 00, the credit-meter key does nothing, and the standard key clears the hand pay onto the jackpot meter."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm settle
+  host forget exceptions within 2s
+
+  # Allowed onto the credit meter, then the key: credits and coin out rise, the jackpot meter does
+  # not. Fifteen hundred dollars is thirty thousand five-cent units.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp A8 data 01
+  host expect field ack_code of lp A8 == 0
+  host send lp 1B
+  host expect field reset_id of lp 1B == 1
+  egm handpay reset credits
+  host expect meter credits += 30000 within 5s
+  host expect meter coin_out += 30000 within 2s
+  host expect meter jackpot unchanged within 2s
+  host forget exceptions within 2s
+
+  # A standard reset asked for: the key does nothing, and the standard key pays the jackpot meter.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp A8 data 00
+  host expect field ack_code of lp A8 == 0
+  host send lp 1B
+  host expect field reset_id of lp 1B == 0
+  egm handpay reset credits
+  host expect meter credits unchanged within 3s
+  # The hand pay is still there: the standard key pays it onto the jackpot meter.
+  egm handpay reset
+  host expect meter jackpot += 30000 within 5s
+  host expect meter credits unchanged within 2s
+  host forget exceptions within 2s
+
+  # Standard and then credit meter: the second wins, and the key clears it onto the credit meter.
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp A8 data 00
+  host send lp A8 data 01
+  host expect field ack_code of lp A8 == 0
+  host send lp 1B
+  host expect field reset_id of lp 1B == 1
+  egm handpay reset credits
+  host expect meter credits += 30000 within 5s
+  host expect meter coin_out += 30000 within 2s
+  host expect meter jackpot unchanged within 2s
+
+  note "Before the run, configure the machine for remote hand pay reset and host-controlled reset to the credit meter, with a jackpot limit below fifteen hundred dollars and a high credit limit. Meter 0003 must not move in any round; this build cannot read it by name."
+  note "Not done: the document's last round, with remote reset and host-controlled reset to the credit meter turned off at the machine part way through. That is a reconfiguration in the operator's menu the language has no step for."
 }
 
 test "20.3 a remote reset of a jackpot onto the credit meter" {

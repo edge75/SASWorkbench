@@ -123,7 +123,8 @@ internal sealed class ExceptionQueue
     /// <summary>Takes the next exception outright, with no acknowledgement to wait for.</summary>
     public PendingEvent? Take()
     {
-        if (_overflowPending)
+        // The overflow goes next unless the head of the queue outranks it (libsas_internal.cpp:4365).
+        if (_overflowPending && (_queue.First is null || RankOf(_queue.First.Value.Code) >= RankOf(Overflow)))
         {
             _overflowPending = false;
             return new PendingEvent(Overflow, []);

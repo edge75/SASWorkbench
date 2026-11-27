@@ -134,19 +134,67 @@ test "10.7.5 the machine status codes cover every refusal" {
 }
 
 test "10.7.6 a restricted ticket carries its own expiry in the redemption poll" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires machine.restricted_credits, decoder.lp71
-  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
-  requires machine.restricted_tickets
-  note "Redeem a restricted ticket whose expiry is a date rather than a number of days, and check the machine takes the date from the poll rather than from its own configuration."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  machine validation secure_enhanced
+  machine accounting denomination 1c
+  requires stimulus.ticket, stimulus.settle, machine.restricted_credits, machine.aft
+  requires decoder.lp4C, decoder.lp70, decoder.lp71, decoder.lp74
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  # A restricted ticket redeemed with an expiry date of 31 December 2031 in pool 1.
+  egm ticket insert amount=1000 validation=0000000000000076
+  host expect exception ticket_inserted within 8s
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_valid_restricted_promotional_ticket transfer_amount=1000 parsing_code=0 validation_data=0000000000000076 restricted_expiration_month=12 restricted_expiration_day=31 restricted_expiration_year=2031 pool_id=1
+  host expect field machine_status of lp 71 == gmsc_ticket_redemption_pending
+  host expect exception ticket_transfer_complete within 8s
+
+  # The credit carries the date and the pool the poll gave, not the machine's own default.
+  host send lp 74 data FF000000
+  host expect field current_restricted_amount == 1000
+  host expect field restricted_expiration == 12312031
+  host expect field restricted_pool_id == 1
+
+  note "The restricted credit's terms are read back with the transfer status poll, which reports the expiration and pool of the restricted balance."
 }
 
 test "10.7.7 restricted tickets credit the restricted meter" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires machine.restricted_credits
-  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
-  requires machine.restricted_tickets
-  note "Redeem a restricted ticket and confirm the credits land as restricted rather than cashable, which is what stops them being cashed out again as money."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  machine validation secure_enhanced
+  machine accounting denomination 1c
+  requires stimulus.ticket, stimulus.settle, stimulus.button.collect, machine.restricted_credits, machine.aft
+  requires decoder.lp4C, decoder.lp70, decoder.lp71, decoder.lp74
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  egm ticket insert amount=1000 validation=0000000000000077
+  host expect exception ticket_inserted within 8s
+  host send lp 70
+  host send lp 71 with transfer_code=ttc_valid_restricted_promotional_ticket transfer_amount=1000 parsing_code=0 validation_data=0000000000000077 restricted_expiration_month=0 restricted_expiration_day=0 restricted_expiration_year=0 pool_id=0
+  host expect field machine_status of lp 71 == gmsc_ticket_redemption_pending
+  host expect exception ticket_transfer_complete within 8s
+
+  # Ten dollars of restricted credit and no cashable credit.
+  host send lp 74 data FF000000
+  host expect field current_restricted_amount == 1000
+  host expect field current_cashable_amount == 0
+
+  # A cash out with restricted tickets not allowed leaves it on the machine.
+  egm press collect
+  host wait 2s
+  host send lp 74 data FF000000
+  host expect field current_restricted_amount == 1000
 }
 
 test "10.7.8 the transfer complete exception follows the credit" {

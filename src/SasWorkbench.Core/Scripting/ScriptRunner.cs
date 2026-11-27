@@ -814,6 +814,7 @@ public sealed partial class ScriptRunner
                 ExpectRomSignatureStep signature => ExpectRomSignature(signature, engine, machine, exceptions.Signatures, at),
 
                 SendWithoutWakeupStep bare => SendWithoutWakeup(bare, engine, at),
+                SendBadCrcStep broken => SendBadCrc(broken, engine, at),
 
                 ExpectExceptionRepeatStep repeat => CheckRepeat(repeat, engine, machine, exceptions, at),
 

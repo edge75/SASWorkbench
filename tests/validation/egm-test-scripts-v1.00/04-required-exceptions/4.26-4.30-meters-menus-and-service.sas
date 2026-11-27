@@ -28,12 +28,29 @@ test "4.26 soft meter reset" {
 
 test "4.27 bill totals reset" {
   tag @egm-test-scripts @chapter-4 @needs-a-person @destructive
-  requires machine.nvram_clear
+  requires machine.nvram_clear, stimulus.period_meter_clear, stimulus.settle
+  # The platform keeps no period meters, so the software machine is built with them (D62).
+  machine period meters on
 
-  # Clearing the period meters on their own is an operator's screen no stimulus here offers.
-  requires stimulus.period_meter_clear
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
 
-  note "In the machine's set-up screens, clear its period meters: one $7B on a general poll. Clear its lifetime meters: another $7B."
+  # The period meters cleared on their own: one $7B.
+  egm period meters clear
+  host expect exception bill_validator_totals_reset_by_attendant within 8s
+  host expect no exception bill_validator_totals_reset_by_attendant within 3s
+
+  # The lifetime meters cleared: another $7B.
+  egm nvram clear
+  host expect link up within 120s
+  host expect exception bill_validator_totals_reset_by_attendant within 30s
+  host expect no exception bill_validator_totals_reset_by_attendant within 3s
+
+  note "Both clears are the attendant's, in the machine's set-up screens. A QSP machine has no period meters, and its memory clear reports $3A and $7A but not $7B."
 }
 
 # The display meters menu - the one a player-facing attendant can reach without opening the door.
@@ -83,9 +100,24 @@ test "4.29 self test entered and exited" {
 
 test "4.30.1 an attendant takes the machine out of service" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.out_of_service
+  requires machine.out_of_service, stimulus.settle
 
-  note "If the machine offers it, go to its out-of-service setting in the audit or self-test screens and put it out of service: one $86 on a general poll. Where that setting lives is the manufacturer's choice."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  # Out of service at the machine: one $86 on a general poll.
+  egm out of service on
+  host expect exception gaming_machine_out_of_service within 8s
+  host expect no exception gaming_machine_out_of_service within 3s
+
+  # Back in service, for whatever runs next; the document names no exception for it.
+  egm out of service off
+
+  note "Where the out-of-service setting lives is the manufacturer's choice; on a QSP machine it is the maintenance mode."
 }
 
 # The host takes it out of service instead, and $86 must not appear - it means an attendant did it,
