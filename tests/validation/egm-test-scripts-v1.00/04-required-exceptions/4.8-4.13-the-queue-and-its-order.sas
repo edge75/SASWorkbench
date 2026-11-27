@@ -877,11 +877,185 @@ test "4.12 a priority exception is reissued until it is acknowledged" {
 
 # Priority against priority: the hand pay goes before the overflow, and both go before the queue.
 test "4.13 priority exceptions come out in their own order" {
-  tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires stimulus.handpay, machine.exception_queue_depth, host.poll_sequence
-  requires decoder.lp1B
+  tag @egm-test-scripts @chapter-4 @needs-stimulus
+  requires stimulus.handpay, stimulus.handpay.reset, stimulus.door.main, stimulus.settle
+  requires machine.exception_queue_depth == 64
+  requires host.poll_sequence
+  requires decoder.lp1B, decoder.lp1F
 
-  note "With nothing polling, overflow the queue, noting the last four exceptions. Then put the machine into a cancelled-credit hand pay."
-  note "Establish communication and alternate the general poll with the identification poll five times: the first general poll carries hand pay pending $51, the second carries the overflow $70, and the rest carry the queued exceptions oldest first."
-  note "Then poll normally until no activity comes back: the remainder arrive oldest first. Reset the hand pay when the case is done."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
+
+  host poll sequence
+  host send sync
+
+  # Sixty-seven exceptions with nothing reading them, three more than the queue holds, so the first
+  # three are lost and the fourth, fifth and sixth are the oldest left.
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+  egm door main close
+  host send gp draws silence to 02
+  egm door main open
+  host send gp draws silence to 02
+
+  # Then a cancelled-credit hand pay, still with nothing reading.
+  egm handpay 2000
+  host send gp draws silence to 02
+
+  # Communication established, the general poll alternating with the identification poll: the hand
+  # pay first, the overflow second, then the queue oldest first.
+  host send sync
+  host send gp draws handpay_is_pending
+  host send lp 1F
+  host send gp draws exception_buffer_overflow
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+  host send gp draws slot_door_opened
+  host send lp 1F
+  host send gp draws slot_door_closed
+  host send lp 1F
+
+  # The rest oldest first under normal polling, then the hand pay reset.
+  host poll every 200ms
+  host forget exceptions within 2s
+  # A queue-mode machine sends $52 only once the hand pay reading is acknowledged (SAS 6.02 7.8.1).
+  host send lp 1B
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_was_reset within 15s
 }

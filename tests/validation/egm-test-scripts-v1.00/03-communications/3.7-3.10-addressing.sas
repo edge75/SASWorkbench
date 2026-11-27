@@ -111,13 +111,36 @@ test "3.8 a machine at address zero answers nothing" {
 # losing its memory would be reporting meters nobody can trust.
 test "3.9 a memory fault resets the address to zero" {
   tag @egm-test-scripts @chapter-3 @needs-a-person @destructive
-  requires machine.memory_fault
+  requires machine.memory_fault, machine.memory_fault.at_start_up
+  requires machine.address_configuration, host.poll_sequence
+  requires decoder.lp1F
 
-  # The software machine raises its memory error while running, with the link up; memory found
-  # invalid while it starts, which leaves the platform at address 0 (QSP SasNetwork.cpp:309), it does not model.
-  requires machine.memory_fault.at_start_up
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
+  host forget exceptions within 2s
 
-  note "With the link up, create a critical memory error at the machine and let it boot back to a playable state. It has reset its address to 0 and ignores every general and long poll until an address above 0 is configured."
+  # Memory found invalid as the machine starts: it comes back at address 0 and answers nothing,
+  # at its old address or at any other.
+  egm memory fault at-start-up
+  host poll sequence
+  host send sync
+  host expect no reply to lp 1F
+  host send gp draws silence
+  host send sync
+  host send gp draws silence to 02
+  host expect no reply to lp 1F
+
+  # An address above 0 configured, and it answers there again.
+  egm set address 01
+  host send sync
+  host send lp 1F
+  host poll every 200ms
+  host expect link up within 30s
+
+  note "On a real machine, confirm the prompt once it has booted and before setting any address; it must stay silent until the address is set. What it reports once it answers again is the manufacturer's, so it is not asserted."
 }
 
 # The other side of 3.7: a poll to somebody else must not be acted on, not merely not answered.

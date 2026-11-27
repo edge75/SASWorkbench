@@ -1,5 +1,6 @@
 using SasWorkbench.Core.Polling;
 using SasWorkbench.Core.Protocol;
+using SasWorkbench.Core.Scripting;
 using SasWorkbench.Core.Transport;
 using SasWorkbench.Core.Wire;
 
@@ -86,6 +87,26 @@ public sealed class FakeEgmExceptionQueueTests : IDisposable
 
         Acknowledge();
         Assert.Equal(0x00, Poll());
+    }
+
+    /// <summary>
+    /// A hand pay pending outranks the overflow, so it comes first and the overflow second (libsas_internal.cpp:4365,
+    /// GSA 4.13); the queue follows oldest first.
+    /// </summary>
+    [Fact]
+    public void A_hand_pay_pending_goes_ahead_of_the_overflow()
+    {
+        Start();
+        for (int i = 0; i < QueueDepth + 2; i++)
+            Machine.RaiseException(0x11);
+        Machine.RaiseHandpay(HandpayKind.CancelledCredit, 2000);
+
+        Host.Synchronise();
+        Assert.Equal(0x51, Poll());
+        Acknowledge();
+        Assert.Equal(Overflow, Poll());
+        Acknowledge();
+        Assert.Equal(0x11, Poll());
     }
 
     /// <summary>

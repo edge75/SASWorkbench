@@ -154,19 +154,85 @@ test "10.3.5 hand pays and their receipts are validated" {
 }
 
 test "10.3.6 restricted tickets may be printed" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7B, machine.restricted_credits
-  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
-  requires machine.restricted_tickets
-  note "Set the restricted-ticket bit, read it back, then cash out restricted credits and confirm a restricted ticket is printed. Restricted credits have to be put on the machine first, which needs a transfer this build cannot make."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  machine validation secure_enhanced
+  machine accounting denomination 1c
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp72, decoder.lp74, machine.aft
+  requires machine.restricted_credits, machine.restricted_tickets, stimulus.restricted_tickets
+  requires stimulus.asset_number, stimulus.button.collect, stimulus.settle, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  egm set asset number 12345
+  egm set restricted tickets on
+  host forget exceptions within 2s
+
+  # Bit 3 cleared and then set, with bit 4 left as the host has it: only bit 3 moves.
+  host send lp 7B data 080800000000000000
+  host expect field current_validation_status of lp 7B == 32817
+  host send lp 7B data 080800080000000000
+  host expect field current_validation_status of lp 7B == 32825
+
+  # Five restricted dollars put on the machine, then cashed out: a restricted ticket for all of it.
+  host send lp 72 data 36000000000000000000000005000000000000003930000000000000000000000000000000000000000000000131000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  egm press collect
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 5s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 1
+  host expect field amount of lp 4D == 500
+
+  note "The platform allows a restricted ticket only when both its operator's option and the host's bit 3 do, and without its ticket-in-part setting only for restricted credit the host's bit 4 also allows. Cashable credit is paid first, on a ticket of its own."
 }
 
 test "10.3.7 tickets may be printed for foreign restricted amounts" {
-  tag @egm-test-scripts @chapter-10 @needs-a-person
-  requires decoder.lp7B, machine.restricted_credits
-  # The platform's restricted ticket option is off on the software machine, as it is by default (QSP SasNetwork.cpp:617).
-  requires machine.restricted_tickets
-  note "Set the foreign-restricted bit, read it back, and confirm the machine prints for a restricted amount it did not itself issue."
+  tag @egm-test-scripts @chapter-10 @needs-stimulus
+  machine validation secure_enhanced
+  machine accounting denomination 1c
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp72, decoder.lp74, machine.aft
+  requires machine.restricted_credits, machine.restricted_tickets, stimulus.restricted_tickets
+  requires stimulus.asset_number, stimulus.button.collect, stimulus.settle, printer.wallet
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  egm set asset number 12345
+  egm set restricted tickets on
+  host forget exceptions within 2s
+
+  # Bit 3 on and bit 4, foreign restricted amounts, off: read back.
+  host send lp 7B data 081800080000000000
+  host expect field current_validation_status of lp 7B == 32809
+
+  # Restricted credit from a transfer is foreign, so with bit 4 off it is not cashed out on a ticket.
+  host send lp 72 data 36000000000000000000000005000000000000003930000000000000000000000000000000000000000000000131000000000100000000
+  host expect exception aft_transfer_complete within 10s
+  host send lp 72 data 02FF00
+  host expect field transfer_status == $00
+  egm press collect
+  host wait 2s
+  host send lp 74 data FF000000
+  host expect field current_restricted_amount == 500
+
+  # Bit 4 on, read back, and the same credit now leaves on a restricted ticket.
+  host send lp 7B data 081000100000000000
+  host expect field current_validation_status of lp 7B == 32825
+  egm press collect
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 5s
+  host send lp 4D data 00
+  host expect field validation_type of lp 4D == 1
+  host expect field amount of lp 4D == 500
+
+  note "Without its ticket-in-part setting the platform cannot keep foreign restricted credit apart from restricted credit that came in on a ticket, so bit 4 clear withholds every restricted ticket; with the setting it would print the ticket-in part alone."
 }
 
 test "10.3.8 ticket redemption is turned on by its own bit" {

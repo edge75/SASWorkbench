@@ -132,9 +132,28 @@ test "16.16 the acknowledgement as a real-time event" {
 
 test "16.17 the cancellation as a real-time event" {
   tag @egm-test-scripts @chapter-16 @needs-a-person
-  requires decoder.lp73, decoder.lp0E, machine.aft, machine.memory_fault, machine.aft_operator_registration
-  requires stimulus.real_time_events, host.poll_sequence
+  requires decoder.lp73, decoder.lp0E, machine.aft
+  requires stimulus.real_time_events, host.poll_sequence, stimulus.asset_number
 
-  note "With real-time reporting on, repeat 16.8 to 16.11. Each cancellation arrives as an event message, on a long poll as well as on a general poll."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  egm set asset number 12345
+  host send lp 73 data 0180
+  host forget exceptions within 2s
+
+  # 16.8 with reporting on: registration initialised and then cancelled by the host.
+  host poll sequence
+  host send sync
+  host send lp 0E data 01
+  host send lp 73 data 1D0039300000907856341200000000000000000000000000000045230100
+  host send lp 73 data 0180
+  host expect field registration_status == $80
+  host send gp draws aft_registration_cancelled
+  host send sync
+  host send lp 0E data 00
+
+  note "General polls carry the event here because a long poll answered with an event fails its step (D43)."
+  note "With real-time reporting on, repeat 16.8 to 16.11. Each cancellation arrives as an event message, on a long poll as well as on a general poll. The cancellations by the operator, by the link and by a memory fault raise the same $6E and are not repeated here."
   note "The document names the event of this case as $6D; the cancellation it repeats raises $6E, which is the code to look for."
 }

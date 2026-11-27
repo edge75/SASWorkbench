@@ -9,9 +9,21 @@
 # The catch-all. Anything the machine faults on that has no code of its own comes out as $20.
 test "4.33 general tilt" {
   tag @egm-test-scripts @chapter-4 @needs-a-person
-  requires machine.general_tilt
+  requires machine.general_tilt, stimulus.tilt, stimulus.settle
 
-  note "Create a fault the machine has no other SAS exception for, if it can be made to: one $20 on a general poll. It is the code for everything else, so what produces it is the manufacturer's answer."
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
+  egm settle
+  host forget exceptions within 2s
+
+  egm tilt on
+  host expect exception general_tilt within 8s
+  host expect no exception general_tilt within 3s
+  egm tilt off
+
+  note "It is the code for everything else, so what produces it is the manufacturer's answer; on a QSP machine a device it reports as a hardware error."
 }
 
 test "4.34 coin in and coin out tilts" {

@@ -676,24 +676,230 @@ test "10.5.13 a ticket printed while the link is down is still on the record" {
 
 test "10.5.14 hand pay cashout receipts are counted in cents and quantity" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires meter.handpay_cashout_receipt_cents, stimulus.handpay
-  note "Meters 008C and 008D, moved by a hand pay that printed a receipt."
+  machine validation secure_enhanced
+  machine handpay validation on
+  machine handpay receipts on
+  machine accounting denomination 1c
+  requires machine.handpay_validation, machine.handpay_receipts, printer.wallet
+  requires stimulus.handpay, stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp1B, decoder.lp6F, decoder.lpAF
+  requires host.compare_replies, host.meter_arithmetic
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 7B data 08060006000000000000
+  host send lp 6F data 0600008C008D00
+  host expect field meters[0].code == $8C
+  host remember field meters[0].value as cents_before
+  host remember field meters[1].value as qty_before
+
+  # Two validated hand pays of different values, twenty dollars and five.
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+  host forget exceptions within 2s
+  egm handpay 500
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+
+  host send lp 6F data 0600008C008D00
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+  host send lp AF data 0600008C008D00
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+
+  note "Meters 008C and 008D, moved by a validated cancelled-credit hand pay that printed a receipt. The platform validates no hand pay and prints no receipt, so the case declares both (D53, D61)."
 }
 
 test "10.5.15 hand pay single wins with a receipt are counted in cents and quantity" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires meter.handpay_single_win_receipt_cents, stimulus.handpay
-  note "Meters 008E and 008F, moved by a single-win hand pay that printed a receipt."
+  machine validation secure_enhanced
+  machine handpay validation on
+  machine handpay receipts on
+  machine accounting denomination 1c
+  requires machine.handpay_validation, machine.handpay_receipts, printer.wallet
+  requires stimulus.handpay, stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp1B, decoder.lp6F, decoder.lpAF
+  requires host.compare_replies, host.meter_arithmetic
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 7B data 08060006000000000000
+  host send lp 6F data 0600008E008F00
+  host expect field meters[0].code == $8E
+  host remember field meters[0].value as cents_before
+  host remember field meters[1].value as qty_before
+
+  # Two validated hand pays of different values, twenty dollars and five.
+  egm handpay jackpot 2000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+  host forget exceptions within 2s
+  egm handpay jackpot 500
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  egm expect ticket printed within 20s
+  host expect exception cashout_ticket_printed within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+
+  host send lp 6F data 0600008E008F00
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+  host send lp AF data 0600008E008F00
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+
+  note "Meters 008E and 008F, moved by a validated single-win hand pay that printed a receipt."
 }
 
 test "10.5.16 hand pay cashouts with no receipt are counted in cents and quantity" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires meter.handpay_cashout_no_receipt_cents, stimulus.handpay
-  note "Meters 0090 and 0091, the same pair for a hand pay that printed nothing."
+  machine validation secure_enhanced
+  machine handpay validation on
+  machine accounting denomination 1c
+  requires machine.handpay_validation
+  requires stimulus.handpay, stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp1B, decoder.lp6F, decoder.lpAF
+  requires host.compare_replies, host.meter_arithmetic
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 7B data 08040004000000000000
+  host send lp 6F data 06000090009100
+  host expect field meters[0].code == $90
+  host remember field meters[0].value as cents_before
+  host remember field meters[1].value as qty_before
+
+  # Two validated hand pays of different values, twenty dollars and five.
+  egm handpay 2000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+  host forget exceptions within 2s
+  egm handpay 500
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+
+  host send lp 6F data 06000090009100
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+  host send lp AF data 06000090009100
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+
+  note "Meters 0090 and 0091, the same pair for a validated hand pay that printed nothing."
 }
 
 test "10.5.17 hand pay single wins with no receipt are counted in cents and quantity" {
   tag @egm-test-scripts @chapter-10 @needs-stimulus
-  requires meter.handpay_single_win_no_receipt_cents, stimulus.handpay
+  machine validation secure_enhanced
+  machine handpay validation on
+  machine accounting denomination 1c
+  requires machine.handpay_validation
+  requires stimulus.handpay, stimulus.handpay.jackpot, stimulus.handpay.reset, stimulus.settle
+  requires decoder.lp7B, decoder.lp4C, decoder.lp4D, decoder.lp1B, decoder.lp6F, decoder.lpAF
+  requires host.compare_replies, host.meter_arithmetic
+
+  host connect loopback address 01
+  host poll every 200ms
+  host expect link up within 30s
+  host send lp 4C with validation_id=1 sequence_number=1
+  egm settle
+  host forget exceptions within 2s
+
+  host send lp 7B data 08040004000000000000
+  host send lp 6F data 06000092009300
+  host expect field meters[0].code == $92
+  host remember field meters[0].value as cents_before
+  host remember field meters[1].value as qty_before
+
+  # Two validated hand pays of different values, twenty dollars and five.
+  egm handpay jackpot 2000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+  host forget exceptions within 2s
+  egm handpay jackpot 500
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field amount of lp 1B != 0
+  host wait 1s
+  egm handpay reset
+  host expect exception handpay_validated within 20s
+  host wait 1s
+  host send lp 4D data 00
+  host wait 1s
+
+  host send lp 6F data 06000092009300
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+  host send lp AF data 06000092009300
+  host expect field meters[0].value == saved.cents_before + 2500
+  host expect field meters[1].value == saved.qty_before + 2
+
   note "Meters 0092 and 0093, completing the four-way split of hand pays by kind and by whether paper came out."
 }
