@@ -46,13 +46,13 @@ failures together):
 | 15 | Legacy bonusing | 37 | 33 | 4 | a card game (3), a player screen (1); 3 of the 33 fail, all of them findings |
 | 16 | AFT transfers | 90 | 85 | 5 | notes only (2), reading a field's bits (1), a wallet (1), the $75 decoder (1); 23 of the 85 fail, all of them findings |
 | 17 | Custom AFT ticket data | 5 | 1 | 4 | transfer tickets carrying custom data, which the platform does not print (4) |
-| 18 | Tournament | 10 | 2 | 8 | tournament play on the machine (8) |
+| 18 | Tournament | 10 | 10 | 0 | tournaments declared by the case (D60) |
 | 19 | Authentication | 16 | 13 | 3 | cutting a component's link (2), a component that cannot be authenticated now (1); 6 of the 13 fail, all of them findings |
-| 20 | Hand pay reset methods | 3 | 0 | 3 | the $94 decoder (2), the credit-meter reset key (1) |
+| 20 | Hand pay reset methods | 3 | 0 | 3 | a remote hand pay reset (2), the credit-meter reset key (1) |
 | 21 | Miscellaneous control and legacy | 17 | 10 | 7 | a decoder for the command itself (4), a cash-out limit (2), notes only (1); 3 of the 10 fail, all of them findings |
 | 22 | MJT | 28 | 24 | 4 | a multiplied progressive win (1), a non-SAS progressive (1), a wide area progressive (1), the maximum bet (1) |
 | 23 | Legacy meters | 17 | 16 | 1 | restricted credits (1); 1 of the 16 fails, a finding |
-| | **total** | **632** | **545** | **87** | |
+| | **total** | **632** | **553** | **79** | |
 
 When the first three chapters were written, two host capabilities blocked twenty of their cases.
 `host.poll_sequence`, an exact sequence of polls with nothing else on the line, has since been
