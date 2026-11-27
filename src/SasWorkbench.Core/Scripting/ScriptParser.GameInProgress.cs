@@ -32,7 +32,9 @@ public static partial class ScriptParser
             }
         }
 
-        return verb == "start" ? new StartGameStep(location, credits) : new EndGameStep(location, credits);
+        return verb == "start"
+            ? new StartGameStep(location, credits)
+            : new EndGameStep(location, credits) { WinStated = words.Length == 4 };
     }
 
     /// <summary>egm press collect lasting &lt;duration&gt;.</summary>

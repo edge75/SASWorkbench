@@ -68,6 +68,18 @@ public sealed class FakeGamingMachine : IDisposable
     /// <summary>What is in one of the masks right now.</summary>
     public uint Mask(int offset) => _region.Read(offset);
 
+    private readonly List<uint> _inputs = [];
+
+    /// <summary>Every change of the input mask this machine sampled, in order, so a pulse can be seen after it ended.</summary>
+    public IReadOnlyList<uint> InputsSeen
+    {
+        get
+        {
+            lock (_inputs)
+                return [.. _inputs];
+        }
+    }
+
     public void Dispose()
     {
         _stopping.Cancel();
@@ -86,6 +98,13 @@ public sealed class FakeGamingMachine : IDisposable
                 _region.Write(QpmLayout.Dio, 0);
                 _region.Write(QpmLayout.Bna, 0);
                 _region.Write(QpmLayout.Printer, 0);
+            }
+
+            uint inputs = _region.Read(QpmLayout.Dio);
+            lock (_inputs)
+            {
+                if (_inputs.Count == 0 || _inputs[^1] != inputs)
+                    _inputs.Add(inputs);
             }
 
             _region.Write(QpmLayout.Heartbeat, _region.Read(QpmLayout.Heartbeat) + 1);

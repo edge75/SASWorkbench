@@ -11,7 +11,8 @@ public sealed record EgmDoor(string Type, int Intrusion);
 /// <param name="Label">What the machine calls it, such as <c>Collect</c>.</param>
 /// <param name="Kind">What it does, such as <c>play</c> or <c>keyswitch</c>.</param>
 /// <param name="DioLine">Which bit of the input mask carries it.</param>
-public sealed record EgmButton(string Label, string Kind, int DioLine);
+/// <param name="Data">What the machine passes with it, such as the multiplier of a bet button; zero when nothing.</param>
+public sealed record EgmButton(string Label, string Kind, int DioLine, int Data = 0);
 
 /// <summary>
 /// What the machine under test says its own peripherals are.
@@ -214,7 +215,8 @@ public sealed class EgmHardwareProfile
                 ? text.GetString()!
                 : kind;
 
-            found.Add(new EgmButton(label, kind, dio));
+            int data = entry.TryGetProperty("data", out JsonElement extra) && extra.TryGetInt32(out int value) ? value : 0;
+            found.Add(new EgmButton(label, kind, dio, data));
         }
 
         return found;

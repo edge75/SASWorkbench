@@ -1135,3 +1135,28 @@ Taken while building group 18 of M9 on 2026-11-27, without the user, under D58; 
   transfer and prints no transfer ticket, and no transport here times a byte or interrupts a reply.
 
 The design note is `docs/M9-software-machine-faults-and-rest.md`.
+
+---
+
+# Decision 63
+
+Taken while building group 19 of M9 on 2026-11-27, without the user, inside the scope the user approved on 2026-11-26;
+open to review like any other.
+
+## D63 — The real demo is driven only through levers it already reads, and confirmed on the wire or in its log
+
+* **The attendant menu is the audit key alone**, not `sasctl qpm audit open`'s key plus main and logic doors: the step
+  means the display-meters screens that need no door, and the doors would add exceptions the cases do not expect. The
+  operator menu is refused: the platform raises `$84` only from touch pages.
+* **No bet-one button is offered**: the demo's bet buttons pick a multiplier and wager nothing until play.
+* **Only the note jam is driven**; disconnection and every printer fault stay out until verified on the demo.
+* **Plays never state an outcome**: any `win=`, zero included, is refused. A bet is placed only by a multiplier button,
+  and only when the run declares `--egm-bet-credits`, the credits one multiplier wagers; that option is also the
+  opt-in for holding a game and choosing the first enabled game, the only game a key can choose.
+* **A power cycle and the F10 registration key need `--egm-exe`**, and touch only a process whose image is exactly that
+  file. Registration is confirmed by the demo's own log line, and by `$73` where the case does not poll in sequence.
+* **What can never be done is refused before the case starts**, and a refusal while it runs ends the case, so nothing
+  after it is failed against a machine nobody drove. This applies to the peripheral driver only; the software machine
+  and the manual prompt are unchanged.
+
+The design note is `docs/M9-demo-stimuli.md`.
