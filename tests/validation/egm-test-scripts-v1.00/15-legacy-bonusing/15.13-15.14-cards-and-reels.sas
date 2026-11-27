@@ -4,26 +4,36 @@
 # decide what to award. $8E returns a hand type - $00 for the dealt hand, $01 for the final one -
 # and five card codes; $8F returns nine reel positions, leftmost first, padded with $FF.
 #
-# The software machine has neither a card game nor physical reels and does not answer either poll,
-# as the machine library does not when the game has none; both cases skip on that.
+# The platform has neither a card game nor physical reels, so each case declares the one it reads
+# (D58, D61) and skips on a machine that has not got it.
 
 test "15.13 the hand on a card game" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
-  requires machine.poker, stimulus.game_in_progress, decoder.lp8E
+  tag @egm-test-scripts @chapter-15 @needs-stimulus
+  machine poker on
+  requires machine.poker, stimulus.game_in_progress, stimulus.bill, decoder.lp8E
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   egm settle
+  egm bill insert 2000
   host forget exceptions within 2s
 
+  # A hand dealt and left undrawn.
+  egm game start bet=1
   host send lp 8E
   host expect field hand_type == 0
   host expect field card_1 <= $5E
   host expect field card_5 <= $5E
 
-  note "Before the run, deal a hand on a draw poker game and leave it undrawn. The steps read the dealt hand; each card code must match the card on the screen, which a person checks."
-  note "Then finish the game and send the poll again: the hand type is 01 and the cards are the final hand, again as shown."
+  # The game finished: the final hand.
+  egm game end win=0
+  host send lp 8E
+  host expect field hand_type == 1
+  host expect field card_1 <= $5E
+  host expect field card_5 <= $5E
+
+  note "Each card code must match the card on the screen, for the dealt hand and again for the final one, which a person checks."
 }
 
 test "15.14 the physical reel stops" {

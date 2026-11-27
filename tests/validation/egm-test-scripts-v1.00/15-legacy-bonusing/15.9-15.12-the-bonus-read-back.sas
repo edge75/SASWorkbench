@@ -10,6 +10,10 @@
 # here four dollars, below 500 credits and above 5 at any denomination up to 80 cents). 15.12 still
 # needs a partial pay and a hopper, which the platform has not.
 #
+# @finding (15.10, 15.11): the document wants reset ID 00, a standard hand pay, on a machine not set up
+# for reset to the credit meter. The platform has no such setting: it reports 01 for every jackpot,
+# a bonus's included, that fits under its credit and upper limits (QSP SasNetwork_Conditions.hpp:784).
+#
 # @finding (15.11): the platform holds every bonus of one tax status that arrives during a hand pay
 # as one amount (QSP SasNetwork_AftTransfer.hpp:1664) and pays it as one award after the reset, so
 # the second 500 and the 5 come back as one hand pay of 505; the document wants them apart.
@@ -58,7 +62,7 @@ test "15.9 the last bonus can be read back" {
 }
 
 test "15.10 a bonus above the jackpot limit is a hand pay" {
-  tag @egm-test-scripts @chapter-15 @needs-a-person
+  tag @egm-test-scripts @chapter-15 @needs-a-person @finding
   requires machine.legacy_bonus, machine.jackpot_limit, stimulus.handpay.reset, stimulus.settle
   requires decoder.lp1B
 

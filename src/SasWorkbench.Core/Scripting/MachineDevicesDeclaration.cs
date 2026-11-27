@@ -16,7 +16,8 @@ public enum CoinAcceptorKind
 /// <summary>
 /// The coin-handling devices and reels a case assumes the machine has, written <c>machine coin acceptor on|external</c>,
 /// <c>machine hopper on</c>, <c>machine reels on</c> and <c>machine partial pay on</c> (D58), the bet-one button,
-/// <c>machine bet button on</c> (D59), and host-controlled tournaments, <c>machine tournament on</c> (D60).
+/// <c>machine bet button on</c> (D59), host-controlled tournaments, <c>machine tournament on</c> (D60), and a draw poker
+/// game, <c>machine poker on</c> (D61).
 /// </summary>
 /// <remarks>
 /// A declaration in the sense of <see cref="MachineDeclaration"/>: whether a cabinet has a hopper or reels is its
@@ -34,10 +35,14 @@ public enum CoinAcceptorKind
 /// wager placed and not yet played as waiting for the player.
 /// </param>
 /// <param name="Tournament">The machine plays the host's tournament sessions and keeps their four meters.</param>
+/// <param name="Poker">The machine's game is draw poker, reporting its hand, the cards held and the draw.</param>
 public sealed record MachineDevicesDeclaration(
     SourceLocation Location, CoinAcceptorKind CoinAcceptor, bool Hopper, bool Reels, bool PartialPay, bool BetButton = false,
-    bool Tournament = false)
+    bool Tournament = false, bool Poker = false)
 {
+    /// <summary>The capability a machine whose game is poker carries.</summary>
+    public const string PokerCapability = "machine.poker";
+
     /// <summary>The capability a machine that plays tournaments carries.</summary>
     public const string TournamentCapability = "machine.tournament";
 
@@ -76,6 +81,8 @@ public sealed record MachineDevicesDeclaration(
             yield return new Requirement(Location, BetButtonCapability);
         if (Tournament)
             yield return new Requirement(Location, TournamentCapability);
+        if (Poker)
+            yield return new Requirement(Location, PokerCapability);
     }
 
     /// <summary>The capabilities a software machine built this way claims, its stimuli included.</summary>
@@ -99,6 +106,9 @@ public sealed record MachineDevicesDeclaration(
             yield return new(PlayedGameCapabilities.BetButton, "yes");
             yield return new(PlayedGameCapabilities.PlayerInputState, "yes");
         }
+
+        if (Poker)
+            yield return new(PokerStep.Capability, "yes");
     }
 
     public override string ToString() =>
@@ -115,5 +125,6 @@ public sealed record MachineDevicesDeclaration(
             PartialPay ? "partial pay on" : null,
             BetButton ? "bet button on" : null,
             Tournament ? "tournament on" : null,
+            Poker ? "poker on" : null,
         }.OfType<string>());
 }

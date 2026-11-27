@@ -8,8 +8,7 @@
 # it is the jackpot meter.
 #
 # 20.2 clears the hand pay with the machine's own credit-meter key; 20.3 clears it from the host
-# with $94. This build decodes $94 but not $A8, and has no step for the credit-meter key. The field
-# names used below for the $A8 reply are provisional, chosen ahead of its decoder.
+# with $94. The platform has no credit-meter key, so 20.2 waits on a machine that has one.
 
 # The credit-meter key works only when the host has allowed it for this hand pay, so every step that
 # matters is the key, which nothing here can turn.
@@ -30,7 +29,7 @@ test "20.3 a remote reset of a jackpot onto the credit meter" {
   tag @egm-test-scripts @chapter-20 @needs-stimulus @needs-configuration @destructive
   requires decoder.lp94, decoder.lpA8
   requires machine.remote_handpay_reset, machine.handpay_reset_to_credits
-  requires stimulus.handpay.jackpot, stimulus.settle
+  requires stimulus.handpay.jackpot, stimulus.settle, stimulus.credit_limit
   requires decoder.lp1B
   machine accounting denomination 5c
 
@@ -95,8 +94,26 @@ test "20.3 a remote reset of a jackpot onto the credit meter" {
   host expect meter credits += 30000 within 5s
   host expect meter coin_out += 30000 within 2s
   host expect meter jackpot unchanged within 2s
+  host forget exceptions within 2s
+
+  # A credit limit the machine is already at: the jackpot no longer fits on the credit meter, so only
+  # the standard reset is on offer, $A8 asking for the credit meter is refused, and $94 pays it as a
+  # standard hand pay. The rounds above left three thousand dollars on the meter.
+  egm set credit limit 300000
+  host forget exceptions within 2s
+  egm handpay jackpot 150000
+  host expect exception handpay_is_pending within 10s
+  host send lp 1B
+  host expect field reset_id of lp 1B == 0
+  host send lp A8 data 01
+  host expect field ack_code of lp A8 == 1
+  host send lp 94
+  host expect field reset_code of lp 94 == 0
+  host expect meter jackpot += 30000 within 5s
+  host expect meter credits unchanged within 2s
+  host expect meter coin_out unchanged within 2s
 
   note "Before the run, configure the machine for remote hand pay reset and host-controlled reset to the credit meter, with a jackpot limit below fifteen hundred dollars, an upper limit above it for reset to the credit meter, and a high credit limit. The amounts are in cents. Meter 0003 must not move in any round; this build cannot read it by name."
   note "The document's second round, with no $A8 sent, gives the $94 reply code as 01 while also saying the hand pay clears onto the jackpot meter. Those two cannot both hold, so the code is not asserted there; only the meters are, which is what the round is about."
-  note "Not done: two rounds where the credit meter route must be refused - a hand pay too large for a low credit limit, and a jackpot above the upper limit for reset to the credit meter. In both reset_id is 00, $A8 asking for the credit meter is answered with code 01, and $94 clears the hand pay onto the jackpot meter. Each needs the machine reconfigured mid-case, which has no step in the language."
+  note "Not done: the last round, a jackpot above the upper limit for reset to the credit meter, where reset_id is 00, $A8 asking for the credit meter is answered with code 01, and $94 clears the hand pay onto the jackpot meter. The platform has no such limit the operator can set, so it has no step in the language."
 }

@@ -168,6 +168,12 @@ public sealed class SoftwareMachineStimulus(FakeEgm machine, string walletDirect
                 Unless(payout, machine.SetWinPayout(payout.Hopper));
                 return;
 
+            case PokerStep poker:
+                Unless(poker, poker.Action == PokerAction.Draw
+                    ? machine.DrawCards()
+                    : machine.HoldCard(poker.Position, poker.Action == PokerAction.Hold));
+                return;
+
             case CashboxStep cashbox:
                 machine.SetCashbox(cashbox.Removed);
                 return;
@@ -457,7 +463,12 @@ public static class SoftwareMachineEnvironment
 
             // A case that says how the machine reports and validates hand pays gets one that does, as set at a memory reset.
             if (handpay is not null)
-                settings = settings with { LegacyHandpayReporting = handpay.Legacy, HandpayValidation = handpay.Validation };
+                settings = settings with
+                {
+                    LegacyHandpayReporting = handpay.Legacy,
+                    HandpayValidation = handpay.Validation,
+                    HandpayReceipts = handpay.Receipts,
+                };
 
             // A case that says which games the machine holds gets them; its meters count in cents, as the platform's do,
             // unless the case says otherwise (QSP SasNetwork.cpp:1258).
@@ -470,7 +481,7 @@ public static class SoftwareMachineEnvironment
                     settings = settings with { PlayerDenominationsInCents = games.DenominationsInCents };
             }
 
-            // A case that says the machine has a coin acceptor, a hopper, reels or tournaments gets them, which the platform has not (D58, D60).
+            // A case that says the machine has a coin acceptor, a hopper, reels, tournaments or poker gets them, which the platform has not (D58, D60, D61).
             if (devices is not null)
             {
                 settings = settings with
@@ -483,6 +494,7 @@ public static class SoftwareMachineEnvironment
                     BetButton = devices.BetButton,
                     MaxBet = devices.BetButton ? (byte)FakeEgm.BetButtonMaxBet : settings.MaxBet,
                     Tournament = devices.Tournament,
+                    Poker = devices.Poker,
                 };
             }
 
@@ -550,6 +562,8 @@ public static class SoftwareMachineEnvironment
 
         if (settings.HandpayValidation)
             yield return new(MachineHandpayDeclaration.ValidationCapability, "yes");
+        if (settings.HandpayReceipts)
+            yield return new(MachineHandpayDeclaration.ReceiptsCapability, "yes");
     }
 
     /// <summary>

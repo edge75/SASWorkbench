@@ -87,6 +87,6 @@ public sealed class GameInProgressStepTests
         Assert.True(manual.ContainsKey("stimulus.cashout_in_progress"));
         Assert.True(manual.ContainsKey("stimulus.jackpot_limit"));
         Assert.False(manual.ContainsKey("machine.jackpot_limit"));
-        Assert.False(manual.ContainsKey("machine.poker"));
+        Assert.True(manual.ContainsKey("machine.poker"));
     }
 }

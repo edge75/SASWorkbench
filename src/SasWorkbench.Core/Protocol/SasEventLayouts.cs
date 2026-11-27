@@ -123,15 +123,6 @@ public static class SasEventLayouts
         Description = description,
     };
 
-    private static SasField Bits(string name, string description) => new()
-    {
-        Name = name,
-        Length = 1,
-        Encoding = SasFieldEncoding.Bits,
-        ByteOrder = SasByteOrder.NotApplicable,
-        Description = description,
-    };
-
     /// <summary>Every established payload, by exception code.</summary>
     public static FrozenDictionary<byte, SasEventLayout> All { get; } = Build();
 
@@ -287,11 +278,12 @@ public static class SasEventLayouts
             new()
             {
                 Code = (byte)SasExceptionCode.CardHeldOrNotHeld,
-                Name = "cards_held",
-                Description = "Which cards the player kept.",
+                Name = "card_held_or_not_held",
+                Description = "A card the player held or released.",
                 Payload =
                 [
-                    Bits("cards_held", "One bit per card, set where the player held it."),
+                    Binary("card", 1, SasUnit.Code,
+                        "The top bit set for held and clear for released, the low bits the card's place from 0 on the left."),
                 ],
                 DerivedFrom = "SAS_RTE_CardHeld",
             },

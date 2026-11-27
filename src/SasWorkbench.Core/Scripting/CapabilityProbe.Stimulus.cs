@@ -80,6 +80,10 @@ public static partial class CapabilityProbe
                 ["stimulus.handpay.jackpot"] = "yes",
                 ["stimulus.handpay.reset"] = "yes",
 
+                // The host may clear a hand pay and pay a jackpot onto the credit meter, as the platform allows; no poll says so.
+                [HandpayResetCapabilities.Remote] = "yes",
+                [HandpayResetCapabilities.ToCredits] = "yes",
+
                 // It plays a game that wins a progressive level its declaration gave it.
                 ["stimulus.progressive"] = "yes",
 
@@ -147,6 +151,10 @@ public static partial class CapabilityProbe
                 // A person at a cabinet that plays tournaments turns them on in its menu (D60).
                 [MachineDevicesDeclaration.TournamentCapability] = "yes",
 
+                // A person at a draw poker game deals, holds, releases and draws (D61).
+                [MachineDevicesDeclaration.PokerCapability] = "yes",
+                [PokerStep.Capability] = "yes",
+
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",
                 ["stimulus.aft_bonus"] = "yes",
@@ -159,6 +167,10 @@ public static partial class CapabilityProbe
                 ["stimulus.handpay"] = "yes",
                 ["stimulus.handpay.jackpot"] = "yes",
                 ["stimulus.handpay.reset"] = "yes",
+
+                // A person configures remote hand pay reset and reset to the credit meter where the machine has them.
+                [HandpayResetCapabilities.Remote] = "yes",
+                [HandpayResetCapabilities.ToCredits] = "yes",
 
                 // A person at the cabinet can do all of these, every memory fault included, and the cases that need them carry @destructive.
                 ["machine.power_cycle"] = "yes",

@@ -193,7 +193,7 @@ public static partial class ScriptParser
             return;
         }
 
-        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet" or "tournament")
+        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet" or "tournament" or "poker")
         {
             test.Devices = ReadMachineDevices(test.Devices, words, location);
             return;
@@ -285,18 +285,28 @@ public static partial class ScriptParser
         bool legacy = words.Length == 3 && words[2].Equals("legacy", StringComparison.OrdinalIgnoreCase);
         bool validation = words.Length == 4 && words[2].Equals("validation", StringComparison.OrdinalIgnoreCase)
                           && words[3].Equals("on", StringComparison.OrdinalIgnoreCase);
-        if (!legacy && !validation)
+        bool receipts = words.Length == 4 && words[2].Equals("receipts", StringComparison.OrdinalIgnoreCase)
+                        && words[3].Equals("on", StringComparison.OrdinalIgnoreCase);
+        if (!legacy && !validation && !receipts)
         {
             throw new ScriptParseException(location,
-                "expected: machine handpay legacy, or machine handpay validation on. The hand pay queue without "
-                + "validation is the default, so neither has an 'off'");
+                "expected: machine handpay legacy, machine handpay validation on, or machine handpay receipts on. The "
+                + "hand pay queue without validation or receipts is the default, so none has an 'off'");
         }
 
-        if ((legacy && earlier is { Legacy: true }) || (validation && earlier is { Validation: true }))
+        if ((legacy && earlier is { Legacy: true }) || (validation && earlier is { Validation: true })
+            || (receipts && earlier is { Receipts: true }))
+        {
             throw new ScriptParseException(location, "this case already declares that");
+        }
 
         earlier ??= new MachineHandpayDeclaration(location, false, false);
-        return earlier with { Legacy = earlier.Legacy || legacy, Validation = earlier.Validation || validation };
+        return earlier with
+        {
+            Legacy = earlier.Legacy || legacy,
+            Validation = earlier.Validation || validation,
+            Receipts = earlier.Receipts || receipts,
+        };
     }
 
     private const string MachineUsage =
@@ -305,8 +315,8 @@ public static partial class ScriptParser
         + "machine validation standard|secure_enhanced|system, "
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
-        + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], "
-        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, or "
+        + "machine handpay legacy|validation on|receipts on, machine games <cents>c [<cents>c ...], "
+        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, machine poker on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -1747,10 +1757,14 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadDeviceStep(words, location));
                 return;
 
+            case "poker":
+                test.Steps.Add(ReadPokerStep(words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, nvram, printer, note, coin, hopper, reel, cashbox, progressive, set or settle");
+                    + "press, door, handpay, power, memory, nvram, printer, note, coin, hopper, reel, cashbox, poker, progressive, set or settle");
         }
     }
 
