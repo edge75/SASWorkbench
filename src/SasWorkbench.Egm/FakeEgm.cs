@@ -803,6 +803,7 @@ public sealed partial class FakeEgm : IDisposable
         // A new round has won nothing on its progressive levels yet (QSP ProgressiveWonInRound.RoundStarted).
         _roundProgressiveCents = 0;
         NoteGameStartedLocked();
+        DealLocked();
         CaptureRoundMultiplierLocked(betCredits);
         RaiseEvent((byte)SasExceptionCode.GameStarted,
         [
@@ -822,6 +823,8 @@ public sealed partial class FakeEgm : IDisposable
     /// </summary>
     private void EndRound(int games, long winCredits, long progressiveCents)
     {
+        // A poker hand not drawn by the player is final once the game ends.
+        DrawLocked();
         long won = WonUnits(winCredits);
         if (EndTournamentRoundLocked(won))
         {
@@ -1341,7 +1344,7 @@ public sealed partial class FakeEgm : IDisposable
 
         //  A command this machine has been built without. Silence rather than a rejection, for the
         //  same reason as below: a rejection says the command was understood and declined.
-        if (_options.UnansweredCommands.Contains(command) || (WithoutMachinery.Contains(command) && !(command == 0x8F && _options.Reels)))
+        if (_options.UnansweredCommands.Contains(command) || (WithoutMachinery.Contains(command) && !(command == 0x8F && _options.Reels) && !(command == 0x8E && _options.Poker)))
         {
             Ignore(link, command);
             return;
@@ -1359,12 +1362,9 @@ public sealed partial class FakeEgm : IDisposable
         if (AnswerTournament(link, command, frame))
             return;
 
-        // The remote hand pay reset is not modelled yet: unanswered and counted, as any command this machine lacks.
-        if (command == (byte)SasLongPollCode.LP_REMOTEHANDPAYRESET)
-        {
-            Ignore(link, command);
+        // The host clearing a hand pay and choosing how a jackpot is cleared, as the library and the platform do.
+        if (AnswerHandpayReset(link, command, frame))
             return;
-        }
 
         if (command == (byte)SasLongPollCode.LP_SENDAUTHENTICATION)
         {
@@ -1505,6 +1505,12 @@ public sealed partial class FakeEgm : IDisposable
 
             case 0x09:
                 return ApplyEnableDisableGame(frame);
+
+            case 0x03:
+            case 0x04:
+            case 0x05:
+                // The sound switches are acknowledged and handed to the game, which this machine has none of (QSP SasNetwork_Callbacks.hpp:39).
+                return true;
 
             case 0x0E:
                 // Real-time event reporting takes one data byte, which must be zero or one. A

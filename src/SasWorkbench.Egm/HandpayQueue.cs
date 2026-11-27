@@ -18,7 +18,7 @@ internal sealed record HandpayItem(byte Group, byte Level, long Amount, HandpayI
     /// <summary>The partial pay, in accounting units; zero unless a case declares one (D58).</summary>
     public long PartialPay { get; init; }
 
-    /// <summary>The reset methods reported; QSP reports the standard hand pay (QSP SasNetwork_Conditions.hpp:770).</summary>
+    /// <summary>The reset methods reported: 00 standard only, 01 onto the credit meter too (QSP SasNetwork_Conditions.hpp:784).</summary>
     public byte ResetId { get; init; }
 }
 
@@ -81,6 +81,11 @@ internal sealed class HandpayQueue
         if (_items.Count > 0)
             _items[^1] = _items[^1] with { Group = group, Level = level, Amount = amount };
     }
+
+    /// <summary>The reset ID of the entry long poll A8 looks at, the first not yet reset (lp.cpp:9651).</summary>
+    public byte CurrentResetId() =>
+        _items.Find(item => item.State is HandpayItemState.Registered or HandpayItemState.Ack
+            or HandpayItemState.InfoSent or HandpayItemState.InfoAck)?.ResetId ?? 0;
 
     /// <summary>internalQueueException drops a $52 while the front entry still waits behind others (libsas_internal.cpp:3993).</summary>
     public bool Accepts(byte code) => code != 0x52 || !(_items.Count > 1 && Front == HandpayItemState.Registered);

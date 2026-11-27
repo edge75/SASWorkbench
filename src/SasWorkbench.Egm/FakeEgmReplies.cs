@@ -81,8 +81,8 @@ public sealed partial class FakeEgm
         0x7E => DateAndTime(),
         0xB1 => new Dictionary<string, object> { ["denomination"] = DenominationCode },
 
-        // QSP never sets a cash-out limit, having no hopper, so the library leaves $A4 unanswered (lp.cpp:9546).
-        0xA4 => NoAnswer,
+        // QSP never sets a cash-out limit, having no hopper, so the library leaves $A4 unanswered (lp.cpp:9546); a declared hopper sets one.
+        0xA4 => HasHopper ? CashoutLimit(layout, request) : NoAnswer,
         0xA0 => EnabledFeatures(request),
         0x6F or 0xAF => SelectedMeters(request),
         0x3D => LastCashout(),
@@ -132,6 +132,7 @@ public sealed partial class FakeEgm
         0x4D => EnhancedValidationInformation(request),
         0x4F => HasHopper ? DeclaredHopperStatus() : HopperStatus(),
         0x8F => ReelStopInformation(),
+        0x8E => CardInformation(),
         0x50 => ValidationMeters(layout, request),
         0x51 => new Dictionary<string, object> { ["games"] = (long)GameCount },
         0x52 => GameMeters(layout, request),

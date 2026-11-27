@@ -371,6 +371,27 @@ public sealed partial class FakeEgm
         }
     }
 
+    /// <summary>
+    /// $A4 on a declared hopper machine, which sets its hopper limit as every game's cash-out limit (D61): game zero to
+    /// the last answers, a game past it is silent (lp.cpp:9520), and the limit is in accounting units, capped at the
+    /// four digits the reply holds.
+    /// </summary>
+    private Dictionary<string, object> CashoutLimit(SasMessageLayout layout, ReadOnlySpan<byte> request)
+    {
+        if (GameNumber(layout, request) is not { } game)
+            return NoAnswer;
+
+        long limit;
+        lock (_gate)
+            limit = _hopperLimitCents / AccountingCents;
+
+        return new Dictionary<string, object>
+        {
+            ["game_number"] = game,
+            ["cashout_limit"] = Math.Min(limit, 9999),
+        };
+    }
+
     /// <summary>Clears the coin acceptor, hopper and reel faults and puts the cashbox back, as <c>egm settle</c> does.</summary>
     private void ClearDeviceFaults()
     {

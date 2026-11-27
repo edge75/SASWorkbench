@@ -156,6 +156,9 @@ public sealed partial class FakeEgm
         new(owed.Group, owed.Level, owed.InCents ? owed.AmountCents : owed.AmountCents / AccountingCents, HandpayItemState.Registered)
         {
             PartialPay = owed.PartialPayUnits,
+
+            // The reset ID the platform registers: 01 for a jackpot it may pay onto the credit meter (QSP SasNetwork_Conditions.hpp:784).
+            ResetId = MayResetToCreditMeterLocked(owed) ? ResetIdCreditMeter : (byte)0x00,
         };
 
     /// <summary>The attendant pays the hand pay and turns the reset key.</summary>
@@ -177,7 +180,7 @@ public sealed partial class FakeEgm
         ValidateHandpay(paid);
 
         lock (_gate)
-            ResetWithLibraryLocked();
+            _ = ResetWithLibraryLocked();
         return true;
     }
 
@@ -216,10 +219,11 @@ public sealed partial class FakeEgm
     /// internalHandpayReset: refused unless a hand pay is registered, then counted on each channel in turn, the
     /// first channel with nothing to match ending it (libsas_internal.cpp:5222). Called under the gate.
     /// </summary>
-    private void ResetWithLibraryLocked()
+    /// <returns>False when the library refused the reset.</returns>
+    private bool ResetWithLibraryLocked()
     {
         if (!_handpayRegistered)
-            return;
+            return false;
 
         foreach (MachineLink link in _links)
         {
@@ -227,13 +231,14 @@ public sealed partial class FakeEgm
             {
                 if (link.Handpays.Count == 0 && link.Handpays.ResetQueued == 0)
                     _handpayRegistered = false;
-                return;
+                return false;
             }
 
             ApplyHandpayWriteLocked(link, write);
         }
 
         _handpayRegistered = false;
+        return true;
     }
 
     /// <summary>Carries out what a step of the queue asked for on one channel. Called under the gate.</summary>
@@ -380,6 +385,8 @@ public sealed partial class FakeEgm
     /// <summary>At power up the library announces again a hand pay still awaiting its reading, and its timer starts afresh.</summary>
     private void RestartHandpaysLocked()
     {
+        // The platform starts with the standard reset method (QSP SasNetwork.cpp:462).
+        _hostResetMethod = ResetMethodStandard;
         _handpayTimerAlive = false;
         foreach (MachineLink link in _links)
             ApplyHandpayWriteLocked(link, link.Handpays.Restart());
@@ -391,6 +398,7 @@ public sealed partial class FakeEgm
         _handpay = null;
         _handpayRegistered = false;
         _handpayTimerAlive = false;
+        _hostResetMethod = ResetMethodStandard;
         foreach (MachineLink link in _links)
             link.Handpays.Clear();
     }
