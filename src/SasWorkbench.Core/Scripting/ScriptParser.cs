@@ -193,7 +193,7 @@ public static partial class ScriptParser
             return;
         }
 
-        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet" or "tournament" or "poker")
+        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet" or "tournament" or "poker" or "memory" or "period" or "credit")
         {
             test.Devices = ReadMachineDevices(test.Devices, words, location);
             return;
@@ -316,7 +316,7 @@ public static partial class ScriptParser
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
         + "machine handpay legacy|validation on|receipts on, machine games <cents>c [<cents>c ...], "
-        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, machine poker on, or "
+        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, machine poker on, machine memory faults on, machine period meters on, machine credit key on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>
@@ -585,6 +585,12 @@ public static partial class ScriptParser
                 if (DrawsAt(words) > 0)
                 {
                     test.Steps.Add(ReadSendDrawsEvent(words, location));
+                    return;
+                }
+
+                if (EndsWithBadCrc(words))
+                {
+                    test.Steps.Add(ReadSendBadCrc(words, location));
                     return;
                 }
 
@@ -1689,6 +1695,18 @@ public static partial class ScriptParser
                 return;
 
             case "set" when words.Length >= 3
+                             && words[2].Equals("restricted", StringComparison.OrdinalIgnoreCase):
+                if (words.Length != 5
+                    || !words[3].Equals("tickets", StringComparison.OrdinalIgnoreCase)
+                    || words[4].ToLowerInvariant() is not ("on" or "off"))
+                {
+                    throw new ScriptParseException(location, "expected: egm set restricted tickets on|off");
+                }
+
+                test.Steps.Add(new SetRestrictedTicketsStep(location, words[4].Equals("on", StringComparison.OrdinalIgnoreCase)));
+                return;
+
+            case "set" when words.Length >= 3
                              && words[2].ToLowerInvariant() is "hopper" or "win":
                 test.Steps.Add(ReadDeviceSetter(words, location));
                 return;
@@ -1761,10 +1779,18 @@ public static partial class ScriptParser
                 test.Steps.Add(ReadPokerStep(words, location));
                 return;
 
+            case "tilt" or "out" or "battery":
+                test.Steps.Add(ReadMachineCondition(words, location));
+                return;
+
+            case "period":
+                test.Steps.Add(ReadPeriodMeters(words, location));
+                return;
+
             default:
                 throw new ScriptParseException(location,
                     $"'egm {words[1]}' is not a machine action. Expected bill, ticket, play, "
-                    + "press, door, handpay, power, memory, nvram, printer, note, coin, hopper, reel, cashbox, poker, progressive, set or settle");
+                    + "press, door, handpay, power, memory, nvram, printer, note, coin, hopper, reel, cashbox, poker, tilt, out of service, battery, period meters, progressive, set or settle");
         }
     }
 
@@ -1804,7 +1830,13 @@ public static partial class ScriptParser
     /// <summary>Reads <c>egm handpay &lt;cents&gt;</c>,<c>egm handpay jackpot &lt;cents&gt;</c> or <c>egm handpay reset</c>.</summary>
     private static StimulusStep ReadHandpay(string[] words, SourceLocation location)
     {
-        const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents>, egm handpay reset or egm handpay cancel";
+        const string Expected = "expected: egm handpay <cents>, egm handpay jackpot <cents>, egm handpay reset [credits] or egm handpay cancel";
+
+        if (words.Length == 4 && words[2].Equals("reset", StringComparison.OrdinalIgnoreCase)
+            && words[3].Equals("credits", StringComparison.OrdinalIgnoreCase))
+        {
+            return new HandpayCreditResetStep(location);
+        }
 
         if (words.Length == 3 && words[2].Equals("reset", StringComparison.OrdinalIgnoreCase))
             return new HandpayResetStep(location);

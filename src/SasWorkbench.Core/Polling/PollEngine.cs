@@ -65,6 +65,7 @@ public sealed partial class PollEngine : IDisposable
     private string? _pendingPurpose;
     private bool _pendingCheckSequence;
     private bool _pendingWithoutWakeup;
+    private bool _pendingBadCheckSequence;
     private int _pendingDataLength;
     private LongPollResult? _pendingResult;
     private long _pendingTicket;
@@ -382,7 +383,8 @@ public sealed partial class PollEngine : IDisposable
         string? purpose = null,
         bool? checkSequence = null,
         SasAddress? to = null,
-        bool withoutWakeup = false)
+        bool withoutWakeup = false,
+        bool badCheckSequence = false)
     {
         if (data.Length > _pendingData.Length)
             throw new ArgumentOutOfRangeException(nameof(data), data.Length,
@@ -420,6 +422,7 @@ public sealed partial class PollEngine : IDisposable
                 _pendingCheckSequence = checkSequence
                     ?? SasCommandFraming.RequiresCheckSequence(command);
                 _pendingWithoutWakeup = withoutWakeup;
+                _pendingBadCheckSequence = badCheckSequence;
                 _pendingResult = null;
                 _pendingTicket++;
                 _pendingDone.Reset();
@@ -1023,6 +1026,7 @@ public sealed partial class PollEngine : IDisposable
         string? purpose;
         bool checkSequence;
         bool withoutWakeup;
+        bool badCheckSequence;
         lock (_submitGate)
         {
             command = _pendingCommand;
@@ -1031,6 +1035,7 @@ public sealed partial class PollEngine : IDisposable
             purpose = _pendingPurpose;
             checkSequence = _pendingCheckSequence;
             withoutWakeup = _pendingWithoutWakeup;
+            badCheckSequence = _pendingBadCheckSequence;
             _polling = _pendingAddress;
             _pendingReady = false;
         }
@@ -1052,6 +1057,10 @@ public sealed partial class PollEngine : IDisposable
             _outbound, _polling, command, _pendingData.AsSpan(0, dataLength), checkSequence);
         if (withoutWakeup)
             _outbound[0] = SasSymbol.Data8(_outbound[0].Data);
+
+        // A broken check sequence is the right one with its last byte inverted, so it can never pass by chance.
+        if (badCheckSequence && checkSequence)
+            _outbound[length - 1] = SasSymbol.Data8((byte)~_outbound[length - 1].Data);
 
         long sentAt = _clock.ElapsedTicks;
         Resynchronise();

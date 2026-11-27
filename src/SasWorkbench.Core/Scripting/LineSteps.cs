@@ -28,6 +28,17 @@ public sealed record SendWithoutWakeupStep(SourceLocation Location, SendLongPoll
     public override string Describe() => $"{Poll.Describe()} without wakeup";
 }
 
+/// <summary>
+/// Sends a long poll whose check sequence is broken, which the machine must ignore or refuse (host.bad_crc).
+/// </summary>
+public sealed record SendBadCrcStep(SourceLocation Location, SendLongPollStep Poll) : ScriptStep(Location)
+{
+    /// <summary>The capability of a host that can break a check sequence on purpose.</summary>
+    public const string Capability = "host.bad_crc";
+
+    public override string Describe() => $"{Poll.Describe()} with bad crc";
+}
+
 /// <summary>The host follows the one machine it polls to a new poll address.</summary>
 public sealed record FollowAddressStep(SourceLocation Location, SasAddress Address) : ScriptStep(Location)
 {

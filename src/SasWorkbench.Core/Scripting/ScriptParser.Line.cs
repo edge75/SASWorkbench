@@ -18,6 +18,24 @@ public static partial class ScriptParser
         return new SendWithoutWakeupStep(location, poll);
     }
 
+    /// <summary>True when a send line ends 'with bad crc'.</summary>
+    private static bool EndsWithBadCrc(string[] words) =>
+        words.Length > 5
+        && words[^3].Equals("with", StringComparison.OrdinalIgnoreCase)
+        && words[^2].Equals("bad", StringComparison.OrdinalIgnoreCase)
+        && words[^1].Equals("crc", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Reads 'host send lp &lt;hh&gt; ... with bad crc', only for a poll that carries a check sequence.</summary>
+    private static SendBadCrcStep ReadSendBadCrc(string[] words, SourceLocation location)
+    {
+        SendLongPollStep poll = ReadSend(words[..^3], location);
+        if (poll.To is not null || poll.When is not null)
+            throw new ScriptParseException(location, "a poll with a broken check sequence goes to the machine itself, unconditionally");
+        if (poll.Data.Length == 0 && !Protocol.SasCommandFraming.RequiresCheckSequence(poll.Command))
+            throw new ScriptParseException(location, $"long poll ${poll.Command:X2} carries no check sequence to break");
+        return new SendBadCrcStep(location, poll);
+    }
+
     /// <summary>Reads 'host poll address &lt;aa&gt;'.</summary>
     private static FollowAddressStep ReadFollowAddress(string[] words, SourceLocation location)
     {

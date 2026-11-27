@@ -751,7 +751,7 @@ public sealed partial class FakeEgm
 
             if (redeemed)
             {
-                TakeTicket(_redemption.AmountCents, code);
+                TakeTicket(_redemption.AmountCents, code, RestrictedTerms(command));
                 _redemption.Settle(code);
             }
             else if (code == SasTicketTransferCode.TTC_REQUEST_FOR_CURRENT_TICKET_STATUS)
@@ -801,7 +801,7 @@ public sealed partial class FakeEgm
     /// be: a restricted ticket redeemed as cashable is money the host has agreed to pay in cash,
     /// and the machine counts what it was told.
     /// </remarks>
-    private void TakeTicket(long cents, SasTicketTransferCode code)
+    private void TakeTicket(long cents, SasTicketTransferCode code, (ushort Pool, byte[] Expiration) terms)
     {
         // Each kind moves its own family, as the platform's meter table reads them (QSP SasNetwork_Meters.hpp:483 to :499, :658 to :682, :740 to :757, :879 to :914).
         long credits = cents / AccountingCents;
@@ -843,6 +843,13 @@ public sealed partial class FakeEgm
         // inherent rather than a defect: a ticket carries any number of cents, and section 16's
         // divisibility rule constrains only the denominations a player may choose.
         Meters.Increment(SasMeterCode.TotalTicketIn_Crd, credits);
+
+        // A restricted ticket lands as restricted credit with the terms the poll gave (QSP SasNetwork_Ticket.hpp:598).
+        if (code == SasTicketTransferCode.TTC_VALID_RESTRICTED_PROMOTIONAL_TICKET)
+        {
+            _ = AddRestricted(cents, terms.Pool, terms.Expiration);
+            return;
+        }
 
         Meters.SetCurrentCredits(
             Meters.Read(SasMeterCode.CurrentCredits) + (cents / AccountingCents));
