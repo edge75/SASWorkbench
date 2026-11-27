@@ -549,6 +549,65 @@ public class FakeEgmTests
     }
 
     /// <summary>
+    /// A wallet crowded with tickets carrying the same number, as a shared folder collects over
+    /// many runs. The machine used to try one name after another until it found a free one, and
+    /// on a folder like this that held its reply up for over a second while polls went unanswered.
+    /// The ticket must get a name of its own straight away: the number first, then a unique part,
+    /// not the next free suffix after thousands of tries, and nothing already there is touched.
+    /// </summary>
+    [Fact]
+    public void A_ticket_filed_among_many_old_ones_takes_a_unique_name_without_probing()
+    {
+        using var wallet = new Wallet();
+        Directory.CreateDirectory(wallet.Path);
+        const int Old = 3000;
+        File.WriteAllText(Path.Combine(wallet.Path, "000001.json"), "old");
+        for (int i = 1; i < Old; i++)
+            File.WriteAllText(Path.Combine(wallet.Path, $"000001-{i}.json"), "old");
+
+        using var rig = new Rig();
+        rig.Machine.InsertBill(2000);
+        Ticket? printed = rig.Machine.Cashout(wallet.Path);
+        Assert.NotNull(printed);
+        Assert.Equal(1u, printed.TicketNumber);
+
+        string[] files = Directory.GetFiles(wallet.Path);
+        Assert.Equal(Old + 1, files.Length);
+
+        string filed = Assert.Single(files, f => File.ReadAllText(f) != "old");
+        Assert.Matches(@"^000001-[0-9a-f]{32}\.json$", Path.GetFileName(filed));
+        Assert.Equal(2000, TicketFile.Read(filed).AmountCents);
+    }
+
+    /// <summary>
+    /// Two machines - every test builds a new one - both number their first ticket 1. Filed in one
+    /// folder, the second must not overwrite the first.
+    /// </summary>
+    [Fact]
+    public void Two_tickets_with_the_same_number_are_both_kept()
+    {
+        using var wallet = new Wallet();
+
+        using (var first = new Rig())
+        {
+            first.Machine.InsertBill(2000);
+            Assert.NotNull(first.Machine.Cashout(wallet.Path));
+        }
+
+        using (var second = new Rig())
+        {
+            second.Machine.InsertBill(1000);
+            Assert.NotNull(second.Machine.Cashout(wallet.Path));
+        }
+
+        long[] amounts = Directory.GetFiles(wallet.Path)
+            .Select(f => TicketFile.Read(f).AmountCents)
+            .Order()
+            .ToArray();
+        Assert.Equal([1000L, 2000L], amounts);
+    }
+
+    /// <summary>
     /// The reply is about the most recent ticket, which is the write index the library's own
     /// handler reads at. A machine that answered with the first would pass a test that only ever
     /// cashed out once.
