@@ -35,9 +35,10 @@ public sealed partial class FakeEgmValidationTests : IDisposable
 
     private PollEngine Host => _host!;
 
-    private void Start(SasCashoutValidation style)
+    private void Start(SasCashoutValidation style, Func<ISasTransport, ISasTransport>? line = null)
     {
-        _machine = new FakeEgm(_bus.Egm, new FakeEgmOptions { CashoutValidation = style });
+        ISasTransport egm = line is null ? _bus.Egm : line(_bus.Egm);
+        _machine = new FakeEgm(egm, new FakeEgmOptions { CashoutValidation = style });
         _machine.Start();
         _host = new PollEngine(_bus.Host, new PollEngineOptions
         {
@@ -102,6 +103,25 @@ public sealed partial class FakeEgmValidationTests : IDisposable
         Assert.True(result.Answered, $"the general poll went unanswered: {result.Outcome}");
         return result.Code;
     }
+
+    /// <summary>
+    /// Waits for work the machine does after its reply has gone out, as the library hands the print or
+    /// the hand pay to the platform only once $58 is answered.
+    /// </summary>
+    private static bool Eventually(Func<bool> condition)
+    {
+        DateTime until = DateTime.UtcNow.AddSeconds(5);
+        while (!condition())
+        {
+            if (DateTime.UtcNow >= until)
+                return false;
+            Thread.Sleep(10);
+        }
+
+        return true;
+    }
+
+    private int WalletFiles() => Directory.Exists(_wallet) ? Directory.GetFiles(_wallet).Length : 0;
 
     private List<byte> Drain()
     {
@@ -322,7 +342,7 @@ public sealed partial class FakeEgmValidationTests : IDisposable
         SasDecoded answered = Ask(NumberLayout, [0x07, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78]);
         Assert.Equal(0x00, answered.Number("status"));
 
-        Assert.Single(Directory.GetFiles(_wallet));
+        Assert.True(Eventually(() => WalletFiles() == 1), "the granted ticket was never printed");
         Assert.Contains(CashoutTicketPrinted, Drain());
         SasDecoded record = ReadAndAcknowledge();
         Assert.Equal(12345678, record.Number("validation_number"));
@@ -339,7 +359,7 @@ public sealed partial class FakeEgmValidationTests : IDisposable
         SasDecoded answered = Ask(NumberLayout, [0x07, 0x00, 0x00, 0x00, 0x00, 0x12, 0x34, 0x56, 0x78]);
 
         Assert.Equal(0x81, answered.Number("status"));
-        Assert.True(Machine.HandpayPending);
+        Assert.True(Eventually(() => Machine.HandpayPending), "the denied cash-out was never paid by hand");
         Assert.Equal(0, Machine.UnreadValidationRecords);
     }
 
@@ -360,7 +380,56 @@ public sealed partial class FakeEgmValidationTests : IDisposable
         Ask(PendingLayout, []);
 
         Assert.Equal(0x00, Ask(NumberLayout, [0x00, 0, 0, 0, 0, 0, 0, 0, 1]).Number("status"));
-        Assert.True(Machine.HandpayPending);
+        Assert.True(Eventually(() => Machine.HandpayPending), "the denied cash-out was never paid by hand");
         Assert.False(Directory.Exists(_wallet) && Directory.GetFiles(_wallet).Length > 0);
+    }
+
+    [Fact]
+    public void The_validation_number_is_answered_before_the_ticket_prints()
+    {
+        // lp58 sends its reply and only then notifies the platform, which prints (lp.cpp:3629). A
+        // machine that printed first answered in about 150 ms, late for a host waiting 200 ms under
+        // load. The line records how many tickets the wallet held as the reply was written.
+        ReplyWatch? watch = null;
+        Start(SasCashoutValidation.System, inner => watch = new ReplyWatch(inner, 0x58, WalletFiles));
+
+        Assert.Null(CashOut());
+        Host.Synchronise();
+        Assert.Equal(SystemValidationRequest, Poll());
+        Host.Synchronise();
+        Ask(PendingLayout, []);
+
+        Assert.Equal(0x00, Ask(NumberLayout, [0x07, 0, 0, 0, 0, 0x12, 0x34, 0x56, 0x78]).Number("status"));
+
+        Assert.Equal(0, watch!.SeenAtReply);
+        Assert.True(Eventually(() => WalletFiles() == 1), "the granted ticket was never printed");
+    }
+
+    /// <summary>Notes what <paramref name="probe"/> reads at the moment the machine writes its reply to <paramref name="command"/>.</summary>
+    private sealed class ReplyWatch(ISasTransport inner, byte command, Func<int> probe) : ISasTransport
+    {
+        public int? SeenAtReply { get; private set; }
+
+        public string Description => inner.Description;
+
+        public TransportCapabilities Capabilities => inner.Capabilities;
+
+        public bool IsConnected => inner.IsConnected;
+
+        public void Open() => inner.Open();
+
+        public void Close() => inner.Close();
+
+        public void Write(ReadOnlySpan<SasSymbol> symbols)
+        {
+            if (symbols.Length > 2 && symbols[1].Data == command && SeenAtReply is null)
+                SeenAtReply = probe();
+
+            inner.Write(symbols);
+        }
+
+        public int Read(Span<SasSymbol> destination, TimeSpan timeout) => inner.Read(destination, timeout);
+
+        public void Dispose() => inner.Dispose();
     }
 }

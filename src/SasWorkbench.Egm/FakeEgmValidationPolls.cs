@@ -143,7 +143,7 @@ public sealed partial class FakeEgm
         byte status;
         bool granted;
         (long Cents, long Credits, string Wallet)? toPrint = null;
-        bool deniedPending = false;
+        long deniedCents = 0;
         lock (_gate)
         {
             CashoutValidationState state = _cashoutState;
@@ -170,30 +170,45 @@ public sealed partial class FakeEgm
                 _cashoutState = CashoutValidationState.Lp58Received;
                 CancelCashout();
                 _awaitingValidationNumber = false;
-                deniedPending = _awaitingPrint is not null;
+                deniedCents = _awaitingPrint?.Cents ?? 0;
+                _awaitingPrint = null;
             }
         }
 
         Withdraw((byte)SasExceptionCode.SystemValidationRequest);
 
-        if (toPrint is { } print)
-            PrintValidated(print.Wallet, print.Cents, print.Credits, number, systemId);
-
-        if (deniedPending)
-        {
-            long cents;
-            lock (_gate)
-            {
-                cents = _awaitingPrint?.Cents ?? 0;
-                _awaitingPrint = null;
-            }
-
-            // A denied validation is paid by hand, never printed (QSP SasNetwork_Ticket.hpp:1093).
-            if (cents > 0)
-                RaiseCashoutHandpay(cents);
-        }
+        // The library answers first and only then hands the print or the hand pay to the platform (lp.cpp:3629).
+        lock (_gate)
+            _afterValidationNumber = new ValidationNumberFollowUp(toPrint, number, systemId, deniedCents);
 
         return new Dictionary<string, object> { ["status"] = status };
+    }
+
+    /// <summary>What a $58 leaves for the platform once its reply has gone out.</summary>
+    private sealed record ValidationNumberFollowUp(
+        (long Cents, long Credits, string Wallet)? Print, ulong Number, byte SystemId, long DeniedCents);
+
+    private ValidationNumberFollowUp? _afterValidationNumber;
+
+    /// <summary>Prints the granted ticket, or pays a denied one by hand, after the $58 reply (QSP SasNetwork_Ticket.hpp:1093).</summary>
+    private void FinishValidationNumber()
+    {
+        ValidationNumberFollowUp? work;
+        lock (_gate)
+        {
+            work = _afterValidationNumber;
+            _afterValidationNumber = null;
+        }
+
+        if (work is null)
+            return;
+
+        if (work.Print is { } print)
+            PrintValidated(print.Wallet, print.Cents, print.Credits, work.Number, work.SystemId);
+
+        // A denied validation is paid by hand, never printed.
+        if (work.DeniedCents > 0)
+            RaiseCashoutHandpay(work.DeniedCents);
     }
 
     /// <summary>internalResolveValidationNumberStatus (libsas_internal.cpp:2501).</summary>
