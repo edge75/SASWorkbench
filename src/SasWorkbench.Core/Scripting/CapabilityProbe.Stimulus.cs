@@ -144,6 +144,9 @@ public static partial class CapabilityProbe
                 [MachineDevicesDeclaration.PartialPayCapability] = "yes",
                 [MachineDevicesDeclaration.BetButtonCapability] = "yes",
 
+                // A person at a cabinet that plays tournaments turns them on in its menu (D60).
+                [MachineDevicesDeclaration.TournamentCapability] = "yes",
+
                 // A person at the cabinet works the transfer menu and the bonusing switch, where the machine has them.
                 ["stimulus.aft_registration"] = "yes",
                 ["stimulus.aft_bonus"] = "yes",

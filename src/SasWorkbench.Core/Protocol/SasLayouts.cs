@@ -800,6 +800,7 @@ public static partial class SasLayouts
             RegisterGamingMachine(),
             TransferFunds(),
             .. Miscellaneous(),
+            .. Tournament(),
             new()
             {
                 Command = 0x7B,

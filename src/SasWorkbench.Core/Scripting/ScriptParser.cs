@@ -193,7 +193,7 @@ public static partial class ScriptParser
             return;
         }
 
-        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet")
+        if (words[1].ToLowerInvariant() is "coin" or "hopper" or "reels" or "partial" or "bet" or "tournament")
         {
             test.Devices = ReadMachineDevices(test.Devices, words, location);
             return;
@@ -306,7 +306,7 @@ public static partial class ScriptParser
         + "machine progressive sas group <g> levels <list>|non_sas levels <list>, "
         + "machine component authentication on, machine multiplied jackpot on, "
         + "machine handpay legacy|validation on, machine games <cents>c [<cents>c ...], "
-        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, or "
+        + "machine coin acceptor on|external, machine hopper on, machine reels on, machine partial pay on, machine bet button on, machine tournament on, or "
         + "machine channel <1-4> address <hh>|addresses <round> [owns <category> ...]";
 
     /// <summary>

@@ -93,6 +93,7 @@ public sealed partial class FakeEgm
         0x90 => LegacyBonusWin(),
         0x83 => CumulativeProgressiveWins(layout, request),
         0x9A => LegacyBonusMeters(layout, request),
+        >= 0x95 and <= 0x99 => TournamentMeters(layout, request),
         0x7B => ExtendedValidationStatus(request),
 
         0x18 => GamesSince(),
@@ -640,7 +641,7 @@ public sealed partial class FakeEgm
         {
             ["game_number"] = game,
             // Bit 1 is AFT bonus awards (AFT_BONUS_AWARDS_BIT) and bit 2 legacy bonus awards, each set while the operator has it on.
-            ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits() | MultipliedJackpotFeatureBits()),
+            ["feature_codes_1"] = (byte)((_aftOn && AftBonusOn ? 0x02 : 0x00) | LegacyBonusFeatureBits() | MultipliedJackpotFeatureBits() | TournamentFeatureBits()),
             ["validation_style"] = (byte)validation,
             // QSP sets the extensions bit for the enhanced styles (SasNetwork.cpp:290).
             ["validation_extensions"] = (byte)(redemption ? 1 : 0),

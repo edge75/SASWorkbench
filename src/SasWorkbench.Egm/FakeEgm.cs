@@ -764,6 +764,11 @@ public sealed partial class FakeEgm : IDisposable
         // A wager and a win are both numbers of game credits; the meters they feed are in
         // accounting units, the same size only when a game credit is worth one accounting unit.
         long wagered = games * betCredits * GameCreditCents / AccountingCents;
+
+        // A declared tournament session's own credits pay its games, and no accounting meter moves (D60).
+        if (StartTournamentRoundsLocked(games, wagered))
+            return;
+
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
         if (credits < wagered)
             throw new InvalidOperationException(
@@ -818,6 +823,15 @@ public sealed partial class FakeEgm : IDisposable
     private void EndRound(int games, long winCredits, long progressiveCents)
     {
         long won = WonUnits(winCredits);
+        if (EndTournamentRoundLocked(won))
+        {
+            RaiseEvent((byte)SasExceptionCode.GameEnded, BcdBytes(winCredits * GameCreditCents, 4));
+            _gameInProgress = false;
+            StartGameDelay();
+            ReleaseLockPendingOnGameEnd();
+            return;
+        }
+
         long credits = Meters.Read(SasMeterCode.CurrentCredits);
 
         // A win past the credit limit or above the jackpot limit goes to an attendant (QSP CombinedAwardIsHandpaid).
@@ -1340,6 +1354,17 @@ public sealed partial class FakeEgm : IDisposable
         // The legacy bonus polls, answered or silenced as the library's own handlers decide.
         if (AnswerLegacyBonus(link, command, frame))
             return;
+
+        // A declared tournament session's start and end, silenced as the library's handler decides (D60).
+        if (AnswerTournament(link, command, frame))
+            return;
+
+        // The remote hand pay reset is not modelled yet: unanswered and counted, as any command this machine lacks.
+        if (command == (byte)SasLongPollCode.LP_REMOTEHANDPAYRESET)
+        {
+            Ignore(link, command);
+            return;
+        }
 
         if (command == (byte)SasLongPollCode.LP_SENDAUTHENTICATION)
         {
