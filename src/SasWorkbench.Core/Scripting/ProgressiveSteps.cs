@@ -11,10 +11,16 @@ public sealed record ProgressiveWinStep(SourceLocation Location, IReadOnlyList<i
     /// <summary>What the same game wins from its paytable, in game credits.</summary>
     public long WinCredits { get; init; }
 
+    /// <summary>True when the script wrote a bet, so a machine that cannot wager every bet must check it.</summary>
+    public bool BetStated { get; init; }
+
+    /// <summary>True when the script wrote a win, zero included, so a machine whose paytable part is its own must check it.</summary>
+    public bool WinStated { get; init; }
+
     public override string RequiredCapability => "stimulus.progressive";
 
     public override string Describe() =>
-        $"progressive win level={string.Join(',', Levels)} bet={BetCredits}" + (WinCredits > 0 ? $" win={WinCredits}" : "");
+        $"progressive win level={string.Join(',', Levels)} bet={BetCredits}" + (WinStated || WinCredits > 0 ? $" win={WinCredits}" : "");
 
     public override string? Guidance =>
         $"Play the progressive game at {BetCredits} credit(s) a game until one game wins level(s) {string.Join(", ", Levels)}"

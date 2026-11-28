@@ -40,6 +40,10 @@ public sealed partial class QpmStimulusBackend
                 Play(play, RequireHost(host, play));
                 return true;
 
+            case ProgressiveWinStep win:
+                WinProgressive(win);
+                return true;
+
             case StartGameStep start:
                 StartGame(start, RequireHost(host, start));
                 return true;
@@ -105,7 +109,11 @@ public sealed partial class QpmStimulusBackend
                 Machine.PressButton(bet);
 
             long mark = view.Mark();
-            Machine.PressButton(start);
+            if (play.WinStated)
+                DrawScripted(DemoOutcomes.Lose, start, $"{play.Describe()}, game {game}");
+            else
+                Machine.PressButton(start);
+
             if (view.ExceptionAfter(GameEnded, mark, GameEndWithin) is null)
             {
                 throw new StimulusUnavailableException(

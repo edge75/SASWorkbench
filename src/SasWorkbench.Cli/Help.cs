@@ -66,6 +66,10 @@ internal static class Help
               --egm-bet-credits <n>   credits one bet multiplier wagers on the machine's first
                                       enabled game; lets a case play, hold a game and choose
                                       that game, never with a stated win  (--stimulus qpm)
+              --egm-outcomes <dir>    where the machine's scripted-outcomes build takes the
+                                      outcomes a case asks for: a progressive win or a losing
+                                      game  (default: C:\ProgramData\saswb\outcomes;
+                                      --stimulus qpm)
               --report <formats>      {Reports.Names}  (comma-separated)
               --out <directory>       where to write the reports --report asks for  (default:
                                       runs/<timestamp>)

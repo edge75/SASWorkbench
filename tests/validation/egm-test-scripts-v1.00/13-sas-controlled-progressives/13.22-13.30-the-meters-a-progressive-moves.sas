@@ -120,7 +120,8 @@ test "13.24 a progressive is not a paytable win" {
   host send lp AF data 0400001C00
   host expect field meters[0].value == saved.before
 
-  egm progressive win level=1
+  # The meter stays put only if the winning game pays no line, so the step says so.
+  egm progressive win level=1 win=0
   host expect exception progressive_win within 10s
   host send lp 6F data 0400001C00
   host expect field meters[0].value == saved.before
@@ -186,7 +187,8 @@ test "13.26 a progressive hand pay is not an attendant-paid paytable win" {
   host send lp AF data 0400001F00
   host expect field meters[0].value == saved.before
 
-  egm progressive win level=1
+  # The meter stays put only if the winning game pays no line, so the step says so.
+  egm progressive win level=1 win=0
   host expect exception handpay_is_pending within 10s
   host send lp 1B
   egm handpay reset

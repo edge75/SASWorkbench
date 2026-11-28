@@ -477,7 +477,7 @@ public sealed record PlayGamesStep(
     /// <summary>True when the script wrote a win, zero included, so a machine that decides its own outcome must refuse it.</summary>
     public bool WinStated { get; init; }
 
-    public override string Describe() => WinCredits > 0
+    public override string Describe() => WinStated || WinCredits > 0
         ? $"play games={Games} bet={BetCredits} win={WinCredits}"
         : $"play games={Games} bet={BetCredits}";
 }

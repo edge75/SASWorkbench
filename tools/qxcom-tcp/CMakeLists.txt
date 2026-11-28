@@ -17,4 +17,8 @@ if(QXCOM_TCP_BUILD_TESTS)
 	add_executable(qxcom_tcp_roundtrip ${CMAKE_CURRENT_LIST_DIR}/test/link_roundtrip.cpp)
 	target_link_libraries(qxcom_tcp_roundtrip PRIVATE qxcom_static)
 	set_target_properties(qxcom_tcp_roundtrip PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
+
+	#	The scripted-outcome queue's rules, which need no demo (D64).
+	add_executable(saswb_outcome_queue_check ${CMAKE_CURRENT_LIST_DIR}/test/outcome_queue_check.cpp)
+	set_target_properties(saswb_outcome_queue_check PROPERTIES CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON)
 endif()

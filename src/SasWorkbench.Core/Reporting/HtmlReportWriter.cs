@@ -87,6 +87,9 @@ public sealed class HtmlReportWriter : IReportWriter
             if (provenance.Round is not null)
                 builder.AppendLine($"<p class=\"channels\">polling {Text(provenance.Round)}</p>");
 
+            if (provenance.MachineBuild is not null)
+                builder.AppendLine($"<p class=\"caveat\">machine: {Text(provenance.MachineBuild)}</p>");
+
             if (provenance.ChannelRefusal is not null)
             {
                 builder.AppendLine(
