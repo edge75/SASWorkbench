@@ -293,7 +293,7 @@ public class QpmDemoStimulusTests
     }
 
     /// <summary>A machine, its configuration and a backend, cleaned up together.</summary>
-    private sealed class Rig : IDisposable
+    internal sealed class Rig : IDisposable
     {
         private Rig(TemporaryDirectory directory, FakeGamingMachine egm, QpmStimulusBackend backend)
         {
@@ -308,13 +308,14 @@ public class QpmDemoStimulusTests
 
         public QpmStimulusBackend Backend { get; }
 
-        public static Rig Start(long? betCredits = null)
+        public static Rig Start(long? betCredits = null, ScriptedOutcomes? outcomes = null)
         {
             var directory = new TemporaryDirectory();
             var egm = FakeGamingMachine.Start(directory.Path);
             WriteConfiguration(directory.Path);
             var backend = new QpmStimulusBackend(
-                QpmMachine.Attach(egm.Path, directory.Path, FakeGamingMachine.Timings), betCredits: betCredits);
+                QpmMachine.Attach(egm.Path, directory.Path, FakeGamingMachine.Timings), betCredits: betCredits,
+                outcomes: outcomes ?? new ScriptedOutcomes(System.IO.Path.Combine(directory.Path, "outcomes")));
             return new Rig(directory, egm, backend);
         }
 
@@ -346,7 +347,7 @@ public class QpmDemoStimulusTests
     }
 
     /// <summary>A host that hears whichever exceptions it is told to, and answers long polls from a table.</summary>
-    private sealed class FakeHost : IHostView
+    internal sealed class FakeHost : IHostView
     {
         private long _sequence;
 
