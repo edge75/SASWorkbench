@@ -25,7 +25,7 @@ never failed against a machine nobody drove.
 | `egm menu attendant enter\|leave` | turns or returns the `audit` keyswitch (DIN 5), **no door opened** | the case's own `$82`/`$83` | QSP `SasNetwork_Meters.hpp:171` (entry reported when the page is drawn), `SasNetwork_Conditions.hpp:943`, `:959`; `game_configuration.json` DIN 5 |
 | `egm menu operator ...` | refused | — | `$84`/`$85` come only from `qspActivateOperatorMode` or the diagnostic pages (QSP `libqsp.cpp:2173`, `SasNetwork.cpp:1714`), both touch |
 | `egm press bet` | refused | — | the bet buttons set a multiplier and commit nothing until play (`SlotGame_01.cpp:344-351`); `$89` is written at game start (QSP `SasNetwork.cpp:1359`) |
-| `egm note fault jam\|cleared` | sets or clears bit 9 of the acceptor mask | the case's own `$29` | QSP `SasNetwork_Conditions.hpp` `eBnaJam` → `BillJam`; `QpmLayout.BnaJamBit` |
+| `egm note fault jam\|cleared` | `jam` sets bit 9 of the acceptor mask; `cleared` drops it, then turns the Reset/JKey keyswitch (refused before the case when the profile has none) | the case's own `$29` | QSP `SasNetwork_Conditions.hpp` `eBnaJam` → `BillJam`; the jam is cleared only by the keyswitch (`BillValidatorHandler.cpp:1180`, `ConditionHandler.cpp:839`) |
 | `egm note fault <other>`, `egm printer fault ...` | refused | — | disconnection (bit 8) is not verified on the demo; printer bits are only the simulator window's labels (`qpm_simulator/src/Main.cpp:57`) and the measured build prints through this project's shim |
 | `egm play games=N [bet=B]` | presses the bet button whose multiplier wagers B, then play, and waits for `$7F` per game | `$7F` heard after the press (not consumed) | `SlotGame_01.cpp:340-351`, `:433`, `:845`; `WheelGame.cpp:276-282` |
 | `egm play ... win=W` (zero too) | refused | — | the outcome is the demo's RNG (`Math_01.cpp:151`, `WheelGame.cpp:363`) |
@@ -123,3 +123,15 @@ configure trust lines, golden layout-19 memory, `qpm_storage.bin` `6183DE07`.
   therefore fails 4.5, 4.52, 4.54, 4.8 and 4.11 after it; turning the keyswitch made 4.52 and 4.54 pass.
 * Chapter 4 on this build: 12 pass, 5 fail (all from the jam above), 43 skip; 4.4 and 4.14 restart the
   demo and pass.
+
+## Retest after the jam and log-line fixes, 2026-11-28
+
+Same pins and memory (golden layout 19, `qpm_storage.bin` `6183DE07`), sasctl built from the fix branch, plain build.
+
+* **Chapter 4: 17 pass, 0 fail, 43 skip** (was 12, 5, 43). 4.41 clears the jam with the keyswitch, and 4.5,
+  4.52, 4.54, 4.8 and 4.11 after it now pass.
+* **F10 is now seen.** 16.15 drew `$6C` as a real-time event after the posted key. It still fails at its last
+  step, `$0E 00`, answered with a queued `$82` or `$83`: the demo reports about 25 start-up exceptions, `$82`
+  and `$83` among them, and `forget exceptions within 2s` does not wait them out. Starting the demo 40 s
+  earlier did not help, because the demo holds them until the host links. A scratch copy with `host warm up
+  20s` after the forget passed. The case file is unchanged.

@@ -13,6 +13,7 @@ public class QpmDemoStimulusTests
     private const uint AuditLine = 1u << 5;
     private const uint PlayLine = 1u << 4;
     private const uint BetX2Line = 1u << 8;
+    private const uint ResetLine = 1u << 9;
 
     [Fact]
     public void TheAttendantMenuIsTheAuditKeyTurnedAndReturnedWithNoDoorOpened()
@@ -62,6 +63,35 @@ public class QpmDemoStimulusTests
 
         rig.Backend.Apply(new PeripheralFaultStep(SourceLocation.None, PeripheralDevice.Note, PeripheralFaultStep.Cleared));
         Assert.Equal(0u, rig.Egm.Mask(QpmLayout.Bna));
+    }
+
+    // QSP adds the jam condition while the acceptor reports it and removes it only when the attendant turns the
+    // Reset/JKey keyswitch, so a clear that only drops the bit leaves the machine locked up. The bit must be gone
+    // before the turn, or the next status report raises the jam again.
+    [Fact]
+    public void ClearingAJamDropsTheBitThenTurnsTheResetKeyswitch()
+    {
+        using var rig = Rig.Start();
+        rig.Backend.Apply(new PeripheralFaultStep(SourceLocation.None, PeripheralDevice.Note, "jam"));
+        int before = rig.Egm.InputsSeen.Count;
+
+        rig.Backend.Apply(new PeripheralFaultStep(SourceLocation.None, PeripheralDevice.Note, PeripheralFaultStep.Cleared));
+
+        Assert.Equal(0u, rig.Egm.Mask(QpmLayout.Bna));
+        Assert.Contains(rig.Egm.InputsSeen.Skip(before), inputs => (inputs & ResetLine) != 0);
+        Assert.Equal(0u, rig.Egm.Mask(QpmLayout.Dio));
+    }
+
+    [Fact]
+    public void ClearingAJamOnAMachineWithNoResetKeyswitchIsRefusedBeforeTheCaseAndWhenTried()
+    {
+        using var rig = Rig.Start(resetKey: false);
+        var clear = new PeripheralFaultStep(SourceLocation.None, PeripheralDevice.Note, PeripheralFaultStep.Cleared);
+
+        Assert.Contains("reset keyswitch", rig.Backend.Refusal(clear), StringComparison.Ordinal);
+        Assert.Null(rig.Backend.Refusal(new PeripheralFaultStep(SourceLocation.None, PeripheralDevice.Note, "jam")));
+        StimulusUnavailableException refused = Assert.Throws<StimulusUnavailableException>(() => rig.Backend.Apply(clear));
+        Assert.Contains("reset keyswitch", refused.Reason, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -308,21 +338,24 @@ public class QpmDemoStimulusTests
 
         public QpmStimulusBackend Backend { get; }
 
-        public static Rig Start(long? betCredits = null, ScriptedOutcomes? outcomes = null)
+        public static Rig Start(long? betCredits = null, ScriptedOutcomes? outcomes = null, bool resetKey = true)
         {
             var directory = new TemporaryDirectory();
             var egm = FakeGamingMachine.Start(directory.Path);
-            WriteConfiguration(directory.Path);
+            WriteConfiguration(directory.Path, resetKey);
             var backend = new QpmStimulusBackend(
                 QpmMachine.Attach(egm.Path, directory.Path, FakeGamingMachine.Timings), betCredits: betCredits,
                 outcomes: outcomes ?? new ScriptedOutcomes(System.IO.Path.Combine(directory.Path, "outcomes")));
             return new Rig(directory, egm, backend);
         }
 
-        public static void WriteConfiguration(string directory)
+        public static void WriteConfiguration(string directory, bool resetKey = true)
         {
             QpmMachineTests.WriteConfiguration(directory);
-            File.WriteAllText(Path.Combine(directory, "game_configuration.json"), """
+            string reset = resetKey
+                ? """, { "dio_line": 9, "button_type": "keyswitch", "data": 0, "label": "Reset/JKey" }"""
+                : "";
+            File.WriteAllText(Path.Combine(directory, "game_configuration.json"), $$"""
                 {
                   "buttons": {
                     "digital_inputs": [
@@ -331,7 +364,7 @@ public class QpmDemoStimulusTests
                       { "dio_line": 5, "button_type": "keyswitch", "data": 0, "label": "Audit" },
                       { "dio_line": 6, "button_type": "game_menu", "data": 0, "label": "Game Menu" },
                       { "dio_line": 7, "button_type": "bet",       "data": 1, "label": "Bet x1" },
-                      { "dio_line": 8, "button_type": "bet",       "data": 2, "label": "Bet x2" }
+                      { "dio_line": 8, "button_type": "bet",       "data": 2, "label": "Bet x2" }{{reset}}
                     ]
                   }
                 }

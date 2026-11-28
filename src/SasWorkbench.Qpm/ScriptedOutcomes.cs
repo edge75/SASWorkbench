@@ -137,7 +137,7 @@ public sealed class ScriptedOutcomes(string? directory = null)
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            return reader.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            return [.. LogLines.Complete(reader.ReadToEnd()).Select(l => l.Trim()).Where(l => l.Length > 0)];
         }
         catch (Exception problem) when (problem is IOException or UnauthorizedAccessException)
         {

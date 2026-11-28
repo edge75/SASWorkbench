@@ -32,8 +32,12 @@ public sealed partial class QpmStimulusBackend
                 Machine.SetButton(AuditKey(Machine.Profile)!, menu.Enter);
                 return true;
 
-            case PeripheralFaultStep fault:
-                Machine.SetNoteAcceptorJammed(fault.Fault != PeripheralFaultStep.Cleared);
+            case PeripheralFaultStep { Fault: PeripheralFaultStep.Cleared }:
+                ClearJam();
+                return true;
+
+            case PeripheralFaultStep:
+                Machine.SetNoteAcceptorJammed(true);
                 return true;
 
             case PlayGamesStep play:
@@ -97,6 +101,18 @@ public sealed partial class QpmStimulusBackend
                 values["stimulus.select_game"] = "yes";
         }
     }
+
+    // The platform never clears a jam by itself: the attendant's reset keyswitch does, once the acceptor stops reporting it.
+    private void ClearJam()
+    {
+        EgmButton key = ResetKey(Machine.Profile) ?? throw new StimulusUnavailableException(WhyNoJamReset(Machine.Profile));
+        Machine.SetNoteAcceptorJammed(false);
+        Machine.PressButton(key);
+    }
+
+    private static string WhyNoJamReset(EgmHardwareProfile profile) =>
+        "the machine keeps a note jam until an attendant turns the reset keyswitch, and it declares none. It has: "
+        + string.Join(", ", profile.ButtonNames);
 
     private void Play(PlayGamesStep play, IHostView view)
     {

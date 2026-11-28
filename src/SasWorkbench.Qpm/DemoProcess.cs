@@ -101,7 +101,7 @@ public sealed class DemoProcess
         return $"process {stopped} stopped and {started.Id} started from '{ExecutablePath}'";
     }
 
-    /// <summary>How many lines the demo's log holds now, so a later read can look only at what came after.</summary>
+    /// <summary>How many complete lines the demo's log holds now, so a later read can look only at what came after.</summary>
     public int LogLineCount() => ReadLog().Length;
 
     /// <summary>Waits for a line after the first <paramref name="skip"/> that contains the text; null when none came.</summary>
@@ -141,7 +141,7 @@ public sealed class DemoProcess
         {
             using var stream = new FileStream(LogPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var reader = new StreamReader(stream, Encoding.UTF8);
-            return reader.ReadToEnd().Split('\n');
+            return LogLines.Complete(reader.ReadToEnd());
         }
         catch (Exception problem) when (problem is IOException or UnauthorizedAccessException)
         {
