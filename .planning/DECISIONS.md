@@ -1160,3 +1160,27 @@ open to review like any other.
   and the manual prompt are unchanged.
 
 The design note is `docs/M9-demo-stimuli.md`.
+
+## D64 — The real demo takes outcomes only as a scripted dev build, says so on every result, and refuses everywhere else
+
+Approved by the user on 2026-11-26 ("generatore casuale guidato dallo script per la 5, come gruppo 20").
+
+* **The demo's generator is substituted at configure time, never edited**: a second preset, `SasWorkbenchM0-Scripted`, in
+  the demo's gitignored `CMakeUserPresets.json`, swaps its `Rng.cpp` for ours, which includes theirs whole and keeps its
+  seeding, background cycling and NVRAM state. The plain `SasWorkbenchM0` preset is unchanged and remains the measured build.
+* **The queue holds values of the demo's own draws, one outcome per game, with one alternative per kind of game.** The
+  first draw's range picks the alternative; any value out of range, unexpected draw or unknown range is refused and
+  logged, never clamped, and that draw is the demo's own. Every game draw is logged, forced or not.
+* **A step is confirmed by the build's log, not by the queue**; a progressive win does not wait for the game end, because
+  a jackpot may lock the machine up first. An outcome no game draws is withdrawn so a later game cannot draw it.
+* **Only exact outcomes are offered**: progressive levels 1, 1+2 and 2 (Grand, Grand and Major, Major) and a losing game.
+  A stated paytable win beside a progressive is refused, because the slot's five jackpot symbols always pay their line;
+  four cases whose assertions need a game that pays no line now say `win=0`. A winning play (`win=<n>`) is refused: no
+  stop solver is kept here, and the bets the GSA scripts pair it with cannot be placed on the demo anyway (D63).
+* **Honest labelling**: a live marker tied to the build's process names the machine `scripted outcomes (dev build)` in
+  every result's provenance. Without it, on the plain build or after the scripted one exits, every scripted step is
+  skipped before the case starts, naming the missing marker.
+* **Not offered**: the jackpot hand pay (the limit is set only by touch in the audit pages), and the non-SAS
+  `machine.progressives` (whether a level is stand-alone is in the demo's NVRAM option, which nothing here reads).
+
+The design note is `docs/M9-demo-scripted-outcomes.md`.
