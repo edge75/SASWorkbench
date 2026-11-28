@@ -288,3 +288,4 @@ PHASE:M9 WAVE:software-machine-tournaments STATUS:complete TS:2026-11-27T02:10:0
 PHASE:M9 WAVE:software-machine-tickets-poker-handpay STATUS:complete TS:2026-11-27T08:45:54Z
 PHASE:M9 WAVE:software-machine-faults-and-rest STATUS:complete TS:2026-11-27T15:12:17Z
 PHASE:M9 WAVE:software-machine-demo-stimuli STATUS:complete TS:2026-11-27T16:53:44Z
+PHASE:M9 WAVE:demo-scripted-outcomes STATUS:complete TS:2026-11-28T03:45:02Z
