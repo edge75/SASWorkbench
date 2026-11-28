@@ -83,11 +83,11 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    never from `C:\Progetti\libsas`, which other work moves between branches:
 
    ```
-   git -C C:/work/libsas-5.4.6.16 rev-parse HEAD
+   git -C C:/work/libsas-5.4.6.26 rev-parse HEAD
    ```
 
    It must equal the commit in `fixtures/pinned-versions.json`
-   (`0ada3fb12cfba3b4ecd62c37a55724d02514ba2b`, tag `v5.4.6.16`), and the clone must be clean.
+   (`6fd70aa7846718e8d9bfd8240b7aee7b067470c2`, tag `v5.4.6.26`), and the clone must be clean.
    When libsas moves ahead, clone the new tag beside it, point the preset's
    `FETCHCONTENT_SOURCE_DIR_SAS` at the new clone, re-pin, and run
    `python tools/protogen/protogen.py --libsas C:/work/libsas-<version> --check`.
@@ -104,7 +104,7 @@ The demo EGM runs in another process and the SAS link is carried over a TCP sock
    cmake --build --preset SasWorkbenchM0
    ```
 
-   The demo v2.0.4.37 declares QSP v2.3.6.34, which declares libsas v5.4.6.16 and QPM2 v9.0.0.14,
+   The demo v2.0.4.37 declares QSP v2.3.6.34, which declares libsas v5.4.6.16 (the preset builds the pinned v5.4.6.26 instead) and QPM2 v9.0.0.14,
    so the preset overrides only libsas, with `FETCHCONTENT_SOURCE_DIR_SAS` pointing at the clone of
    step 1. The demo runs from `bin\SasWorkbenchM0\x64`.
    It must be built **Release**. A Debug build of the platform needs the `DEMO` licence feature on

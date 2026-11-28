@@ -3,13 +3,13 @@
   "pinned": {
     "libsas": {
       "repository": "https://github.com/quixantplc/libsas",
-      "commit": "0ada3fb12cfba3b4ecd62c37a55724d02514ba2b",
+      "commit": "6fd70aa7846718e8d9bfd8240b7aee7b067470c2",
       "branch": "main",
-      "describedAs": "tag v5.4.6.16",
-      "pinnedOn": "2026-11-06",
-      "measured": "Measured on 2026-11-06 against the demo v2.0.4.37 built with QSP v2.3.6.34 and QPM2 v9.0.0.14, from a private QSP_STORAGE_DIR, on a demo started seconds before each run. With the layout-19 golden memory the regression tree gave 19 pass, 17 fail, 14 skip, the same verdict in every case as v5.4.6.15 on QSP 2.3.6.32 (2026-11-06). With the secure-enhanced memory the full M7 tree gave 43 pass, 0 fail, 138 skip, and the 13 hand pay cases 7 pass, 0 fail, 6 skip, again case for case as on v5.4.6.15. On the golden memory the 13 hand pay cases gave the same 7, 0, 6, and the M7 tree 31 pass, 1 fail, 149 skip; the one failure is 10.2.5, which expects a machine that has printed nothing and reads back the ticket 10.2.2 printed earlier in the same run. On the secure-enhanced memory the regression tree gives 12 pass, 21 fail, 17 skip, because its note and ticket cases send no validation identifier and the acceptor stays off.",
-      "howItIsHeld": "QSP v2.3.6.34 declares libsas as FetchContent 'sas' at v5.4.6.16, and that declaration is not ours to edit. The preset SasWorkbenchM0 in the demo clone at C:/work/QSP_DemoOpenGL-2.0.4.37 overrides it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at a clone held at this commit, C:/work/libsas-5.4.6.16, because the checkout at C:/Progetti/libsas is moved between branches by other work.",
-      "verify": "git -C C:/work/libsas-5.4.6.16 rev-parse HEAD"
+      "describedAs": "tag v5.4.6.26",
+      "pinnedOn": "2026-11-28",
+      "measured": "Measured on 2026-11-28 against the demo v2.0.4.37 built with QSP v2.3.6.34 and QPM2 v9.0.0.14, on the shared ProgramData memory restored before each run and qpm_storage.bin 6183DE07, on a demo started seconds before each run, with no --egm-exe or --egm-bet-credits so the same cases run as at v5.4.6.16. With the layout-19 golden memory the regression tree gave 19 pass, 17 fail, 14 skip, and with the secure-enhanced memory 12 pass, 21 fail, 17 skip, both the same verdict in every case as v5.4.6.16. The 13 hand pay cases gave 7 pass, 0 fail, 6 skip on both memories, case for case as before. The M7 tree has grown since v5.4.6.16 was measured, and every case it ran then kept its verdict except 10.2.5, which now passes after its order fix. On golden it gave 37 pass, 8 fail, 136 skip: the eight failures are cases that were skipped then, 10.3.11 to 10.3.14 (the printed ticket carries no location or address) and 10.7.10, 10.7.11, 10.7.13 and 10.7.14 (golden memory takes no ticket in). On secure-enhanced the whole tree gave 36 pass, 10 fail, 128 skip, 7 errors, because 10.5.1, also skipped then, clears the validation identifier with $7B, gets no $3F and leaves the machine unable to print or redeem, so the sixteen ticket cases after it fail or error; without 10.5.1 chapter 10 gave 22 pass, 0 fail, 49 skip. None of the libsas changes since v5.4.6.16 touch the long polls these cases use.",
+      "howItIsHeld": "QSP v2.3.6.34 declares libsas as FetchContent 'sas' at v5.4.6.16, and that declaration is not ours to edit. The presets SasWorkbenchM0 and SasWorkbenchM0-Scripted in the demo clone at C:/work/QSP_DemoOpenGL-2.0.4.37 override it with FETCHCONTENT_SOURCE_DIR_SAS, pointing the build at a clone held at this commit, C:/work/libsas-5.4.6.26, because the checkout at C:/Progetti/libsas is moved between branches by other work.",
+      "verify": "git -C C:/work/libsas-5.4.6.26 rev-parse HEAD"
     },
     "qsp": {
       "repository": "https://github.com/quixantplc/QSP",
