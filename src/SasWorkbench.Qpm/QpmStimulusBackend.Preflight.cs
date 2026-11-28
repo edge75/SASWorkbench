@@ -47,7 +47,10 @@ public sealed partial class QpmStimulusBackend : IStimulusPreflight
                 "the machine's bet buttons choose a multiplier and commit nothing until play is pressed, so it has no "
                 + "bet-one button to press",
 
-            PeripheralFaultStep { Device: PeripheralDevice.Note, Fault: "jam" or PeripheralFaultStep.Cleared } => null,
+            PeripheralFaultStep { Device: PeripheralDevice.Note, Fault: "jam" } => null,
+
+            PeripheralFaultStep { Device: PeripheralDevice.Note, Fault: PeripheralFaultStep.Cleared } =>
+                ResetKey(profile) is null ? WhyNoJamReset(profile) : null,
 
             PeripheralFaultStep { Device: PeripheralDevice.Note } fault =>
                 $"'{fault.Describe()}' cannot be driven: of the acceptor's faults only the jam is established on this "
