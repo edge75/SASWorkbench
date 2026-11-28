@@ -289,3 +289,4 @@ PHASE:M9 WAVE:software-machine-tickets-poker-handpay STATUS:complete TS:2026-11-
 PHASE:M9 WAVE:software-machine-faults-and-rest STATUS:complete TS:2026-11-27T15:12:17Z
 PHASE:M9 WAVE:software-machine-demo-stimuli STATUS:complete TS:2026-11-27T16:53:44Z
 PHASE:M9 WAVE:demo-scripted-outcomes STATUS:complete TS:2026-11-28T03:45:02Z
+PHASE:M9 WAVE:repin-libsas-5.4.6.26 STATUS:complete TS:2026-11-28T11:00:05Z
