@@ -123,3 +123,15 @@ configure trust lines, golden layout-19 memory, `qpm_storage.bin` `6183DE07`.
   therefore fails 4.5, 4.52, 4.54, 4.8 and 4.11 after it; turning the keyswitch made 4.52 and 4.54 pass.
 * Chapter 4 on this build: 12 pass, 5 fail (all from the jam above), 43 skip; 4.4 and 4.14 restart the
   demo and pass.
+
+## Retest after the jam and log-line fixes, 2026-11-28
+
+Same pins and memory (golden layout 19, `qpm_storage.bin` `6183DE07`), sasctl built from the fix branch, plain build.
+
+* **Chapter 4: 17 pass, 0 fail, 43 skip** (was 12, 5, 43). 4.41 clears the jam with the keyswitch, and 4.5,
+  4.52, 4.54, 4.8 and 4.11 after it now pass.
+* **F10 is now seen.** 16.15 drew `$6C` as a real-time event after the posted key. It still fails at its last
+  step, `$0E 00`, answered with a queued `$82` or `$83`: the demo reports about 25 start-up exceptions, `$82`
+  and `$83` among them, and `forget exceptions within 2s` does not wait them out. Starting the demo 40 s
+  earlier did not help, because the demo holds them until the host links. A scratch copy with `host warm up
+  20s` after the forget passed. The case file is unchanged.
