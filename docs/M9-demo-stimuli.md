@@ -4,9 +4,8 @@
 (`.planning/demo-actions-audit.md`, ranked gaps 1, 2, 3, 4, 6, 7, 8 and 9).** The peripheral stimulus
 (`--stimulus qpm`) now works the audit key, jams the note acceptor, plays games whose outcome the demo
 decides, holds a game, chooses the first enabled game, restarts the demo from a declared executable and
-posts its AFT registration key. **None of it has been run against the demo yet**: the measured build
-(`C:\work\QSP_DemoOpenGL-2.0.4.37`) no longer exists on this laptop, so the real-demo verification is
-pending (see the end).
+posts its AFT registration key. It was first run against the rebuilt demo on 2026-11-28; what that
+measured is at the end.
 
 ---
 
@@ -103,3 +102,24 @@ sasctl run tests/validation/egm-test-scripts-v1.00 --tcp 127.0.0.1:9760 --addres
 Unknown until then: whether the audit key alone draws the page that sends `$82`, whether posted F10
 reaches GLFW on the measured build, the spin length against a held game, and whether `$55` follows the
 Game Menu press.
+
+## Measured on the demo, 2026-11-28
+
+Rebuilt at the pins (demo v2.0.4.37, QSP v2.3.6.34, QPM2 v9.0.0.14, libsas v5.4.6.16) with all four
+configure trust lines, golden layout-19 memory, `qpm_storage.bin` `6183DE07`.
+
+* **The audit key alone sends `$82` and `$83`.** 4.28 passes with the key turned and returned, no door.
+* **Posted F10 reaches the game.** Each post adds `AFT registration: request accepted, status now 0x80`
+  to the demo's log, from `WM_KEYDOWN` and `WM_SYSKEYDOWN` alike. The registration step still reports
+  that nothing arrived, because it counts the log's lines including the empty one after the last newline
+  and so skips the first new line; `$73` was therefore not read back.
+* **A spin lasts 10.0 s** from `$7E` to `$7F` (three games at 50 credits: 10.05, 9.97, 10.01 s), and
+  `$7E` comes 0.65 s after the Play press.
+* **`$55` follows the Game Menu press**: it read 0 on the selection screen and 1 about 0.8 s after one
+  press, with `SelectGame(1) denomination 5` in the demo's log.
+* **A bill jam is a lockup that only the Reset/JKey keyswitch clears.** After `egm note fault cleared`
+  the machine keeps returning every note (`$2B`) and ignores Service, across a restart, until the
+  keyswitch is turned (QSP `BillValidatorHandler.cpp:1180`, `ConditionHandler.cpp:839`). In a run, 4.41
+  therefore fails 4.5, 4.52, 4.54, 4.8 and 4.11 after it; turning the keyswitch made 4.52 and 4.54 pass.
+* Chapter 4 on this build: 12 pass, 5 fail (all from the jam above), 43 skip; 4.4 and 4.14 restart the
+  demo and pass.
