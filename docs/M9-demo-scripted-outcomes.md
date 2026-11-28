@@ -106,7 +106,20 @@ chapter 12 still skips. The chapter-13 SAS-progressive cases that need no jackpo
 the demo is set to a linked progressive and `$1F` reports the group they declare. Losing plays unlock no GSA case: their
 bets are 1 to 10 credits, which the demo cannot wager (D63).
 
-## Still pending: the real demo
+## On the real demo (2026-11-28)
 
-The scripted build is configured and built (`C:\work\QSP_DemoOpenGL-2.0.4.37\bin\SasWorkbenchM0-Scripted\x64`). It has
-not been run yet: the platform is in use by another session's verification of the plain build.
+Run on QSP_DemoOpenGL v2.0.4.37 (`C:\work\QSP_DemoOpenGL-2.0.4.37`), both builds in turn, with the platform free.
+The case file is `tests/validation/demo-scripted-outcomes/scripted-outcomes.sas`; it needs `stimulus.scripted_outcomes`, so it skips
+on the software machine.
+
+* **The plain build refuses.** With a copy of the cases that does not require the capability, both steps were skipped
+  before the case started, naming the missing marker; the provenance carries no machine label.
+* **The scripted build names itself.** Its marker was found live and every result read
+  `stimulus qpm, machine: scripted outcomes (dev build)`. Its log showed every game draw. That included a game the demo
+  replayed by itself at start-up, which drew from the stock generator because nothing was queued.
+* **No outcome was drawn yet.** On the memory the previous run left behind, the demo dropped every play and bet press
+  and rejected every note (`$2B`), on the plain build as well, while still taking the keyswitch. A platform inhibiting
+  condition was active, which a pulse of the reset key did not clear. The host queued each outcome, waited the 10 s,
+  withdrew it and ended the case, as designed. The progressive and losing outcomes are still to be seen on a demo that
+  takes play. The memory found at the start (`0E5C2A19`) boots into a memory error on both builds and was restored
+  afterwards; `qpm_storage.bin` stayed `63CC489F`.
