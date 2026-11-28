@@ -88,6 +88,8 @@ test "16.15 the request to register as a real-time event" {
   host poll every 200ms
   host expect link up within 30s
   host send lp 73 data 0180
+  # A machine that has just started is still reporting; only the first case of a run waits.
+  host warm up 20s
   host forget exceptions within 2s
 
   host poll sequence

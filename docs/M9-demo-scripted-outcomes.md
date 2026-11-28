@@ -133,9 +133,16 @@ Golden layout-19 memory, `qpm_storage.bin` `6183DE07`.
   cases skipped again (no draw within 10 s), and a stock play on the plain build ended no game within 90 s.
   After `egm select game 1` the same demo session played: a stock game moved games played by one, and
   both cases passed, the losing pair (`0,2,0,0,0` twice) and the level-one win (`12,13,13,13,12`) with
-  `$54`. Before a case runs on a fresh demo a game has to be chosen; the case file is unchanged.
+  `$54`. Before a case runs on a fresh demo a game has to be chosen, so both cases now warm up and choose game 1 first.
 * **The plain build refuses**, naming the marker (here a stale one left by a terminated scripted demo).
   12.15 and 12.17 skip for `machine.progressives`, 13.26 for `machine.jackpot_limit`, 13.24 is refused for its
   stated `win=0`, and 13.25, 13.28 and 13.29 are refused for the missing marker.
 * Chapters 12 and 13 on the scripted build: 3 pass, 1 fail, 68 skip. The failure is 12.4: long poll B0
   answers with an error and no game number on libsas v5.4.6.16.
+
+## Fresh start, 2026-11-28 evening
+
+Both cases now warm up for 20 s and choose game 1 before the note. Golden memory, `qpm_storage.bin` `6183DE07`,
+demo started 5 s before the host: on the scripted build both pass (the losing pair and the level-one win with
+`$54`), each confirmed by its `done` line; on the plain build both skip for the missing
+`stimulus.scripted_outcomes`.
