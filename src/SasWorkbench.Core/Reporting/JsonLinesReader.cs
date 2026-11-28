@@ -254,6 +254,7 @@ public static class JsonLinesReader
             ChannelsRead = read,
             ChannelRefusal = Text(element, "channelRefusal"),
             Round = Text(element, "round"),
+            MachineBuild = Text(element, "machineBuild"),
         };
     }
 

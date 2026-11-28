@@ -70,6 +70,9 @@ public sealed class JUnitReportWriter : IReportWriter
                     if (provenance.Round is not null)
                         WriteProperty(writer, "round", provenance.Round);
 
+                    if (provenance.MachineBuild is not null)
+                        WriteProperty(writer, "machineBuild", provenance.MachineBuild);
+
                     if (provenance.ChannelRefusal is not null)
                         WriteProperty(writer, "channelRefusal", provenance.ChannelRefusal);
 

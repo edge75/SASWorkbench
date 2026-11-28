@@ -223,13 +223,14 @@ internal static class RunCommand
 
         var peripherals = new QpmOptions(
             line.Value("qpm-shm"), line.Value("egm-resources"),
-            ExecutablePath: line.Value("egm-exe"), BetCredits: betCredits);
+            ExecutablePath: line.Value("egm-exe"), BetCredits: betCredits, OutcomesDirectory: line.Value("egm-outcomes"));
 
         if (backend != StimulusBackend.Qpm
             && (peripherals.RegionPath is not null || peripherals.ResourcesDirectory is not null
-                || peripherals.ExecutablePath is not null || betCredits is not null))
+                || peripherals.ExecutablePath is not null || betCredits is not null
+                || peripherals.OutcomesDirectory is not null))
         {
-            error = "--qpm-shm, --egm-resources, --egm-exe and --egm-bet-credits only mean something with --stimulus qpm.";
+            error = "--qpm-shm, --egm-resources, --egm-exe, --egm-bet-credits and --egm-outcomes only mean something with --stimulus qpm.";
             return false;
         }
 

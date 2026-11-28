@@ -277,6 +277,11 @@ public sealed partial class ScriptRunner
                 //  Taken from every connect the case holds rather than from the first, because the
                 //  second host's round is its own and is not opened until its step runs.
                 Round = Polling(test),
+
+                //  A machine that is not the measured build says so on every result it produced (D64).
+                MachineBuild = environment.ExtraCapabilities.TryGetValue(RunProvenance.MachineBuildCapability, out string? build)
+                    ? build
+                    : null,
             };
 
             (Requirement Requirement, string Reason)? unmet =

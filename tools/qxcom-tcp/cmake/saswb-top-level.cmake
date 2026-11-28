@@ -56,3 +56,10 @@ if(NOT saswb_toggles_deferred)
 	set_property(GLOBAL PROPERTY SASWB_TOGGLES_DEFERRED TRUE)
 	cmake_language(DEFER DIRECTORY "${CMAKE_SOURCE_DIR}" CALL saswb_enable_qsp_toggles)
 endif()
+
+#	The scripted-outcomes preset alone swaps the demo's generator (D64); the measured build never does.
+get_property(saswb_rng_deferred GLOBAL PROPERTY SASWB_RNG_DEFERRED)
+if(SASWB_SCRIPTED_OUTCOMES AND NOT saswb_rng_deferred)
+	set_property(GLOBAL PROPERTY SASWB_RNG_DEFERRED TRUE)
+	include("${SASWB_ROOT}/tools/qxcom-tcp/cmake/saswb-scripted-outcomes.cmake")
+endif()

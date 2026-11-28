@@ -182,6 +182,12 @@ public sealed record RunProvenance(
     /// </remarks>
     public string? Round { get; init; }
 
+    /// <summary>What kind of build the machine was, when it is not the measured one, e.g. "scripted outcomes (dev build)".</summary>
+    public string? MachineBuild { get; init; }
+
+    /// <summary>The capability a driver offers to name a machine build that is not the measured one.</summary>
+    public const string MachineBuildCapability = "machine.build";
+
     public override string ToString()
     {
         string caveat = Caveat is null ? string.Empty : $" — {Caveat}";
@@ -197,8 +203,9 @@ public sealed record RunProvenance(
             ? string.Empty
             : $" [arrangement refused: {ChannelRefusal}]";
 
+        string build = MachineBuild is null ? string.Empty : $", machine: {MachineBuild}";
         return $"{Transport}, {Fidelity.ToString().ToLowerInvariant()}, stimulus "
-               + $"{Stimulus.ToString().ToLowerInvariant()}{channels}{round}{refused}{caveat}";
+               + $"{Stimulus.ToString().ToLowerInvariant()}{build}{channels}{round}{refused}{caveat}";
     }
 }
 

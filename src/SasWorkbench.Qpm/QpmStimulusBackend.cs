@@ -17,11 +17,13 @@ namespace SasWorkbench.Qpm;
 /// <param name="acceptorDirectory">Where tickets are offered, or null for the usual place.</param>
 /// <param name="demo">The executable the run declared, which power cycles and window keys need; null when none was.</param>
 /// <param name="betCredits">The credits one bet multiplier wagers, which plays need; null when the run did not say.</param>
+/// <param name="outcomes">Where a scripted build of the machine takes its outcomes; null when there is none to use.</param>
 public sealed partial class QpmStimulusBackend(
     QpmMachine machine,
     string? acceptorDirectory = null,
     DemoProcess? demo = null,
-    long? betCredits = null)
+    long? betCredits = null,
+    ScriptedOutcomes? outcomes = null)
     : IHostAwareStimulusBackend, IDisposable
 {
     private readonly TicketAcceptor _acceptor =
@@ -161,7 +163,7 @@ public sealed partial class QpmStimulusBackend(
             + string.Join(", ", Machine.Profile.ButtonNames);
     }
 
-    private Dictionary<string, string?> Describe() => Offer(Machine.Profile, _acceptor.Directory, demo, betCredits);
+    private Dictionary<string, string?> Describe() => Offer(Machine.Profile, _acceptor.Directory, demo, betCredits, outcomes);
 
     /// <summary>
     /// What this backend offers a machine with this profile, without attaching to it.
@@ -171,7 +173,8 @@ public sealed partial class QpmStimulusBackend(
     /// lacks rather than everything a backend nobody has attached cannot vouch for.
     /// </remarks>
     public static Dictionary<string, string?> Offer(
-        EgmHardwareProfile profile, string acceptorDirectory, DemoProcess? demo = null, long? betCredits = null)
+        EgmHardwareProfile profile, string acceptorDirectory, DemoProcess? demo = null, long? betCredits = null,
+        ScriptedOutcomes? outcomes = null)
     {
         ArgumentNullException.ThrowIfNull(profile);
 
@@ -211,6 +214,7 @@ public sealed partial class QpmStimulusBackend(
             values["stimulus.handpay.reset"] = HandpayByWithdrawnPrinter;
 
         OfferOnTheDemo(values, profile, demo, betCredits);
+        OfferOutcomes(values, profile, demo, outcomes);
         return values;
     }
 

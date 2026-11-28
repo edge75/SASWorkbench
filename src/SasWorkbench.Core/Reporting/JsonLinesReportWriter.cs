@@ -148,6 +148,7 @@ public sealed class JsonLinesReportWriter : IReportWriter
         // Which machines each host polled. The arrangement above is one machine's; this is how
         // many of them there were, without which a floor reads back as that one machine.
         round = p.Round,
+        machineBuild = p.MachineBuild,
     };
 
     private static void Write(StringBuilder builder, object record) =>

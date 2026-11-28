@@ -13,15 +13,20 @@ namespace SasWorkbench.Qpm;
 /// <param name="Timings">How long to wait for the machine, or null for the usual timings.</param>
 /// <param name="ExecutablePath">The machine's executable, for power cycles and window keys; null when not declared.</param>
 /// <param name="BetCredits">The credits one bet multiplier wagers, for plays; null when not declared.</param>
+/// <param name="OutcomesDirectory">Where a scripted build takes its outcomes, or null for the usual place.</param>
 public sealed record QpmOptions(
     string? RegionPath = null,
     string? ResourcesDirectory = null,
     QpmTimings? Timings = null,
     string? ExecutablePath = null,
-    long? BetCredits = null)
+    long? BetCredits = null,
+    string? OutcomesDirectory = null)
 {
     /// <summary>The declared executable, or null.</summary>
     public DemoProcess? Demo => ExecutablePath is null ? null : new DemoProcess(ExecutablePath);
+
+    /// <summary>The scripted outcomes' directory, which only a scripted build of the machine reads.</summary>
+    public ScriptedOutcomes Outcomes => new(OutcomesDirectory);
 }
 
 /// <summary>
@@ -79,7 +84,8 @@ public static class QpmEnvironment
             EgmHardwareProfile.ReadFrom(settings.ResourcesDirectory),
             acceptorDirectory ?? TicketAcceptor.DefaultDirectory,
             settings.Demo,
-            settings.BetCredits).AsReadOnly();
+            settings.BetCredits,
+            settings.Outcomes).AsReadOnly();
     }
 
     /// <summary>
@@ -95,7 +101,8 @@ public static class QpmEnvironment
                 QpmMachine.Attach(settings.RegionPath, settings.ResourcesDirectory, settings.Timings),
                 acceptorDirectory,
                 settings.Demo,
-                settings.BetCredits);
+                settings.BetCredits,
+                settings.Outcomes);
         }
         catch (QpmUnavailableException unavailable)
         {

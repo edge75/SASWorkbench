@@ -85,6 +85,8 @@ public static partial class ScriptParser
         var levels = new List<int>();
         long bet = 1;
         long win = 0;
+        bool betStated = false;
+        bool winStated = false;
         foreach (string word in words[3..])
         {
             string[] pair = word.Split('=', 2);
@@ -107,6 +109,7 @@ public static partial class ScriptParser
             if (pair.Length == 2 && pair[0].Equals("win", StringComparison.OrdinalIgnoreCase)
                 && long.TryParse(pair[1], NumberStyles.None, CultureInfo.InvariantCulture, out win))
             {
+                winStated = true;
                 continue;
             }
 
@@ -115,11 +118,13 @@ public static partial class ScriptParser
             {
                 throw new ScriptParseException(location, $"'{word}' is not a progressive win setting. {Usage}");
             }
+
+            betStated = true;
         }
 
         if (levels.Count == 0)
             throw new ScriptParseException(location, Usage);
 
-        return new ProgressiveWinStep(location, levels, bet) { WinCredits = win };
+        return new ProgressiveWinStep(location, levels, bet) { WinCredits = win, BetStated = betStated, WinStated = winStated };
     }
 }

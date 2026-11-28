@@ -57,8 +57,9 @@ public sealed partial class QpmStimulusBackend : IStimulusPreflight
                 $"'{fault.Describe()}' cannot be driven: which bit of the printer mask reports which fault is not "
                 + "established for this machine",
 
-            PlayGamesStep play => Outcome(play.WinStated || play.WinCredits > 0, play.Describe())
-                                  ?? Missing(profile, "play") ?? WhyNoBet(play.BetCredits),
+            PlayGamesStep play => RefusePlay(play),
+
+            ProgressiveWinStep win => RefuseProgressive(win),
 
             StartGameStep start => Missing(profile, "play") ?? WhyNoBet(start.BetCredits),
 

@@ -43,7 +43,8 @@ public sealed class MarkdownReportWriter : IReportWriter
                 builder.AppendLine(
                     $"| {Escape(provenance.Transport)} "
                     + $"| {provenance.Fidelity.ToString().ToLowerInvariant()} "
-                    + $"| {provenance.Stimulus.ToString().ToLowerInvariant()} "
+                    + $"| {provenance.Stimulus.ToString().ToLowerInvariant()}"
+                    + (provenance.MachineBuild is null ? " " : $", {Escape(provenance.MachineBuild)} ")
                     + $"| {Escape(channels)} "
                     + $"| {Escape(provenance.Round ?? "one machine")} "
                     + $"| {Escape(caveat)} |");
