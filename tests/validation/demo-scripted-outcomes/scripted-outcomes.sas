@@ -8,13 +8,16 @@
 
 test "a scripted losing game moves games lost and not games won" {
   tag @needs-stimulus @scripted-outcomes
-  requires stimulus.scripted_outcomes, stimulus.play, stimulus.bill, decoder.lp6F
+  requires stimulus.scripted_outcomes, stimulus.play, stimulus.select_game, stimulus.bill, decoder.lp6F
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A freshly started demo opens on its game selection screen, which ignores Play until a game is chosen.
+  host warm up 20s
+  egm select game 1
   egm bill insert 1000
   host forget exceptions within 2s
 
@@ -33,13 +36,16 @@ test "a scripted losing game moves games lost and not games won" {
 
 test "a scripted level-one win raises the progressive win exception" {
   tag @needs-stimulus @scripted-outcomes
-  requires stimulus.scripted_outcomes, stimulus.progressive, stimulus.bill
+  requires stimulus.scripted_outcomes, stimulus.progressive, stimulus.select_game, stimulus.bill
 
   host connect loopback address 01
   host poll every 200ms
   host expect link up within 30s
   host send lp 4C with validation_id=1 sequence_number=1 when egm.validation == secure_enhanced
   egm settle
+  # A freshly started demo opens on its game selection screen, which ignores Play until a game is chosen.
+  host warm up 20s
+  egm select game 1
   egm bill insert 1000
   host forget exceptions within 2s
 
